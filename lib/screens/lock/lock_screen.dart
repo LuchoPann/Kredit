@@ -1,15 +1,17 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/app_lock_provider.dart';
 import '../../theme/app_theme.dart';
 
-/// Blocking screen shown when `appLockProvider.isLocked` is true. For
-/// `LockMethod.biometric`, attempts authentication automatically on show
-/// with a manual "Reintentar" fallback; for `LockMethod.pin`, a simple
-/// numeric keypad accepts a 4-6 digit PIN with error feedback on mismatch.
+/// Blocking screen shown when [appLockProvider.isLocked] is true.
+///
+/// Biometric: attempts automatically on show with a manual "Reintentar"
+/// fallback.
+/// PIN: uses the device's native numeric keyboard (via a hidden [TextField])
+/// so the user gets their phone's own keypad, with haptics and autocomplete
+/// disabled.
 class LockScreen extends ConsumerStatefulWidget {
   const LockScreen({super.key});
 
@@ -19,31 +21,37 @@ class LockScreen extends ConsumerStatefulWidget {
 
 class _LockScreenState extends ConsumerState<LockScreen>
     with TickerProviderStateMixin {
-  String _pinInput = '';
+  // ── PIN state ──────────────────────────────────────────────────────────────
+  final _pinCtrl = TextEditingController();
+  final _pinFocus = FocusNode();
   bool _error = false;
   bool _authenticating = false;
 
-  late final AnimationController _shakeController;
-  late final AnimationController _pulseController;
+  // ── Animations ─────────────────────────────────────────────────────────────
+  late final AnimationController _shakeCtrl;
+  late final AnimationController _pulseCtrl;
 
   @override
   void initState() {
     super.initState();
-    _shakeController = AnimationController(
+    _shakeCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 420),
     );
-    _pulseController = AnimationController(
+    _pulseCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     )..repeat();
+
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeAutoBiometric());
   }
 
   @override
   void dispose() {
-    _shakeController.dispose();
-    _pulseController.dispose();
+    _pinCtrl.dispose();
+    _pinFocus.dispose();
+    _shakeCtrl.dispose();
+    _pulseCtrl.dispose();
     super.dispose();
   }
 
@@ -51,6 +59,8 @@ class _LockScreenState extends ConsumerState<LockScreen>
     final method = ref.read(appLockProvider).method;
     if (method == LockMethod.biometric) {
       await _tryBiometric();
+    } else if (method == LockMethod.pin) {
+      _pinFocus.requestFocus(); // open native keyboard immediately
     }
   }
 
@@ -61,110 +71,294 @@ class _LockScreenState extends ConsumerState<LockScreen>
     if (mounted) setState(() => _authenticating = false);
   }
 
-  Future<void> _onDigit(String digit) async {
-    if (_pinInput.length >= 6) return;
-    setState(() {
-      _pinInput += digit;
-      _error = false;
-    });
-    if (_pinInput.length >= 4) {
-      // Allow a short window for further digits (up to 6) before
-      // auto-submitting, mirroring a typical PIN-pad UX: submit once the
-      // user pauses, but only after the minimum length is reached — here
-      // simplified to auto-submit as soon as 4 digits are entered if that
-      // already verifies; otherwise wait for more digits up to 6.
-      final ok = await ref.read(appLockProvider.notifier).verifyPin(_pinInput);
-      if (!ok) {
-        if (_pinInput.length == 6) {
-          setState(() {
-            _error = true;
-            _pinInput = '';
-          });
-          _shakeController.forward(from: 0);
+  Future<void> _onPinChanged(String value) async {
+    if (value.length > 6) {
+      _pinCtrl.text = value.substring(0, 6);
+      _pinCtrl.selection =
+          TextSelection.collapsed(offset: _pinCtrl.text.length);
+      return;
+    }
+    setState(() => _error = false);
+
+    // Auto-verify at ≥4 digits; keep going up to 6 if wrong
+    if (value.length >= 4) {
+      final ok = await ref.read(appLockProvider.notifier).verifyPin(value);
+      if (ok) return; // provider navigates away
+      if (value.length == 6) {
+        setState(() => _error = true);
+        _shakeCtrl.forward(from: 0);
+        await Future.delayed(const Duration(milliseconds: 600));
+        if (mounted) {
+          _pinCtrl.clear();
+          setState(() => _error = false);
         }
-        // else: keep waiting for more digits in case it's a longer PIN
       }
     }
-  }
-
-  void _onBackspace() {
-    if (_pinInput.isEmpty) return;
-    setState(() {
-      _pinInput = _pinInput.substring(0, _pinInput.length - 1);
-      _error = false;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     final lockState = ref.watch(appLockProvider);
     final kredit = Theme.of(context).extension<KreditColors>()!;
+    final isPinMode = lockState.method == LockMethod.pin;
 
     return Scaffold(
       backgroundColor: kredit.bgPrimary,
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 72,
-                      height: 72,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: kredit.borderCard, width: 1.5),
-                      ),
-                      child: Icon(Icons.lock_outline, size: 32, color: kredit.textPrimary),
+      // Tapping anywhere re-focuses the hidden field (PIN mode)
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: isPinMode ? () => _pinFocus.requestFocus() : null,
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // ── Lock / PIN icon ────────────────────────────────────────
+                  Container(
+                    width: 80,
+                    height: 80,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: kredit.bgCard,
+                      border: Border.all(color: kredit.borderCard, width: 1.5),
                     ),
-                    const SizedBox(height: KreditSpacing.section),
-                    Text(
-                      'Kredit bloqueado',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: kredit.textPrimary,
-                        letterSpacing: -0.3,
-                      ),
+                    child: Icon(
+                      isPinMode ? Icons.pin_outlined : Icons.lock_outline,
+                      size: 36,
+                      color: kredit.textPrimary,
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      lockState.method == LockMethod.biometric
-                          ? 'Verifica tu identidad para continuar'
-                          : 'Ingresa tu PIN para continuar',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: kredit.textSecondary, fontSize: 14),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // ── Title ──────────────────────────────────────────────────
+                  Text(
+                    'Kredit bloqueado',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: kredit.textPrimary,
+                      letterSpacing: -0.3,
                     ),
-                    const SizedBox(height: 40),
-                    if (lockState.method == LockMethod.biometric)
-                      _BiometricPrompt(
-                        authenticating: _authenticating,
-                        pulseAnimation: _pulseController,
-                        onRetry: _tryBiometric,
-                      )
-                    else if (lockState.method == LockMethod.pin)
-                      _PinPad(
-                        pinLength: _pinInput.length,
-                        error: _error,
-                        shakeAnimation: _shakeController,
-                        onDigit: _onDigit,
-                        onBackspace: _onBackspace,
-                      ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    isPinMode
+                        ? 'Ingresa tu PIN para continuar'
+                        : 'Verifica tu identidad para continuar',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: kredit.textSecondary, fontSize: 14),
+                  ),
+                  const SizedBox(height: 40),
+
+                  // ── Mode-specific widget ───────────────────────────────────
+                  if (!isPinMode)
+                    _BiometricPrompt(
+                      authenticating: _authenticating,
+                      pulseAnimation: _pulseCtrl,
+                      onRetry: _tryBiometric,
+                    )
+                  else
+                    _NativePinField(
+                      controller: _pinCtrl,
+                      focusNode: _pinFocus,
+                      error: _error,
+                      shakeAnimation: _shakeCtrl,
+                      onChanged: _onPinChanged,
+                    ),
+                ],
               ),
-            );
-          },
+            ),
+          ),
         ),
       ),
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PIN entry — dots indicator + hidden TextField → native keyboard
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _NativePinField extends StatelessWidget {
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final bool error;
+  final Animation<double> shakeAnimation;
+  final Future<void> Function(String) onChanged;
+
+  const _NativePinField({
+    required this.controller,
+    required this.focusNode,
+    required this.error,
+    required this.shakeAnimation,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accent = Theme.of(context).colorScheme.primary;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // ── Animated dot indicators ────────────────────────────────────────
+        AnimatedBuilder(
+          animation: shakeAnimation,
+          builder: (context, child) {
+            final t = shakeAnimation.value;
+            final offset = (t == 0 || t == 1)
+                ? 0.0
+                : _shakeSin(t * 4 * 3.1416) * 14 * (1 - t);
+            return Transform.translate(
+              offset: Offset(offset, 0),
+              child: child,
+            );
+          },
+          child: ValueListenableBuilder<TextEditingValue>(
+            valueListenable: controller,
+            builder: (_, value, _) {
+              final len = value.text.length;
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(6, (i) {
+                  final filled = i < len;
+                  final isActive = i == len; // next-to-fill
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    curve: Curves.easeOut,
+                    margin: const EdgeInsets.symmetric(horizontal: 9),
+                    width: filled ? 20 : 18,
+                    height: filled ? 20 : 18,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: error
+                          ? AppColors.danger
+                          : (filled ? kredit.textPrimary : Colors.transparent),
+                      border: Border.all(
+                        color: error
+                            ? AppColors.danger
+                            : (filled
+                                ? kredit.textPrimary
+                                : isActive
+                                    ? accent
+                                    : kredit.borderCard),
+                        width: isActive && !error ? 2.5 : 2,
+                      ),
+                    ),
+                  );
+                }),
+              );
+            },
+          ),
+        ),
+
+        // ── Error / feedback message ───────────────────────────────────────
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: error
+              ? Padding(
+                  key: const ValueKey('err'),
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Text(
+                    'PIN incorrecto, intenta de nuevo',
+                    style: TextStyle(
+                      color: AppColors.danger,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                )
+              : const SizedBox(key: ValueKey('ok'), height: 16),
+        ),
+
+        const SizedBox(height: 28),
+
+        // ── Tap-to-open-keyboard area ──────────────────────────────────────
+        GestureDetector(
+          onTap: () => focusNode.requestFocus(),
+          child: ValueListenableBuilder<TextEditingValue>(
+            valueListenable: controller,
+            builder: (_, value, _) => AnimatedOpacity(
+              opacity: value.text.isEmpty ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 200),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.keyboard_outlined,
+                      size: 16, color: kredit.textTertiary),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Toca para ingresar tu PIN',
+                    style: TextStyle(fontSize: 12, color: kredit.textTertiary),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // ── Hidden TextField — drives the native numeric keyboard ──────────
+        SizedBox(
+          width: 1,
+          height: 1,
+          child: Opacity(
+            opacity: 0,
+            child: TextField(
+              controller: controller,
+              focusNode: focusNode,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              maxLength: 6,
+              obscureText: true,
+              autofocus: true,
+              enableSuggestions: false,
+              autocorrect: false,
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                counterText: '',
+              ),
+              onChanged: onChanged,
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // ── Fallback button if keyboard gets dismissed ─────────────────────
+        TextButton.icon(
+          onPressed: () => focusNode.requestFocus(),
+          icon: Icon(Icons.keyboard_outlined,
+              size: 18, color: kredit.textTertiary),
+          label: Text(
+            'Abrir teclado',
+            style: TextStyle(color: kredit.textTertiary, fontSize: 13),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Decaying horizontal sine wave for the shake animation.
+double _shakeSin(double x) {
+  const pi = 3.14159265358979;
+  x = x % (2 * pi);
+  final xs = x - pi;
+  final denom = 5 * pi * pi - 4 * xs * (pi - xs.abs());
+  if (denom == 0) return 0;
+  return -((16 * xs * (pi - xs.abs())) / denom);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Biometric prompt
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _BiometricPrompt extends StatelessWidget {
   final bool authenticating;
@@ -181,17 +375,16 @@ class _BiometricPrompt extends StatelessWidget {
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
+
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          width: 88,
-          height: 88,
+          width: 100,
+          height: 100,
           child: AnimatedBuilder(
             animation: pulseAnimation,
             builder: (context, child) {
-              // Expanding, fading ring that loops while waiting on the
-              // biometric prompt, so "esperando autenticación" reads as an
-              // active process rather than a static icon.
               final t = pulseAnimation.value;
               return Stack(
                 alignment: Alignment.center,
@@ -200,8 +393,8 @@ class _BiometricPrompt extends StatelessWidget {
                     Opacity(
                       opacity: (1 - t).clamp(0.0, 1.0),
                       child: Container(
-                        width: 56 + (32 * t),
-                        height: 56 + (32 * t),
+                        width: 64 + (36 * t),
+                        height: 64 + (36 * t),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(color: accent, width: 1.5),
@@ -213,8 +406,8 @@ class _BiometricPrompt extends StatelessWidget {
               );
             },
             child: Container(
-              width: 64,
-              height: 64,
+              width: 72,
+              height: 72,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
@@ -226,7 +419,7 @@ class _BiometricPrompt extends StatelessWidget {
               ),
               child: Icon(
                 Icons.fingerprint,
-                size: 32,
+                size: 38,
                 color: authenticating ? accent : kredit.textSecondary,
               ),
             ),
@@ -234,175 +427,25 @@ class _BiometricPrompt extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         Text(
-          authenticating ? 'Verificando...' : 'Autenticación biométrica requerida',
+          authenticating
+              ? 'Verificando...'
+              : 'Autenticación biométrica requerida',
+          textAlign: TextAlign.center,
           style: TextStyle(color: kredit.textSecondary, fontSize: 14),
         ),
-        const SizedBox(height: 24),
-        OutlinedButton.icon(
+        const SizedBox(height: 28),
+        FilledButton.icon(
           onPressed: authenticating ? null : onRetry,
-          icon: const Icon(Icons.fingerprint, size: 18),
+          icon: const Icon(Icons.fingerprint, size: 20),
           label: const Text('Reintentar'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: kredit.textPrimary,
-            side: BorderSide(color: kredit.borderCard),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          style: FilledButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(KreditRadius.tile),
             ),
           ),
         ),
       ],
-    );
-  }
-}
-
-class _PinPad extends StatelessWidget {
-  final int pinLength;
-  final bool error;
-  final Animation<double> shakeAnimation;
-  final void Function(String) onDigit;
-  final VoidCallback onBackspace;
-
-  const _PinPad({
-    required this.pinLength,
-    required this.error,
-    required this.shakeAnimation,
-    required this.onDigit,
-    required this.onBackspace,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AnimatedBuilder(
-          animation: shakeAnimation,
-          builder: (context, child) {
-            // Decaying horizontal shake: a few oscillations that settle by
-            // the end of the animation, common "wrong PIN" feedback.
-            final t = shakeAnimation.value;
-            final offset = (t == 0 || t == 1)
-                ? 0.0
-                : math.sin(t * 4 * math.pi) * 12 * (1 - t);
-            return Transform.translate(offset: Offset(offset, 0), child: child);
-          },
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(6, (i) {
-              final filled = i < pinLength;
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                margin: const EdgeInsets.symmetric(horizontal: 7),
-                width: 16,
-                height: 16,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: error
-                      ? AppColors.danger
-                      : (filled ? kredit.textPrimary : Colors.transparent),
-                  border: Border.all(
-                    color: error ? AppColors.danger : AppColors.borderActive,
-                    width: 1.5,
-                  ),
-                ),
-              );
-            }),
-          ),
-        ),
-        SizedBox(
-          height: 32,
-          child: error
-              ? Center(
-                  child: Text(
-                    'PIN incorrecto',
-                    style: TextStyle(color: AppColors.danger, fontSize: 13),
-                  ),
-                )
-              : null,
-        ),
-        const SizedBox(height: 8),
-        Builder(
-          builder: (context) {
-            final padWidth =
-                (MediaQuery.of(context).size.width * 0.7).clamp(220.0, 300.0);
-            return SizedBox(
-              width: padWidth,
-              child: GridView.count(
-                crossAxisCount: 3,
-                shrinkWrap: true,
-                mainAxisSpacing: 14,
-                crossAxisSpacing: 14,
-                childAspectRatio: 1.3,
-                physics: const NeverScrollableScrollPhysics(),
-                children: [
-                  for (final d in ['1', '2', '3', '4', '5', '6', '7', '8', '9'])
-                    _PadButton(label: d, onTap: () => onDigit(d)),
-                  const SizedBox.shrink(),
-                  _PadButton(label: '0', onTap: () => onDigit('0')),
-                  _PadButton(
-                    icon: Icons.backspace_outlined,
-                    onTap: onBackspace,
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
-}
-
-class _PadButton extends StatefulWidget {
-  final String? label;
-  final IconData? icon;
-  final VoidCallback onTap;
-
-  const _PadButton({this.label, this.icon, required this.onTap});
-
-  @override
-  State<_PadButton> createState() => _PadButtonState();
-}
-
-class _PadButtonState extends State<_PadButton> {
-  bool _pressed = false;
-
-  void _setPressed(bool value) {
-    if (_pressed != value) setState(() => _pressed = value);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
-    return AnimatedScale(
-      scale: _pressed ? 0.9 : 1.0,
-      duration: const Duration(milliseconds: 100),
-      curve: Curves.easeOut,
-      child: Material(
-        color: kredit.bgCard,
-        shape: CircleBorder(side: BorderSide(color: kredit.borderCard)),
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: widget.onTap,
-          onTapDown: (_) => _setPressed(true),
-          onTapCancel: () => _setPressed(false),
-          onTapUp: (_) => _setPressed(false),
-          child: Center(
-            child: widget.label != null
-                ? Text(
-                    widget.label!,
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w600,
-                      color: kredit.textPrimary,
-                    ),
-                  )
-                : Icon(widget.icon, color: kredit.textSecondary),
-          ),
-        ),
-      ),
     );
   }
 }
