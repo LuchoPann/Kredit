@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 60" fill="none">
+  <!-- Tuya - Amarillo #FFD100, texto negro, estilo moderno fintech -->
+  <rect width="160" height="60" rx="12" fill="#FFD100"/>
+
+  <!-- Punto circular decorativo (como en el logo real de Tuya) -->
+  <circle cx="20" cy="30" r="10" fill="#1A1A1A"/>
+  <circle cx="20" cy="30" r="5" fill="#FFD100"/>
+
+  <!-- T -->
+  <path d="M38 18 L38 22 L44 22 L44 42 L49 42 L49 22 L55 22 L55 18 Z" fill="#1A1A1A"/>
+  <!-- u -->
+  <path d="M58 22 L63 22 L63 35 Q63 39 67 39 Q71 39 71 35 L71 22 L76 22 L76 37 Q76 44 67 44 Q58 44 58 37 Z" fill="#1A1A1A"/>
+  <!-- y -->
+  <path d="M80 22 L85 22 L89 33 L93 22 L98 22 L91 42 Q89 48 84 48 L80 48 L80 44 L83 44 Q86 44 87 41 L82 30 Z" fill="#1A1A1A"/>
+  <!-- a -->
+  <path d="M101 27 Q101 22 106 22 L114 22 Q119 22 119 27 L119 44 L114 44 L114 42 Q112 44 109 44 Q101 44 101 38 Q101 32 108 32 L114 32 L114 29 Q114 26 110 26 Q107 26 107 29 Z M114 38 L114 34 L109 34 Q107 34 107 38 Q107 41 109 41 Q114 41 114 38 Z" fill="#1A1A1A"/>
+</svg>

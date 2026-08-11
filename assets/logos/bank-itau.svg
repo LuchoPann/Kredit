@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" fill="none">
+  <!-- Itaú Unibanco - Azul marino #002D72, naranja #EC7000 -->
+  <!-- Fondo azul marino completo -->
+  <rect width="200" height="60" rx="6" fill="#002D62"/>
+
+  <!-- Símbolo "Ω" estilizado / marca Itaú -->
+  <path d="M18 44 Q10 44 10 34 Q10 20 22 18 Q30 16 35 22 L32 26 Q28 21 22 22 Q15 22 15 34 Q15 39 18 40 Z" fill="#EC7000"/>
+  <path d="M36 44 Q44 44 44 34 Q44 20 32 18 Q24 16 19 22 L22 26 Q26 21 32 22 Q39 22 39 34 Q39 39 36 40 Z" fill="#EC7000"/>
+  <rect x="12" y="40" width="30" height="5" rx="2" fill="#EC7000"/>
+
+  <!-- I -->
+  <path d="M54 15 L62 15 L62 45 L54 45 Z" fill="#FFFFFF"/>
+  <!-- t -->
+  <path d="M65 12 L70 12 L70 18 L76 18 L76 23 L70 23 L70 37 Q70 40 73 40 L76 40 L76 45 L72 45 Q65 45 65 37 L65 23 L63 23 L63 18 L65 18 Z" fill="#FFFFFF"/>
+  <!-- a -->
+  <path d="M79 24 Q79 18 84 18 L93 18 Q98 18 98 24 L98 45 L93 45 L93 43 Q91 45 88 45 Q79 45 79 39 Q79 33 86 33 L93 33 L93 29 Q93 23 88 23 Q85 23 85 27 Z M93 38 L93 34 L88 34 Q85 34 85 39 Q85 42 88 42 Q93 42 93 38 Z" fill="#FFFFFF"/>
+  <!-- ú (u con acento) -->
+  <path d="M102 18 L107 18 L107 34 Q107 38 111 38 Q115 38 115 34 L115 18 L120 18 L120 36 Q120 45 111 45 Q102 45 102 36 Z" fill="#FFFFFF"/>
+  <!-- acento agudo sobre u -->
+  <path d="M109 12 L112 16 L115 12 L117 14 L112 19 L107 14 Z" fill="#EC7000"/>
+
+  <!-- Barra naranja en la parte inferior -->
+  <rect x="0" y="54" width="200" height="6" rx="0" fill="#EC7000"/>
+  <rect x="0" y="54" width="200" height="6" rx="6" fill="#EC7000"/>
+</svg>

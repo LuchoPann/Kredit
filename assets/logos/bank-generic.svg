@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 32">
+  <!-- Flecha minimalista icono Kredit -->
+  <polyline points="6,20 13,12 20,20" fill="none" stroke="#38BDF8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="13" y1="12" x2="13" y2="26" stroke="#38BDF8" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Texto Kredit -->
+  <text x="27" y="22" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#38BDF8">Kredit</text>
+</svg>

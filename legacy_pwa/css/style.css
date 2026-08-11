@@ -1,0 +1,2480 @@
+/* Import Google Fonts (Outfit) */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('../js/vendor/fonts/SpaceGrotesk-Variable.ttf') format('truetype-variations');
+  font-weight: 300 700;
+  font-display: swap;
+}
+
+/* Minimal Monochrome Design Tokens (Neutral / Black & White) */
+:root {
+  --bg-primary: #000000;
+  --bg-secondary: #0a0a0a;
+  --bg-card: #121212;
+  --border-card: #262626;
+  --border-active: #525252;
+  --text-primary: #ffffff;
+  --text-secondary: #a3a3a3;
+  --text-tertiary: #737373;
+  --accent-primary: #ffffff;
+  --accent-secondary: #e5e5e5;
+  --accent-gradient: linear-gradient(135deg, #ffffff 0%, #737373 100%);
+  --success: #ffffff;
+  --success-bg: #262626;
+  --warning: #a3a3a3;
+  --danger: #ffffff;
+  
+  --font-family: 'Outfit', sans-serif;
+  --font-family-display: 'Space Grotesk', 'Outfit', sans-serif;
+  --bottom-bar-height: 75px;
+}
+
+/* Background tone presets (user-selectable, keeps the neutral monochrome family) */
+:root[data-bg-theme="graphite"] {
+  --bg-primary: #0d0d0d;
+  --bg-secondary: #141414;
+  --bg-card: #191919;
+  --border-card: #2e2e2e;
+}
+
+:root[data-bg-theme="midnight"] {
+  --bg-primary: #050507;
+  --bg-secondary: #0a0a0e;
+  --bg-card: #121218;
+  --border-card: #24242c;
+}
+
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Alpine.js convention: hide elements bound with x-show until Alpine finishes
+   initializing, so conditional form fields don't flash visible on load. */
+[x-cloak] {
+  display: none !important;
+}
+
+/* Global Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+/* Visible keyboard focus ring on interactive elements — mouse/touch clicks
+   don't trigger :focus-visible, so this only shows up for real keyboard nav. */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  height: 100dvh;
+  width: 100vw;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+}
+
+/* Base App Layout */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  width: 100%;
+  position: relative;
+  background-color: var(--bg-primary);
+  background-image: var(--dynamic-glow, none);
+  transition: background-image 0.4s ease, background-color 0.4s ease;
+}
+
+@media (min-width: 480px) {
+  .app-container {
+    max-width: 480px;
+    height: 95vh;
+    margin: 2.5vh auto;
+    border-radius: 28px;
+    border: 1px solid var(--border-card);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+    overflow: hidden;
+  }
+}
+
+/* Header */
+header {
+  /* Clears the status bar / notch on installed PWA & full-screen mobile browsers */
+  padding: calc(20px + env(safe-area-inset-top, 0px)) 20px 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+  border-bottom: 1px solid var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+}
+
+#app-brand-title {
+  font-family: var(--font-family-display);
+}
+
+/* The K-mark stands in for the "K" of KREDIT wherever the wordmark appears —
+   sized/aligned to read as part of the word, not as a separate icon. Parent
+   h1/h2 uses flex + align-items:center so the glyph centers on the text's
+   vertical middle instead of drifting above the baseline (inline vertical-align
+   on an SVG is unreliable across the two different font-families in play). */
+.k-mark {
+  display: block;
+  height: 0.8em;
+  width: auto;
+  margin-right: 0.04em;
+  color: var(--text-primary);
+}
+
+.profile-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.profile-name {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.profile-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border-card);
+  background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Main Views Container */
+main {
+  flex: 1;
+  overflow-y: auto;
+  /* Add padding to prevent content from going behind fixed nav bar */
+  padding: 16px 20px calc(var(--bottom-bar-height) + env(safe-area-inset-bottom, 0px) + 24px) 20px;
+  position: relative;
+}
+
+.view {
+  display: none;
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.view.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Minimalist Cards */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+/* Overview Card */
+.overview-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.overview-card .overview-info,
+.overview-card .progress-ring-container {
+  position: relative;
+  z-index: 1;
+}
+
+/* Subtle K-mark watermark — reuses the real isotype path data (see .k-mark)
+   at large scale/low opacity so the app's most prominent card carries the
+   brand mark without competing with the actual numbers. */
+.overview-watermark {
+  position: absolute;
+  top: 50%;
+  right: -8%;
+  width: 60%;
+  height: auto;
+  transform: translateY(-50%) rotate(-8deg);
+  color: var(--text-primary);
+  opacity: 0.05;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.overview-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.overview-label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 600;
+}
+
+.overview-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+  font-family: var(--font-family-display);
+}
+
+.overview-subtext {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.overview-subtext span {
+  color: var(--text-primary);
+  font-weight: 600;
+  border-bottom: 1px dashed var(--border-active);
+}
+
+/* Progress Ring CSS (Monochrome) */
+.progress-ring-container {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.progress-ring {
+  transform: rotate(-90deg);
+}
+
+.progress-ring__circle {
+  transition: stroke-dashoffset 0.4s ease;
+  transform-origin: 50% 50%;
+}
+
+/* Ring gradient follows the user's chosen accent color instead of a fixed hue */
+.prog-grad-stop-start {
+  stop-color: var(--accent-primary);
+  stop-opacity: 1;
+}
+
+.prog-grad-stop-end {
+  stop-color: var(--accent-primary);
+  stop-opacity: 0.55;
+}
+
+.progress-text {
+  position: absolute;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#dashboard-progress-pct {
+  font-family: var(--font-family-display);
+}
+
+.progress-text span:last-child {
+  font-size: 8px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  margin-top: -1px;
+}
+
+/* Section Header */
+.section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.section-title > span {
+  flex-shrink: 0;
+}
+
+/* Page-level heading — larger/heavier than .section-title for top-of-view titles */
+.view-title {
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 14px;
+  letter-spacing: 0.2px;
+  font-family: var(--font-family-display);
+}
+
+.danger-zone-title {
+  color: var(--danger);
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.card-fiche-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+.section-title span {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-weight: 400;
+  text-transform: none;
+}
+
+/* Low-emphasis navigational link shown under a truncated list */
+.view-all-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: center;
+}
+
+.view-all-link svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Credits List items */
+.credit-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  margin-bottom: 10px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.credit-item:active {
+  transform: scale(0.98);
+  border-color: var(--border-active);
+}
+
+.credit-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.credit-color-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--accent-primary);
+}
+
+.credit-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.credit-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.credit-sub {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.credit-right {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.credit-amount {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.credit-due {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.due-ok { color: var(--text-tertiary); font-size: 11px; }
+.due-warning { color: var(--text-secondary); text-decoration: underline; font-size: 11px; font-weight: 600; }
+
+.badge-demo {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-card);
+  border-radius: 20px;
+  padding: 1px 7px;
+  margin-left: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  vertical-align: middle;
+}
+.due-danger { color: var(--text-primary); font-weight: 700; font-size: 12px; }
+
+/* Empty States */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 20px;
+  text-align: center;
+  color: var(--text-tertiary);
+}
+
+.empty-state svg {
+  width: 40px;
+  height: 40px;
+  stroke: var(--text-tertiary);
+  opacity: 0.6;
+  margin-bottom: 10px;
+}
+
+.empty-state p {
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+/* Tabs Filter (Activos / Pagados) */
+.tabs-container {
+  display: flex;
+  background: var(--bg-card);
+  padding: 4px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border-card);
+}
+
+.tab {
+  flex: 1;
+  padding: 8px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab.active {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-card);
+}
+
+/* Detail View Layout */
+.detail-header {
+  padding: 5px 0 15px 0;
+}
+
+.detail-tabs-container {
+  margin-bottom: 20px;
+}
+
+.detail-tab-panel {
+  display: none;
+}
+
+.detail-tab-panel.active {
+  display: block;
+}
+
+.btn-back {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  padding: 8px 14px;
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-back:active {
+  background: var(--bg-secondary);
+}
+
+.btn-back svg {
+  width: 16px;
+  height: 16px;
+}
+
+.detail-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.detail-stat-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.detail-stat-label {
+  font-size: 9px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.detail-stat-val {
+  font-size: 15px;
+  font-weight: 700;
+  margin-top: 2px;
+  font-family: var(--font-family-display);
+}
+
+/* Detail Progress Bar */
+.progress-bar-container {
+  margin: 16px 0 24px 0;
+}
+
+.progress-bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.progress-bar-label span:last-child {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.progress-bar-bg {
+  height: 6px;
+  background: var(--bg-card);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid var(--border-card);
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--accent-primary);
+  width: 0%;
+  transition: width 0.4s ease;
+}
+
+/* Installments List */
+.installments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.installment-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.installment-item.paid {
+  opacity: 0.5;
+  background: var(--bg-primary);
+  border-color: var(--border-card);
+}
+
+.installment-item.overdue {
+  border-color: var(--border-active);
+}
+
+.inst-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Custom Monochrome Checkbox */
+.checkbox-container {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1.5px solid var(--border-active);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: transparent;
+}
+
+.checkbox-container svg {
+  width: 10px;
+  height: 10px;
+  stroke: #000000;
+  stroke-width: 3.5px;
+  display: none;
+}
+
+.installment-item.paid .checkbox-container {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.installment-item.paid .checkbox-container svg {
+  display: block;
+}
+
+/* Chevron used instead of a checkbox for rows that navigate rather than toggle
+   (e.g. a card balance row) so it doesn't read as a fake/broken checkbox. */
+.inst-goto-arrow {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.inst-goto-arrow svg {
+  width: 16px;
+  height: 16px;
+}
+
+.inst-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.inst-num {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.inst-date {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.installment-item.paid .inst-num {
+  text-decoration: line-through;
+  color: var(--text-tertiary);
+}
+
+.inst-right {
+  text-align: right;
+}
+
+.inst-amount {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.inst-badge {
+  font-size: 8px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  display: inline-block;
+  margin-top: 2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.badge-pending {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-card);
+}
+
+.badge-paid {
+  background: var(--border-card);
+  color: var(--text-primary);
+}
+
+.badge-overdue {
+  background: var(--text-primary);
+  color: #000000;
+}
+
+/* Modals (Drawer Layout) */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(5px);
+  z-index: 200;
+  display: none;
+  justify-content: center;
+  align-items: flex-end; /* Bottom sheet on mobile */
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.modal.active {
+  display: flex;
+  opacity: 1;
+}
+
+.modal-content {
+  background: var(--bg-card);
+  width: 100%;
+  max-width: 480px;
+  border-radius: 20px 20px 0 0;
+  border-top: 1px solid var(--border-card);
+  padding: 24px 20px;
+  max-height: 85%;
+  overflow-y: auto;
+  transform: translateY(100%);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal.active .modal-content {
+  transform: translateY(0);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.modal-title {
+  font-size: 17px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-close {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-card);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.btn-close svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Forms */
+.form-group {
+  margin-bottom: 14px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-control {
+  width: 100%;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-card);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.form-control:focus {
+  border-color: var(--border-active);
+}
+
+/* Native clear (×) button on type="search" inputs, restyled to fit the dark theme */
+input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-left: 6px;
+  cursor: pointer;
+  background: var(--text-tertiary);
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round'%3E%3Cline x1='18' y1='6' x2='6' y2='18'/%3E%3Cline x1='6' y1='6' x2='18' y2='18'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round'%3E%3Cline x1='18' y1='6' x2='6' y2='18'/%3E%3Cline x1='6' y1='6' x2='18' y2='18'/%3E%3C/svg%3E");
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+input[type="search"]::-webkit-search-cancel-button:hover {
+  background: var(--text-primary);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* Credit Type Toggle (Cupo/Préstamo vs Tarjeta) */
+.type-toggle {
+  display: flex;
+  background: var(--bg-primary);
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid var(--border-card);
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.type-toggle-btn {
+  flex: 1;
+  padding: 9px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.type-toggle-btn.active {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-active);
+}
+
+/* Color Picker in Grayscale */
+.color-picker {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.color-option {
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.2s ease;
+}
+
+.color-option.selected {
+  border-color: #ffffff;
+  transform: scale(1.1);
+}
+
+/* Buttons */
+.btn-submit {
+  width: 100%;
+  background: var(--accent-primary);
+  color: #000000;
+  border: none;
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: opacity 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-submit:active {
+  opacity: 0.85;
+}
+
+.btn-danger {
+  width: 100%;
+  background: transparent;
+  border: 1.5px solid var(--text-primary);
+  border-radius: 10px;
+  padding: 11px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-danger:active {
+  background: #1f1f1f;
+  border-color: var(--border-active);
+}
+
+/* --- BOTTOM NAV BAR (FIXED MOBILE VIEWPORT) --- */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  height: calc(var(--bottom-bar-height) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: rgba(10, 10, 10, 0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border-card);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  z-index: 100;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.nav-item.active {
+  color: var(--accent-primary);
+}
+
+.nav-item svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 2px;
+  transition: transform 0.2s ease;
+}
+
+.nav-item:active svg {
+  transform: scale(0.85);
+}
+
+.nav-label {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* --- SETTINGS & PROFILE (CUENTA) --- */
+.profile-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.profile-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.profile-large-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+}
+
+.profile-large-avatar svg {
+  width: 22px;
+  height: 22px;
+}
+
+.profile-card-info {
+  flex: 1;
+}
+
+.profile-card-info h3 {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.profile-card-info span {
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+/* Stats */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-label {
+  font-size: 9px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: var(--font-family-display);
+}
+
+.stat-caption {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  line-height: 1.3;
+}
+
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 12px;
+}
+
+.settings-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.settings-desc {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  max-width: 200px;
+  line-height: 1.3;
+}
+
+.btn-settings-action {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-card);
+  padding: 6px 12px;
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-settings-action:active {
+  background: #1f1f1f;
+}
+
+/* --- SWIPABLE CAROUSEL --- */
+.carousel-container {
+  margin: 0 -20px;
+  padding: 0 20px;
+  overflow: hidden;
+}
+
+.card-carousel {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 8px 0 16px 0;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.card-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.carousel-empty-card {
+  flex: 0 0 230px;
+  aspect-ratio: 1.586;
+  border-radius: 14px;
+  border: 1.5px dashed var(--border-card);
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  cursor: pointer;
+  scroll-snap-align: start;
+}
+
+.add-card-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border-card);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 20px;
+  font-weight: 300;
+  color: var(--text-primary);
+}
+
+.mini-wallet-card {
+  flex: 0 0 230px;
+  aspect-ratio: 1.586;
+  border-radius: 14px;
+  padding: 14px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+  color: #ffffff;
+  cursor: pointer;
+  scroll-snap-align: start;
+  border: 1px solid var(--border-card);
+}
+
+.mini-wallet-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(115deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.02) 22%, transparent 40%);
+  pointer-events: none;
+}
+
+.mini-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: relative;
+  z-index: 1;
+}
+
+.mini-card-chip {
+  width: 20px;
+  height: 15px;
+  border-radius: 3px;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 2px, rgba(0,0,0,0.18) 2px 3px),
+    linear-gradient(135deg, #f4e5b0 0%, #d4af5a 45%, #9c7a2e 100%);
+  border: 1px solid rgba(0,0,0,0.25);
+}
+
+.mini-card-middle {
+  margin-top: 4px;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mini-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mini-card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  position: relative;
+  z-index: 1;
+}
+
+.mini-card-val {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* --- WALLET CARDS DESIGNS (Google Wallet-style physical card mockup) --- */
+.wallet-card-container {
+  perspective: 1000px;
+  margin: 0 auto 20px auto;
+  /* Capped to a real card-like size (~credit card ratio) so it never balloons
+     to fill a wide desktop column — stays small but clearly visible. */
+  max-width: 340px;
+}
+
+.wallet-card {
+  width: 100%;
+  aspect-ratio: 1.586;
+  border-radius: 16px;
+  padding: 16px 18px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 14px 28px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.4), inset 0 1px rgba(255,255,255,0.08);
+  color: #ffffff;
+  border: 1px solid var(--border-card);
+}
+
+/* Subtle diagonal glass sheen, like Google Wallet's card rendering */
+.wallet-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background:
+    linear-gradient(115deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.02) 22%, transparent 40%),
+    linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(0,0,0,0.25) 100%);
+  pointer-events: none;
+}
+
+.wallet-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: relative;
+  z-index: 1;
+}
+
+.card-bank-name {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding-top: 3px;
+}
+
+.card-chip-group,
+.mini-card-chip-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  z-index: 1;
+}
+
+.card-chip-group {
+  margin-top: 12px;
+}
+
+.mini-card-chip-group {
+  margin-top: 8px;
+}
+
+.card-chip {
+  width: 30px;
+  height: 22px;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 3px, rgba(0,0,0,0.18) 3px 4px),
+    repeating-linear-gradient(0deg, transparent 0 3px, rgba(0,0,0,0.1) 3px 4px),
+    linear-gradient(135deg, #f4e5b0 0%, #d4af5a 45%, #9c7a2e 100%);
+  border-radius: 4px;
+  border: 1px solid rgba(0,0,0,0.25);
+  position: relative;
+}
+
+.card-contactless {
+  width: 16px;
+  height: 16px;
+  color: rgba(255,255,255,0.75);
+  transform: rotate(90deg);
+}
+
+.mini-card-contactless {
+  width: 11px;
+  height: 11px;
+  color: rgba(255,255,255,0.7);
+  transform: rotate(90deg);
+}
+
+.wallet-card-middle {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  position: relative;
+  z-index: 1;
+}
+
+.card-display-name {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.wallet-card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  position: relative;
+  z-index: 1;
+}
+
+.card-holder-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.card-label {
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  opacity: 0.6;
+}
+
+.card-value {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.card-brand-logo {
+  height: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.card-brand-logo svg {
+  height: 100%;
+  fill: #ffffff;
+}
+
+/* Bank-brand card layouts, matched to each institution's real identity.
+   Colors sourced from official brand docs where published; a few (Lulo,
+   Banco de Bogotá) have no public hex spec, so those stay close approximations.
+   Logos/wordmarks are NOT reproduced pixel-exact (trademarked assets) — only
+   the color language and a card layout consistent with the real product. */
+
+/* Nequi: real physical card is dark navy with a light-blue illustrated
+   "travel doodle" line-art pattern (mountains, balloons, buildings, waves)
+   tiled across the whole surface — approximated here as a repeating
+   line-art texture rather than solid purple. */
+.bank-nequi {
+  background:
+    radial-gradient(circle at 15% 10%, rgba(120, 150, 220, 0.10) 0%, transparent 8%),
+    repeating-linear-gradient(115deg, rgba(140, 165, 230, 0.07) 0px, rgba(140, 165, 230, 0.07) 1px, transparent 1px, transparent 26px),
+    repeating-linear-gradient(25deg, rgba(140, 165, 230, 0.06) 0px, rgba(140, 165, 230, 0.06) 1px, transparent 1px, transparent 22px),
+    linear-gradient(160deg, #131a3a 0%, #0a0e26 55%, #05070f 100%);
+  border: 1px solid #232c5c;
+}
+.bank-nequi #card-bank-name {
+  visibility: hidden; /* real card has no issuer wordmark up top on the big mockup, just the doodle art */
+}
+/* NEQUI wordmark sits mid-card on the real design, not top-left like other issuers */
+.wallet-card.bank-nequi::before {
+  content: 'NEQUI';
+  position: absolute;
+  left: 18px;
+  bottom: 62px;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #ffffff;
+  pointer-events: none;
+}
+
+/* Bancolombia's real black-metal card: near-black warm base with the
+   signature multicolor ribbon (purple→teal→yellow→orange) curving through
+   the chip, and a large faint corporate mark on the right. */
+.bank-bancolombia {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Ctext x='105' y='150' font-family='Arial, sans-serif' font-size='180' font-weight='900' fill='%23ffffff' fill-opacity='0.055' text-anchor='middle'%3EBa%3C/text%3E%3C/svg%3E") no-repeat right -8% center / 68% auto,
+    linear-gradient(160deg, #2a2018 0%, #14100b 55%, #080705 100%);
+  border: 1px solid #3a2f22;
+}
+.bank-bancolombia::before {
+  content: '';
+  position: absolute;
+  top: -25%;
+  left: -6%;
+  width: 40%;
+  height: 170%;
+  background: linear-gradient(180deg, #7c3aed 0%, #06b6d4 35%, #facc15 65%, #f97316 100%);
+  transform: rotate(20deg);
+  filter: blur(0.5px);
+  clip-path: polygon(45% 0%, 55% 0%, 65% 100%, 55% 100%);
+  opacity: 0.9;
+  pointer-events: none;
+}
+.bank-bancolombia .card-bank-name {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: none;
+  opacity: 0.85;
+}
+
+.bank-nu {
+  /* Official Nu "Electric Violet" — real card is a flat, saturated solid, no gradient */
+  background: #8a05be;
+  border: 1px solid #8a05be;
+}
+.bank-nu .card-bank-name,
+.bank-nu .mini-card-top span {
+  text-transform: none;
+  font-size: 16px;
+  font-weight: 800;
+  font-style: italic;
+}
+
+.bank-davivienda {
+  background: linear-gradient(135deg, #e4032e 0%, #7a0212 60%, #150202 100%);
+  border: 1px solid #e4032e;
+}
+
+.bank-daviplata {
+  /* Davivienda's mobile-wallet sub-brand: warmer red-orange variant */
+  background: linear-gradient(135deg, #f0521c 0%, #8a2606 60%, #170702 100%);
+  border: 1px solid #f0521c;
+}
+
+.bank-bbva {
+  /* Official 2025 palette: Electric Blue base + Serene Blue accent glow */
+  background: linear-gradient(135deg, #001391 0%, #000a4d 65%, #01021a 100%);
+  border: 1px solid #001391;
+}
+.bank-bbva::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 90% 10%, rgba(133, 200, 255, 0.45) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.bank-rappi {
+  /* Official Rappi Red-Orange */
+  background: linear-gradient(135deg, #fe3f23 0%, #8f1a0c 60%, #170301 100%);
+  border: 1px solid #fe3f23;
+}
+
+.bank-lulo {
+  /* No published official hex — matched to Lulo's known bright mint-green app UI */
+  background: linear-gradient(135deg, #00e28a 0%, #046b46 60%, #01180f 100%);
+  border: 1px solid #00e28a;
+}
+
+.bank-bogota {
+  /* No published official hex — navy + gold combination from public brand references */
+  background: linear-gradient(135deg, #0a2f6b 0%, #041638 65%, #01050f 100%);
+  border: 1px solid #d4af37;
+  box-shadow: inset 0 -5px 0 #d4af37, 0 10px 20px rgba(0,0,0,0.6);
+}
+
+.bank-falabella {
+  /* Official "Rio Grande" green */
+  background: linear-gradient(135deg, #c3d500 0%, #6b7600 60%, #0f1200 100%);
+  border: 1px solid #c3d500;
+  color: #0f1200;
+}
+.bank-falabella .card-label,
+.bank-falabella .card-bank-name,
+.bank-falabella .card-display-name,
+.bank-falabella .card-value,
+.bank-falabella .mini-card-top span,
+.bank-falabella .mini-card-name,
+.bank-falabella .mini-card-val {
+  color: #0f1200;
+}
+
+.bank-colpatria {
+  /* Scotiabank red (Colpatria's parent brand) */
+  background: linear-gradient(135deg, #ec0712 0%, #6e0006 60%, #120000 100%);
+  border: 1px solid #ec0712;
+}
+
+.bank-generic {
+  background: linear-gradient(135deg, #121212 0%, #000000 100%);
+  border: 1px solid var(--border-card);
+}
+
+/* --- FLOATING ACTION BUTTON (FAB) --- */
+.fab-btn {
+  position: fixed;
+  bottom: calc(var(--bottom-bar-height) + env(safe-area-inset-bottom, 0px) + 16px);
+  left: 50%;
+  transform: translateX(150px); /* Anchor relative to centered mobile body */
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--text-primary);
+  border: none;
+  color: #000000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+  z-index: 105;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Correct positioning on true full-screen mobile widths */
+@media (max-width: 480px) {
+  .fab-btn {
+    left: auto;
+    right: 20px;
+    transform: none;
+  }
+}
+
+.fab-btn:active {
+  transform: scale(0.85) rotate(90deg);
+  background: var(--text-secondary);
+}
+
+.fab-btn svg {
+  width: 22px;
+  height: 22px;
+  stroke: #000000;
+}
+
+/* --- RESPONSIVE LAYOUT --- */
+@media (max-width: 767px) {
+  .desktop-sidebar {
+    display: none;
+  }
+  .bottom-nav {
+    display: grid;
+  }
+}
+
+@media (min-width: 768px) {
+  .bottom-nav {
+    display: none;
+  }
+  
+  header {
+    display: none; /* Hide header on desktop since we have sidebar footer and logo */
+  }
+  
+  .desktop-sidebar {
+    width: 260px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border-right: 1px solid var(--border-card);
+    background: var(--bg-card);
+    padding: 28px 20px;
+    z-index: 10;
+  }
+
+  .sidebar-top {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  .sidebar-logo h2 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    text-transform: uppercase;
+    color: var(--text-primary);
+    padding-left: 12px;
+    font-family: var(--font-family-display);
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    color: var(--text-tertiary);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .sidebar-link svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    stroke-width: 2.2px;
+    transition: transform 0.2s ease;
+  }
+
+  .sidebar-link:hover {
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+  }
+
+  .sidebar-link.active {
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    border: 1px solid var(--border-card);
+  }
+
+  .sidebar-link:active svg {
+    transform: scale(0.85);
+  }
+
+  .sidebar-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 12px;
+    border-top: 1px solid var(--border-card);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .sidebar-footer:hover #sidebar-profile-name {
+    text-decoration: underline;
+  }
+
+  .app-container {
+    display: flex;
+    flex-direction: row;
+    max-width: 100%;
+    height: 100dvh;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  main {
+    flex: 1;
+    height: 100%;
+    overflow-y: auto;
+    padding: 36px 40px;
+  }
+
+  /* Executive Bento Grid desktop container width */
+  .view {
+    max-width: 1040px;
+    margin: 0 auto;
+  }
+
+  .view#view-credits,
+  .view#view-settings,
+  .view#view-credit-detail {
+    max-width: 780px;
+  }
+
+  /* Modals as centered floating dialogues */
+  .modal {
+    align-items: center;
+  }
+  
+  .modal-content {
+    border-radius: 20px;
+    border: 1px solid var(--border-card);
+    transform: scale(0.9);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+    max-width: 440px;
+  }
+  
+  .modal.active .modal-content {
+    transform: scale(1);
+  }
+  
+  /* Anchor the FAB to the actual right edge of the centered content column
+     via normal block layout (margin-left:auto) instead of guessing the
+     offset with viewport calc() — this stays correct at any window width,
+     sidebar width, or column max-width without needing to be recalculated. */
+  .fab-btn {
+    position: sticky;
+    left: auto;
+    right: auto;
+    bottom: 40px;
+    margin-left: auto;
+    margin-right: 0;
+    transform: none;
+  }
+}
+
+/* Dashboard: "Mis Tarjetas Activas" + "Próximos Vencimientos" side by side on
+   wide desktop instead of one long vertical scroll. Mobile/tablet (<1024px)
+   get no rule here at all — .dashboard-col divs stay plain blocks and stack
+   in document order exactly like before, since mobile vertical is the
+   correct/expected shape there. */
+@media (min-width: 1024px) {
+  .dashboard-columns {
+    display: grid;
+    grid-template-columns: 0.85fr 1.15fr;
+    column-gap: 24px;
+    align-items: start;
+  }
+}
+
+/* --- TOAST NOTIFICATIONS --- */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+  width: calc(100% - 40px);
+  max-width: 400px;
+}
+
+/* Splash screen: builds the KREDIT mark piece by piece while the app boots
+   (Dexie load + first render), then fades out — see js/app.js DOMContentLoaded
+   handler for the class toggle that dismisses it. */
+#splash-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+#splash-screen.splash-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.splash-logo {
+  width: 96px;
+  height: auto;
+}
+
+.splash-logo path {
+  opacity: 0;
+  transform-origin: center;
+  transform: scale(0.85) translateY(6px);
+  animation: splashStrokeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.splash-stroke-1 { animation-delay: 0.05s; }
+.splash-stroke-2 { animation-delay: 0.22s; }
+.splash-stroke-3 { animation-delay: 0.39s; }
+
+@keyframes splashStrokeIn {
+  from { opacity: 0; transform: scale(0.85) translateY(6px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Small entrance animations for freshly-rendered lists — pure CSS stagger,
+   no JS needed. Each item fades/slides in with an incremental delay based
+   on its position among its siblings (covers the common list lengths). */
+@keyframes listItemIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.credit-item,
+.installment-item,
+.mini-wallet-card {
+  animation: listItemIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+.credit-item:nth-child(1), .installment-item:nth-child(1), .mini-wallet-card:nth-child(1) { animation-delay: 0.02s; }
+.credit-item:nth-child(2), .installment-item:nth-child(2), .mini-wallet-card:nth-child(2) { animation-delay: 0.05s; }
+.credit-item:nth-child(3), .installment-item:nth-child(3), .mini-wallet-card:nth-child(3) { animation-delay: 0.08s; }
+.credit-item:nth-child(4), .installment-item:nth-child(4), .mini-wallet-card:nth-child(4) { animation-delay: 0.11s; }
+.credit-item:nth-child(5), .installment-item:nth-child(5), .mini-wallet-card:nth-child(5) { animation-delay: 0.14s; }
+.credit-item:nth-child(n+6), .installment-item:nth-child(n+6), .mini-wallet-card:nth-child(n+6) { animation-delay: 0.17s; }
+
+/* Pop feedback when an installment gets checked off as paid */
+@keyframes checkPop {
+  0% { transform: scale(0.6); }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.installment-item.paid .checkbox-container {
+  animation: checkPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* FAB icon micro-bounce on press (button itself keeps its positioning
+   transform untouched — only the inner icon scales, to avoid disturbing
+   the fragile translateX-based FAB positioning). */
+.fab-btn svg {
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.fab-btn:active svg {
+  transform: scale(0.8);
+}
+
+.toast {
+  background: #171717;
+  border: 1px solid #333333;
+  color: #ffffff;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  opacity: 0;
+  transform: translateY(-12px);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast-icon {
+  font-size: 16px;
+}
+
+/* ==========================================================================
+   BENTO GRID EXECUTIVE LAYOUT SYSTEM
+   ========================================================================== */
+
+.bento-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .bento-grid {
+    grid-template-columns: repeat(12, 1fr);
+    gap: 20px;
+  }
+
+  .bento-hero {
+    grid-column: span 12;
+  }
+
+  .bento-carousel-card {
+    grid-column: span 6;
+  }
+
+  .bento-upcoming-card {
+    grid-column: span 6;
+  }
+}
+
+@media (min-width: 1024px) {
+  .bento-carousel-card {
+    grid-column: span 5;
+  }
+
+  .bento-upcoming-card {
+    grid-column: span 7;
+  }
+}
+
+/* Bento Card Component */
+.bento-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 24px;
+  padding: 22px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.bento-card:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+}
+
+/* Bento Hero Executive Banner */
+.bento-hero {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(18, 18, 18, 0.95) 100%), var(--bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 24px 24px 20px 24px;
+}
+
+.bento-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 14px;
+}
+
+.bento-badge .badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  box-shadow: 0 0 8px var(--accent-primary);
+}
+
+.bento-hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+/* Quick Action Shortcuts Bar */
+.bento-quick-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  flex-wrap: wrap;
+}
+
+.bento-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-card);
+  color: var(--text-primary);
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  flex: 1;
+  min-width: 120px;
+}
+
+.bento-action-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
+}
+
+.bento-action-btn:active {
+  transform: scale(0.97);
+}
+
+.bento-action-btn.primary {
+  background: var(--text-primary);
+  color: #000000;
+  border-color: var(--text-primary);
+  font-weight: 700;
+}
+
+.bento-action-btn.primary:hover {
+  background: #e5e5e5;
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.2);
+}
+
+.bento-action-btn.primary svg {
+  stroke: #000000;
+}
+
+/* Bento Header & Pill Counter */
+.bento-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  margin-top: 0 !important;
+}
+
+.bento-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.2px;
+}
+
+.bento-title-group svg {
+  color: var(--text-secondary);
+}
+
+.bento-count-pill {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* Bento Card Free (Frameless / Open Layout) */
+.bento-card-free {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 4px 0;
+  box-shadow: none;
+}
+
+/* Vertical Active Cards List (No Horizontal Scroll) */
+.active-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.active-card-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-card);
+  border-radius: 14px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.active-card-row:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.active-card-row:active {
+  transform: scale(0.98);
+}
+
+/* Miniature Visual Credit Card Graphic */
+.active-card-mini-graphic {
+  width: 46px;
+  height: 30px;
+  border-radius: 6px;
+  padding: 5px 6px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  flex-shrink: 0;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.active-card-row:hover .active-card-mini-graphic {
+  transform: scale(1.06);
+}
+
+.mini-graphic-chip {
+  width: 10px;
+  height: 8px;
+  border-radius: 2px;
+  background: linear-gradient(135deg, #ffe066 0%, #d4af37 60%, #996515 100%);
+  border: 0.5px solid rgba(0, 0, 0, 0.35);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.4);
+}
+
+.active-card-row.bank-nequi { border-left: 3px solid #ff007a; }
+.active-card-row.bank-bancolombia { border-left: 3px solid #fdda24; }
+.active-card-row.bank-nu { border-left: 3px solid #820ad1; }
+.active-card-row.bank-davivienda { border-left: 3px solid #ed1c24; }
+.active-card-row.bank-daviplata { border-left: 3px solid #e31837; }
+.active-card-row.bank-bbva { border-left: 3px solid #004481; }
+.active-card-row.bank-rappi { border-left: 3px solid #ff441f; }
+.active-card-row.bank-lulo { border-left: 3px solid #00e5a3; }
+.active-card-row.bank-bogota { border-left: 3px solid #002e6d; }
+.active-card-row.bank-falabella { border-left: 3px solid #84bd00; }
+.active-card-row.bank-colpatria { border-left: 3px solid #e30613; }
+
+.active-card-bank-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.active-card-bank-initial {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+}
+
+.active-card-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.active-card-header-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.active-card-bank-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.active-card-type-tag {
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+}
+
+.active-card-name-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.active-card-amount-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.active-card-amount-label {
+  font-size: 9px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.active-card-amount-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: var(--font-family-display);
+}
+
+.active-card-chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
+.active-card-add-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1.5px dashed var(--border-card);
+  border-radius: 14px;
+  padding: 10px 14px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 4px;
+}
+
+.active-card-add-row:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.active-card-empty {
+  border: 1.5px dashed var(--border-card);
+  border-radius: 14px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.active-card-empty:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: var(--text-primary);
+}
+
+/* Frameless / Free Credit Item Card for Credits View */
+.credit-item-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--border-card);
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.credit-item-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+
+.credit-item-card:active {
+  transform: scale(0.98);
+}
+
+.credit-item-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.credit-item-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.credit-item-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.credit-item-sub {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.credit-item-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.credit-item-amount {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: var(--font-family-display);
+}
+
+/* High-Contrast Visual Status Badges */
+.credit-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  margin-top: 3px;
+}
+
+.credit-status-badge.badge-overdue {
+  background: rgba(239, 68, 68, 0.18);
+  color: #ff5252;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
+}
+
+.credit-status-badge.badge-today {
+  background: rgba(245, 158, 11, 0.22);
+  color: #ffb703;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+}
+
+.credit-status-badge.badge-soon {
+  background: rgba(234, 179, 8, 0.14);
+  color: #facc15;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.credit-status-badge.badge-normal {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.credit-status-badge.badge-completed {
+  background: rgba(34, 197, 94, 0.14);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+
+

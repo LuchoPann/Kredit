@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 60" fill="none">
+  <!-- AV Villas - Rojo #E30613, Azul #0055A5, con triángulo icónico -->
+
+  <!-- Triángulo decorativo - símbolo de la marca -->
+  <polygon points="6,50 18,10 30,50" fill="#E30613"/>
+  <!-- Triángulo interior blanco -->
+  <polygon points="12,44 18,22 24,44" fill="white"/>
+
+  <!-- A -->
+  <path d="M38 50 L45 14 L52 50 L47 50 L45 39 L43 50 Z M43 34 L47 34 L45 22 Z" fill="#0055A5"/>
+  <!-- V -->
+  <path d="M55 14 L62 38 L69 14 L75 14 L66 50 L58 50 L49 14 Z" fill="#0055A5"/>
+
+  <!-- espacio -->
+
+  <!-- V -->
+  <path d="M85 14 L92 38 L99 14 L105 14 L96 50 L88 50 L79 14 Z" fill="#0055A5"/>
+  <!-- i -->
+  <path d="M108 20 L114 20 L114 50 L108 50 Z M108 13 L114 13 L114 19 L108 19 Z" fill="#0055A5"/>
+  <!-- l -->
+  <path d="M118 10 L124 10 L124 50 L118 50 Z" fill="#0055A5"/>
+  <!-- l -->
+  <path d="M128 10 L134 10 L134 50 L128 50 Z" fill="#0055A5"/>
+  <!-- a -->
+  <path d="M138 26 Q138 20 143 20 L152 20 Q157 20 157 26 L157 50 L152 50 L152 47 Q150 50 147 50 Q138 50 138 44 Q138 38 145 38 L152 38 L152 33 Q152 25 147 25 Q144 25 144 28 Z M152 43 L152 39 L147 39 Q144 39 144 44 Q144 47 147 47 Q152 47 152 43 Z" fill="#0055A5"/>
+  <!-- s -->
+  <path d="M162 44 L166 42 Q168 47 172 47 Q175 47 175 44 Q175 41 171 40 Q163 37 163 31 Q163 20 172 20 Q177 20 179 24 L175 26 Q174 23 171 23 Q168 23 168 27 Q168 30 172 31 Q180 34 180 41 Q180 50 171 50 Q164 50 162 44 Z" fill="#0055A5"/>
+</svg>

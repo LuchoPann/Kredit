@@ -1,0 +1,25 @@
+{
+  "name": "Kredit - Control de Créditos",
+  "short_name": "Kredit",
+  "description": "Lleva el control de tus deudas, créditos y cuotas desde tu celular.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "portrait",
+  "categories": ["finance", "utilities"],
+  "icons": [
+    {
+      "src": "icons/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/KREDIT.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
