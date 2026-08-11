@@ -46,12 +46,19 @@ class DashboardScreen extends ConsumerWidget {
       // acción duplicada en pantalla.
       floatingActionButton: isEmpty
           ? null
-          : FloatingActionButton(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Colors.black,
-              onPressed: () => Navigator.of(context).pushNamed('/add-credit'),
-              tooltip: 'Agregar Crédito',
-              child: const Icon(Icons.add),
+          : Builder(
+              builder: (context) {
+                // Bug 2: luminance-based foreground so icon is readable on any accent
+                final accentColor = Theme.of(context).colorScheme.primary;
+                final fgColor = accentColor.computeLuminance() > 0.3 ? Colors.black : Colors.white;
+                return FloatingActionButton(
+                  backgroundColor: accentColor,
+                  foregroundColor: fgColor,
+                  onPressed: () => Navigator.of(context).pushNamed('/add-credit'),
+                  tooltip: 'Agregar Crédito',
+                  child: const Icon(Icons.add),
+                );
+              },
             ),
     );
   }

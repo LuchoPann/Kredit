@@ -332,10 +332,29 @@ class _FilteredList extends StatelessWidget {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Text(
-            emptyText,
-            style: TextStyle(fontSize: 13, color: kredit.textTertiary),
-            textAlign: TextAlign.center,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                emptyText,
+                style: TextStyle(fontSize: 13, color: kredit.textTertiary),
+                textAlign: TextAlign.center,
+              ),
+              // Bug 5: privacy reassurance notice
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.lock_outline, size: 12, color: kredit.textTertiary),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Tus datos permanecen en tu dispositivo',
+                    style: TextStyle(fontSize: 11, color: kredit.textTertiary),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       );

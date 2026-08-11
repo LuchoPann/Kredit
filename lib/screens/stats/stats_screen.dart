@@ -10,6 +10,7 @@ import '../../domain/date_utils.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/account/stats_grid.dart';
+import 'simulator_sheet.dart';
 
 const _monthsEs = [
   'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
@@ -66,6 +67,15 @@ class StatsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               _PayoffProjectionList(credits: credits),
+              const SizedBox(height: 28),
+              _statsSectionHeader(
+                context,
+                Icons.calculate_outlined,
+                'Simulador Financiero',
+                subtitle: '¿Qué pasaría si hago una compra o abono extra?',
+              ),
+              const SizedBox(height: 12),
+              _SimulatorEntryCard(credits: credits),
               const SizedBox(height: 24),
             ],
           );
@@ -104,6 +114,7 @@ class _ActionableMetricsSummary extends StatelessWidget {
     }
 
     final availableCredit = totalLimit > totalOwed ? totalLimit - totalOwed : 0.0;
+    final fmt = NumberFormatLike(); // Bug 4: thousands-separator formatter
 
     return Column(
       children: [
@@ -112,7 +123,7 @@ class _ActionableMetricsSummary extends StatelessWidget {
             Expanded(
               child: _MetricCard(
                 label: 'Deuda Activa Total',
-                value: '\$${totalOwed.round()}',
+                value: fmt.format(totalOwed),
                 subtext: '$activeCount créditos vigentes',
                 color: colorScheme.error,
                 icon: Icons.account_balance_wallet_outlined,
@@ -122,8 +133,8 @@ class _ActionableMetricsSummary extends StatelessWidget {
             Expanded(
               child: _MetricCard(
                 label: 'Cupo Disponible (Tarjetas)',
-                value: '\$${availableCredit.round()}',
-                subtext: 'Límite total \$${totalLimit.round()}',
+                value: fmt.format(availableCredit),
+                subtext: 'Límite total ${fmt.format(totalLimit)}',
                 color: colorScheme.primary,
                 icon: Icons.credit_card_outlined,
               ),
@@ -531,7 +542,7 @@ class _LenderDistributionChart extends StatelessWidget {
                         titleStyle: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                          color: Colors.white, // Bug 1: always legible on vivid slice colors
                         ),
                       ),
                   ],
@@ -620,12 +631,14 @@ class _PayoffProjectionList extends StatelessWidget {
           for (var i = 0; i < entries.length; i++) ...[
             if (i > 0) const Divider(height: 1),
             ListTile(
-              leading: const Icon(Icons.event_available_outlined),
-              title: Text(entries[i].name),
+              // Bug 3: explicit KreditColors tokens for consistent theming
+              leading: Icon(Icons.event_available_outlined, color: kredit.textSecondary),
+              title: Text(entries[i].name, style: TextStyle(color: kredit.textPrimary, fontWeight: FontWeight.w600)),
               subtitle: Text(
                 entries[i].monthsFromNow <= 0
                     ? 'Termina este mes'
                     : 'Termina en ${entries[i].monthsFromNow} mes${entries[i].monthsFromNow == 1 ? '' : 'es'}',
+                style: TextStyle(color: kredit.textSecondary, fontSize: 12),
               ),
               trailing: Text(
                 formatDate(toDateStr(entries[i].endDate)),
@@ -634,6 +647,71 @@ class _PayoffProjectionList extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Simulator entry card
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SimulatorEntryCard extends StatelessWidget {
+  final List<Credit> credits;
+  const _SimulatorEntryCard({required this.credits});
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accent = Theme.of(context).colorScheme.primary;
+
+    return Card(
+      elevation: 0,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => openSimulatorSheet(context),
+        child: Padding(
+          padding: const EdgeInsets.all(KreditSpacing.tile),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.calculate_outlined, color: accent, size: 24),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '¿Qué pasa si…?',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        color: kredit.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Simula una compra en cuotas o un abono extra a capital',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: kredit.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.chevron_right, color: kredit.textTertiary),
+            ],
+          ),
+        ),
       ),
     );
   }
