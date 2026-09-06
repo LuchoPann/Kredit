@@ -298,12 +298,14 @@ class _VoucherBorderPainter extends CustomPainter {
       color != oldDelegate.color;
 }
 
-/// Builds a closed polygon path with every vertex rounded by [radius] —
-/// replaces each sharp corner with a short quadratic bezier between points
-/// pulled back along its two adjacent edges, the standard "rounded polygon"
-/// technique. Used by [_NequiWaveCornerPainter] for straight-edged,
-/// semi-rounded zigzag shapes (as opposed to a smooth sine-wave curve).
-Path _roundedPolygon(List<Offset> points, double radius) {
+/// Builds a closed polygon path, rounding each vertex by the matching entry
+/// in [radii] (same length as [points]; pass 0 for a vertex that must stay
+/// perfectly sharp — e.g. the card's true outer corners — and a positive
+/// value for the interior zigzag peaks/valleys that should read as
+/// "straight edges, small rounded corners"). Replaces each rounded corner
+/// with a short quadratic bezier between points pulled back along its two
+/// adjacent edges, the standard "rounded polygon" technique.
+Path _roundedPolygon(List<Offset> points, List<double> radii) {
   final path = Path();
   final n = points.length;
   for (var i = 0; i < n; i++) {
@@ -312,6 +314,7 @@ Path _roundedPolygon(List<Offset> points, double radius) {
     final next = points[(i + 1) % n];
     final toPrev = prev - curr;
     final toNext = next - curr;
+    final radius = radii[i];
     final rBack = radius.clamp(0.0, toPrev.distance / 2);
     final rFwd = radius.clamp(0.0, toNext.distance / 2);
     final start = curr + toPrev / toPrev.distance * rBack;
@@ -341,31 +344,40 @@ class _NequiWaveCornerPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final w = size.width * 0.62;
-    final h = size.height * 0.5;
+    // Spans the FULL card width — no white should show at the top corners,
+    // only below the shape's straight diagonal edges. One peak + one
+    // valley (not a repeating zigzag), small rounded corners at every
+    // vertex. Pink drawn first, its points pulled further down than
+    // purple's at each matching x so it peeks through underneath.
+    final w = size.width;
+    final h = size.height * 0.62;
 
-    // ONE shape each — a flat top edge that dips down to a single valley
-    // point and back up (not a repeating zigzag) — pink drawn first and
-    // sized/shifted a bit larger so it peeks out from behind purple's edge
-    // once purple is painted on top, same straight-edge/rounded-corner
-    // style for both.
+    // The first two points of each list are the card's TRUE top-left/
+    // top-right outer corners — radius 0, perfectly sharp, matching a real
+    // card/voucher edge. Every other point is an interior zigzag
+    // peak/valley (or where the diagonal exits the card's side edge),
+    // which gets the small rounding.
+    const cornerRadii = [0.0, 0.0, 12.0, 12.0, 12.0, 12.0];
+
     final pinkPoints = [
       const Offset(0, 0),
-      Offset(w * 1.06, 0),
-      Offset(w * 0.86, h * 0.78),
-      Offset(w * 0.32, h * 1.1),
-      Offset(0, h * 0.5),
+      Offset(w, 0),
+      Offset(w, h * 0.42),
+      Offset(w * 0.58, h * 0.86),
+      Offset(w * 0.34, h * 0.5),
+      Offset(0, h * 0.66),
     ];
-    canvas.drawPath(_roundedPolygon(pinkPoints, 14), Paint()..color = pink);
+    canvas.drawPath(_roundedPolygon(pinkPoints, cornerRadii), Paint()..color = pink);
 
     final purplePoints = [
       const Offset(0, 0),
       Offset(w, 0),
-      Offset(w * 0.7, h * 0.62),
-      Offset(w * 0.24, h * 0.92),
-      Offset(0, h * 0.4),
+      Offset(w, h * 0.3),
+      Offset(w * 0.6, h * 0.66),
+      Offset(w * 0.38, h * 0.34),
+      Offset(0, h * 0.48),
     ];
-    canvas.drawPath(_roundedPolygon(purplePoints, 14), Paint()..color = purple);
+    canvas.drawPath(_roundedPolygon(purplePoints, cornerRadii), Paint()..color = purple);
   }
 
   @override
@@ -429,7 +441,7 @@ class WalletCard extends StatelessWidget {
         // so a plain ClipRect-equivalent isn't needed here.
         clipper: isVoucher
             ? const _VoucherClipper()
-            : ShapeBorderClipper(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
+            : ShapeBorderClipper(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
         child: Stack(
           children: [
             // Base surface: a real card gets the bank's brand gradient; the
