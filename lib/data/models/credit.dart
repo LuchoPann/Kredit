@@ -65,6 +65,13 @@ class LoanCredit extends Credit {
   List<Installment> installments;
   List<LoanAbono> abonos;
 
+  /// True once this loan's schedule has diverged from the pure French
+  /// amortization derivable from its base fields — see the doc comment on
+  /// `Credits.scheduleManuallyAdjusted` in lib/data/db/tables.dart. Once
+  /// true, `recomputeLoanInstallments` must never be run on this credit
+  /// again.
+  bool scheduleManuallyAdjusted;
+
   LoanCredit({
     required super.id,
     required super.name,
@@ -82,6 +89,7 @@ class LoanCredit extends Credit {
     this.interestRateType = InterestRateType.effectiveAnnual,
     List<Installment>? installments,
     List<LoanAbono>? abonos,
+    this.scheduleManuallyAdjusted = false,
   })  : installments = installments ?? [],
         abonos = abonos ?? [],
         super(type: CreditType.loan);
@@ -104,6 +112,7 @@ class LoanCredit extends Credit {
         'notes': notes,
         'installments': installments.map((i) => i.toJson()).toList(),
         'abonos': abonos.map((a) => a.toJson()).toList(),
+        'scheduleManuallyAdjusted': scheduleManuallyAdjusted,
       };
 
   factory LoanCredit.fromJson(Map<String, dynamic> json) => LoanCredit(
@@ -128,6 +137,8 @@ class LoanCredit extends Credit {
         abonos: (json['abonos'] as List<dynamic>? ?? [])
             .map((e) => LoanAbono.fromJson(e as Map<String, dynamic>))
             .toList(),
+        scheduleManuallyAdjusted:
+            json['scheduleManuallyAdjusted'] as bool? ?? false,
       );
 }
 

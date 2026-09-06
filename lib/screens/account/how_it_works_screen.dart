@@ -80,7 +80,24 @@ class HowItWorksScreen extends StatelessWidget {
                 'Si lo que pagaste en una cuota no coincide con el valor calculado por '
                 'Kredit, puedes registrar el monto real al marcarla como pagada: la '
                 'diferencia se aplica a la siguiente cuota pendiente, igual que un '
-                'abono.',
+                'abono.\n\n'
+                'Al registrar el abono puedes elegir entre "reducir cuota" (mismo número '
+                'de cuotas restantes, cada una más barata) o "reducir plazo" (misma '
+                'cuota, el crédito termina antes) — las dos estrategias reales que ofrece '
+                'un banco.',
+          ),
+          Divider(height: 1, color: kredit.borderCard),
+          _Section(
+            title: 'Mora estimada',
+            body:
+                'Cuando una cuota queda vencida, Kredit muestra junto a ella un interés '
+                'moratorio ESTIMADO (interés simple diario sobre el saldo vencido) para '
+                'darte una idea de cuánto puede estar costando el atraso. Es un cálculo '
+                'simplificado, no la cifra real de tu banco — cada entidad tiene sus '
+                'propias reglas de mora (algunas la componen, otras cobran cargos fijos de '
+                'cobranza) y esta estimación no se suma al total de deuda mostrado en el '
+                'resto de la app. Confirma el valor real de la mora directamente con tu '
+                'banco.',
           ),
           Divider(height: 1, color: kredit.borderCard),
           _Section(

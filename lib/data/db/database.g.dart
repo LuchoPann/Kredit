@@ -148,6 +148,21 @@ class $CreditsTable extends Credits with TableInfo<$CreditsTable, CreditRow> {
     type: DriftSqlType.double,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _scheduleManuallyAdjustedMeta =
+      const VerificationMeta('scheduleManuallyAdjusted');
+  @override
+  late final GeneratedColumn<bool> scheduleManuallyAdjusted =
+      GeneratedColumn<bool>(
+        'schedule_manually_adjusted',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("schedule_manually_adjusted" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
   static const VerificationMeta _interestRateTypeMeta = const VerificationMeta(
     'interestRateType',
   );
@@ -263,6 +278,7 @@ class $CreditsTable extends Credits with TableInfo<$CreditsTable, CreditRow> {
     frequency,
     startDate,
     interestRate,
+    scheduleManuallyAdjusted,
     interestRateType,
     creditLimit,
     currentBalance,
@@ -383,6 +399,15 @@ class $CreditsTable extends Credits with TableInfo<$CreditsTable, CreditRow> {
         interestRate.isAcceptableOrUnknown(
           data['interest_rate']!,
           _interestRateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('schedule_manually_adjusted')) {
+      context.handle(
+        _scheduleManuallyAdjustedMeta,
+        scheduleManuallyAdjusted.isAcceptableOrUnknown(
+          data['schedule_manually_adjusted']!,
+          _scheduleManuallyAdjustedMeta,
         ),
       );
     }
@@ -526,6 +551,10 @@ class $CreditsTable extends Credits with TableInfo<$CreditsTable, CreditRow> {
         DriftSqlType.double,
         data['${effectivePrefix}interest_rate'],
       ),
+      scheduleManuallyAdjusted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}schedule_manually_adjusted'],
+      )!,
       interestRateType: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}interest_rate_type'],
@@ -586,6 +615,16 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
   final String? frequency;
   final String? startDate;
   final double? interestRate;
+
+  /// True once this loan's installment schedule has diverged from the pure
+  /// French amortization derived from its base fields (totalAmount,
+  /// quotaAmount, totalInstallments, interestRate/Type) — e.g. via
+  /// applyLoanAbono's reamortization or registerInstallmentActualPayment's
+  /// principal adjustment. `recomputeLoanInstallments` must NEVER be run
+  /// again on a loan with this flag set: it would silently discard the
+  /// manual adjustment and rebuild the original pre-adjustment schedule.
+  /// See CreditsNotifier.build() in lib/providers/credits_provider.dart.
+  final bool scheduleManuallyAdjusted;
   final String? interestRateType;
   final double? creditLimit;
   final double? currentBalance;
@@ -610,6 +649,7 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
     this.frequency,
     this.startDate,
     this.interestRate,
+    required this.scheduleManuallyAdjusted,
     this.interestRateType,
     this.creditLimit,
     this.currentBalance,
@@ -657,6 +697,9 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
     if (!nullToAbsent || interestRate != null) {
       map['interest_rate'] = Variable<double>(interestRate);
     }
+    map['schedule_manually_adjusted'] = Variable<bool>(
+      scheduleManuallyAdjusted,
+    );
     if (!nullToAbsent || interestRateType != null) {
       map['interest_rate_type'] = Variable<String>(interestRateType);
     }
@@ -723,6 +766,7 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
       interestRate: interestRate == null && nullToAbsent
           ? const Value.absent()
           : Value(interestRate),
+      scheduleManuallyAdjusted: Value(scheduleManuallyAdjusted),
       interestRateType: interestRateType == null && nullToAbsent
           ? const Value.absent()
           : Value(interestRateType),
@@ -773,6 +817,9 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
       frequency: serializer.fromJson<String?>(json['frequency']),
       startDate: serializer.fromJson<String?>(json['startDate']),
       interestRate: serializer.fromJson<double?>(json['interestRate']),
+      scheduleManuallyAdjusted: serializer.fromJson<bool>(
+        json['scheduleManuallyAdjusted'],
+      ),
       interestRateType: serializer.fromJson<String?>(json['interestRateType']),
       creditLimit: serializer.fromJson<double?>(json['creditLimit']),
       currentBalance: serializer.fromJson<double?>(json['currentBalance']),
@@ -808,6 +855,9 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
       'frequency': serializer.toJson<String?>(frequency),
       'startDate': serializer.toJson<String?>(startDate),
       'interestRate': serializer.toJson<double?>(interestRate),
+      'scheduleManuallyAdjusted': serializer.toJson<bool>(
+        scheduleManuallyAdjusted,
+      ),
       'interestRateType': serializer.toJson<String?>(interestRateType),
       'creditLimit': serializer.toJson<double?>(creditLimit),
       'currentBalance': serializer.toJson<double?>(currentBalance),
@@ -837,6 +887,7 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
     Value<String?> frequency = const Value.absent(),
     Value<String?> startDate = const Value.absent(),
     Value<double?> interestRate = const Value.absent(),
+    bool? scheduleManuallyAdjusted,
     Value<String?> interestRateType = const Value.absent(),
     Value<double?> creditLimit = const Value.absent(),
     Value<double?> currentBalance = const Value.absent(),
@@ -863,6 +914,8 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
     frequency: frequency.present ? frequency.value : this.frequency,
     startDate: startDate.present ? startDate.value : this.startDate,
     interestRate: interestRate.present ? interestRate.value : this.interestRate,
+    scheduleManuallyAdjusted:
+        scheduleManuallyAdjusted ?? this.scheduleManuallyAdjusted,
     interestRateType: interestRateType.present
         ? interestRateType.value
         : this.interestRateType,
@@ -909,6 +962,9 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
       interestRate: data.interestRate.present
           ? data.interestRate.value
           : this.interestRate,
+      scheduleManuallyAdjusted: data.scheduleManuallyAdjusted.present
+          ? data.scheduleManuallyAdjusted.value
+          : this.scheduleManuallyAdjusted,
       interestRateType: data.interestRateType.present
           ? data.interestRateType.value
           : this.interestRateType,
@@ -954,6 +1010,7 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
           ..write('frequency: $frequency, ')
           ..write('startDate: $startDate, ')
           ..write('interestRate: $interestRate, ')
+          ..write('scheduleManuallyAdjusted: $scheduleManuallyAdjusted, ')
           ..write('interestRateType: $interestRateType, ')
           ..write('creditLimit: $creditLimit, ')
           ..write('currentBalance: $currentBalance, ')
@@ -983,6 +1040,7 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
     frequency,
     startDate,
     interestRate,
+    scheduleManuallyAdjusted,
     interestRateType,
     creditLimit,
     currentBalance,
@@ -1011,6 +1069,7 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
           other.frequency == this.frequency &&
           other.startDate == this.startDate &&
           other.interestRate == this.interestRate &&
+          other.scheduleManuallyAdjusted == this.scheduleManuallyAdjusted &&
           other.interestRateType == this.interestRateType &&
           other.creditLimit == this.creditLimit &&
           other.currentBalance == this.currentBalance &&
@@ -1037,6 +1096,7 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
   final Value<String?> frequency;
   final Value<String?> startDate;
   final Value<double?> interestRate;
+  final Value<bool> scheduleManuallyAdjusted;
   final Value<String?> interestRateType;
   final Value<double?> creditLimit;
   final Value<double?> currentBalance;
@@ -1062,6 +1122,7 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
     this.frequency = const Value.absent(),
     this.startDate = const Value.absent(),
     this.interestRate = const Value.absent(),
+    this.scheduleManuallyAdjusted = const Value.absent(),
     this.interestRateType = const Value.absent(),
     this.creditLimit = const Value.absent(),
     this.currentBalance = const Value.absent(),
@@ -1088,6 +1149,7 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
     this.frequency = const Value.absent(),
     this.startDate = const Value.absent(),
     this.interestRate = const Value.absent(),
+    this.scheduleManuallyAdjusted = const Value.absent(),
     this.interestRateType = const Value.absent(),
     this.creditLimit = const Value.absent(),
     this.currentBalance = const Value.absent(),
@@ -1117,6 +1179,7 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
     Expression<String>? frequency,
     Expression<String>? startDate,
     Expression<double>? interestRate,
+    Expression<bool>? scheduleManuallyAdjusted,
     Expression<String>? interestRateType,
     Expression<double>? creditLimit,
     Expression<double>? currentBalance,
@@ -1143,6 +1206,8 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
       if (frequency != null) 'frequency': frequency,
       if (startDate != null) 'start_date': startDate,
       if (interestRate != null) 'interest_rate': interestRate,
+      if (scheduleManuallyAdjusted != null)
+        'schedule_manually_adjusted': scheduleManuallyAdjusted,
       if (interestRateType != null) 'interest_rate_type': interestRateType,
       if (creditLimit != null) 'credit_limit': creditLimit,
       if (currentBalance != null) 'current_balance': currentBalance,
@@ -1173,6 +1238,7 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
     Value<String?>? frequency,
     Value<String?>? startDate,
     Value<double?>? interestRate,
+    Value<bool>? scheduleManuallyAdjusted,
     Value<String?>? interestRateType,
     Value<double?>? creditLimit,
     Value<double?>? currentBalance,
@@ -1199,6 +1265,8 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
       frequency: frequency ?? this.frequency,
       startDate: startDate ?? this.startDate,
       interestRate: interestRate ?? this.interestRate,
+      scheduleManuallyAdjusted:
+          scheduleManuallyAdjusted ?? this.scheduleManuallyAdjusted,
       interestRateType: interestRateType ?? this.interestRateType,
       creditLimit: creditLimit ?? this.creditLimit,
       currentBalance: currentBalance ?? this.currentBalance,
@@ -1258,6 +1326,11 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
     if (interestRate.present) {
       map['interest_rate'] = Variable<double>(interestRate.value);
     }
+    if (scheduleManuallyAdjusted.present) {
+      map['schedule_manually_adjusted'] = Variable<bool>(
+        scheduleManuallyAdjusted.value,
+      );
+    }
     if (interestRateType.present) {
       map['interest_rate_type'] = Variable<String>(interestRateType.value);
     }
@@ -1312,6 +1385,7 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
           ..write('frequency: $frequency, ')
           ..write('startDate: $startDate, ')
           ..write('interestRate: $interestRate, ')
+          ..write('scheduleManuallyAdjusted: $scheduleManuallyAdjusted, ')
           ..write('interestRateType: $interestRateType, ')
           ..write('creditLimit: $creditLimit, ')
           ..write('currentBalance: $currentBalance, ')
@@ -2795,6 +2869,7 @@ typedef $$CreditsTableCreateCompanionBuilder =
       Value<String?> frequency,
       Value<String?> startDate,
       Value<double?> interestRate,
+      Value<bool> scheduleManuallyAdjusted,
       Value<String?> interestRateType,
       Value<double?> creditLimit,
       Value<double?> currentBalance,
@@ -2822,6 +2897,7 @@ typedef $$CreditsTableUpdateCompanionBuilder =
       Value<String?> frequency,
       Value<String?> startDate,
       Value<double?> interestRate,
+      Value<bool> scheduleManuallyAdjusted,
       Value<String?> interestRateType,
       Value<double?> creditLimit,
       Value<double?> currentBalance,
@@ -2969,6 +3045,11 @@ class $$CreditsTableFilterComposer
 
   ColumnFilters<double> get interestRate => $composableBuilder(
     column: $table.interestRate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get scheduleManuallyAdjusted => $composableBuilder(
+    column: $table.scheduleManuallyAdjusted,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3172,6 +3253,11 @@ class $$CreditsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get scheduleManuallyAdjusted => $composableBuilder(
+    column: $table.scheduleManuallyAdjusted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get interestRateType => $composableBuilder(
     column: $table.interestRateType,
     builder: (column) => ColumnOrderings(column),
@@ -3274,6 +3360,11 @@ class $$CreditsTableAnnotationComposer
 
   GeneratedColumn<double> get interestRate => $composableBuilder(
     column: $table.interestRate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get scheduleManuallyAdjusted => $composableBuilder(
+    column: $table.scheduleManuallyAdjusted,
     builder: (column) => column,
   );
 
@@ -3442,6 +3533,7 @@ class $$CreditsTableTableManager
                 Value<String?> frequency = const Value.absent(),
                 Value<String?> startDate = const Value.absent(),
                 Value<double?> interestRate = const Value.absent(),
+                Value<bool> scheduleManuallyAdjusted = const Value.absent(),
                 Value<String?> interestRateType = const Value.absent(),
                 Value<double?> creditLimit = const Value.absent(),
                 Value<double?> currentBalance = const Value.absent(),
@@ -3467,6 +3559,7 @@ class $$CreditsTableTableManager
                 frequency: frequency,
                 startDate: startDate,
                 interestRate: interestRate,
+                scheduleManuallyAdjusted: scheduleManuallyAdjusted,
                 interestRateType: interestRateType,
                 creditLimit: creditLimit,
                 currentBalance: currentBalance,
@@ -3494,6 +3587,7 @@ class $$CreditsTableTableManager
                 Value<String?> frequency = const Value.absent(),
                 Value<String?> startDate = const Value.absent(),
                 Value<double?> interestRate = const Value.absent(),
+                Value<bool> scheduleManuallyAdjusted = const Value.absent(),
                 Value<String?> interestRateType = const Value.absent(),
                 Value<double?> creditLimit = const Value.absent(),
                 Value<double?> currentBalance = const Value.absent(),
@@ -3519,6 +3613,7 @@ class $$CreditsTableTableManager
                 frequency: frequency,
                 startDate: startDate,
                 interestRate: interestRate,
+                scheduleManuallyAdjusted: scheduleManuallyAdjusted,
                 interestRateType: interestRateType,
                 creditLimit: creditLimit,
                 currentBalance: currentBalance,

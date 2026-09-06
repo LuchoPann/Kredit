@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../domain/loan_calculator.dart';
 import '../providers/credits_provider.dart';
 import '../theme/app_theme.dart';
 import '../utils/currency_input_formatter.dart';
@@ -29,6 +30,10 @@ class _LoanAbonoSheetState extends ConsumerState<LoanAbonoSheet> {
   final _amountCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
   bool _saving = false;
+  // Default to reducirCuota: more common as a default in personal-finance
+  // apps (lower payments going forward feels more immediately useful than a
+  // shorter term), while still letting the user pick reducirPlazo.
+  AbonoStrategy _strategy = AbonoStrategy.reducirCuota;
 
   @override
   void dispose() {
@@ -48,6 +53,7 @@ class _LoanAbonoSheetState extends ConsumerState<LoanAbonoSheet> {
             widget.creditId,
             amount,
             note: _noteCtrl.text.trim(),
+            strategy: _strategy,
           );
       if (mounted) {
         navigator.pop();
@@ -149,6 +155,45 @@ class _LoanAbonoSheetState extends ConsumerState<LoanAbonoSheet> {
                 labelText: 'Nota / Descripción (opcional)',
                 hintText: 'Ej. Abono con bono de fin de año',
               ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'QUÉ HACER CON EL SALDO',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.4,
+                color: kredit.textTertiary,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: ChoiceChip(
+                    label: const Text('Reducir cuota'),
+                    selected: _strategy == AbonoStrategy.reducirCuota,
+                    onSelected: (_) =>
+                        setState(() => _strategy = AbonoStrategy.reducirCuota),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ChoiceChip(
+                    label: const Text('Reducir plazo'),
+                    selected: _strategy == AbonoStrategy.reducirPlazo,
+                    onSelected: (_) =>
+                        setState(() => _strategy = AbonoStrategy.reducirPlazo),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _strategy == AbonoStrategy.reducirCuota
+                  ? 'Mismo número de cuotas restantes, pero cada una más barata.'
+                  : 'Misma cuota mensual, pero el crédito termina antes.',
+              style: TextStyle(fontSize: 11.5, color: kredit.textTertiary),
             ),
             const SizedBox(height: 20),
             SizedBox(

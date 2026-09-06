@@ -210,6 +210,75 @@ class _EmvChipLinesPainter extends CustomPainter {
   bool shouldRepaint(covariant _EmvChipLinesPainter oldDelegate) => false;
 }
 
+/// Outline of the "cash-advance voucher" variant of [WalletCard]: a lightly
+/// rounded rect with a small semicircular notch cut into the middle of the
+/// left and right edges, like a torn ticket/comprobante stub rather than a
+/// plastic card. Shared by [_VoucherClipper] (so the card face itself is cut
+/// to this shape) and [_VoucherBorderPainter] (so the dashed border traces
+/// exactly the same outline, notches included) — computed once here so the
+/// two can never drift apart.
+Path _voucherOutline(Size size, {double radius = 10, double notchRadius = 8}) {
+  final base = Path()
+    ..addRRect(RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Radius.circular(radius),
+    ));
+  final notches = Path()
+    ..addOval(Rect.fromCircle(center: Offset(0, size.height / 2), radius: notchRadius))
+    ..addOval(
+        Rect.fromCircle(center: Offset(size.width, size.height / 2), radius: notchRadius));
+  return Path.combine(PathOperation.difference, base, notches);
+}
+
+/// Clips [WalletCard]'s voucher variant to [_voucherOutline] — the side
+/// notches only read as "cut into the shape" if the card face itself (its
+/// gradient, glints, etc.) is actually clipped there, not just outlined.
+class _VoucherClipper extends CustomClipper<Path> {
+  const _VoucherClipper();
+
+  @override
+  Path getClip(Size size) => _voucherOutline(size);
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+/// Dashed stroke traced along the FULL [_voucherOutline] perimeter (corners
+/// and side notches included), replacing a plain solid edge — this is what
+/// reads as "comprobante/talonario" rather than a plastic-card border.
+/// Walks the path via [Path.computeMetrics] so the dash pattern follows the
+/// notches correctly instead of just the bounding rect.
+class _VoucherBorderPainter extends CustomPainter {
+  final Color color;
+  const _VoucherBorderPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = _voucherOutline(size);
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    const dashWidth = 5.0;
+    const gap = 4.0;
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        final next = distance + dashWidth;
+        canvas.drawPath(
+          metric.extractPath(distance, next.clamp(0, metric.length)),
+          paint,
+        );
+        distance = next + gap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _VoucherBorderPainter oldDelegate) =>
+      color != oldDelegate.color;
+}
+
 /// Big visual wallet-card mockup shown atop the credit detail "Resumen" tab,
 /// mirroring #detail-wallet-card in legacy_pwa/index.html (~L358-379).
 class WalletCard extends StatelessWidget {
@@ -227,6 +296,13 @@ class WalletCard extends StatelessWidget {
     );
     final gradient = _expandGradient(_gradientFor(bank.cssClass, credit.color));
     final remaining = getCreditRemainingBalance(credit);
+    // A LoanCredit whose lender has no real physical card product (e.g.
+    // Nequi cash advances) gets the "cash-advance voucher" chrome instead of
+    // the physical-card mockup — no EMV chip, no contactless icon. A
+    // CardCredit is, by definition, always a real card, so it NEVER uses
+    // this variant even if its lender were ever flagged hasPhysicalCard:
+    // false — the `is LoanCredit` check always comes first.
+    final isVoucher = credit is LoanCredit && !bank.hasPhysicalCard;
 
     // The card face can be any accent color the user picks (light or dark),
     // so text color is derived from the actual gradient rather than assumed
@@ -249,11 +325,20 @@ class WalletCard extends StatelessWidget {
       // less vertical real-estate, while the stats block below absorbs the
       // data that used to live in a separate CreditStatsRow underneath.
       aspectRatio: 1.9,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
+      child: ClipPath(
+        // Voucher variant clips to the notched _voucherOutline (a "torn
+        // ticket stub" shape); a real card keeps a plain, more-rounded rect
+        // — CustomClipper defaults to a full-rect path when not overridden,
+        // so a plain ClipRect-equivalent isn't needed here.
+        clipper: isVoucher
+            ? const _VoucherClipper()
+            : ShapeBorderClipper(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
         child: Stack(
           children: [
-            // Base gradient surface.
+            // Base gradient surface. The voucher variant skips the solid
+            // chrome border (a straight-edged Border.all would poke past the
+            // notched clip) — its edge comes entirely from the dashed
+            // outline painted below instead.
             Positioned.fill(
               child: DecoratedBox(
                 decoration: BoxDecoration(
@@ -262,59 +347,78 @@ class WalletCard extends StatelessWidget {
                     end: Alignment.bottomRight,
                     colors: gradient,
                   ),
-                  border: Border.all(color: chipChromeBorder),
+                  border: isVoucher ? null : Border.all(color: chipChromeBorder),
                 ),
               ),
             ),
             // Very tenuous diagonal-line texture, characteristic of
-            // physical card mockups — pure decoration, no shadow.
-            Positioned.fill(
-              child: IgnorePointer(
-                child: CustomPaint(painter: const _CardPatternPainter()),
+            // physical card mockups — pure decoration, no shadow. Skipped
+            // for the voucher variant, which should read as flatter paper
+            // rather than textured plastic.
+            if (!isVoucher)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(painter: const _CardPatternPainter()),
+                ),
               ),
-            ),
-            // Subtle radial highlight/reflection in the top-right corner,
-            // to sell the "physical card" feel without adding new colors.
-            Positioned(
-              top: -40,
-              right: -40,
-              child: IgnorePointer(
-                child: Container(
-                  width: 150,
-                  height: 150,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        Colors.white.withValues(alpha: 0.12),
-                        Colors.white.withValues(alpha: 0.0),
-                      ],
+            // Subtle radial highlight/reflection in the top-right corner, to
+            // sell the "physical card" feel — skipped for the voucher
+            // variant, which is meant to read as flat/minimalist paper, not
+            // glossy plastic.
+            if (!isVoucher)
+              Positioned(
+                top: -40,
+                right: -40,
+                child: IgnorePointer(
+                  child: Container(
+                    width: 150,
+                    height: 150,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          Colors.white.withValues(alpha: 0.12),
+                          Colors.white.withValues(alpha: 0.0),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
             // A second, dimmer glint low-left, for a bit of directional
-            // light instead of a single flat highlight.
-            Positioned(
-              bottom: -50,
-              left: -30,
-              child: IgnorePointer(
-                child: Container(
-                  width: 130,
-                  height: 130,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        Colors.white.withValues(alpha: 0.05),
-                        Colors.white.withValues(alpha: 0.0),
-                      ],
+            // light instead of a single flat highlight — also card-only.
+            if (!isVoucher)
+              Positioned(
+                bottom: -50,
+                left: -30,
+                child: IgnorePointer(
+                  child: Container(
+                    width: 130,
+                    height: 130,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          Colors.white.withValues(alpha: 0.05),
+                          Colors.white.withValues(alpha: 0.0),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
+            // Voucher variant: the dashed border traces the full notched
+            // outline (corners + side notches) instead of a solid edge —
+            // this is the "comprobante/talonario" cue, replacing the old
+            // internal-only tear line.
+            if (isVoucher)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    painter: _VoucherBorderPainter(color: ink.withValues(alpha: 0.35)),
+                  ),
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
               child: Column(
@@ -361,17 +465,22 @@ class WalletCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 10),
-                  // EMV chip + contactless icon, standard physical-card row.
-                  Row(
-                    children: [
-                      const _EmvChip(),
-                      const Spacer(),
-                      Icon(Icons.wifi, color: inkMid, size: 18),
-                    ],
-                  ),
+                  // EMV chip + contactless icon, standard physical-card row
+                  // — skipped entirely for the cash-advance voucher variant,
+                  // which has no real plastic to simulate.
+                  if (!isVoucher)
+                    Row(
+                      children: [
+                        const _EmvChip(),
+                        const Spacer(),
+                        Icon(Icons.wifi, color: inkMid, size: 18),
+                      ],
+                    ),
                   const Spacer(),
                   Text(
-                    credit.isCard ? 'Tarjeta de Crédito' : 'Préstamo (${bank.shortLabel})',
+                    credit.isCard
+                        ? 'Tarjeta de Crédito'
+                        : (isVoucher ? 'Adelanto (${bank.shortLabel})' : 'Préstamo (${bank.shortLabel})'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(

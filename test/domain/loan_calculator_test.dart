@@ -440,30 +440,77 @@ void main() {
       );
     }
 
-    test('abono that advances exactly N full quotas marks them paid', () {
-      final credit = buildLoan();
-      final abono = applyLoanAbono(credit, 600); // exactly 2 quotas
+    test('reducirCuota: same installment count, each future cuota gets cheaper', () {
+      final credit = buildLoan(); // rate 0: totalAmount 1000, 4 x 300, no abono yet
+      final abono = applyLoanAbono(credit, 200, strategy: AbonoStrategy.reducirCuota);
 
-      expect(abono.installmentsSkipped, 2);
-      expect(abono.amount, 600);
-      expect(credit.installments[0].paid, isTrue);
-      expect(credit.installments[1].paid, isTrue);
-      expect(credit.installments[2].paid, isFalse);
-      expect(credit.installments[3].paid, isFalse);
-      // Remaining installments untouched (rate 0 -> principal == quota).
-      expect(credit.installments[2].principal, closeTo(300, 1e-9));
+      // installmentsSkipped is 0 for reducirCuota: no installments dropped.
+      expect(abono.installmentsSkipped, 0);
+      expect(abono.amount, 200);
+      expect(credit.installments, hasLength(4));
+      for (final inst in credit.installments) {
+        expect(inst.paid, isFalse);
+      }
+      // New remaining principal = 1000 - 200 = 800, spread over the same 4
+      // installments (rate 0 -> quota = principal / count).
+      expect(credit.quotaAmount, closeTo(200, 1e-9));
+      for (final inst in credit.installments) {
+        expect(inst.principal, closeTo(200, 1e-9));
+        expect(inst.amount, closeTo(200, 1e-9));
+      }
+      expect(getLoanRemainingBalance(credit), closeTo(800, 1e-9));
     });
 
-    test('abono with partial remainder reduces the next unpaid installment principal', () {
-      final credit = buildLoan();
-      final abono = applyLoanAbono(credit, 350); // 1 full quota + 50 remainder
+    test('reducirPlazo: same fixed quota, fewer installments, total lands at \$0 exact', () {
+      final credit = buildLoan(); // rate 0: 1000 total, 4 x 300 quota
+      final abono = applyLoanAbono(credit, 400, strategy: AbonoStrategy.reducirPlazo);
 
-      expect(abono.installmentsSkipped, 1);
-      expect(credit.installments[0].paid, isTrue);
-      expect(credit.installments[1].paid, isFalse);
-      // principal was 300, interest 0 (rate 0) -> reduced by 50 remainder
-      expect(credit.installments[1].principal, closeTo(250, 1e-9));
-      expect(credit.installments[1].amount, closeTo(250, 1e-9));
+      // New remaining principal = 1000 - 400 = 600, at a fixed 300 quota
+      // (rate 0) that takes exactly 2 installments -> 2 dropped.
+      expect(abono.installmentsSkipped, 2);
+      expect(credit.installments, hasLength(2));
+      expect(credit.quotaAmount, closeTo(300, 1e-9)); // unchanged
+      expect(getLoanRemainingBalance(credit), closeTo(600, 1e-9));
+      // Last installment settles exactly to $0 residual.
+      final total = credit.installments.fold(0.0, (s, i) => s + i.principal);
+      expect(total, closeTo(600, 1e-9));
+    });
+
+    test('reducirPlazo falls back to reducirCuota when the fixed quota cannot '
+        'cover even the first period of interest', () {
+      final start = toDateStr(DateTime.now().add(const Duration(days: 30)));
+      // Quota (50) well below the first period's interest at a high rate,
+      // guaranteeing negative amortization if term were held fixed.
+      final credit = LoanCredit(
+        id: 'c2',
+        name: 'Test',
+        lender: 'Lender',
+        totalAmount: 1000,
+        quotaAmount: 50,
+        totalInstallments: 4,
+        frequency: CreditFrequency.monthly,
+        startDate: start,
+        interestRate: 90, // deliberately extreme E.A. to force the fallback
+        installments: buildLoanInstallments(
+          totalAmount: 1000,
+          totalInstallments: 4,
+          quotaAmount: 50,
+          frequency: CreditFrequency.monthly,
+          startDate: start,
+          interestRate: 90,
+        ),
+      );
+
+      final abono = applyLoanAbono(credit, 200, strategy: AbonoStrategy.reducirPlazo);
+
+      // Fell back to reducirCuota: same installment count, nothing dropped.
+      expect(abono.installmentsSkipped, 0);
+      expect(credit.installments, hasLength(4));
+      // Principal (not amount, which also carries interest) reflects the
+      // new lower balance the reducirCuota fallback reamortized against.
+      final totalPrincipal =
+          credit.installments.fold(0.0, (s, i) => s + i.principal);
+      expect(totalPrincipal, closeTo(800, 1e-6));
     });
 
     test('abono exactly equal to total pending debt settles loan at \$0, no error', () {
@@ -510,6 +557,216 @@ void main() {
       final credit = buildLoan();
       markAllInstallments(credit);
       expect(() => applyLoanAbono(credit, 100), throwsArgumentError);
+    });
+
+    test('sets scheduleManuallyAdjusted = true (reducirCuota)', () {
+      final credit = buildLoan();
+      expect(credit.scheduleManuallyAdjusted, isFalse);
+      applyLoanAbono(credit, 200, strategy: AbonoStrategy.reducirCuota);
+      expect(credit.scheduleManuallyAdjusted, isTrue);
+    });
+
+    test('sets scheduleManuallyAdjusted = true (reducirPlazo)', () {
+      final credit = buildLoan();
+      expect(credit.scheduleManuallyAdjusted, isFalse);
+      applyLoanAbono(credit, 400, strategy: AbonoStrategy.reducirPlazo);
+      expect(credit.scheduleManuallyAdjusted, isTrue);
+    });
+
+    test('sets scheduleManuallyAdjusted = true when abono settles the whole loan', () {
+      final credit = buildLoan();
+      final totalDebt = getLoanRemainingBalance(credit);
+      expect(credit.scheduleManuallyAdjusted, isFalse);
+      applyLoanAbono(credit, totalDebt);
+      expect(credit.scheduleManuallyAdjusted, isTrue);
+    });
+  });
+
+  group('registerInstallmentActualPayment — last-installment shortfall bug fix', () {
+    test('paying less than calculated on the LAST pending installment appends a new '
+        'installment carrying the shortfall, instead of losing it silently', () {
+      final start = toDateStr(DateTime.now().add(const Duration(days: 30)));
+      final credit = LoanCredit(
+        id: 'c1',
+        name: 'Test',
+        lender: 'Lender',
+        totalAmount: 300,
+        quotaAmount: 300,
+        totalInstallments: 1,
+        frequency: CreditFrequency.monthly,
+        startDate: start,
+        installments: buildLoanInstallments(
+          totalAmount: 300,
+          totalInstallments: 1,
+          quotaAmount: 300,
+          frequency: CreditFrequency.monthly,
+          startDate: start,
+        ),
+      );
+
+      registerInstallmentActualPayment(credit, credit.installments[0], 250);
+
+      expect(credit.installments[0].paid, isTrue);
+      // A new installment was appended holding the $50 shortfall, still
+      // pending — the loan is NOT fully settled at $0.
+      expect(credit.installments, hasLength(2));
+      final extra = credit.installments[1];
+      expect(extra.number, 2);
+      expect(extra.paid, isFalse);
+      expect(extra.principal, closeTo(50, 1e-9));
+      expect(extra.interest, 0);
+      expect(extra.amount, closeTo(50, 1e-9));
+      expect(getLoanRemainingBalance(credit), closeTo(50, 1e-9));
+    });
+
+    test('paying more than calculated on the last installment discards the surplus '
+        '(no negative installment created)', () {
+      final start = toDateStr(DateTime.now().add(const Duration(days: 30)));
+      final credit = LoanCredit(
+        id: 'c1',
+        name: 'Test',
+        lender: 'Lender',
+        totalAmount: 300,
+        quotaAmount: 300,
+        totalInstallments: 1,
+        frequency: CreditFrequency.monthly,
+        startDate: start,
+        installments: buildLoanInstallments(
+          totalAmount: 300,
+          totalInstallments: 1,
+          quotaAmount: 300,
+          frequency: CreditFrequency.monthly,
+          startDate: start,
+        ),
+      );
+
+      registerInstallmentActualPayment(credit, credit.installments[0], 350);
+
+      expect(credit.installments, hasLength(1));
+      expect(credit.installments[0].paid, isTrue);
+      expect(getLoanRemainingBalance(credit), closeTo(0, 1e-9));
+    });
+
+    test('sets scheduleManuallyAdjusted = true when diff != 0', () {
+      final start = toDateStr(DateTime.now().add(const Duration(days: 30)));
+      final credit = LoanCredit(
+        id: 'c1',
+        name: 'Test',
+        lender: 'Lender',
+        totalAmount: 300,
+        quotaAmount: 300,
+        totalInstallments: 1,
+        frequency: CreditFrequency.monthly,
+        startDate: start,
+        installments: buildLoanInstallments(
+          totalAmount: 300,
+          totalInstallments: 1,
+          quotaAmount: 300,
+          frequency: CreditFrequency.monthly,
+          startDate: start,
+        ),
+      );
+
+      expect(credit.scheduleManuallyAdjusted, isFalse);
+      registerInstallmentActualPayment(credit, credit.installments[0], 250);
+      expect(credit.scheduleManuallyAdjusted, isTrue);
+    });
+
+    test('does NOT set scheduleManuallyAdjusted when diff == 0', () {
+      final start = toDateStr(DateTime.now().add(const Duration(days: 30)));
+      final credit = LoanCredit(
+        id: 'c1',
+        name: 'Test',
+        lender: 'Lender',
+        totalAmount: 300,
+        quotaAmount: 300,
+        totalInstallments: 1,
+        frequency: CreditFrequency.monthly,
+        startDate: start,
+        installments: buildLoanInstallments(
+          totalAmount: 300,
+          totalInstallments: 1,
+          quotaAmount: 300,
+          frequency: CreditFrequency.monthly,
+          startDate: start,
+        ),
+      );
+
+      final calculated = credit.installments[0].amount;
+      expect(credit.scheduleManuallyAdjusted, isFalse);
+      registerInstallmentActualPayment(credit, credit.installments[0], calculated);
+      expect(credit.scheduleManuallyAdjusted, isFalse);
+    });
+  });
+
+  group('estimateMoraInterest', () {
+    LoanCredit buildLoan({required String dueDate, double interestRate = 24}) {
+      return LoanCredit(
+        id: 'c1',
+        name: 'Test',
+        lender: 'Lender',
+        totalAmount: 1000,
+        quotaAmount: 300,
+        totalInstallments: 1,
+        frequency: CreditFrequency.monthly,
+        startDate: dueDate,
+        interestRate: interestRate,
+        installments: [
+          Installment(
+            number: 1,
+            dueDate: dueDate,
+            amount: 300,
+            principal: 300,
+            interest: 0,
+          ),
+        ],
+      );
+    }
+
+    test('not-yet-due installment returns 0', () {
+      final due = toDateStr(DateTime.now().add(const Duration(days: 10)));
+      final credit = buildLoan(dueDate: due);
+      expect(estimateMoraInterest(credit, credit.installments[0]), 0);
+    });
+
+    test('already-paid installment returns 0 even if overdue', () {
+      final due = toDateStr(DateTime.now().subtract(const Duration(days: 10)));
+      final credit = buildLoan(dueDate: due);
+      credit.installments[0].paid = true;
+      expect(estimateMoraInterest(credit, credit.installments[0]), 0);
+    });
+
+    test('overdue installment computes simple daily mora interest, capped at the '
+        'usury ceiling', () {
+      final now = DateTime.now();
+      final due = toDateStr(now.subtract(const Duration(days: 13)));
+      final credit = buildLoan(dueDate: due, interestRate: 24);
+      final inst = credit.installments[0];
+
+      final mora = estimateMoraInterest(credit, inst, asOf: now, moraRateMultiplier: 1.5);
+
+      final ordinaryDaily = dailyRateFrom(24, InterestRateType.effectiveAnnual);
+      final usuryDaily = dailyRateFrom(35, InterestRateType.effectiveAnnual);
+      final expectedDaily = math.min(ordinaryDaily * 1.5, usuryDaily);
+      final expected = inst.amount * expectedDaily * 13;
+
+      expect(mora, closeTo(expected, 1e-6));
+      expect(mora, greaterThan(0));
+    });
+
+    test('extreme ordinary rate gets capped at the usury ceiling instead of '
+        'compounding unrealistically', () {
+      final now = DateTime.now();
+      final due = toDateStr(now.subtract(const Duration(days: 5)));
+      final credit = buildLoan(dueDate: due, interestRate: 90);
+      final inst = credit.installments[0];
+
+      final mora = estimateMoraInterest(credit, inst, asOf: now);
+
+      final usuryDaily = dailyRateFrom(35, InterestRateType.effectiveAnnual);
+      final cappedExpected = inst.amount * usuryDaily * 5;
+
+      expect(mora, closeTo(cappedExpected, 1e-6));
     });
   });
 }

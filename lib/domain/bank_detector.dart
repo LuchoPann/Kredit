@@ -14,12 +14,20 @@ class BankInfo {
   final String shortLabel; // label used in list/dashboard rows
   final String fullLabel; // label used on the wallet card detail view
   final String accentColor; // getBankColor()
+  // Whether this entity issues a real physical (or virtual-but-plastic-like)
+  // card. Defaults to true so every existing entity keeps rendering the
+  // standard "physical card" chrome (EMV chip, contactless icon) without
+  // being touched individually. Set to false only for entities that are
+  // purely cash-advance/wallet products with no card product at all (e.g.
+  // Nequi) — see wallet_card.dart's LoanCredit voucher variant.
+  final bool hasPhysicalCard;
 
   const BankInfo({
     required this.cssClass,
     required this.shortLabel,
     required this.fullLabel,
     required this.accentColor,
+    this.hasPhysicalCard = true,
   });
 }
 
@@ -111,6 +119,10 @@ BankInfo detectBank({
       shortLabel: 'Nequi',
       fullLabel: 'Nequi',
       accentColor: '#9333ea',
+      // Nequi loans are cash advances given from within the app and repaid
+      // in installments — Nequi does not issue any real physical card for
+      // this product, so the wallet card must not simulate one.
+      hasPhysicalCard: false,
     );
   }
   if (has('bancolombia')) {

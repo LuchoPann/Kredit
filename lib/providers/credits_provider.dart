@@ -54,7 +54,19 @@ class CreditsNotifier extends AsyncNotifier<List<Credit>> {
         if (c.currentBalance != before || c.movements.length != beforeMovements) {
           await _db.upsertCredit(c);
         }
-      } else if (c is LoanCredit) {
+      } else if (c is LoanCredit && !c.scheduleManuallyAdjusted) {
+        // Skip the recompute once the loan's schedule has diverged from
+        // what its base fields alone would reproduce — persisted via the
+        // `scheduleManuallyAdjusted` flag, set by applyLoanAbono's
+        // reamortization (see AbonoStrategy) and by
+        // registerInstallmentActualPayment's principal adjustment (whenever
+        // the real payment differed from the calculated one). Running the
+        // recompute after either would silently discard that adjustment and
+        // regenerate the original schedule from scratch on every app
+        // launch — this flag is the actual persisted signal, not a
+        // heuristic based on `abonos.isEmpty` or installment count (which
+        // was tried first and found insufficient: it missed the
+        // registerInstallmentActualPayment case entirely).
         final before = jsonEncode(c.installments.map((i) => i.toJson()).toList());
         c.installments = recomputeLoanInstallments(c);
         final after = jsonEncode(c.installments.map((i) => i.toJson()).toList());
@@ -136,13 +148,18 @@ class CreditsNotifier extends AsyncNotifier<List<Credit>> {
   /// unpaid schedule (see applyLoanAbono) and persisting both the updated
   /// installments and the new abono history entry. Returns the created
   /// [LoanAbono] so the caller can show a result summary.
-  Future<LoanAbono> registerLoanAbono(String creditId, double amount, {String note = ''}) async {
+  Future<LoanAbono> registerLoanAbono(
+    String creditId,
+    double amount, {
+    String note = '',
+    AbonoStrategy strategy = AbonoStrategy.reducirCuota,
+  }) async {
     final credits = state.value ?? [];
     final credit = credits.whereType<LoanCredit>().where((c) => c.id == creditId).firstOrNull;
     if (credit == null) {
       throw ArgumentError('Crédito no encontrado: $creditId');
     }
-    final abono = applyLoanAbono(credit, amount, note: note);
+    final abono = applyLoanAbono(credit, amount, note: note, strategy: strategy);
     credit.abonos.add(abono);
     await _db.upsertCredit(credit);
     await _reload();

@@ -127,6 +127,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
   Future<void> _syncNotifications() async {
     final service = ref.read(notificationServiceProvider);
     await service.init();
+    if (!mounted) return;
     final settings = ref.read(notificationSettingsProvider);
     final credits = ref.read(creditsProvider).value ?? [];
     if (settings.enabled) {

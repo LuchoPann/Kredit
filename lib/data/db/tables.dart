@@ -24,6 +24,18 @@ class Credits extends Table {
 
   // shared by both (loan's tasa vs card's tasa E.A.)
   RealColumn get interestRate => real().nullable()();
+
+  // --- loan-only: schedule-integrity flag ---
+  /// True once this loan's installment schedule has diverged from the pure
+  /// French amortization derived from its base fields (totalAmount,
+  /// quotaAmount, totalInstallments, interestRate/Type) — e.g. via
+  /// applyLoanAbono's reamortization or registerInstallmentActualPayment's
+  /// principal adjustment. `recomputeLoanInstallments` must NEVER be run
+  /// again on a loan with this flag set: it would silently discard the
+  /// manual adjustment and rebuild the original pre-adjustment schedule.
+  /// See CreditsNotifier.build() in lib/providers/credits_provider.dart.
+  BoolColumn get scheduleManuallyAdjusted =>
+      boolean().withDefault(const Constant(false))();
   // card-only: how interestRate is expressed (effectiveAnnual|
   // effectiveMonthly|nominalMonthly). Null on rows created before this
   // column existed; treated as effectiveAnnual (legacy behavior).

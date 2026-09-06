@@ -434,6 +434,9 @@ class _InstallmentTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
     final status = getInstallmentStatus(inst);
+    final isOverdue = !inst.paid && status.state == InstallmentState.overdue;
+    final mora = isOverdue ? estimateMoraInterest(credit, inst) : 0.0;
+    final daysLate = isOverdue ? -getDaysDifference(inst.dueDate) : 0;
     return InkWell(
       onTap: () {
         HapticFeedback.mediumImpact();
@@ -490,6 +493,37 @@ class _InstallmentTile extends ConsumerWidget {
                       color: kredit.textSecondary,
                     ),
                   ),
+                  if (mora > 0) ...[
+                    const SizedBox(height: 3),
+                    Tooltip(
+                      message: 'Estimado, no el valor real: la mora exacta '
+                          'depende de las políticas de cada entidad. '
+                          'Confírmala con tu banco.',
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.warning_amber_rounded,
+                            size: 12,
+                            color: kredit.warning,
+                          ),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              '+ ~${formatCOP(mora)} de mora estimada '
+                              '($daysLate días de atraso)',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: kredit.warning,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

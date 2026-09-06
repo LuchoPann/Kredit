@@ -50,6 +50,64 @@ void main() {
     expect(loaded.installments[0].interest, greaterThan(loaded.installments[1].interest));
   });
 
+  test('scheduleManuallyAdjusted round-trips and survives a save->reload cycle '
+      'after an abono, preventing recomputeLoanInstallments from reverting it '
+      '(regression test for the original data-loss bug)', () async {
+    final loan = LoanCredit(
+      id: 'loan-abono',
+      name: 'Test',
+      lender: 'Lender',
+      totalAmount: 1000,
+      quotaAmount: 300,
+      totalInstallments: 4,
+      frequency: CreditFrequency.monthly,
+      startDate: '2026-01-01',
+      installments: buildLoanInstallments(
+        totalAmount: 1000,
+        totalInstallments: 4,
+        quotaAmount: 300,
+        frequency: CreditFrequency.monthly,
+        startDate: '2026-01-01',
+      ),
+    );
+
+    // Apply a real abono a capital: reamortizes the unpaid installments in
+    // place (reducirCuota) and sets scheduleManuallyAdjusted.
+    final abono = applyLoanAbono(loan, 200, strategy: AbonoStrategy.reducirCuota);
+    loan.abonos.add(abono);
+    expect(loan.scheduleManuallyAdjusted, isTrue);
+    final reamortizedQuota = loan.quotaAmount;
+    expect(reamortizedQuota, closeTo(200, 1e-9)); // (1000-200)/4
+
+    await db.upsertCredit(loan);
+
+    // Simulate app restart: reload from the DB, as CreditsNotifier.build()
+    // does.
+    var reloaded = (await db.loadAllCredits()).first as LoanCredit;
+    expect(reloaded.scheduleManuallyAdjusted, isTrue);
+    expect(reloaded.quotaAmount, closeTo(reamortizedQuota, 1e-9));
+    for (final inst in reloaded.installments) {
+      expect(inst.principal, closeTo(200, 1e-9));
+    }
+
+    // The old bug: CreditsNotifier.build() called recomputeLoanInstallments
+    // unconditionally for every LoanCredit, rebuilding the ENTIRE schedule
+    // from totalAmount/quotaAmount/totalInstallments — which silently
+    // reverted the reamortization back to the pre-abono numbers. The fix is
+    // to gate that call on `!scheduleManuallyAdjusted`, exactly like
+    // CreditsNotifier.build() now does.
+    if (!reloaded.scheduleManuallyAdjusted) {
+      reloaded.installments = recomputeLoanInstallments(reloaded);
+    }
+
+    // The reamortized schedule must have survived the reload.
+    expect(reloaded.quotaAmount, closeTo(reamortizedQuota, 1e-9));
+    for (final inst in reloaded.installments) {
+      expect(inst.principal, closeTo(200, 1e-9));
+    }
+    expect(getLoanRemainingBalance(reloaded), closeTo(800, 1e-9));
+  });
+
   test('round-trips a card credit with movements', () async {
     final card = CardCredit(
       id: 'card1',

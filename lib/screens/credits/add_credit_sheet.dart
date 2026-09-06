@@ -488,7 +488,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     }
   }
 
-  static const _stepTitles = ['Tipo y Datos Básicos', 'Datos Financieros', 'Color y Confirmación'];
+  static const _stepTitles = ['Tipo y Datos Básicos', 'Datos Financieros', 'Confirmación'];
 
   @override
   Widget build(BuildContext context) {
@@ -739,33 +739,6 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
 
   List<Widget> _step3ColorNotesConfirm(KreditColors kredit) {
     return [
-      const Text('Color de Tarjeta / Identificador', style: TextStyle(fontWeight: FontWeight.w600)),
-      const SizedBox(height: 8),
-      Wrap(
-        spacing: 10,
-        children: AppColors.accentOptions.map((c) {
-          final hex = '#${c.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
-          final selected = hex.toUpperCase() == _color.toUpperCase();
-          return GestureDetector(
-            onTap: () => setState(() => _color = hex),
-            child: Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: c,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: selected ? kredit.textPrimary : kredit.borderCard,
-                  width: selected ? 3 : 1,
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-      const SizedBox(height: 20),
-      Divider(color: kredit.borderCard),
-      const SizedBox(height: 12),
       Row(
         children: [
           Icon(Icons.fact_check_outlined, size: 14, color: kredit.textTertiary),

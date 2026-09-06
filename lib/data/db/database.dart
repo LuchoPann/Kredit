@@ -21,7 +21,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -34,6 +34,9 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 3) {
             await m.createTable(loanAbonos);
+          }
+          if (from < 4) {
+            await m.addColumn(credits, credits.scheduleManuallyAdjusted);
           }
         },
       );
@@ -60,6 +63,7 @@ class AppDatabase extends _$AppDatabase {
           row.interestRateType ?? InterestRateType.effectiveAnnual,
       installments: installments,
       abonos: abonos,
+      scheduleManuallyAdjusted: row.scheduleManuallyAdjusted,
     );
   }
 
@@ -105,6 +109,7 @@ class AppDatabase extends _$AppDatabase {
         startDate: Value(credit.startDate),
         interestRate: Value(credit.interestRate),
         interestRateType: Value(credit.interestRateType),
+        scheduleManuallyAdjusted: Value(credit.scheduleManuallyAdjusted),
       );
     } else if (credit is CardCredit) {
       return CreditsCompanion.insert(

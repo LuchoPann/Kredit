@@ -10,6 +10,17 @@ import 'interest_rate.dart';
 /// app.js (~L168).
 enum InstallmentState { paid, overdue, warning, pending }
 
+/// The two real-world strategies a bank offers after an abono a capital —
+/// see [applyLoanAbono].
+enum AbonoStrategy {
+  /// Same fixed quota, fewer remaining installments (the loan ends sooner).
+  reducirPlazo,
+
+  /// Same number of remaining installments, a lower fixed quota (each
+  /// future cuota gets cheaper).
+  reducirCuota,
+}
+
 class InstallmentStatus {
   final String cssClass; // "badge-paid" | "badge-overdue" | "badge-pending"
   final String label;
@@ -245,15 +256,19 @@ void reprorateUnpaidInstallments(
 /// which installments were already marked paid (matched by installment
 /// `number`) along with their paymentDate/interestWaived flag.
 ///
-/// Migration approach: this app has no installed base of real user data yet
-/// (only local/demo credits), so rather than a one-shot schema-version
-/// migration with "old vs. new engine" bookkeeping, this recomputation is
-/// simply idempotent and deterministic — running it again on installments
-/// already produced by the French engine reproduces the exact same numbers.
-/// That lets `CreditsNotifier.build()` call it unconditionally on every app
-/// load (mirroring `accrueCardCredit`'s always-run pattern) and persist only
-/// when the result actually changed, instead of needing any stored
-/// "migrated" flag.
+/// IMPORTANT — no longer unconditionally safe: this rebuilds the ENTIRE
+/// schedule from the base fields, discarding any manual adjustment that
+/// isn't reflected in them (e.g. applyLoanAbono's reamortization, or
+/// registerInstallmentActualPayment's principal nudge to the next
+/// installment). Callers MUST check `credit.scheduleManuallyAdjusted` first
+/// and skip this call entirely when it's true — see
+/// `CreditsNotifier.build()` in lib/providers/credits_provider.dart, which
+/// only calls this for loans where the flag is still false. It remains
+/// idempotent and deterministic for loans where the flag is false (running
+/// it again on installments already produced by the French engine
+/// reproduces the exact same numbers), which is what let earlier versions
+/// of this app call it unconditionally on every load before any stored
+/// "migrated"/"adjusted" flag existed.
 List<Installment> recomputeLoanInstallments(LoanCredit credit) {
   final fresh = buildLoanInstallments(
     totalAmount: credit.totalAmount,
@@ -407,12 +422,143 @@ void registerInstallmentActualPayment(
   applyInstallmentPayment(inst, true);
   final diff = calculatedAmount - actualAmount;
   if (diff == 0) return;
+  credit.scheduleManuallyAdjusted = true;
   final unpaid = credit.installments.where((i) => !i.paid).toList()
     ..sort((a, b) => a.number.compareTo(b.number));
+
+  if (diff > 0 && unpaid.isEmpty) {
+    // Paid LESS than calculated on what was the last pending installment —
+    // there's no next installment left to fold the shortfall into. Losing
+    // it silently would mark the loan "fully paid" at $0 despite money
+    // still being owed, so instead append a new installment carrying the
+    // shortfall as pending principal (no interest — this is just an
+    // unresolved balance, not a new accrual period).
+    final last =
+        credit.installments.reduce((a, b) => a.number > b.number ? a : b);
+    credit.installments.add(Installment(
+      number: last.number + 1,
+      dueDate: inst.dueDate,
+      amount: diff,
+      principal: diff,
+      interest: 0,
+      paid: false,
+    ));
+    return;
+  }
+  // diff < 0 (paid MORE than calculated) with no installment left to apply
+  // the surplus to: discarded, same as applyLoanAbono does when a payment
+  // covers more than the outstanding balance — no negative cuota is ever
+  // created.
   _applyPrincipalAdjustment(unpaid, diff);
 }
 
-LoanAbono applyLoanAbono(LoanCredit loan, double amount, {String note = ''}) {
+/// Standard PMT (fixed-installment) formula: the periodic payment that
+/// amortizes [principal] over [count] periods at [periodRate] per period.
+/// Degenerates to a straight division when [periodRate] is 0 (matches
+/// `_amortizeFrench`'s zero-rate behavior).
+double _pmt(double principal, int count, double periodRate) {
+  if (count <= 0) return 0;
+  if (periodRate <= 0) return principal / count;
+  final factor = math.pow(1 + periodRate, count);
+  return principal * periodRate * factor / (factor - 1);
+}
+
+/// Inverse of [_pmt]: given a FIXED [quotaAmount] and [periodRate], how many
+/// periods does it take to amortize [principal] down to (approximately) $0?
+/// Returns `null` if the quota doesn't even cover one period's interest
+/// (negative amortization — the balance would never shrink) or if it would
+/// take an unreasonable number of periods (nothing sane converges within
+/// [maxPeriods]), so the caller can fall back to a safer strategy instead of
+/// hanging or producing nonsense.
+int? _periodsToPayoff(
+  double principal,
+  double quotaAmount,
+  double periodRate, {
+  int maxPeriods = 1200,
+}) {
+  if (principal <= 0) return 0;
+  var balance = principal;
+  for (var n = 1; n <= maxPeriods; n++) {
+    final interest = periodRate > 0 ? balance * periodRate : 0.0;
+    final principalPortion = quotaAmount - interest;
+    if (principalPortion <= 0) return null;
+    balance -= principalPortion;
+    if (balance <= 1e-6) return n;
+  }
+  return null;
+}
+
+/// Reamortizes [unpaid] in place against [newPrincipal], keeping the same
+/// number of installments but deriving a fresh (lower) fixed quota via
+/// [_pmt] — the "reducir cuota" strategy. Updates `loan.quotaAmount` to the
+/// new value so it stays consistent with what the schedule now reflects.
+void _reamortizeReducirCuota(
+  LoanCredit loan,
+  List<Installment> unpaid,
+  double newPrincipal,
+  double periodRate,
+) {
+  final newQuota = _pmt(newPrincipal, unpaid.length, periodRate);
+  loan.quotaAmount = newQuota;
+  final steps = _amortizeFrench(
+    principal: newPrincipal,
+    count: unpaid.length,
+    quotaAmount: newQuota,
+    periodRate: periodRate,
+  );
+  for (var i = 0; i < unpaid.length; i++) {
+    final inst = unpaid[i];
+    final step = steps[i];
+    inst.principal = step.principal;
+    inst.interest = step.interest;
+    inst.amount = step.principal + step.interest;
+    inst.interestWaived = false;
+  }
+}
+
+/// Applies a manual extra payment ("abono extra") to [loan], reducing debt
+/// outside the normal fixed-installment schedule (inspired by the UX idea —
+/// not code — of MyExpenses' manual transaction entry).
+///
+/// Real reamortization, mirroring what a Colombian bank actually offers
+/// after an abono a capital:
+/// 1. If [amount] covers the entire outstanding balance
+///    ([getLoanRemainingBalance]), behavior is unchanged from before: the
+///    abono is capped to that balance, every unpaid installment is marked
+///    paid via [markAllInstallments], and [LoanAbono.wasCapped] /
+///    [LoanAbono.requestedAmount] tell the caller if there was a surplus.
+/// 2. Otherwise, the new outstanding PRINCIPAL is
+///    `(totalAmount - principal already paid off) - amount` — the full
+///    abono comes straight off capital, no "whole quotas that fit" carve-out
+///    like the old approximation used.
+/// 3. [strategy] decides how the remaining unpaid installments are
+///    rebuilt from that lower principal:
+///    - [AbonoStrategy.reducirCuota]: same number of installments, a fresh
+///      (lower) fixed quota derived via the PMT formula — every future cuota
+///      gets cheaper. Reuses the same `_amortizeFrench` engine
+///      [reprorateUnpaidInstallments] uses.
+///    - [AbonoStrategy.reducirPlazo]: same fixed quota (`loan.quotaAmount`
+///      unchanged), fewer installments — the minimum period count that
+///      amortizes the new principal to $0 is found (inverse-PMT search) and
+///      any now-unneeded trailing installments are dropped from
+///      `loan.installments`. Falls back to [AbonoStrategy.reducirCuota] if
+///      that quota can't even cover the first period's interest (or would
+///      take an unreasonable number of periods) — never crashes, never
+///      hangs, never produces a schedule that doesn't reach $0.
+/// 4. Already-paid installments are left completely untouched, same as
+///    [reprorateUnpaidInstallments] already does.
+///
+/// Returns the [LoanAbono] record the caller should append to
+/// `loan.abonos` and persist. `installmentsSkipped` reflects how many
+/// installments were actually dropped from the schedule ([reducirPlazo]
+/// only) — it is 0 for [reducirCuota], since that strategy keeps the same
+/// count of installments (each just cheaper).
+LoanAbono applyLoanAbono(
+  LoanCredit loan,
+  double amount, {
+  String note = '',
+  AbonoStrategy strategy = AbonoStrategy.reducirCuota,
+}) {
   if (amount <= 0) {
     throw ArgumentError('El monto del abono debe ser mayor a cero');
   }
@@ -426,6 +572,7 @@ LoanAbono applyLoanAbono(LoanCredit loan, double amount, {String note = ''}) {
   final remainingBalance = getLoanRemainingBalance(loan);
   if (amount >= remainingBalance) {
     markAllInstallments(loan);
+    loan.scheduleManuallyAdjusted = true;
     return LoanAbono(
       date: toDateStr(DateTime.now()),
       amount: remainingBalance,
@@ -435,24 +582,61 @@ LoanAbono applyLoanAbono(LoanCredit loan, double amount, {String note = ''}) {
     );
   }
 
-  final quotasSkipped =
-      loan.quotaAmount > 0 ? (amount / loan.quotaAmount).floor() : 0;
-  final clampedSkip = math.min(quotasSkipped, unpaid.length);
+  final paidPrincipal =
+      loan.installments.where((i) => i.paid).fold(0.0, (s, i) => s + i.principal);
+  final currentRemainingPrincipal =
+      math.max(0.0, loan.totalAmount - paidPrincipal);
+  final newRemainingPrincipal =
+      math.max(0.0, currentRemainingPrincipal - amount);
+  final periodRate =
+      periodicRateFrom(loan.interestRate, loan.interestRateType, loan.frequency);
 
-  for (var i = 0; i < clampedSkip; i++) {
-    applyInstallmentPayment(unpaid[i], true);
+  var installmentsDropped = 0;
+  if (strategy == AbonoStrategy.reducirPlazo) {
+    final n = _periodsToPayoff(
+      newRemainingPrincipal,
+      loan.quotaAmount,
+      periodRate,
+    );
+    if (n != null && n > 0) {
+      final clampedN = math.min(n, unpaid.length);
+      final keep = unpaid.sublist(0, clampedN);
+      final drop = unpaid.sublist(clampedN);
+      final steps = _amortizeFrench(
+        principal: newRemainingPrincipal,
+        count: clampedN,
+        quotaAmount: loan.quotaAmount,
+        periodRate: periodRate,
+      );
+      for (var i = 0; i < keep.length; i++) {
+        final inst = keep[i];
+        final step = steps[i];
+        inst.principal = step.principal;
+        inst.interest = step.interest;
+        inst.amount = step.principal + step.interest;
+        inst.interestWaived = false;
+      }
+      if (drop.isNotEmpty) {
+        loan.installments.removeWhere((inst) => drop.contains(inst));
+        installmentsDropped = drop.length;
+      }
+    } else {
+      // Fallback: the fixed quota doesn't even cover the first period's
+      // interest (or the search didn't converge) — reducing the term isn't
+      // possible without an absurd/negative-amortizing schedule, so fall
+      // back to the always-safe reducirCuota strategy instead of crashing.
+      _reamortizeReducirCuota(loan, unpaid, newRemainingPrincipal, periodRate);
+    }
+  } else {
+    _reamortizeReducirCuota(loan, unpaid, newRemainingPrincipal, periodRate);
   }
 
-  final remainder = amount - clampedSkip * loan.quotaAmount;
-  if (remainder > 0 && clampedSkip < unpaid.length) {
-    _applyPrincipalAdjustment(unpaid.sublist(clampedSkip), remainder);
-  }
-
+  loan.scheduleManuallyAdjusted = true;
   return LoanAbono(
     date: toDateStr(DateTime.now()),
     amount: amount,
     note: note,
-    installmentsSkipped: clampedSkip,
+    installmentsSkipped: installmentsDropped,
   );
 }
 
@@ -497,4 +681,58 @@ void reverseLoanAbono(LoanCredit loan, LoanAbono abono) {
     inst.interestWaived = false;
     toUnmark--;
   }
+}
+
+/// Illustrative usury-rate ceiling (E.A.) reused from the same 35% threshold
+/// `rateInconsistencyWarning` in `interest_rate.dart` already uses as its
+/// "clearly past the real Superfinanciera usury ceiling" cutoff — see that
+/// function's doc comment for the sourcing. Reused here (rather than
+/// introducing a second magic number) as the cap on estimated mora rates.
+const double _usuryCeilingEA = 35;
+
+/// Estimates the extra "interés moratorio" (late-payment interest) a bank
+/// would typically charge on an overdue installment, ON TOP OF the ordinary
+/// amount already in `inst.amount`. This is a SIMPLIFIED ESTIMATE ONLY:
+///
+/// - It applies simple (non-compounded) daily interest on the installment's
+///   outstanding amount, at a daily mora rate derived from the loan's
+///   ordinary rate scaled by [moraRateMultiplier] (banks commonly charge a
+///   materially higher rate on mora than on the ordinary balance) and capped
+///   at [_usuryCeilingEA] (E.A.) converted to a daily rate — real regulated
+///   lenders cannot legally charge more than the usury ceiling even on
+///   mora.
+/// - Real banks differ: some compound the mora daily or monthly, some add
+///   fixed collection/cobranza fees on top, some apply a flat mora rate set
+///   by policy rather than a multiple of the ordinary rate. This function
+///   does NOT attempt to replicate any specific bank's exact formula — it
+///   is meant purely as an illustrative "heads up, mora is probably costing
+///   you around this much" estimate, never as a bank-verified figure (same
+///   "no es el número exacto del banco" caveat as the rest of the
+///   amortization engine).
+///
+/// Returns 0 if [inst] is already paid, or if it isn't overdue as of [asOf]
+/// (defaults to `DateTime.now()`).
+double estimateMoraInterest(
+  LoanCredit loan,
+  Installment inst, {
+  DateTime? asOf,
+  double moraRateMultiplier = 1.5,
+}) {
+  if (inst.paid) return 0.0;
+
+  final now = asOf ?? DateTime.now();
+  final nowMidnight = DateTime(now.year, now.month, now.day);
+  final due = parseDateStr(inst.dueDate);
+  final dueMidnight = DateTime(due.year, due.month, due.day);
+  if (!nowMidnight.isAfter(dueMidnight)) return 0.0;
+
+  final daysLate = nowMidnight.difference(dueMidnight).inDays;
+
+  final ordinaryDaily = dailyRateFrom(loan.interestRate, loan.interestRateType);
+  final usuryDailyCeiling =
+      dailyRateFrom(_usuryCeilingEA, InterestRateType.effectiveAnnual);
+  var moraDaily = ordinaryDaily * moraRateMultiplier;
+  if (moraDaily > usuryDailyCeiling) moraDaily = usuryDailyCeiling;
+
+  return inst.amount * moraDaily * daysLate;
 }
