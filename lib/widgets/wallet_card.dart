@@ -210,51 +210,70 @@ class _EmvChipLinesPainter extends CustomPainter {
   bool shouldRepaint(covariant _EmvChipLinesPainter oldDelegate) => false;
 }
 
-/// Outline of the "cash-advance voucher" variant of [WalletCard]: a lightly
-/// rounded rect with a small semicircular notch cut into the middle of the
-/// left and right edges, like a torn ticket/comprobante stub rather than a
-/// plastic card. Shared by [_VoucherClipper] (so the card face itself is cut
-/// to this shape) and [_VoucherBorderPainter] (so the dashed border traces
-/// exactly the same outline, notches included) — computed once here so the
-/// two can never drift apart.
-Path _voucherOutline(Size size, {double radius = 10, double notchRadius = 8}) {
-  final base = Path()
-    ..addRRect(RRect.fromRectAndRadius(
-      Rect.fromLTWH(0, 0, size.width, size.height),
-      Radius.circular(radius),
-    ));
+/// Outline of the "cash-advance voucher" variant of [WalletCard]: a SQUARE-
+/// cornered rect (no corner rounding at all — a comprobante/talonario is cut
+/// paper, not a plastic card) with a tall OVAL notch (noticeably taller than
+/// wide — curved top-to-bottom, not side-to-side) cut into the middle of the
+/// left and right edges. Takes an explicit [rect] rather than always the
+/// full bounds so [_VoucherBorderPainter] can trace an INSET copy (border
+/// drawn slightly inside the true edge) while [_VoucherClipper] clips the
+/// card face to the full-size version — both built by this one function so
+/// their curvature/notch shape never drifts apart.
+Path _voucherOutline(
+  Rect rect, {
+  double radius = 0,
+  double notchWidth = 14,
+  double notchHeight = 26,
+}) {
+  final base = Path()..addRRect(RRect.fromRectAndRadius(rect, Radius.circular(radius)));
+  final notchCenterY = rect.top + rect.height / 2;
   final notches = Path()
-    ..addOval(Rect.fromCircle(center: Offset(0, size.height / 2), radius: notchRadius))
-    ..addOval(
-        Rect.fromCircle(center: Offset(size.width, size.height / 2), radius: notchRadius));
+    ..addOval(Rect.fromCenter(
+      center: Offset(rect.left, notchCenterY),
+      width: notchWidth,
+      height: notchHeight,
+    ))
+    ..addOval(Rect.fromCenter(
+      center: Offset(rect.right, notchCenterY),
+      width: notchWidth,
+      height: notchHeight,
+    ));
   return Path.combine(PathOperation.difference, base, notches);
 }
 
-/// Clips [WalletCard]'s voucher variant to [_voucherOutline] — the side
-/// notches only read as "cut into the shape" if the card face itself (its
-/// gradient, glints, etc.) is actually clipped there, not just outlined.
+/// Clips [WalletCard]'s voucher variant to [_voucherOutline] (full bounds) —
+/// the side notches only read as "cut into the shape" if the card face
+/// itself (its gradient, glints, etc.) is actually clipped there, not just
+/// outlined.
 class _VoucherClipper extends CustomClipper<Path> {
   const _VoucherClipper();
 
   @override
-  Path getClip(Size size) => _voucherOutline(size);
+  Path getClip(Size size) => _voucherOutline(Offset.zero & size);
 
+  // Always true: the outline is cheap to recompute, and returning false
+  // let a stale cached clip shape survive a hot reload that changed
+  // _voucherOutline's geometry (radius/notch size) — the card face would
+  // keep the OLD silhouette while the dashed border painter (repainted
+  // unconditionally on reassemble) already showed the new one.
   @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => true;
 }
 
-/// Dashed stroke traced along the FULL [_voucherOutline] perimeter (corners
-/// and side notches included), replacing a plain solid edge — this is what
-/// reads as "comprobante/talonario" rather than a plastic-card border.
-/// Walks the path via [Path.computeMetrics] so the dash pattern follows the
-/// notches correctly instead of just the bounding rect.
+/// Dashed stroke traced along [_voucherOutline], INSET a few pixels from the
+/// true edge (rather than sitting exactly on it) — reads as a stitched
+/// comprobante line just inside the paper's edge rather than the edge
+/// itself. Walks the path via [Path.computeMetrics] so the dash pattern
+/// follows the oval notches correctly instead of just the bounding rect.
 class _VoucherBorderPainter extends CustomPainter {
   final Color color;
   const _VoucherBorderPainter({required this.color});
 
+  static const _inset = 6.0;
+
   @override
   void paint(Canvas canvas, Size size) {
-    final path = _voucherOutline(size);
+    final path = _voucherOutline((Offset.zero & size).deflate(_inset));
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke

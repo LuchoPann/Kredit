@@ -48,16 +48,6 @@ const List<String> _presetLocations = [
   'Otro...',
 ];
 
-const List<String> _presetCards = [
-  'Cuenta Débito Bancolombia',
-  'Nequi',
-  'DaviPlata',
-  'RappiCuenta / Débito',
-  'Lulo Bank',
-  'Cuenta de Ahorros',
-  'Efectivo',
-  'Otra...',
-];
 
 /// "Editar Información del Crédito" form, mirroring #modal-edit-credit in
 /// legacy_pwa/index.html (~L650-759) and updateCreditData() in app.js
@@ -95,12 +85,6 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
         ? loc
         : (loc.isEmpty ? 'Ninguno / Prestamista' : 'Otro...');
   }();
-  late String? _selectedCardPreset = () {
-    if (widget.credit is! LoanCredit) return null;
-    final c = (widget.credit as LoanCredit).card ?? '';
-    return _presetCards.contains(c) ? c : (c.isEmpty ? null : 'Otra...');
-  }();
-
   late final _nameCtrl = TextEditingController(text: widget.credit.name);
   late final _lenderCtrl = TextEditingController(text: widget.credit.lender);
   late final _notesCtrl = TextEditingController(
@@ -111,11 +95,6 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
   late final _locationCtrl = TextEditingController(
     text: widget.credit is LoanCredit
         ? (widget.credit as LoanCredit).location ?? ''
-        : '',
-  );
-  late final _cardCtrl = TextEditingController(
-    text: widget.credit is LoanCredit
-        ? (widget.credit as LoanCredit).card ?? ''
         : '',
   );
   late final _quotaCtrl = TextEditingController(
@@ -183,7 +162,6 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
       _lenderCtrl,
       _notesCtrl,
       _locationCtrl,
-      _cardCtrl,
       _quotaCtrl,
       _interestCtrl,
       _limitCtrl,
@@ -308,7 +286,6 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
       credit.managementFeeFrequency = _managementFeeFrequency;
     } else if (credit is LoanCredit) {
       credit.location = _locationCtrl.text.trim();
-      credit.card = _cardCtrl.text.trim();
       final newQuota = double.tryParse(
         CurrencyInputFormatter.unformat(_quotaCtrl.text),
       );
@@ -406,7 +383,6 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                             frequency: loan.frequency,
                             color: _color,
                             location: _locationCtrl.text,
-                            card: _cardCtrl.text,
                             // Carry over the real schedule/history so the
                             // preview's "DEUDA RESTANTE" reflects the actual
                             // remaining balance instead of defaulting to $0
@@ -581,101 +557,43 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                     label: 'DÓNDE Y CON QUÉ',
                     icon: Icons.storefront_outlined,
                     children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                DropdownButtonFormField<String>(
-                                    isExpanded: true,
-                                  initialValue: _selectedLocationPreset,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Comercio / Establecimiento',
-                                  ),
-                                  items: _presetLocations
-                                      .map(
-                                        (loc) => DropdownMenuItem(
-                                          value: loc,
-                                          child: Text(loc),
-                                        ),
-                                      )
-                                      .toList(),
-                                  onChanged: (v) {
-                                    setState(() {
-                                      _selectedLocationPreset = v;
-                                      if (v != null && v != 'Otro...') {
-                                        _locationCtrl.text =
-                                            v == 'Ninguno / Prestamista'
-                                            ? ''
-                                            : v;
-                                      } else if (v == 'Otro...') {
-                                        _locationCtrl.clear();
-                                      }
-                                    });
-                                  },
-                                ),
-                                if (_selectedLocationPreset == 'Otro...') ...[
-                                  const SizedBox(height: 8),
-                                  TextFormField(
-                                    controller: _locationCtrl,
-                                    autofocus: true,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Escribir libre',
-                                      hintText: 'Ej. Tienda de la esquina...',
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                DropdownButtonFormField<String>(
-                                    isExpanded: true,
-                                  initialValue: _selectedCardPreset,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Cuenta de Pago / Cargo',
-                                  ),
-                                  items: _presetCards
-                                      .map(
-                                        (c) => DropdownMenuItem(
-                                          value: c,
-                                          child: Text(c),
-                                        ),
-                                      )
-                                      .toList(),
-                                  onChanged: (v) {
-                                    setState(() {
-                                      _selectedCardPreset = v;
-                                      if (v != null && v != 'Otra...') {
-                                        _cardCtrl.text = v;
-                                      } else if (v == 'Otra...') {
-                                        _cardCtrl.clear();
-                                      }
-                                    });
-                                  },
-                                ),
-                                if (_selectedCardPreset == 'Otra...') ...[
-                                  const SizedBox(height: 8),
-                                  TextFormField(
-                                    controller: _cardCtrl,
-                                    autofocus: true,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Escribir libre',
-                                      hintText: 'Ej. Cuenta Banco Popular...',
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ],
+                      DropdownButtonFormField<String>(
+                          isExpanded: true,
+                        initialValue: _selectedLocationPreset,
+                        decoration: const InputDecoration(
+                          labelText: 'Comercio / Establecimiento',
+                        ),
+                        items: _presetLocations
+                            .map(
+                              (loc) => DropdownMenuItem(
+                                value: loc,
+                                child: Text(loc),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (v) {
+                          setState(() {
+                            _selectedLocationPreset = v;
+                            if (v != null && v != 'Otro...') {
+                              _locationCtrl.text =
+                                  v == 'Ninguno / Prestamista' ? '' : v;
+                            } else if (v == 'Otro...') {
+                              _locationCtrl.clear();
+                            }
+                          });
+                        },
                       ),
+                      if (_selectedLocationPreset == 'Otro...') ...[
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _locationCtrl,
+                          autofocus: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Escribir libre',
+                            hintText: 'Ej. Tienda de la esquina...',
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 12),
