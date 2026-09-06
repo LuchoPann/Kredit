@@ -196,10 +196,9 @@ class _DashboardBody extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 12),
-            // Alto pensado para abarcar desde el tope del título hasta la
-            // base del subtítulo (headlineSmall + gap + 13px caption), así
-            // el logo queda simétrico con el bloque de texto completo.
-            const KreditLogo(height: 46),
+            // Discreto — un acento de marca junto al saludo, no un segundo
+            // punto focal compitiendo con el título.
+            const KreditLogo(height: 30),
           ],
         ),
         const SizedBox(height: 28),
@@ -267,90 +266,129 @@ class _DashboardBody extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 28),
-        Divider(height: 1, color: kredit.borderCard),
-        const SizedBox(height: 28),
 
-        // 3. Próximos pagos — lista tipográfica con separadores de línea
-        // fina en vez de tarjetas apiladas; el color de urgencia vive en el
-        // texto y en un acento circular pequeño, no en un contenedor.
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            const Text(
-              'Próximos pagos',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              '${upcoming.length}',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: kredit.textTertiary,
-              ),
-            ),
-            const Spacer(),
-            if (upcoming.length > 3)
-              TextButton(
-                onPressed: () => _showAllUpcomingSheet(context, upcoming),
-                child: const Text('Ver todos', style: TextStyle(fontSize: 12)),
-              ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        if (upcoming.isEmpty)
-          const _InlineEmpty(text: 'No tienes pagos pendientes próximos.')
-        else
-          _UpcomingList(items: upcoming.take(3).toList()),
-        if (upcoming.length > 3)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: TextButton(
-              onPressed: () => _showAllUpcomingSheet(context, upcoming),
-              child: const Text('Ver todos'),
-            ),
-          ),
-
-        // 4. Lista de créditos activos.
-        if (activeCredits.isNotEmpty) ...[
-          const SizedBox(height: 28),
-          Divider(height: 1, color: kredit.borderCard),
-          const SizedBox(height: 28),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
+        // 3. Próximos pagos — ahora en su propia tarjeta discreta: fondo
+        // ligeramente elevado (kredit.bgCard), radio moderado, sin sombra
+        // dura ni borde marcado. El color de urgencia sigue viviendo en el
+        // texto y en el acento circular pequeño de cada fila, no en el
+        // contenedor — la tarjeta solo agrupa, no compite visualmente.
+        _DashboardSectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Tus créditos',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  const Text(
+                    'Próximos pagos',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${upcoming.length}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: kredit.textTertiary,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (upcoming.length > 3)
+                    TextButton(
+                      onPressed: () => _showAllUpcomingSheet(context, upcoming),
+                      child: const Text('Ver todos', style: TextStyle(fontSize: 12)),
+                    ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Text(
-                '${activeCredits.length}',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: kredit.textTertiary,
+              const SizedBox(height: 4),
+              if (upcoming.isEmpty)
+                const _InlineEmpty(text: 'No tienes pagos pendientes próximos.')
+              else
+                _UpcomingList(items: upcoming.take(3).toList()),
+              if (upcoming.length > 3)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: TextButton(
+                    onPressed: () => _showAllUpcomingSheet(context, upcoming),
+                    child: const Text('Ver todos'),
+                  ),
                 ),
-              ),
-              const Spacer(),
-              TextButton(
-                onPressed: () => ref.read(navigationIndexProvider.notifier).state = AppNavTab.credits,
-                child: const Text('Ver todos', style: TextStyle(fontSize: 12)),
-              ),
             ],
           ),
-          const SizedBox(height: 6),
-          CreditCardTileList(
-            credits: activeCredits,
-            onTap: (c) => Navigator.of(context).pushNamed(
-              '/credit-detail',
-              arguments: c.id,
+        ),
+
+        // 4. Lista de créditos activos — misma tarjeta discreta.
+        if (activeCredits.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          _DashboardSectionCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    const Text(
+                      'Tus créditos',
+                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${activeCredits.length}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: kredit.textTertiary,
+                      ),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: () =>
+                          ref.read(navigationIndexProvider.notifier).state = AppNavTab.credits,
+                      child: const Text('Ver todos', style: TextStyle(fontSize: 12)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                CreditCardTileList(
+                  credits: activeCredits,
+                  onTap: (c) => Navigator.of(context).pushNamed(
+                    '/credit-detail',
+                    arguments: c.id,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ],
+    );
+  }
+}
+
+/// Contenedor discreto usado por las secciones "Próximos pagos" y "Tus
+/// créditos" del dashboard: agrupa sin competir — radio moderado, fondo
+/// apenas elevado sobre el fondo de la pantalla (kredit.bgCard, ya usado en
+/// otras superficies "de tarjeta" de la app) y un borde de 1px casi
+/// imperceptible en vez de una sombra dura, para que se lea como una
+/// separación suave y no como una caja pesada.
+class _DashboardSectionCard extends StatelessWidget {
+  final Widget child;
+  const _DashboardSectionCard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: kredit.bgCard,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: kredit.borderCard.withValues(alpha: 0.6)),
+      ),
+      child: child,
     );
   }
 }
