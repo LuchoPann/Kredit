@@ -75,6 +75,14 @@ const entityTemplates = <EntityTemplate>[
     typicalPaymentOffsetDays: 20,
   ),
   EntityTemplate(
+    // "CMR Falabella" — the store-brand card sub-entity — matches this
+    // template too, since 'cmr' doesn't contain 'falabella'.
+    matchKeyword: 'cmr',
+    typicalCutoffDay: 15,
+    typicalPaymentOffsetDays: 20,
+    note: 'CMR Falabella es la tarjeta de marca propia; Banco Falabella también ofrece libre inversión.',
+  ),
+  EntityTemplate(
     matchKeyword: 'colpatria',
     typicalCutoffDay: 15,
     typicalPaymentOffsetDays: 20,

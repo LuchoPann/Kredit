@@ -148,6 +148,17 @@ class $CreditsTable extends Credits with TableInfo<$CreditsTable, CreditRow> {
     type: DriftSqlType.double,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _interestRateTypeMeta = const VerificationMeta(
+    'interestRateType',
+  );
+  @override
+  late final GeneratedColumn<String> interestRateType = GeneratedColumn<String>(
+    'interest_rate_type',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _creditLimitMeta = const VerificationMeta(
     'creditLimit',
   );
@@ -252,6 +263,7 @@ class $CreditsTable extends Credits with TableInfo<$CreditsTable, CreditRow> {
     frequency,
     startDate,
     interestRate,
+    interestRateType,
     creditLimit,
     currentBalance,
     cutoffDay,
@@ -371,6 +383,15 @@ class $CreditsTable extends Credits with TableInfo<$CreditsTable, CreditRow> {
         interestRate.isAcceptableOrUnknown(
           data['interest_rate']!,
           _interestRateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('interest_rate_type')) {
+      context.handle(
+        _interestRateTypeMeta,
+        interestRateType.isAcceptableOrUnknown(
+          data['interest_rate_type']!,
+          _interestRateTypeMeta,
         ),
       );
     }
@@ -505,6 +526,10 @@ class $CreditsTable extends Credits with TableInfo<$CreditsTable, CreditRow> {
         DriftSqlType.double,
         data['${effectivePrefix}interest_rate'],
       ),
+      interestRateType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}interest_rate_type'],
+      ),
       creditLimit: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}credit_limit'],
@@ -561,6 +586,7 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
   final String? frequency;
   final String? startDate;
   final double? interestRate;
+  final String? interestRateType;
   final double? creditLimit;
   final double? currentBalance;
   final int? cutoffDay;
@@ -584,6 +610,7 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
     this.frequency,
     this.startDate,
     this.interestRate,
+    this.interestRateType,
     this.creditLimit,
     this.currentBalance,
     this.cutoffDay,
@@ -629,6 +656,9 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
     }
     if (!nullToAbsent || interestRate != null) {
       map['interest_rate'] = Variable<double>(interestRate);
+    }
+    if (!nullToAbsent || interestRateType != null) {
+      map['interest_rate_type'] = Variable<String>(interestRateType);
     }
     if (!nullToAbsent || creditLimit != null) {
       map['credit_limit'] = Variable<double>(creditLimit);
@@ -693,6 +723,9 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
       interestRate: interestRate == null && nullToAbsent
           ? const Value.absent()
           : Value(interestRate),
+      interestRateType: interestRateType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(interestRateType),
       creditLimit: creditLimit == null && nullToAbsent
           ? const Value.absent()
           : Value(creditLimit),
@@ -740,6 +773,7 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
       frequency: serializer.fromJson<String?>(json['frequency']),
       startDate: serializer.fromJson<String?>(json['startDate']),
       interestRate: serializer.fromJson<double?>(json['interestRate']),
+      interestRateType: serializer.fromJson<String?>(json['interestRateType']),
       creditLimit: serializer.fromJson<double?>(json['creditLimit']),
       currentBalance: serializer.fromJson<double?>(json['currentBalance']),
       cutoffDay: serializer.fromJson<int?>(json['cutoffDay']),
@@ -774,6 +808,7 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
       'frequency': serializer.toJson<String?>(frequency),
       'startDate': serializer.toJson<String?>(startDate),
       'interestRate': serializer.toJson<double?>(interestRate),
+      'interestRateType': serializer.toJson<String?>(interestRateType),
       'creditLimit': serializer.toJson<double?>(creditLimit),
       'currentBalance': serializer.toJson<double?>(currentBalance),
       'cutoffDay': serializer.toJson<int?>(cutoffDay),
@@ -802,6 +837,7 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
     Value<String?> frequency = const Value.absent(),
     Value<String?> startDate = const Value.absent(),
     Value<double?> interestRate = const Value.absent(),
+    Value<String?> interestRateType = const Value.absent(),
     Value<double?> creditLimit = const Value.absent(),
     Value<double?> currentBalance = const Value.absent(),
     Value<int?> cutoffDay = const Value.absent(),
@@ -827,6 +863,9 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
     frequency: frequency.present ? frequency.value : this.frequency,
     startDate: startDate.present ? startDate.value : this.startDate,
     interestRate: interestRate.present ? interestRate.value : this.interestRate,
+    interestRateType: interestRateType.present
+        ? interestRateType.value
+        : this.interestRateType,
     creditLimit: creditLimit.present ? creditLimit.value : this.creditLimit,
     currentBalance: currentBalance.present
         ? currentBalance.value
@@ -870,6 +909,9 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
       interestRate: data.interestRate.present
           ? data.interestRate.value
           : this.interestRate,
+      interestRateType: data.interestRateType.present
+          ? data.interestRateType.value
+          : this.interestRateType,
       creditLimit: data.creditLimit.present
           ? data.creditLimit.value
           : this.creditLimit,
@@ -912,6 +954,7 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
           ..write('frequency: $frequency, ')
           ..write('startDate: $startDate, ')
           ..write('interestRate: $interestRate, ')
+          ..write('interestRateType: $interestRateType, ')
           ..write('creditLimit: $creditLimit, ')
           ..write('currentBalance: $currentBalance, ')
           ..write('cutoffDay: $cutoffDay, ')
@@ -940,6 +983,7 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
     frequency,
     startDate,
     interestRate,
+    interestRateType,
     creditLimit,
     currentBalance,
     cutoffDay,
@@ -967,6 +1011,7 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
           other.frequency == this.frequency &&
           other.startDate == this.startDate &&
           other.interestRate == this.interestRate &&
+          other.interestRateType == this.interestRateType &&
           other.creditLimit == this.creditLimit &&
           other.currentBalance == this.currentBalance &&
           other.cutoffDay == this.cutoffDay &&
@@ -992,6 +1037,7 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
   final Value<String?> frequency;
   final Value<String?> startDate;
   final Value<double?> interestRate;
+  final Value<String?> interestRateType;
   final Value<double?> creditLimit;
   final Value<double?> currentBalance;
   final Value<int?> cutoffDay;
@@ -1016,6 +1062,7 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
     this.frequency = const Value.absent(),
     this.startDate = const Value.absent(),
     this.interestRate = const Value.absent(),
+    this.interestRateType = const Value.absent(),
     this.creditLimit = const Value.absent(),
     this.currentBalance = const Value.absent(),
     this.cutoffDay = const Value.absent(),
@@ -1041,6 +1088,7 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
     this.frequency = const Value.absent(),
     this.startDate = const Value.absent(),
     this.interestRate = const Value.absent(),
+    this.interestRateType = const Value.absent(),
     this.creditLimit = const Value.absent(),
     this.currentBalance = const Value.absent(),
     this.cutoffDay = const Value.absent(),
@@ -1069,6 +1117,7 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
     Expression<String>? frequency,
     Expression<String>? startDate,
     Expression<double>? interestRate,
+    Expression<String>? interestRateType,
     Expression<double>? creditLimit,
     Expression<double>? currentBalance,
     Expression<int>? cutoffDay,
@@ -1094,6 +1143,7 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
       if (frequency != null) 'frequency': frequency,
       if (startDate != null) 'start_date': startDate,
       if (interestRate != null) 'interest_rate': interestRate,
+      if (interestRateType != null) 'interest_rate_type': interestRateType,
       if (creditLimit != null) 'credit_limit': creditLimit,
       if (currentBalance != null) 'current_balance': currentBalance,
       if (cutoffDay != null) 'cutoff_day': cutoffDay,
@@ -1123,6 +1173,7 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
     Value<String?>? frequency,
     Value<String?>? startDate,
     Value<double?>? interestRate,
+    Value<String?>? interestRateType,
     Value<double?>? creditLimit,
     Value<double?>? currentBalance,
     Value<int?>? cutoffDay,
@@ -1148,6 +1199,7 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
       frequency: frequency ?? this.frequency,
       startDate: startDate ?? this.startDate,
       interestRate: interestRate ?? this.interestRate,
+      interestRateType: interestRateType ?? this.interestRateType,
       creditLimit: creditLimit ?? this.creditLimit,
       currentBalance: currentBalance ?? this.currentBalance,
       cutoffDay: cutoffDay ?? this.cutoffDay,
@@ -1206,6 +1258,9 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
     if (interestRate.present) {
       map['interest_rate'] = Variable<double>(interestRate.value);
     }
+    if (interestRateType.present) {
+      map['interest_rate_type'] = Variable<String>(interestRateType.value);
+    }
     if (creditLimit.present) {
       map['credit_limit'] = Variable<double>(creditLimit.value);
     }
@@ -1257,6 +1312,7 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
           ..write('frequency: $frequency, ')
           ..write('startDate: $startDate, ')
           ..write('interestRate: $interestRate, ')
+          ..write('interestRateType: $interestRateType, ')
           ..write('creditLimit: $creditLimit, ')
           ..write('currentBalance: $currentBalance, ')
           ..write('cutoffDay: $cutoffDay, ')
@@ -2277,12 +2333,416 @@ class CardMovementsCompanion extends UpdateCompanion<CardMovementRow> {
   }
 }
 
+class $LoanAbonosTable extends LoanAbonos
+    with TableInfo<$LoanAbonosTable, LoanAbonoRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LoanAbonosTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _rowIdMeta = const VerificationMeta('rowId');
+  @override
+  late final GeneratedColumn<int> rowId = GeneratedColumn<int>(
+    'row_id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _creditIdMeta = const VerificationMeta(
+    'creditId',
+  );
+  @override
+  late final GeneratedColumn<String> creditId = GeneratedColumn<String>(
+    'credit_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES credits (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<String> date = GeneratedColumn<String>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
+    'amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _installmentsSkippedMeta =
+      const VerificationMeta('installmentsSkipped');
+  @override
+  late final GeneratedColumn<int> installmentsSkipped = GeneratedColumn<int>(
+    'installments_skipped',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    rowId,
+    creditId,
+    date,
+    amount,
+    note,
+    installmentsSkipped,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'loan_abonos';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LoanAbonoRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('row_id')) {
+      context.handle(
+        _rowIdMeta,
+        rowId.isAcceptableOrUnknown(data['row_id']!, _rowIdMeta),
+      );
+    }
+    if (data.containsKey('credit_id')) {
+      context.handle(
+        _creditIdMeta,
+        creditId.isAcceptableOrUnknown(data['credit_id']!, _creditIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_creditIdMeta);
+    }
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('amount')) {
+      context.handle(
+        _amountMeta,
+        amount.isAcceptableOrUnknown(data['amount']!, _amountMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_amountMeta);
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    if (data.containsKey('installments_skipped')) {
+      context.handle(
+        _installmentsSkippedMeta,
+        installmentsSkipped.isAcceptableOrUnknown(
+          data['installments_skipped']!,
+          _installmentsSkippedMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {rowId};
+  @override
+  LoanAbonoRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LoanAbonoRow(
+      rowId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}row_id'],
+      )!,
+      creditId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}credit_id'],
+      )!,
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}date'],
+      )!,
+      amount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}amount'],
+      )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      )!,
+      installmentsSkipped: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}installments_skipped'],
+      )!,
+    );
+  }
+
+  @override
+  $LoanAbonosTable createAlias(String alias) {
+    return $LoanAbonosTable(attachedDatabase, alias);
+  }
+}
+
+class LoanAbonoRow extends DataClass implements Insertable<LoanAbonoRow> {
+  final int rowId;
+  final String creditId;
+  final String date;
+  final double amount;
+  final String note;
+  final int installmentsSkipped;
+  const LoanAbonoRow({
+    required this.rowId,
+    required this.creditId,
+    required this.date,
+    required this.amount,
+    required this.note,
+    required this.installmentsSkipped,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['row_id'] = Variable<int>(rowId);
+    map['credit_id'] = Variable<String>(creditId);
+    map['date'] = Variable<String>(date);
+    map['amount'] = Variable<double>(amount);
+    map['note'] = Variable<String>(note);
+    map['installments_skipped'] = Variable<int>(installmentsSkipped);
+    return map;
+  }
+
+  LoanAbonosCompanion toCompanion(bool nullToAbsent) {
+    return LoanAbonosCompanion(
+      rowId: Value(rowId),
+      creditId: Value(creditId),
+      date: Value(date),
+      amount: Value(amount),
+      note: Value(note),
+      installmentsSkipped: Value(installmentsSkipped),
+    );
+  }
+
+  factory LoanAbonoRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LoanAbonoRow(
+      rowId: serializer.fromJson<int>(json['rowId']),
+      creditId: serializer.fromJson<String>(json['creditId']),
+      date: serializer.fromJson<String>(json['date']),
+      amount: serializer.fromJson<double>(json['amount']),
+      note: serializer.fromJson<String>(json['note']),
+      installmentsSkipped: serializer.fromJson<int>(
+        json['installmentsSkipped'],
+      ),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'rowId': serializer.toJson<int>(rowId),
+      'creditId': serializer.toJson<String>(creditId),
+      'date': serializer.toJson<String>(date),
+      'amount': serializer.toJson<double>(amount),
+      'note': serializer.toJson<String>(note),
+      'installmentsSkipped': serializer.toJson<int>(installmentsSkipped),
+    };
+  }
+
+  LoanAbonoRow copyWith({
+    int? rowId,
+    String? creditId,
+    String? date,
+    double? amount,
+    String? note,
+    int? installmentsSkipped,
+  }) => LoanAbonoRow(
+    rowId: rowId ?? this.rowId,
+    creditId: creditId ?? this.creditId,
+    date: date ?? this.date,
+    amount: amount ?? this.amount,
+    note: note ?? this.note,
+    installmentsSkipped: installmentsSkipped ?? this.installmentsSkipped,
+  );
+  LoanAbonoRow copyWithCompanion(LoanAbonosCompanion data) {
+    return LoanAbonoRow(
+      rowId: data.rowId.present ? data.rowId.value : this.rowId,
+      creditId: data.creditId.present ? data.creditId.value : this.creditId,
+      date: data.date.present ? data.date.value : this.date,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      note: data.note.present ? data.note.value : this.note,
+      installmentsSkipped: data.installmentsSkipped.present
+          ? data.installmentsSkipped.value
+          : this.installmentsSkipped,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LoanAbonoRow(')
+          ..write('rowId: $rowId, ')
+          ..write('creditId: $creditId, ')
+          ..write('date: $date, ')
+          ..write('amount: $amount, ')
+          ..write('note: $note, ')
+          ..write('installmentsSkipped: $installmentsSkipped')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(rowId, creditId, date, amount, note, installmentsSkipped);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LoanAbonoRow &&
+          other.rowId == this.rowId &&
+          other.creditId == this.creditId &&
+          other.date == this.date &&
+          other.amount == this.amount &&
+          other.note == this.note &&
+          other.installmentsSkipped == this.installmentsSkipped);
+}
+
+class LoanAbonosCompanion extends UpdateCompanion<LoanAbonoRow> {
+  final Value<int> rowId;
+  final Value<String> creditId;
+  final Value<String> date;
+  final Value<double> amount;
+  final Value<String> note;
+  final Value<int> installmentsSkipped;
+  const LoanAbonosCompanion({
+    this.rowId = const Value.absent(),
+    this.creditId = const Value.absent(),
+    this.date = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.note = const Value.absent(),
+    this.installmentsSkipped = const Value.absent(),
+  });
+  LoanAbonosCompanion.insert({
+    this.rowId = const Value.absent(),
+    required String creditId,
+    required String date,
+    required double amount,
+    this.note = const Value.absent(),
+    this.installmentsSkipped = const Value.absent(),
+  }) : creditId = Value(creditId),
+       date = Value(date),
+       amount = Value(amount);
+  static Insertable<LoanAbonoRow> custom({
+    Expression<int>? rowId,
+    Expression<String>? creditId,
+    Expression<String>? date,
+    Expression<double>? amount,
+    Expression<String>? note,
+    Expression<int>? installmentsSkipped,
+  }) {
+    return RawValuesInsertable({
+      if (rowId != null) 'row_id': rowId,
+      if (creditId != null) 'credit_id': creditId,
+      if (date != null) 'date': date,
+      if (amount != null) 'amount': amount,
+      if (note != null) 'note': note,
+      if (installmentsSkipped != null)
+        'installments_skipped': installmentsSkipped,
+    });
+  }
+
+  LoanAbonosCompanion copyWith({
+    Value<int>? rowId,
+    Value<String>? creditId,
+    Value<String>? date,
+    Value<double>? amount,
+    Value<String>? note,
+    Value<int>? installmentsSkipped,
+  }) {
+    return LoanAbonosCompanion(
+      rowId: rowId ?? this.rowId,
+      creditId: creditId ?? this.creditId,
+      date: date ?? this.date,
+      amount: amount ?? this.amount,
+      note: note ?? this.note,
+      installmentsSkipped: installmentsSkipped ?? this.installmentsSkipped,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (rowId.present) {
+      map['row_id'] = Variable<int>(rowId.value);
+    }
+    if (creditId.present) {
+      map['credit_id'] = Variable<String>(creditId.value);
+    }
+    if (date.present) {
+      map['date'] = Variable<String>(date.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<double>(amount.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (installmentsSkipped.present) {
+      map['installments_skipped'] = Variable<int>(installmentsSkipped.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LoanAbonosCompanion(')
+          ..write('rowId: $rowId, ')
+          ..write('creditId: $creditId, ')
+          ..write('date: $date, ')
+          ..write('amount: $amount, ')
+          ..write('note: $note, ')
+          ..write('installmentsSkipped: $installmentsSkipped')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $CreditsTable credits = $CreditsTable(this);
   late final $InstallmentsTable installments = $InstallmentsTable(this);
   late final $CardMovementsTable cardMovements = $CardMovementsTable(this);
+  late final $LoanAbonosTable loanAbonos = $LoanAbonosTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2291,6 +2751,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     credits,
     installments,
     cardMovements,
+    loanAbonos,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -2307,6 +2768,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('card_movements', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'credits',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('loan_abonos', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -2327,6 +2795,7 @@ typedef $$CreditsTableCreateCompanionBuilder =
       Value<String?> frequency,
       Value<String?> startDate,
       Value<double?> interestRate,
+      Value<String?> interestRateType,
       Value<double?> creditLimit,
       Value<double?> currentBalance,
       Value<int?> cutoffDay,
@@ -2353,6 +2822,7 @@ typedef $$CreditsTableUpdateCompanionBuilder =
       Value<String?> frequency,
       Value<String?> startDate,
       Value<double?> interestRate,
+      Value<String?> interestRateType,
       Value<double?> creditLimit,
       Value<double?> currentBalance,
       Value<int?> cutoffDay,
@@ -2399,6 +2869,24 @@ final class $$CreditsTableReferences
     ).filter((f) => f.creditId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_cardMovementsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$LoanAbonosTable, List<LoanAbonoRow>>
+  _loanAbonosRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.loanAbonos,
+    aliasName: 'credits__id__loan_abonos__credit_id',
+  );
+
+  $$LoanAbonosTableProcessedTableManager get loanAbonosRefs {
+    final manager = $$LoanAbonosTableTableManager(
+      $_db,
+      $_db.loanAbonos,
+    ).filter((f) => f.creditId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_loanAbonosRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -2481,6 +2969,11 @@ class $$CreditsTableFilterComposer
 
   ColumnFilters<double> get interestRate => $composableBuilder(
     column: $table.interestRate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get interestRateType => $composableBuilder(
+    column: $table.interestRateType,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2573,6 +3066,31 @@ class $$CreditsTableFilterComposer
     );
     return f(composer);
   }
+
+  Expression<bool> loanAbonosRefs(
+    Expression<bool> Function($$LoanAbonosTableFilterComposer f) f,
+  ) {
+    final $$LoanAbonosTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.loanAbonos,
+      getReferencedColumn: (t) => t.creditId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$LoanAbonosTableFilterComposer(
+            $db: $db,
+            $table: $db.loanAbonos,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$CreditsTableOrderingComposer
@@ -2651,6 +3169,11 @@ class $$CreditsTableOrderingComposer
 
   ColumnOrderings<double> get interestRate => $composableBuilder(
     column: $table.interestRate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get interestRateType => $composableBuilder(
+    column: $table.interestRateType,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -2754,6 +3277,11 @@ class $$CreditsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get interestRateType => $composableBuilder(
+    column: $table.interestRateType,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<double> get creditLimit => $composableBuilder(
     column: $table.creditLimit,
     builder: (column) => column,
@@ -2841,6 +3369,31 @@ class $$CreditsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> loanAbonosRefs<T extends Object>(
+    Expression<T> Function($$LoanAbonosTableAnnotationComposer a) f,
+  ) {
+    final $$LoanAbonosTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.loanAbonos,
+      getReferencedColumn: (t) => t.creditId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$LoanAbonosTableAnnotationComposer(
+            $db: $db,
+            $table: $db.loanAbonos,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$CreditsTableTableManager
@@ -2859,6 +3412,7 @@ class $$CreditsTableTableManager
           PrefetchHooks Function({
             bool installmentsRefs,
             bool cardMovementsRefs,
+            bool loanAbonosRefs,
           })
         > {
   $$CreditsTableTableManager(_$AppDatabase db, $CreditsTable table)
@@ -2888,6 +3442,7 @@ class $$CreditsTableTableManager
                 Value<String?> frequency = const Value.absent(),
                 Value<String?> startDate = const Value.absent(),
                 Value<double?> interestRate = const Value.absent(),
+                Value<String?> interestRateType = const Value.absent(),
                 Value<double?> creditLimit = const Value.absent(),
                 Value<double?> currentBalance = const Value.absent(),
                 Value<int?> cutoffDay = const Value.absent(),
@@ -2912,6 +3467,7 @@ class $$CreditsTableTableManager
                 frequency: frequency,
                 startDate: startDate,
                 interestRate: interestRate,
+                interestRateType: interestRateType,
                 creditLimit: creditLimit,
                 currentBalance: currentBalance,
                 cutoffDay: cutoffDay,
@@ -2938,6 +3494,7 @@ class $$CreditsTableTableManager
                 Value<String?> frequency = const Value.absent(),
                 Value<String?> startDate = const Value.absent(),
                 Value<double?> interestRate = const Value.absent(),
+                Value<String?> interestRateType = const Value.absent(),
                 Value<double?> creditLimit = const Value.absent(),
                 Value<double?> currentBalance = const Value.absent(),
                 Value<int?> cutoffDay = const Value.absent(),
@@ -2962,6 +3519,7 @@ class $$CreditsTableTableManager
                 frequency: frequency,
                 startDate: startDate,
                 interestRate: interestRate,
+                interestRateType: interestRateType,
                 creditLimit: creditLimit,
                 currentBalance: currentBalance,
                 cutoffDay: cutoffDay,
@@ -2981,12 +3539,17 @@ class $$CreditsTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({installmentsRefs = false, cardMovementsRefs = false}) {
+              ({
+                installmentsRefs = false,
+                cardMovementsRefs = false,
+                loanAbonosRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (installmentsRefs) db.installments,
                     if (cardMovementsRefs) db.cardMovements,
+                    if (loanAbonosRefs) db.loanAbonos,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -3033,6 +3596,27 @@ class $$CreditsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (loanAbonosRefs)
+                        await $_getPrefetchedData<
+                          CreditRow,
+                          $CreditsTable,
+                          LoanAbonoRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$CreditsTableReferences
+                              ._loanAbonosRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$CreditsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).loanAbonosRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.creditId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -3053,7 +3637,11 @@ typedef $$CreditsTableProcessedTableManager =
       $$CreditsTableUpdateCompanionBuilder,
       (CreditRow, $$CreditsTableReferences),
       CreditRow,
-      PrefetchHooks Function({bool installmentsRefs, bool cardMovementsRefs})
+      PrefetchHooks Function({
+        bool installmentsRefs,
+        bool cardMovementsRefs,
+        bool loanAbonosRefs,
+      })
     >;
 typedef $$InstallmentsTableCreateCompanionBuilder =
     InstallmentsCompanion Function({
@@ -3800,6 +4388,338 @@ typedef $$CardMovementsTableProcessedTableManager =
       CardMovementRow,
       PrefetchHooks Function({bool creditId})
     >;
+typedef $$LoanAbonosTableCreateCompanionBuilder =
+    LoanAbonosCompanion Function({
+      Value<int> rowId,
+      required String creditId,
+      required String date,
+      required double amount,
+      Value<String> note,
+      Value<int> installmentsSkipped,
+    });
+typedef $$LoanAbonosTableUpdateCompanionBuilder =
+    LoanAbonosCompanion Function({
+      Value<int> rowId,
+      Value<String> creditId,
+      Value<String> date,
+      Value<double> amount,
+      Value<String> note,
+      Value<int> installmentsSkipped,
+    });
+
+final class $$LoanAbonosTableReferences
+    extends BaseReferences<_$AppDatabase, $LoanAbonosTable, LoanAbonoRow> {
+  $$LoanAbonosTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $CreditsTable _creditIdTable(_$AppDatabase db) =>
+      db.credits.createAlias('loan_abonos__credit_id__credits__id');
+
+  $$CreditsTableProcessedTableManager get creditId {
+    final $_column = $_itemColumn<String>('credit_id')!;
+
+    final manager = $$CreditsTableTableManager(
+      $_db,
+      $_db.credits,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_creditIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$LoanAbonosTableFilterComposer
+    extends Composer<_$AppDatabase, $LoanAbonosTable> {
+  $$LoanAbonosTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get rowId => $composableBuilder(
+    column: $table.rowId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get installmentsSkipped => $composableBuilder(
+    column: $table.installmentsSkipped,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$CreditsTableFilterComposer get creditId {
+    final $$CreditsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.creditId,
+      referencedTable: $db.credits,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CreditsTableFilterComposer(
+            $db: $db,
+            $table: $db.credits,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$LoanAbonosTableOrderingComposer
+    extends Composer<_$AppDatabase, $LoanAbonosTable> {
+  $$LoanAbonosTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get rowId => $composableBuilder(
+    column: $table.rowId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get amount => $composableBuilder(
+    column: $table.amount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get installmentsSkipped => $composableBuilder(
+    column: $table.installmentsSkipped,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$CreditsTableOrderingComposer get creditId {
+    final $$CreditsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.creditId,
+      referencedTable: $db.credits,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CreditsTableOrderingComposer(
+            $db: $db,
+            $table: $db.credits,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$LoanAbonosTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LoanAbonosTable> {
+  $$LoanAbonosTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get rowId =>
+      $composableBuilder(column: $table.rowId, builder: (column) => column);
+
+  GeneratedColumn<String> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<double> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<int> get installmentsSkipped => $composableBuilder(
+    column: $table.installmentsSkipped,
+    builder: (column) => column,
+  );
+
+  $$CreditsTableAnnotationComposer get creditId {
+    final $$CreditsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.creditId,
+      referencedTable: $db.credits,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CreditsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.credits,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$LoanAbonosTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $LoanAbonosTable,
+          LoanAbonoRow,
+          $$LoanAbonosTableFilterComposer,
+          $$LoanAbonosTableOrderingComposer,
+          $$LoanAbonosTableAnnotationComposer,
+          $$LoanAbonosTableCreateCompanionBuilder,
+          $$LoanAbonosTableUpdateCompanionBuilder,
+          (LoanAbonoRow, $$LoanAbonosTableReferences),
+          LoanAbonoRow,
+          PrefetchHooks Function({bool creditId})
+        > {
+  $$LoanAbonosTableTableManager(_$AppDatabase db, $LoanAbonosTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LoanAbonosTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LoanAbonosTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LoanAbonosTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> rowId = const Value.absent(),
+                Value<String> creditId = const Value.absent(),
+                Value<String> date = const Value.absent(),
+                Value<double> amount = const Value.absent(),
+                Value<String> note = const Value.absent(),
+                Value<int> installmentsSkipped = const Value.absent(),
+              }) => LoanAbonosCompanion(
+                rowId: rowId,
+                creditId: creditId,
+                date: date,
+                amount: amount,
+                note: note,
+                installmentsSkipped: installmentsSkipped,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> rowId = const Value.absent(),
+                required String creditId,
+                required String date,
+                required double amount,
+                Value<String> note = const Value.absent(),
+                Value<int> installmentsSkipped = const Value.absent(),
+              }) => LoanAbonosCompanion.insert(
+                rowId: rowId,
+                creditId: creditId,
+                date: date,
+                amount: amount,
+                note: note,
+                installmentsSkipped: installmentsSkipped,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$LoanAbonosTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({creditId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (creditId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.creditId,
+                                referencedTable: $$LoanAbonosTableReferences
+                                    ._creditIdTable(db),
+                                referencedColumn: $$LoanAbonosTableReferences
+                                    ._creditIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$LoanAbonosTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $LoanAbonosTable,
+      LoanAbonoRow,
+      $$LoanAbonosTableFilterComposer,
+      $$LoanAbonosTableOrderingComposer,
+      $$LoanAbonosTableAnnotationComposer,
+      $$LoanAbonosTableCreateCompanionBuilder,
+      $$LoanAbonosTableUpdateCompanionBuilder,
+      (LoanAbonoRow, $$LoanAbonosTableReferences),
+      LoanAbonoRow,
+      PrefetchHooks Function({bool creditId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3810,4 +4730,6 @@ class $AppDatabaseManager {
       $$InstallmentsTableTableManager(_db, _db.installments);
   $$CardMovementsTableTableManager get cardMovements =>
       $$CardMovementsTableTableManager(_db, _db.cardMovements);
+  $$LoanAbonosTableTableManager get loanAbonos =>
+      $$LoanAbonosTableTableManager(_db, _db.loanAbonos);
 }

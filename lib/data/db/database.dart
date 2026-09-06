@@ -1,8 +1,10 @@
 import 'package:drift/drift.dart';
 
+import '../../domain/interest_rate.dart';
 import '../models/card_movement.dart';
 import '../models/credit.dart';
 import '../models/installment.dart';
+import '../models/loan_abono.dart';
 import 'connection.dart';
 import 'tables.dart';
 
@@ -11,7 +13,7 @@ part 'database.g.dart';
 /// App-wide Drift database. Replaces app.js's single Dexie `kv` table (which
 /// just stashed the whole `state` object as one JSON blob) with a proper
 /// relational schema — see lib/data/db/tables.dart for the mapping notes.
-@DriftDatabase(tables: [Credits, Installments, CardMovements])
+@DriftDatabase(tables: [Credits, Installments, CardMovements, LoanAbonos])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(openConnection());
 
@@ -19,12 +21,27 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 3;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) async {
+          await m.createAll();
+        },
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.addColumn(credits, credits.interestRateType);
+          }
+          if (from < 3) {
+            await m.createTable(loanAbonos);
+          }
+        },
+      );
 
   // --- Domain <-> row mapping -------------------------------------------
 
   LoanCredit _loanFromRow(
-      CreditRow row, List<Installment> installments) {
+      CreditRow row, List<Installment> installments, List<LoanAbono> abonos) {
     return LoanCredit(
       id: row.id,
       name: row.name,
@@ -39,7 +56,10 @@ class AppDatabase extends _$AppDatabase {
       frequency: row.frequency ?? CreditFrequency.monthly,
       startDate: row.startDate ?? '',
       interestRate: row.interestRate ?? 0,
+      interestRateType:
+          row.interestRateType ?? InterestRateType.effectiveAnnual,
       installments: installments,
+      abonos: abonos,
     );
   }
 
@@ -56,6 +76,8 @@ class AppDatabase extends _$AppDatabase {
       cutoffDay: row.cutoffDay ?? 1,
       paymentDueOffsetDays: row.paymentDueOffsetDays ?? 20,
       interestRate: row.interestRate ?? 0,
+      interestRateType:
+          row.interestRateType ?? InterestRateType.effectiveAnnual,
       managementFee: row.managementFee ?? 0,
       managementFeeFrequency:
           row.managementFeeFrequency ?? ManagementFeeFrequency.monthly,
@@ -82,6 +104,7 @@ class AppDatabase extends _$AppDatabase {
         frequency: Value(credit.frequency),
         startDate: Value(credit.startDate),
         interestRate: Value(credit.interestRate),
+        interestRateType: Value(credit.interestRateType),
       );
     } else if (credit is CardCredit) {
       return CreditsCompanion.insert(
@@ -92,6 +115,7 @@ class AppDatabase extends _$AppDatabase {
         color: Value(credit.color),
         notes: Value(credit.notes),
         interestRate: Value(credit.interestRate),
+        interestRateType: Value(credit.interestRateType),
         creditLimit: Value(credit.creditLimit),
         currentBalance: Value(credit.currentBalance),
         cutoffDay: Value(credit.cutoffDay),
@@ -134,6 +158,10 @@ class AppDatabase extends _$AppDatabase {
               ..where((i) => i.creditId.equals(row.id))
               ..orderBy([(i) => OrderingTerm.asc(i.number)]))
             .get();
+        final abonoRows = await (select(loanAbonos)
+              ..where((a) => a.creditId.equals(row.id))
+              ..orderBy([(a) => OrderingTerm.asc(a.rowId)]))
+            .get();
         result.add(_loanFromRow(
           row,
           instRows
@@ -146,6 +174,14 @@ class AppDatabase extends _$AppDatabase {
                     paid: i.paid,
                     paymentDate: i.paymentDate,
                     interestWaived: i.interestWaived,
+                  ))
+              .toList(),
+          abonoRows
+              .map((a) => LoanAbono(
+                    date: a.date,
+                    amount: a.amount,
+                    note: a.note,
+                    installmentsSkipped: a.installmentsSkipped,
                   ))
               .toList(),
         ));
@@ -177,6 +213,17 @@ class AppDatabase extends _$AppDatabase {
             interestWaived: Value(inst.interestWaived),
           ));
         }
+        await (delete(loanAbonos)..where((a) => a.creditId.equals(credit.id)))
+            .go();
+        for (final abono in credit.abonos) {
+          await into(loanAbonos).insert(LoanAbonosCompanion.insert(
+            creditId: credit.id,
+            date: abono.date,
+            amount: abono.amount,
+            note: Value(abono.note),
+            installmentsSkipped: Value(abono.installmentsSkipped),
+          ));
+        }
       } else if (credit is CardCredit) {
         await (delete(cardMovements)
               ..where((m) => m.creditId.equals(credit.id)))
@@ -203,6 +250,7 @@ class AppDatabase extends _$AppDatabase {
     await transaction(() async {
       await delete(installments).go();
       await delete(cardMovements).go();
+      await delete(loanAbonos).go();
       await delete(credits).go();
     });
   }

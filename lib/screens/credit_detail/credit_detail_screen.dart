@@ -51,10 +51,14 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
           '¿Eliminar "${credit.name}" y todo su historial? Esta acción no se puede deshacer.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
           TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Eliminar', style: TextStyle(color: AppColors.danger)),
+            child: const Text('Eliminar'),
           ),
         ],
       ),
@@ -64,14 +68,15 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
       await ref.read(creditsProvider.notifier).deleteCredit(credit.id);
       if (context.mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('"${credit.name}" eliminado')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('"${credit.name}" eliminado')));
       }
     } catch (e) {
+      debugPrint('deleteCredit failed: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No se pudo eliminar el crédito: $e')),
+          const SnackBar(content: Text('No se pudo eliminar el crédito. Intenta de nuevo.')),
         );
       }
     }
@@ -82,12 +87,17 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
     final creditsAsync = ref.watch(creditsProvider);
 
     return creditsAsync.when(
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, st) => Scaffold(body: Center(child: Text('Error: $e'))),
       data: (credits) {
-        final credit = credits.where((c) => c.id == widget.creditId).firstOrNull;
+        final credit = credits
+            .where((c) => c.id == widget.creditId)
+            .firstOrNull;
         if (credit == null) {
-          return const Scaffold(body: Center(child: Text('Crédito no encontrado')));
+          return const Scaffold(
+            body: Center(child: Text('Crédito no encontrado')),
+          );
         }
         final isLoan = credit is LoanCredit;
 
@@ -96,7 +106,9 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
             title: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Flexible(child: Text(credit.name, overflow: TextOverflow.ellipsis)),
+                Flexible(
+                  child: Text(credit.name, overflow: TextOverflow.ellipsis),
+                ),
                 if (isDemoCredit(credit.id)) const DemoBadge(),
               ],
             ),
@@ -112,8 +124,10 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
             controller: _tabController,
             children: [
               SummaryTab(credit: credit),
-              if (credit case LoanCredit loan) ScheduleTab(credit: loan)
-              else MovementsTab(credit: credit as CardCredit),
+              if (credit case LoanCredit loan)
+                ScheduleTab(credit: loan)
+              else
+                MovementsTab(credit: credit as CardCredit),
             ],
           ),
           bottomNavigationBar: Padding(

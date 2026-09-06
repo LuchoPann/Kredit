@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/credit.dart';
@@ -6,12 +7,13 @@ import '../../data/models/installment.dart';
 import '../../domain/credit_calculator.dart';
 import '../../domain/urgency_score.dart';
 import '../../providers/credits_provider.dart';
+import '../../providers/navigation_provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/credit_display_utils.dart';
 import '../../widgets/credit_card_tile.dart';
 import '../../widgets/kredit_logo.dart';
 import '../../widgets/progress_ring.dart';
-import '../stats/stats_screen.dart';
 
 /// Dashboard ("Inicio") screen — answers "¿Qué tengo que pagar pronto?":
 /// a greeting header, 3 compact metrics (por pagar / créditos activos /
@@ -50,8 +52,15 @@ class DashboardScreen extends ConsumerWidget {
               builder: (context) {
                 // Bug 2: luminance-based foreground so icon is readable on any accent
                 final accentColor = Theme.of(context).colorScheme.primary;
-                final fgColor = accentColor.computeLuminance() > 0.3 ? Colors.black : Colors.white;
+                final fgColor = legibleForegroundOn(accentColor);
                 return FloatingActionButton(
+                  // Explicit, distinct hero tag: with all 4 tabs kept alive by
+                  // the root IndexedStack (see main.dart), this FAB and
+                  // credits_list_screen.dart's FAB both exist in the tree at
+                  // once — without distinct tags they'd collide on Flutter's
+                  // default hero tag and throw "multiple heroes share the
+                  // same tag".
+                  heroTag: 'fab-dashboard',
                   backgroundColor: accentColor,
                   foregroundColor: fgColor,
                   onPressed: () => Navigator.of(context).pushNamed('/add-credit'),
@@ -122,10 +131,12 @@ class _DashboardErrorState extends StatelessWidget {
 
 /// Greeting shown up top, keyed off the hour of day — the dashboard's main
 /// textual element now that the AppBar has been collapsed to zero height.
+/// Ranges: mañana 5:00–11:59, tarde 12:00–17:59, noche 18:00–4:59 (cubre
+/// toda la franja nocturna/madrugada).
 String _greeting() {
   final hour = DateTime.now().hour;
-  if (hour < 12) return 'Buenos días';
-  if (hour < 19) return 'Buenas tardes';
+  if (hour >= 5 && hour < 12) return 'Buenos días';
+  if (hour >= 12 && hour < 18) return 'Buenas tardes';
   return 'Buenas noches';
 }
 
@@ -141,6 +152,7 @@ class _DashboardBody extends ConsumerWidget {
     }
     final kredit = Theme.of(context).extension<KreditColors>()!;
 
+    final profileName = ref.watch(themePreferencesProvider).profileName;
     final totalDebt = ref.watch(totalUnpaidProvider);
     final activeCredits = credits.where(creditHasUnpaid).toList();
     final progressPct = getLoansProgressPercent(credits);
@@ -148,22 +160,32 @@ class _DashboardBody extends ConsumerWidget {
     final upcoming = _buildUpcomingItems(credits);
 
     return ListView(
-      padding: const EdgeInsets.all(KreditSpacing.card),
+      // Extra bottom clearance so the last row of content can scroll clear
+      // of the floating "+" button instead of sitting hidden behind it.
+      padding: const EdgeInsets.fromLTRB(
+        KreditSpacing.card,
+        KreditSpacing.card,
+        KreditSpacing.card,
+        88,
+      ),
       children: [
         // 1. Greeting header — the main textual element now that the AppBar
         // is collapsed, plus a small logo mark for brand continuity.
         Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    _greeting(),
+                    '${_greeting()}, $profileName',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -173,213 +195,207 @@ class _DashboardBody extends ConsumerWidget {
                 ],
               ),
             ),
-            const KreditLogo(height: 24),
-            const SizedBox(width: 4),
-            IconButton(
-              icon: const Icon(Icons.bar_chart_rounded),
-              tooltip: 'Ver estadísticas',
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const StatsScreen()),
-              ),
-            ),
+            const SizedBox(width: 12),
+            // Alto pensado para abarcar desde el tope del título hasta la
+            // base del subtítulo (headlineSmall + gap + 13px caption), así
+            // el logo queda simétrico con el bloque de texto completo.
+            const KreditLogo(height: 46),
           ],
         ),
-        const SizedBox(height: KreditSpacing.section),
+        const SizedBox(height: 28),
 
-        // 2. Compact 3-metric row.
-        IntrinsicHeight(
-          child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: _MetricTile(
-                label: 'Por pagar',
-                value: formatCOP(dueSoon),
-                sublabel: 'Próximos 7 días',
-                icon: Icons.schedule,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _MetricTile(
-                label: 'Créditos activos',
-                value: '${activeCredits.length}',
-                sublabel: '${credits.length} en total',
-                icon: Icons.credit_card,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _MetricTile(
-                label: 'Deuda total',
-                value: formatCOP(totalDebt),
-                sublabel: null,
-                icon: null,
-                ring: progressPct,
-              ),
-            ),
-          ],
-          ),
-        ),
-        const SizedBox(height: KreditSpacing.section),
-
-        // 3. Próximos pagos — up to 3 rich cards.
+        // 2. Panel editorial de métricas: "Deuda total" lidera como cifra
+        // protagonista (con el anillo de progreso como acento orgánico que
+        // rompe la grilla), y las otras dos métricas quedan como datos
+        // secundarios separados por una única línea fina — sin cajas.
         Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(Icons.event_repeat_outlined, size: 20, color: kredit.textSecondary),
-            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'DEUDA TOTAL',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.4,
+                      color: kredit.textTertiary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    formatCOP(totalDebt),
+                    style: const TextStyle(
+                      fontSize: 38,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -1.2,
+                      height: 1.0,
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            ProgressRing(percent: progressPct, size: 68),
+          ],
+        ),
+        const SizedBox(height: 22),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _SecondaryStat(
+                label: 'Por pagar · 7 días',
+                value: formatCOP(dueSoon),
+              ),
+            ),
+            Container(
+              width: 1,
+              height: 34,
+              margin: const EdgeInsets.symmetric(horizontal: 18),
+              color: kredit.borderCard,
+            ),
+            Expanded(
+              child: _SecondaryStat(
+                label: 'Créditos activos',
+                value: '${activeCredits.length} de ${credits.length}',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 28),
+        Divider(height: 1, color: kredit.borderCard),
+        const SizedBox(height: 28),
+
+        // 3. Próximos pagos — lista tipográfica con separadores de línea
+        // fina en vez de tarjetas apiladas; el color de urgencia vive en el
+        // texto y en un acento circular pequeño, no en un contenedor.
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
             const Text(
               'Próximos pagos',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
             ),
             const SizedBox(width: 8),
-            _CountPill(count: upcoming.length),
+            Text(
+              '${upcoming.length}',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: kredit.textTertiary,
+              ),
+            ),
+            const Spacer(),
+            if (upcoming.length > 3)
+              TextButton(
+                onPressed: () => _showAllUpcomingSheet(context, upcoming),
+                child: const Text('Ver todos', style: TextStyle(fontSize: 12)),
+              ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 4),
         if (upcoming.isEmpty)
           const _InlineEmpty(text: 'No tienes pagos pendientes próximos.')
         else
-          ...upcoming.take(3).map((u) => _UpcomingCard(item: u)),
+          _UpcomingList(items: upcoming.take(3).toList()),
         if (upcoming.length > 3)
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: TextButton(
-              onPressed: () => Navigator.of(context).pushNamed('/credits'),
+              onPressed: () => _showAllUpcomingSheet(context, upcoming),
               child: const Text('Ver todos'),
             ),
           ),
 
         // 4. Lista de créditos activos.
         if (activeCredits.isNotEmpty) ...[
-          const SizedBox(height: KreditSpacing.section),
+          const SizedBox(height: 28),
+          Divider(height: 1, color: kredit.borderCard),
+          const SizedBox(height: 28),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
             children: [
               const Text(
                 'Tus créditos',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
               ),
               const SizedBox(width: 8),
-              _CountPill(count: activeCredits.length),
+              Text(
+                '${activeCredits.length}',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: kredit.textTertiary,
+                ),
+              ),
               const Spacer(),
               TextButton(
-                onPressed: () => Navigator.of(context).pushNamed('/credits'),
+                onPressed: () => ref.read(navigationIndexProvider.notifier).state = AppNavTab.credits,
                 child: const Text('Ver todos', style: TextStyle(fontSize: 12)),
               ),
             ],
           ),
           const SizedBox(height: 6),
-          ...activeCredits.map((c) => CreditCardTile(
-                credit: c,
-                onTap: () => Navigator.of(context).pushNamed(
-                  '/credit-detail',
-                  arguments: c.id,
-                ),
-              )),
+          CreditCardTileList(
+            credits: activeCredits,
+            onTap: (c) => Navigator.of(context).pushNamed(
+              '/credit-detail',
+              arguments: c.id,
+            ),
+          ),
         ],
       ],
     );
   }
 }
 
-class _MetricTile extends StatelessWidget {
+/// Secondary metric expressed purely through typography — a small caps
+/// label over a mid-weight value, no surrounding box. Jerarquía viene del
+/// contraste de tamaño/peso frente a la cifra protagonista de arriba, no de
+/// un contenedor propio.
+class _SecondaryStat extends StatelessWidget {
   final String label;
   final String value;
-  final String? sublabel;
-  final IconData? icon;
-  final double? ring;
 
-  const _MetricTile({
-    required this.label,
-    required this.value,
-    this.sublabel,
-    this.icon,
-    this.ring,
-  });
+  const _SecondaryStat({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
-    return Container(
-      padding: const EdgeInsets.all(KreditSpacing.tile),
-      decoration: BoxDecoration(
-        color: kredit.bgCard,
-        borderRadius: BorderRadius.circular(KreditRadius.tile),
-        border: Border.all(color: kredit.borderCard),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              if (icon != null) ...[
-                Icon(icon, size: 13, color: kredit.textTertiary),
-                const SizedBox(width: 4),
-              ],
-              Expanded(
-                child: Text(
-                  label.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.4,
-                    color: kredit.textTertiary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 19,
+            letterSpacing: -0.3,
+            fontFeatures: [FontFeature.tabularFigures()],
           ),
-          const SizedBox(height: 6),
-          if (ring != null)
-            Center(child: ProgressRing(percent: ring!, size: 56))
-          else ...[
-            Text(
-              value,
-              style: const TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 15,
-                letterSpacing: -0.2,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            if (sublabel != null) ...[
-              const SizedBox(height: 2),
-              Text(
-                sublabel!,
-                style: TextStyle(fontSize: 9.5, color: kredit.textSecondary),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _CountPill extends StatelessWidget {
-  final int count;
-  const _CountPill({required this.count});
-
-  @override
-  Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: kredit.bgCard,
-        borderRadius: BorderRadius.circular(KreditRadius.chip),
-        border: Border.all(color: kredit.borderCard),
-      ),
-      child: Text(
-        '$count',
-        style: TextStyle(fontSize: 11, color: kredit.textSecondary),
-      ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 3),
+        Text(
+          label.toUpperCase(),
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.6,
+            color: kredit.textTertiary,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
     );
   }
 }
@@ -440,12 +456,33 @@ List<_UpcomingItem> _buildUpcomingItems(List<Credit> credits) {
   return items;
 }
 
-/// A single "Próximos pagos" entry — bigger and more visual than the old
-/// simple row: bank/entity name, amount, due date, and an urgency icon
-/// (overdue = red error icon, due soon = amber clock, otherwise neutral).
-class _UpcomingCard extends ConsumerWidget {
+/// The "Próximos pagos" list: rows separated by a hairline divider instead
+/// of stacked bordered cards — urgency lives in the text color and a small
+/// circular accent dot, not in a boxed container.
+class _UpcomingList extends StatelessWidget {
+  final List<_UpcomingItem> items;
+  const _UpcomingList({required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    return Column(
+      children: [
+        for (var i = 0; i < items.length; i++) ...[
+          _UpcomingRow(item: items[i]),
+          if (i != items.length - 1) Divider(height: 1, color: kredit.borderCard),
+        ],
+      ],
+    );
+  }
+}
+
+/// A single "Próximos pagos" entry: entity name, amount, due date, and an
+/// urgency dot (overdue = red, due soon = amber, otherwise neutral) — no
+/// surrounding card.
+class _UpcomingRow extends ConsumerWidget {
   final _UpcomingItem item;
-  const _UpcomingCard({required this.item});
+  const _UpcomingRow({required this.item});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -454,121 +491,112 @@ class _UpcomingCard extends ConsumerWidget {
     final daysLeft = item.daysUntilDue;
 
     final Color urgencyColor;
-    final IconData urgencyIcon;
     final String urgencyLabel;
-    final bool isCritical;
 
     if (daysLeft < 0) {
       urgencyColor = AppColors.danger;
-      urgencyIcon = Icons.error;
       urgencyLabel = 'Vencido hace ${daysLeft.abs()}d';
-      isCritical = true;
     } else if (daysLeft == 0) {
       urgencyColor = Colors.orange;
-      urgencyIcon = Icons.schedule;
       urgencyLabel = '¡Vence hoy!';
-      isCritical = true;
     } else if (daysLeft <= 3) {
       urgencyColor = Colors.amber;
-      urgencyIcon = Icons.schedule;
       urgencyLabel = 'En $daysLeft días';
-      isCritical = false;
     } else {
       urgencyColor = kredit.textTertiary;
-      urgencyIcon = Icons.event_available;
       urgencyLabel = 'En $daysLeft días';
-      isCritical = false;
     }
 
     final amountStr = isLoan
         ? formatCOP(item.installment!.amount)
         : (item.credit is CardCredit ? formatCOP((item.credit as CardCredit).currentBalance) : '');
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: isCritical ? Color.lerp(kredit.bgCard, urgencyColor, 0.06) : kredit.bgCard,
-        borderRadius: BorderRadius.circular(KreditRadius.card),
-        border: Border.all(color: kredit.borderCard),
+    return InkWell(
+      onTap: () => Navigator.of(context).pushNamed(
+        '/credit-detail',
+        arguments: item.credit.id,
       ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => Navigator.of(context).pushNamed(
-          '/credit-detail',
-          arguments: item.credit.id,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(KreditSpacing.card),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: urgencyColor.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(urgencyIcon, color: urgencyColor, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.credit.name,
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${item.credit.lender} · $urgencyLabel',
-                      style: TextStyle(fontSize: 11, color: urgencyColor),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 6),
+        child: Row(
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(color: urgencyColor, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    amountStr,
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                    item.credit.name,
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
-                  if (isLoan)
-                    InkWell(
-                      onTap: () => ref
-                          .read(creditsProvider.notifier)
-                          .toggleInstallmentPaid(item.credit.id, item.installment!.number),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: item.installment!.paid
-                              ? Colors.green.withValues(alpha: 0.18)
-                              : Theme.of(context).colorScheme.primary,
-                          borderRadius: BorderRadius.circular(KreditRadius.chip),
-                        ),
-                        child: Text(
-                          item.installment!.paid ? 'Pagado' : 'Marcar pago',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: item.installment!.paid ? Colors.green : Colors.black,
-                          ),
-                        ),
-                      ),
-                    )
-                  else
-                    Icon(Icons.chevron_right, size: 18, color: kredit.textTertiary),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${item.credit.lender} · $urgencyLabel',
+                    style: TextStyle(fontSize: 12.5, color: urgencyColor, fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  amountStr,
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5),
+                ),
+                const SizedBox(height: 4),
+                if (isLoan)
+                  Builder(
+                    builder: (context) {
+                      // Luminance-based foreground so the button stays
+                      // legible on any accent color — same pattern used
+                      // for the FABs.
+                      final accentColor = Theme.of(context).colorScheme.primary;
+                      final fgColor =
+                          legibleForegroundOn(accentColor);
+                      return InkWell(
+                        onTap: () {
+                          HapticFeedback.mediumImpact();
+                          ref
+                              .read(creditsProvider.notifier)
+                              .toggleInstallmentPaid(item.credit.id, item.installment!.number);
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: item.installment!.paid
+                                ? kredit.success.withValues(alpha: 0.16)
+                                : accentColor,
+                            borderRadius: BorderRadius.circular(KreditRadius.chip),
+                          ),
+                          child: Text(
+                            item.installment!.paid ? 'Pagado' : 'Marcar pago',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: item.installment!.paid ? kredit.success : fgColor,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  )
+                else
+                  Icon(Icons.chevron_right, size: 18, color: kredit.textTertiary),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -626,6 +654,112 @@ class _InlineEmpty extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(fontSize: 12, color: kredit.textTertiary),
+      ),
+    );
+  }
+}
+
+void _showAllUpcomingSheet(BuildContext context, List<_UpcomingItem> items) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (ctx) => _AllUpcomingPaymentsSheet(items: items),
+  );
+}
+
+class _AllUpcomingPaymentsSheet extends ConsumerWidget {
+  final List<_UpcomingItem> items;
+  const _AllUpcomingPaymentsSheet({required this.items});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accent = Theme.of(context).colorScheme.primary;
+
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
+      ),
+      decoration: BoxDecoration(
+        color: kredit.bgPrimary,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border.all(color: kredit.borderCard),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: kredit.borderCard,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 12, 12),
+              child: Row(
+                children: [
+                  Icon(Icons.calendar_month_outlined, color: accent, size: 22),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Todos los próximos pagos',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: kredit.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '(${items.length})',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: kredit.textTertiary,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+            Divider(height: 1, color: kredit.borderCard),
+            Flexible(
+              child: ListView.separated(
+                shrinkWrap: true,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                itemCount: items.length,
+                separatorBuilder: (context, index) =>
+                    Divider(height: 1, color: kredit.borderCard),
+                itemBuilder: (context, i) => _UpcomingRow(item: items[i]),
+              ),
+            ),
+            Divider(height: 1, color: kredit.borderCard),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  ref.read(navigationIndexProvider.notifier).state =
+                      AppNavTab.credits;
+                },
+                icon: const Icon(Icons.credit_card_outlined, size: 18),
+                label: const Text('Ver en lista de créditos'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(44),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

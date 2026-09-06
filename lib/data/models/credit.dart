@@ -1,5 +1,7 @@
+import '../../domain/interest_rate.dart';
 import 'card_movement.dart';
 import 'installment.dart';
+import 'loan_abono.dart';
 
 /// `type` discriminator values, matching app.js string literals exactly.
 class CreditType {
@@ -53,7 +55,15 @@ class LoanCredit extends Credit {
   String frequency; // CreditFrequency.*
   String startDate; // "YYYY-MM-DD"
   double interestRate;
+
+  /// How `interestRate` is expressed (effectiveAnnual|effectiveMonthly|
+  /// nominalMonthly), same enum as CardCredit.interestRateType — see
+  /// `interest_rate.dart`. Defaults to E.A. to match the historical
+  /// (pre-French-amortization) assumption for existing data.
+  String interestRateType;
+
   List<Installment> installments;
+  List<LoanAbono> abonos;
 
   LoanCredit({
     required super.id,
@@ -69,8 +79,11 @@ class LoanCredit extends Credit {
     required this.frequency,
     required this.startDate,
     this.interestRate = 0,
+    this.interestRateType = InterestRateType.effectiveAnnual,
     List<Installment>? installments,
+    List<LoanAbono>? abonos,
   })  : installments = installments ?? [],
+        abonos = abonos ?? [],
         super(type: CreditType.loan);
 
   Map<String, dynamic> toJson() => {
@@ -86,9 +99,11 @@ class LoanCredit extends Credit {
         'frequency': frequency,
         'startDate': startDate,
         'interestRate': interestRate,
+        'interestRateType': interestRateType,
         'color': color,
         'notes': notes,
         'installments': installments.map((i) => i.toJson()).toList(),
+        'abonos': abonos.map((a) => a.toJson()).toList(),
       };
 
   factory LoanCredit.fromJson(Map<String, dynamic> json) => LoanCredit(
@@ -103,10 +118,15 @@ class LoanCredit extends Credit {
         frequency: json['frequency'] as String? ?? CreditFrequency.monthly,
         startDate: json['startDate'] as String,
         interestRate: (json['interestRate'] as num?)?.toDouble() ?? 0,
+        interestRateType: json['interestRateType'] as String? ??
+            InterestRateType.effectiveAnnual,
         color: json['color'] as String?,
         notes: json['notes'] as String?,
         installments: (json['installments'] as List<dynamic>? ?? [])
             .map((e) => Installment.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        abonos: (json['abonos'] as List<dynamic>? ?? [])
+            .map((e) => LoanAbono.fromJson(e as Map<String, dynamic>))
             .toList(),
       );
 }
@@ -118,6 +138,7 @@ class CardCredit extends Credit {
   int cutoffDay;
   int paymentDueOffsetDays;
   double interestRate;
+  String interestRateType; // InterestRateType.*
   double managementFee;
   String managementFeeFrequency; // ManagementFeeFrequency.*
   int cycleCount;
@@ -139,6 +160,7 @@ class CardCredit extends Credit {
     this.cutoffDay = 1,
     this.paymentDueOffsetDays = 20,
     this.interestRate = 0,
+    this.interestRateType = InterestRateType.effectiveAnnual,
     this.managementFee = 0,
     this.managementFeeFrequency = ManagementFeeFrequency.monthly,
     this.cycleCount = 0,
@@ -159,6 +181,7 @@ class CardCredit extends Credit {
         'cutoffDay': cutoffDay,
         'paymentDueOffsetDays': paymentDueOffsetDays,
         'interestRate': interestRate,
+        'interestRateType': interestRateType,
         'managementFee': managementFee,
         'managementFeeFrequency': managementFeeFrequency,
         'cycleCount': cycleCount,
@@ -178,6 +201,8 @@ class CardCredit extends Credit {
         paymentDueOffsetDays:
             (json['paymentDueOffsetDays'] as num?)?.toInt() ?? 20,
         interestRate: (json['interestRate'] as num?)?.toDouble() ?? 0,
+        interestRateType: json['interestRateType'] as String? ??
+            InterestRateType.effectiveAnnual,
         managementFee: (json['managementFee'] as num?)?.toDouble() ?? 0,
         managementFeeFrequency: json['managementFeeFrequency'] as String? ??
             ManagementFeeFrequency.monthly,

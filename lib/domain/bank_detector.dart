@@ -23,6 +23,59 @@ class BankInfo {
   });
 }
 
+/// A known sub-brand / product line under a parent entity — e.g. Falabella
+/// issues both the store-brand "CMR Falabella" card and "Banco Falabella"
+/// (free-investment loans, etc). These are DISTINCT commercial names a
+/// Colombian user would reasonably type when looking for their own
+/// card/credit, so the add-credit flow lets them optionally refine the
+/// parent entity down to the specific sub-brand. `detectBank()` remains the
+/// single source of truth for retroactive text-based detection — this list
+/// only feeds the *forward* selection UI in `add_credit_sheet.dart`.
+class SubEntityOption {
+  final String label; // shown in the refine dropdown
+  final String lenderText; // written into the free-text lender field
+  final String logoAsset; // best-available logo asset (may be the parent's)
+
+  const SubEntityOption({
+    required this.label,
+    required this.lenderText,
+    required this.logoAsset,
+  });
+}
+
+/// Sub-entities keyed by the *parent* BankInfo.cssClass. Only entities with
+/// real, well-known, distinctly-named sub-brands are listed here — see the
+/// research note in add_credit_sheet.dart for what was considered and
+/// rejected (e.g. Grupo Aval banks keep their own single brand each, so
+/// AV Villas/Popular/Occidente/Bogotá are NOT split further).
+const Map<String, List<SubEntityOption>> parentSubEntities = {
+  'bank-falabella': [
+    SubEntityOption(
+      label: 'CMR Falabella (tarjeta)',
+      lenderText: 'CMR Falabella',
+      // No dedicated CMR logo asset exists in assets/logos/ yet — falls
+      // back to the parent Falabella mark. TODO: add a real CMR logo if
+      // one becomes available.
+      logoAsset: 'assets/logos/bank-falabella.svg',
+    ),
+    SubEntityOption(
+      label: 'Banco Falabella (créditos)',
+      lenderText: 'Banco Falabella',
+      logoAsset: 'assets/logos/bank-falabella.svg',
+    ),
+  ],
+};
+
+/// Looks up known sub-entities for whichever parent [detectBank] would
+/// assign to [lenderText] (ignoring any sub-entity text already present),
+/// so the UI can offer a refine step right after the user picks/types a
+/// parent entity. Returns an empty list when the entity has no known
+/// sub-brands (the common case).
+List<SubEntityOption> subEntitiesForLender(String lenderText) {
+  final info = detectBank(lender: lenderText);
+  return parentSubEntities[info.cssClass] ?? const [];
+}
+
 /// Detects the bank/issuer for a credit from its `lender` and `card` free
 /// text fields. Falls back to a generic entry using [fallbackLender] and
 /// [fallbackColor] when nothing matches, exactly like app.js's bank-generic
@@ -110,6 +163,18 @@ BankInfo detectBank({
       shortLabel: 'B. Bogotá',
       fullLabel: 'Banco de Bogotá',
       accentColor: '#d4af37',
+    );
+  }
+  if (has('cmr')) {
+    // "CMR Falabella" is the store-brand credit card historically issued by
+    // CMR (Compañía de Financiamiento Comercial), now under Banco Falabella
+    // S.A. in Colombia — a distinct, commonly-searched product name from
+    // "Banco Falabella" itself (which covers free-investment loans, etc).
+    return const BankInfo(
+      cssClass: 'bank-falabella',
+      shortLabel: 'CMR Falabella',
+      fullLabel: 'CMR Falabella',
+      accentColor: '#c3d500',
     );
   }
   if (has('falabella')) {

@@ -10,7 +10,6 @@ import '../../data/models/credit.dart';
 import '../../domain/export_import.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
-import 'shadowed_card.dart';
 
 /// Exportar/Importar datos card. Restructured (visual-only, same
 /// export/import actions and callbacks) as two explicit, self-contained
@@ -23,7 +22,39 @@ import 'shadowed_card.dart';
 class DataToolsCard extends ConsumerWidget {
   const DataToolsCard({super.key});
 
+  /// Warns before sharing the plain-text backup: the JSON contains full
+  /// financial details (amounts, rates, credit names) unencrypted, and the
+  /// export flow hands it straight to the OS share sheet, so this is the
+  /// only checkpoint before it could end up in a chat, email, etc.
+  Future<bool> _confirmUnencryptedShare(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Compartir respaldo sin cifrar'),
+        content: const Text(
+          'Este archivo contiene tus datos financieros completos sin cifrar '
+          '(montos, tasas, nombres de crédito). Solo compártelo por canales '
+          'que confíes.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Continuar'),
+          ),
+        ],
+      ),
+    );
+    return confirmed == true;
+  }
+
   Future<void> _exportData(BuildContext context, WidgetRef ref) async {
+    final confirmed = await _confirmUnencryptedShare(context);
+    if (!confirmed) return;
+    if (!context.mounted) return;
     try {
       final credits = ref.read(creditsProvider).value ?? [];
       final json = exportStateToJson(credits);
@@ -32,9 +63,10 @@ class DataToolsCard extends ConsumerWidget {
       await file.writeAsString(json);
       await Share.shareXFiles([XFile(file.path)], text: 'Respaldo de Kredit');
     } catch (e) {
+      debugPrint('exportData failed: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No se pudo exportar: $e')),
+          const SnackBar(content: Text('No se pudo exportar el respaldo.')),
         );
       }
     }
@@ -51,9 +83,10 @@ class DataToolsCard extends ConsumerWidget {
       final file = File(result.files.single.path!);
       content = await file.readAsString();
     } catch (e) {
+      debugPrint('importData read failed: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No se pudo leer el archivo: $e')),
+          const SnackBar(content: Text('No se pudo leer el archivo.')),
         );
       }
       return;
@@ -63,9 +96,10 @@ class DataToolsCard extends ConsumerWidget {
     try {
       imported = importStateFromJson(content);
     } catch (e) {
+      debugPrint('importData parse failed: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Archivo inválido: $e')),
+          const SnackBar(content: Text('El archivo no tiene un formato válido de respaldo.')),
         );
       }
       return;
@@ -85,7 +119,8 @@ class DataToolsCard extends ConsumerWidget {
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Cancelar'),
           ),
-          FilledButton(
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Reemplazar'),
           ),
@@ -101,9 +136,10 @@ class DataToolsCard extends ConsumerWidget {
           );
         }
       } catch (e) {
+        debugPrint('importData replaceAll failed: $e');
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('No se pudo importar: $e')),
+            const SnackBar(content: Text('No se pudo importar el respaldo.')),
           );
         }
       }
@@ -113,48 +149,36 @@ class DataToolsCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
-    return ShadowedCard(
-      child: Padding(
-        padding: const EdgeInsets.all(KreditSpacing.card),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Tus datos viven solo en este dispositivo. Puedes respaldarlos '
-              'o restaurarlos en cualquier momento.',
-              style: TextStyle(fontSize: 12, color: kredit.textTertiary),
-            ),
-            const SizedBox(height: KreditSpacing.tile),
-            _DataToolOption(
-              icon: Icons.upload_file_outlined,
-              title: 'Exportar datos',
-              subtitle: 'Guarda un respaldo JSON de todos tus créditos',
-              tag: 'No modifica nada',
-              onTap: () => _exportData(context, ref),
-            ),
-            const SizedBox(height: 8),
-            _DataToolOption(
-              icon: Icons.download_outlined,
-              title: 'Importar datos',
-              subtitle: 'Carga un respaldo JSON y reemplaza tus datos actuales',
-              tag: 'Reemplaza tus datos',
-              tagIsWarning: true,
-              onTap: () => _importData(context, ref),
-            ),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Tus datos viven solo en este dispositivo. Puedes respaldarlos '
+          'o restaurarlos en cualquier momento.',
+          style: TextStyle(fontSize: 12, color: kredit.textTertiary),
         ),
-      ),
+        const SizedBox(height: 12),
+        _DataToolOption(
+          icon: Icons.upload_file_outlined,
+          title: 'Exportar datos',
+          subtitle: 'Guarda un respaldo JSON de todos tus créditos',
+          tag: 'No modifica nada',
+          onTap: () => _exportData(context, ref),
+        ),
+        Divider(height: 16, color: kredit.borderCard),
+        _DataToolOption(
+          icon: Icons.download_outlined,
+          title: 'Importar datos',
+          subtitle: 'Carga un respaldo JSON y reemplaza tus datos actuales',
+          tag: 'Reemplaza tus datos',
+          tagIsWarning: true,
+          onTap: () => _importData(context, ref),
+        ),
+      ],
     );
   }
 }
 
-/// Single selectable-looking (but non-selection) action row: icon + title +
-/// explanatory subtitle + a small tag calling out whether the action is
-/// inert ("No modifica nada") or destructive to existing local data
-/// ("Reemplaza tus datos") — the visual cue `data_tools_card.dart` lacked
-/// before this rework, distinct from (and one step less severe than) the
-/// full red-bordered treatment `danger_zone_card.dart` uses for permanent
-/// deletion.
 class _DataToolOption extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -175,45 +199,54 @@ class _DataToolOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
-    final tagColor = tagIsWarning ? kredit.textPrimary : kredit.textTertiary;
+    final tagColor = tagIsWarning ? AppColors.warning : kredit.textTertiary;
     return InkWell(
       borderRadius: BorderRadius.circular(KreditRadius.tile),
       onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(KreditSpacing.tile),
-        decoration: BoxDecoration(
-          color: kredit.bgSecondary,
-          borderRadius: BorderRadius.circular(KreditRadius.tile),
-          border: Border.all(color: kredit.borderCard),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(icon, size: 20, color: kredit.textSecondary),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(color: kredit.textPrimary, fontWeight: FontWeight.w600)),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: kredit.textPrimary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14.5,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text(subtitle, style: TextStyle(fontSize: 12, color: kredit.textSecondary)),
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 12, color: kredit.textSecondary),
+                  ),
                   const SizedBox(height: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                     decoration: BoxDecoration(
-                      border: Border.all(color: tagColor.withValues(alpha: 0.4)),
+                      color: tagColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(KreditRadius.chip),
                     ),
                     child: Text(
                       tag,
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: tagColor),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: tagColor,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
+            const SizedBox(width: 8),
             Icon(Icons.chevron_right, size: 18, color: kredit.textTertiary),
           ],
         ),

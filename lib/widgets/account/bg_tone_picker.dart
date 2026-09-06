@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/theme_provider.dart';
 import '../../theme/app_theme.dart';
-import 'shadowed_card.dart';
 
 class BgTonePicker extends ConsumerWidget {
   const BgTonePicker({super.key});
@@ -26,37 +25,32 @@ class BgTonePicker extends ConsumerWidget {
           ];
 
     final kredit = Theme.of(context).extension<KreditColors>()!;
-    return ShadowedCard(
-      child: Padding(
-        padding: const EdgeInsets.all(KreditSpacing.card),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              isDark ? 'Variante de Tema Oscuro' : 'Variante de Tema Claro',
-              style: TextStyle(color: kredit.textSecondary),
-            ),
-            const SizedBox(height: KreditSpacing.tile),
-            Row(
-              children: options.map((opt) {
-                final isSelected = opt.value == selected;
-                return Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: ChoiceChip(
-                      label: Text(opt.label),
-                      selected: isSelected,
-                      onSelected: (_) => ref
-                          .read(themePreferencesProvider.notifier)
-                          .setBgTone(opt.value),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          isDark ? 'Variante de Tema Oscuro' : 'Variante de Tema Claro',
+          style: TextStyle(color: kredit.textSecondary),
         ),
-      ),
+        const SizedBox(height: KreditSpacing.tile),
+        Row(
+          children: options.map((opt) {
+            final isSelected = opt.value == selected;
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: ChoiceChip(
+                  label: Text(opt.label),
+                  selected: isSelected,
+                  onSelected: (_) => ref
+                      .read(themePreferencesProvider.notifier)
+                      .setBgTone(opt.value),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 }

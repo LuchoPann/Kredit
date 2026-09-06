@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/db/database.dart';
 import '../data/models/credit.dart';
+import '../data/models/loan_abono.dart';
 import '../domain/card_calculator.dart';
 import '../domain/credit_calculator.dart';
 import '../domain/date_utils.dart';
@@ -36,12 +39,26 @@ class CreditsNotifier extends AsyncNotifier<List<Credit>> {
 
     // accrueAllCards (app.js loadState ~L89): apply pending interest/fee
     // cycles for every card credit on load, persisting any that changed.
+    //
+    // Loan credits get an analogous always-run treatment: every load
+    // recomputes their installment schedule with the real French
+    // amortization engine (see recomputeLoanInstallments), persisting only
+    // when the numbers actually changed. This is what migrates loans built
+    // by the old linear-interest engine without any stored "migrated" flag
+    // — see recomputeLoanInstallments's doc comment for why that's safe.
     for (final c in credits) {
       if (c is CardCredit) {
         final before = c.currentBalance;
         final beforeMovements = c.movements.length;
         accrueCardCredit(c);
         if (c.currentBalance != before || c.movements.length != beforeMovements) {
+          await _db.upsertCredit(c);
+        }
+      } else if (c is LoanCredit) {
+        final before = jsonEncode(c.installments.map((i) => i.toJson()).toList());
+        c.installments = recomputeLoanInstallments(c);
+        final after = jsonEncode(c.installments.map((i) => i.toJson()).toList());
+        if (before != after) {
           await _db.upsertCredit(c);
         }
       }
@@ -78,6 +95,25 @@ class CreditsNotifier extends AsyncNotifier<List<Credit>> {
     await _reload();
   }
 
+  /// Registers that [installmentNumber] was actually paid for
+  /// [actualAmount], which may differ from the app's calculated amount
+  /// (bank rounding/fees/policies) — see registerInstallmentActualPayment.
+  /// The difference is folded into the next unpaid installment's principal
+  /// (estimate, same mechanism as an abono).
+  Future<void> registerInstallmentPayment(
+    String creditId,
+    int installmentNumber,
+    double actualAmount,
+  ) async {
+    final credits = state.value ?? [];
+    final credit = credits.whereType<LoanCredit>().where((c) => c.id == creditId).firstOrNull;
+    if (credit == null) return;
+    final inst = credit.installments.firstWhere((i) => i.number == installmentNumber);
+    registerInstallmentActualPayment(credit, inst, actualAmount);
+    await _db.upsertCredit(credit);
+    await _reload();
+  }
+
   Future<void> markAllInstallmentsPaid(String creditId) async {
     final credits = state.value ?? [];
     final credit = credits.whereType<LoanCredit>().where((c) => c.id == creditId).firstOrNull;
@@ -92,6 +128,50 @@ class CreditsNotifier extends AsyncNotifier<List<Credit>> {
     final credit = credits.whereType<CardCredit>().where((c) => c.id == creditId).firstOrNull;
     if (credit == null) return;
     registerCardMovement(credit, type, amount, note);
+    await _db.upsertCredit(credit);
+    await _reload();
+  }
+
+  /// Registers an "abono extra" on a loan credit, applying it against the
+  /// unpaid schedule (see applyLoanAbono) and persisting both the updated
+  /// installments and the new abono history entry. Returns the created
+  /// [LoanAbono] so the caller can show a result summary.
+  Future<LoanAbono> registerLoanAbono(String creditId, double amount, {String note = ''}) async {
+    final credits = state.value ?? [];
+    final credit = credits.whereType<LoanCredit>().where((c) => c.id == creditId).firstOrNull;
+    if (credit == null) {
+      throw ArgumentError('Crédito no encontrado: $creditId');
+    }
+    final abono = applyLoanAbono(credit, amount, note: note);
+    credit.abonos.add(abono);
+    await _db.upsertCredit(credit);
+    await _reload();
+    return abono;
+  }
+
+  /// Deletes a single card movement (charge/payment/interest/fee) and
+  /// reverses its effect on the card's current balance, for correcting a
+  /// mis-registered movement. [movementIndex] is the index into
+  /// `credit.movements` (not the reversed/most-recent-first order some UIs
+  /// display it in).
+  Future<void> deleteMovement(String creditId, int movementIndex) async {
+    final credits = state.value ?? [];
+    final credit = credits.whereType<CardCredit>().where((c) => c.id == creditId).firstOrNull;
+    if (credit == null) return;
+    deleteCardMovement(credit, movementIndex);
+    await _db.upsertCredit(credit);
+    await _reload();
+  }
+
+  /// Deletes a registered "abono extra" from a loan credit, best-effort
+  /// reversing its effect on the installment schedule (see
+  /// [reverseLoanAbono]), for correcting a mis-registered abono.
+  Future<void> deleteLoanAbono(String creditId, LoanAbono abono) async {
+    final credits = state.value ?? [];
+    final credit = credits.whereType<LoanCredit>().where((c) => c.id == creditId).firstOrNull;
+    if (credit == null) return;
+    reverseLoanAbono(credit, abono);
+    credit.abonos.remove(abono);
     await _db.upsertCredit(credit);
     await _reload();
   }

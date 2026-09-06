@@ -27,6 +27,9 @@ class WelcomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final notificationsEnabled = ref.watch(notificationSettingsProvider).enabled;
     final theme = Theme.of(context);
+    final kredit = theme.extension<KreditColors>()!;
+    final accentColor = theme.colorScheme.primary;
+    final ctaForeground = legibleForegroundOn(accentColor);
 
     return Scaffold(
       body: SafeArea(
@@ -37,7 +40,7 @@ class WelcomeScreen extends ConsumerWidget {
             children: [
               const SizedBox(height: 24),
               Icon(Icons.account_balance_wallet_rounded,
-                  size: 56, color: theme.colorScheme.primary),
+                  size: 56, color: accentColor),
               const SizedBox(height: 16),
               Text(
                 '¡Bienvenido a Kredit!',
@@ -56,25 +59,25 @@ class WelcomeScreen extends ConsumerWidget {
               Expanded(
                 child: ListView(
                   children: [
-                    _InfoCard(
-                      step: 1,
+                    _InfoItem(
                       icon: Icons.explore_outlined,
-                      iconColor: theme.colorScheme.primary,
+                      iconColor: accentColor,
                       title: 'Créditos de ejemplo',
                       description:
                           'Precargamos 2 créditos con el distintivo "EJEMPLO" para que explores '
                           'la aplicación. Puedes editarlos o eliminarlos como a cualquier otro crédito, '
                           'cuando quieras.',
                     ),
-                    const SizedBox(height: 16),
-                    _InfoCard(
-                      step: 2,
+                    Divider(height: 1, color: kredit.borderCard),
+                    _InfoItem(
                       icon: Icons.lock_outline,
-                      iconColor: theme.colorScheme.primary,
+                      iconColor: accentColor,
                       title: 'Protege tu información',
                       description:
                           'Activa un PIN o desbloqueo biométrico para que solo tú accedas '
-                          'a tus créditos. Es totalmente opcional.',
+                          'a tus créditos, con bloqueo temporal tras varios intentos '
+                          'fallidos. Es totalmente opcional, y el widget de inicio '
+                          'oculta tus montos por defecto.',
                       trailing: OutlinedButton(
                         onPressed: () => Navigator.of(context).push(
                           MaterialPageRoute(
@@ -84,11 +87,10 @@ class WelcomeScreen extends ConsumerWidget {
                         child: const Text('Activar PIN/Biometría'),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    _InfoCard(
-                      step: 3,
+                    Divider(height: 1, color: kredit.borderCard),
+                    _InfoItem(
                       icon: Icons.notifications_outlined,
-                      iconColor: theme.colorScheme.primary,
+                      iconColor: accentColor,
                       title: 'No te pierdas un vencimiento',
                       description:
                           'Recibe un aviso local unos días antes del vencimiento de una cuota.',
@@ -109,19 +111,25 @@ class WelcomeScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: KreditSpacing.section),
-              Divider(color: theme.extension<KreditColors>()!.borderCard, height: 1),
+              Divider(color: kredit.borderCard, height: 1),
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: () => _finish(context, ref),
                 style: FilledButton.styleFrom(
+                  backgroundColor: accentColor,
+                  foregroundColor: ctaForeground,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(KreditRadius.tile),
                   ),
                 ),
-                child: const Text(
+                child: Text(
                   'Empezar',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    color: ctaForeground,
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -133,9 +141,12 @@ class WelcomeScreen extends ConsumerWidget {
   }
 }
 
-class _InfoCard extends StatelessWidget {
-  const _InfoCard({
-    required this.step,
+/// A single onboarding point expressed purely through typography — a small
+/// circular accent behind the icon, a bold title, and a description below.
+/// No surrounding box; items are separated by hairline `Divider`s instead
+/// of stacked bordered cards.
+class _InfoItem extends StatelessWidget {
+  const _InfoItem({
     required this.icon,
     required this.iconColor,
     required this.title,
@@ -143,7 +154,6 @@ class _InfoCard extends StatelessWidget {
     this.trailing,
   });
 
-  final int step;
   final IconData icon;
   final Color iconColor;
   final String title;
@@ -153,68 +163,40 @@ class _InfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final kredit = theme.extension<KreditColors>()!;
-    return Card(
-      elevation: 0,
-      color: kredit.bgCard,
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(KreditRadius.card),
-        side: BorderSide(color: kredit.borderCard),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(KreditSpacing.card),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: iconColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(KreditRadius.chip),
-                  ),
-                  child: Icon(icon, color: iconColor, size: 20),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 30,
+                height: 30,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w600),
-                  ),
+                child: Icon(icon, color: iconColor, size: 16),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w600),
                 ),
-                const SizedBox(width: 8),
-                Container(
-                  width: 22,
-                  height: 22,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: kredit.borderCard),
-                  ),
-                  child: Text(
-                    '$step',
-                    style: TextStyle(
-                      color: kredit.textTertiary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(description, style: theme.textTheme.bodyMedium),
-            if (trailing != null) ...[
-              const SizedBox(height: 14),
-              trailing!,
+              ),
             ],
+          ),
+          const SizedBox(height: 10),
+          Text(description, style: theme.textTheme.bodyMedium),
+          if (trailing != null) ...[
+            const SizedBox(height: 14),
+            trailing!,
           ],
-        ),
+        ],
       ),
     );
   }

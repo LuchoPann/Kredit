@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/app_lock_provider.dart';
@@ -75,6 +76,7 @@ class _SetupLockScreenState extends ConsumerState<SetupLockScreen> {
             style: TextStyle(color: kredit.textSecondary),
           ),
           const SizedBox(height: KreditSpacing.section),
+          Divider(height: 1, color: kredit.borderCard),
           _LockOptionTile(
             icon: Icons.lock_open_outlined,
             title: 'Ninguno',
@@ -82,7 +84,7 @@ class _SetupLockScreenState extends ConsumerState<SetupLockScreen> {
             selected: method == LockMethod.none,
             onTap: _selectNone,
           ),
-          const SizedBox(height: 12),
+          Divider(height: 1, color: kredit.borderCard),
           _LockOptionTile(
             icon: Icons.fingerprint,
             title: 'Biometría',
@@ -95,7 +97,7 @@ class _SetupLockScreenState extends ConsumerState<SetupLockScreen> {
               if (_biometricAvailable == true) _selectBiometric();
             },
           ),
-          const SizedBox(height: 12),
+          Divider(height: 1, color: kredit.borderCard),
           _LockOptionTile(
             icon: Icons.pin_outlined,
             title: 'PIN',
@@ -103,16 +105,20 @@ class _SetupLockScreenState extends ConsumerState<SetupLockScreen> {
             selected: method == LockMethod.pin,
             onTap: _selectPin,
           ),
+          Divider(height: 1, color: kredit.borderCard),
         ],
       ),
     );
   }
 }
 
-/// Selectable row for a lock method: a filled/bordered container that
-/// visibly distinguishes "selected" (accent border + filled radio +
-/// primary text) from "unselected" (subtle border + outline radio +
-/// secondary text), plus a dimmed state when biometrics aren't available.
+/// Selectable row for a lock method — follows the app's "sin cajas" list
+/// language (see `_UpcomingRow` / `CreditCardTile`): no bordered container,
+/// consecutive rows separated by the caller with a hairline `Divider`.
+/// "Selected" is communicated through icon/text color and weight plus a
+/// small filled circular accent trailing the row (the same small-accent
+/// idiom used elsewhere, e.g. the urgency dot on the dashboard); a dimmed
+/// opacity marks the row unavailable (biometrics not supported).
 class _LockOptionTile extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -138,204 +144,46 @@ class _LockOptionTile extends StatelessWidget {
 
     return Opacity(
       opacity: enabled ? 1.0 : 0.5,
-      child: Material(
-        color: kredit.bgCard,
-        borderRadius: BorderRadius.circular(KreditRadius.card),
-        child: InkWell(
-          onTap: enabled ? onTap : null,
-          borderRadius: BorderRadius.circular(KreditRadius.card),
-          child: Container(
-            padding: const EdgeInsets.all(KreditSpacing.card),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(KreditRadius.card),
-              border: Border.all(
-                color: selected ? accent : kredit.borderCard,
-                width: selected ? 1.5 : 1,
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: selected
-                        ? accent.withValues(alpha: 0.12)
-                        : kredit.bgSecondary,
-                  ),
-                  child: Icon(icon, size: 20, color: selected ? accent : contentColor),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          color: contentColor,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle,
-                        style: TextStyle(color: kredit.textSecondary, fontSize: 12.5),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  width: 22,
-                  height: 22,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: selected ? accent : kredit.borderCard,
-                      width: 1.5,
-                    ),
-                  ),
-                  child: selected
-                      ? Container(
-                          width: 12,
-                          height: 12,
-                          decoration: BoxDecoration(shape: BoxShape.circle, color: accent),
-                        )
-                      : null,
-                ),
-              ],
-            ),
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            vertical: 14,
+            horizontal: 4,
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Two-step PIN entry: first pass captures the PIN, second confirms it
-/// matches. Pops with the confirmed PIN string, or null if cancelled.
-class _PinSetupFlow extends StatefulWidget {
-  const _PinSetupFlow();
-
-  @override
-  State<_PinSetupFlow> createState() => _PinSetupFlowState();
-}
-
-class _PinSetupFlowState extends State<_PinSetupFlow> {
-  String? _firstPin;
-  String _input = '';
-  bool _error = false;
-
-  bool get _confirming => _firstPin != null;
-
-  void _onDigit(String d) {
-    if (_input.length >= 6) return;
-    setState(() {
-      _input += d;
-      _error = false;
-    });
-  }
-
-  void _onBackspace() {
-    if (_input.isEmpty) return;
-    setState(() => _input = _input.substring(0, _input.length - 1));
-  }
-
-  void _onSubmit() {
-    if (_input.length < 4) return;
-    if (!_confirming) {
-      setState(() {
-        _firstPin = _input;
-        _input = '';
-      });
-    } else {
-      if (_input == _firstPin) {
-        Navigator.of(context).pop(_input);
-      } else {
-        setState(() {
-          _error = true;
-          _input = '';
-          _firstPin = null;
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
-    return Scaffold(
-      appBar: AppBar(title: Text(_confirming ? 'Confirma tu PIN' : 'Crea un PIN')),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          child: Row(
             children: [
-              Text(
-                _confirming ? 'Ingresa el PIN de nuevo' : 'Ingresa 4 a 6 dígitos',
-                style: TextStyle(color: kredit.textSecondary),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(6, (i) {
-                  final filled = i < _input.length;
-                  return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 6),
-                    width: 14,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _error
-                          ? AppColors.danger
-                          : (filled ? kredit.textPrimary : Colors.transparent),
-                      border: Border.all(
-                        color: _error ? AppColors.danger : AppColors.borderActive,
+              Icon(icon, size: 22, color: selected ? accent : contentColor),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: contentColor,
+                        fontSize: 15,
+                        fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
                       ),
                     ),
-                  );
-                }),
-              ),
-              if (_error) ...[
-                const SizedBox(height: 12),
-                const Text(
-                  'Los PIN no coinciden, intenta de nuevo',
-                  style: TextStyle(color: AppColors.danger),
-                ),
-              ],
-              const SizedBox(height: 32),
-              SizedBox(
-                width: (MediaQuery.of(context).size.width * 0.7).clamp(220.0, 300.0),
-                child: GridView.count(
-                  crossAxisCount: 3,
-                  shrinkWrap: true,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 1.4,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: [
-                    for (final d in ['1', '2', '3', '4', '5', '6', '7', '8', '9'])
-                      _SetupPadButton(label: d, onTap: () => _onDigit(d)),
-                    const SizedBox.shrink(),
-                    _SetupPadButton(label: '0', onTap: () => _onDigit('0')),
-                    _SetupPadButton(
-                      icon: Icons.backspace_outlined,
-                      onTap: _onBackspace,
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(color: kredit.textSecondary, fontSize: 12.5),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _input.length >= 4 ? _onSubmit : null,
-                child: Text(_confirming ? 'Confirmar' : 'Continuar'),
-              ),
+              const SizedBox(width: 8),
+              if (selected)
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
+                )
+              else if (enabled)
+                Icon(Icons.chevron_right, size: 18, color: kredit.textTertiary),
             ],
           ),
         ),
@@ -344,50 +192,296 @@ class _PinSetupFlowState extends State<_PinSetupFlow> {
   }
 }
 
-class _SetupPadButton extends StatefulWidget {
-  final String? label;
-  final IconData? icon;
-  final VoidCallback onTap;
-
-  const _SetupPadButton({this.label, this.icon, required this.onTap});
+/// Two-step PIN entry using the device's native keyboard:
+/// first pass captures the PIN, second confirms it matches.
+/// Pops with the confirmed PIN string, or null if cancelled.
+class _PinSetupFlow extends StatefulWidget {
+  const _PinSetupFlow();
 
   @override
-  State<_SetupPadButton> createState() => _SetupPadButtonState();
+  State<_PinSetupFlow> createState() => _PinSetupFlowState();
 }
 
-class _SetupPadButtonState extends State<_SetupPadButton> {
-  bool _pressed = false;
+class _PinSetupFlowState extends State<_PinSetupFlow>
+    with SingleTickerProviderStateMixin {
+  final _pinCtrl = TextEditingController();
+  final _pinFocus = FocusNode();
+  late final AnimationController _shakeCtrl;
 
-  void _setPressed(bool value) {
-    if (_pressed != value) setState(() => _pressed = value);
+  String? _firstPin;
+  bool _error = false;
+
+  bool get _confirming => _firstPin != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _shakeCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 420),
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          _pinFocus.requestFocus();
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _pinCtrl.dispose();
+    _pinFocus.dispose();
+    _shakeCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onPinChanged(String value) {
+    if (value.length > 6) {
+      _pinCtrl.text = value.substring(0, 6);
+      _pinCtrl.selection =
+          TextSelection.collapsed(offset: _pinCtrl.text.length);
+      return;
+    }
+    setState(() => _error = false);
+
+    // If reaching 6 digits, optionally auto-submit
+    if (value.length == 6) {
+      _onSubmit();
+    }
+  }
+
+  Future<void> _onSubmit() async {
+    final input = _pinCtrl.text;
+    if (input.length < 4) return;
+
+    if (!_confirming) {
+      setState(() {
+        _firstPin = input;
+        _pinCtrl.clear();
+        _error = false;
+      });
+      _pinFocus.requestFocus();
+    } else {
+      if (input == _firstPin) {
+        Navigator.of(context).pop(input);
+      } else {
+        setState(() {
+          _error = true;
+        });
+        _shakeCtrl.forward(from: 0);
+        await Future.delayed(const Duration(milliseconds: 600));
+        if (mounted) {
+          setState(() {
+            _pinCtrl.clear();
+            _firstPin = null;
+            _error = false;
+          });
+          _pinFocus.requestFocus();
+        }
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
-    return AnimatedScale(
-      scale: _pressed ? 0.9 : 1.0,
-      duration: const Duration(milliseconds: 100),
-      curve: Curves.easeOut,
-      child: Material(
-        color: kredit.bgCard,
-        shape: const CircleBorder(),
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: widget.onTap,
-          onTapDown: (_) => _setPressed(true),
-          onTapCancel: () => _setPressed(false),
-          onTapUp: (_) => _setPressed(false),
-          child: Center(
-            child: widget.label != null
-                ? Text(
-                    widget.label!,
-                    style: TextStyle(fontSize: 22, color: kredit.textPrimary),
-                  )
-                : Icon(widget.icon, color: kredit.textPrimary),
+    final accent = Theme.of(context).colorScheme.primary;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_confirming ? 'Confirma tu PIN' : 'Crea un PIN'),
+      ),
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => _pinFocus.requestFocus(),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // ── Icon ───────────────────────────────────────────────────────
+                Container(
+                  width: 72,
+                  height: 72,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: kredit.bgCard,
+                    border: Border.all(color: kredit.borderCard, width: 1.5),
+                  ),
+                  child: Icon(
+                    Icons.pin_outlined,
+                    size: 32,
+                    color: kredit.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // ── Subtitle ───────────────────────────────────────────────────
+                Text(
+                  _confirming
+                      ? 'Ingresa el PIN de nuevo para confirmar'
+                      : 'Ingresa de 4 a 6 dígitos',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: kredit.textSecondary, fontSize: 14),
+                ),
+                const SizedBox(height: 36),
+
+                // ── Interactive PIN dots with transparent layered TextField ────
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    AnimatedBuilder(
+                      animation: _shakeCtrl,
+                      builder: (context, child) {
+                        final t = _shakeCtrl.value;
+                        final offset = (t == 0 || t == 1)
+                            ? 0.0
+                            : _shakeSin(t * 4 * 3.1416) * 14 * (1 - t);
+                        return Transform.translate(
+                          offset: Offset(offset, 0),
+                          child: child,
+                        );
+                      },
+                      child: ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: _pinCtrl,
+                        builder: (_, value, _) {
+                          final len = value.text.length;
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(6, (i) {
+                              final filled = i < len;
+                              final isActive = i == len;
+                              return AnimatedContainer(
+                                duration: const Duration(milliseconds: 160),
+                                curve: Curves.easeOut,
+                                margin:
+                                    const EdgeInsets.symmetric(horizontal: 9),
+                                width: filled ? 20 : 18,
+                                height: filled ? 20 : 18,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: _error
+                                      ? AppColors.danger
+                                      : (filled
+                                          ? kredit.textPrimary
+                                          : Colors.transparent),
+                                  border: Border.all(
+                                    color: _error
+                                        ? AppColors.danger
+                                        : (filled
+                                            ? kredit.textPrimary
+                                            : isActive
+                                                ? accent
+                                                : kredit.borderCard),
+                                    width: isActive && !_error ? 2.5 : 2,
+                                  ),
+                                ),
+                              );
+                            }),
+                          );
+                        },
+                      ),
+                    ),
+                    // Layered TextField to trigger native system keyboard
+                    Positioned.fill(
+                      child: Opacity(
+                        opacity: 0.01,
+                        child: TextField(
+                          controller: _pinCtrl,
+                          focusNode: _pinFocus,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly
+                          ],
+                          maxLength: 6,
+                          obscureText: true,
+                          autofocus: true,
+                          showCursor: false,
+                          enableSuggestions: false,
+                          autocorrect: false,
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            counterText: '',
+                            isCollapsed: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                          onChanged: _onPinChanged,
+                          onSubmitted: (_) => _onSubmit(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                // ── Error message ──────────────────────────────────────────────
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: _error
+                      ? const Padding(
+                          key: ValueKey('err'),
+                          padding: EdgeInsets.only(top: 16),
+                          child: Text(
+                            'Los PIN no coinciden, intenta de nuevo',
+                            style: TextStyle(
+                              color: AppColors.danger,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        )
+                      : const SizedBox(key: ValueKey('ok'), height: 16),
+                ),
+
+                const SizedBox(height: 28),
+
+                // ── Action Button ──────────────────────────────────────────────
+                ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: _pinCtrl,
+                  builder: (_, value, _) {
+                    final canSubmit = value.text.length >= 4;
+                    return FilledButton(
+                      onPressed: canSubmit ? _onSubmit : null,
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 32, vertical: 14),
+                      ),
+                      child: Text(_confirming ? 'Confirmar PIN' : 'Continuar'),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                // ── Fallback button if keyboard gets dismissed ─────────────────
+                TextButton.icon(
+                  onPressed: () => _pinFocus.requestFocus(),
+                  icon: Icon(Icons.keyboard_outlined,
+                      size: 18, color: kredit.textTertiary),
+                  label: Text(
+                    'Abrir teclado',
+                    style: TextStyle(color: kredit.textTertiary, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+}
+
+/// Decaying horizontal sine wave for the shake animation.
+double _shakeSin(double x) {
+  const pi = 3.14159265358979;
+  x = x % (2 * pi);
+  final xs = x - pi;
+  final denom = 5 * pi * pi - 4 * xs * (pi - xs.abs());
+  if (denom == 0) return 0;
+  return 4 * (pi * xs - xs * xs.abs()) / denom;
 }

@@ -8,7 +8,7 @@ import '../../providers/credits_filter_provider.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/credit_display_utils.dart';
-import '../../widgets/credit_card_tile.dart';
+import '../../widgets/wallet_card.dart';
 
 /// Full credits list ("Créditos") screen — ported from `#view-credits` in
 /// legacy_pwa/index.html (~L188-219): search box, sort dropdown,
@@ -30,12 +30,22 @@ class CreditsListScreen extends ConsumerWidget {
         ),
         data: (credits) => _CreditsListBody(credits: credits),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.black,
-        onPressed: () => Navigator.of(context).pushNamed('/add-credit'),
-        tooltip: 'Agregar Crédito',
-        child: const Icon(Icons.add),
+      floatingActionButton: Builder(
+        builder: (context) {
+          final accentColor = Theme.of(context).colorScheme.primary;
+          final fgColor = legibleForegroundOn(accentColor);
+          return FloatingActionButton(
+            // Distinct from dashboard_screen.dart's FAB — see the comment
+            // there for why this matters now that IndexedStack keeps every
+            // tab mounted at once.
+            heroTag: 'fab-credits',
+            backgroundColor: accentColor,
+            foregroundColor: fgColor,
+            onPressed: () => Navigator.of(context).pushNamed('/add-credit'),
+            tooltip: 'Agregar Crédito',
+            child: const Icon(Icons.add),
+          );
+        },
       ),
     );
   }
@@ -146,7 +156,8 @@ class _CreditsListBodyState extends ConsumerState<_CreditsListBody>
                   controller: _searchController,
                   decoration: InputDecoration(
                     hintText: 'Buscar crédito, banco...',
-                    prefixIcon: const Icon(Icons.search, size: 20),
+                    hintStyle: TextStyle(fontSize: 13.5, color: kredit.textTertiary),
+                    prefixIcon: Icon(Icons.search, size: 20, color: kredit.textSecondary),
                     suffixIcon: filter.query.isNotEmpty
                         ? IconButton(
                             icon: const Icon(Icons.clear, size: 18),
@@ -156,26 +167,34 @@ class _CreditsListBodyState extends ConsumerState<_CreditsListBody>
                             },
                           )
                         : null,
+                    filled: true,
+                    fillColor: kredit.bgCard,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: kredit.borderCard),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: kredit.borderCard),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
+                    ),
                     isDense: true,
                   ),
                   onChanged: (v) => ref.read(creditsFilterProvider.notifier).setQuery(v),
                 ),
               ),
-              const SizedBox(width: 8),
-              Container(
-                height: 48,
-                width: 48,
-                decoration: BoxDecoration(
-                  border: Border.all(color: kredit.borderCard),
-                  borderRadius: BorderRadius.circular(KreditRadius.tile),
-                ),
-                child: PopupMenuButton<CreditsSortOption>(
-                  tooltip: 'Ordenar por',
-                  icon: Icon(Icons.sort, color: kredit.textSecondary),
-                  color: kredit.bgCard,
-                  initialValue: filter.sort,
-                  onSelected: (v) => ref.read(creditsFilterProvider.notifier).setSort(v),
-                  itemBuilder: (context) => const [
+              const SizedBox(width: 4),
+              PopupMenuButton<CreditsSortOption>(
+                tooltip: 'Ordenar por',
+                icon: Icon(Icons.sort, color: kredit.textSecondary, size: 22),
+                color: kredit.bgCard,
+                initialValue: filter.sort,
+                onSelected: (v) => ref.read(creditsFilterProvider.notifier).setSort(v),
+                itemBuilder: (context) => const [
                     PopupMenuItem(
                       value: CreditsSortOption.dueDate,
                       child: Text('Próximo Pago'),
@@ -193,64 +212,87 @@ class _CreditsListBodyState extends ConsumerState<_CreditsListBody>
                       child: Text('Nombre A-Z'),
                     ),
                   ],
-                ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 32,
-          child: Builder(
-            builder: (context) {
-              // Dynamically extract unique banks that the user actually has in their credits
-              final availableBanks = <String>{};
-              for (final c in widget.credits) {
-                final bank = detectBank(
-                  lender: c.lender,
-                  card: c is LoanCredit ? c.card : null,
-                );
-                availableBanks.add(bank.shortLabel);
-              }
-              final bankList = availableBanks.toList()..sort();
-
-              if (bankList.isEmpty) return const SizedBox.shrink();
-
-              return ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  _BankChip(
-                    label: 'Todos',
-                    selected: filter.query.isEmpty,
-                    onTap: () {
-                      _searchController.clear();
-                      ref.read(creditsFilterProvider.notifier).setQuery('');
-                    },
-                  ),
-                  ...bankList.map((bank) {
-                    final selected = filter.query.toLowerCase() == bank.toLowerCase();
-                    return _BankChip(
-                      label: bank,
-                      selected: selected,
-                      onTap: () {
-                        final next = selected ? '' : bank;
-                        _searchController.text = next;
-                        ref.read(creditsFilterProvider.notifier).setQuery(next);
-                      },
-                    );
-                  }),
-                ],
+        const SizedBox(height: 14),
+        Builder(
+          builder: (context) {
+            // Dynamically extract unique banks that the user actually has in their credits
+            final availableBanks = <String>{};
+            for (final c in widget.credits) {
+              final bank = detectBank(
+                lender: c.lender,
+                card: c is LoanCredit ? c.card : null,
               );
-            },
-          ),
+              availableBanks.add(bank.shortLabel);
+            }
+            final bankList = availableBanks.toList()..sort();
+
+            if (bankList.isEmpty) return const SizedBox.shrink();
+
+            final kredit = Theme.of(context).extension<KreditColors>()!;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'Filtrar por entidad',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.4,
+                      color: kredit.textTertiary,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                SizedBox(
+                  height: 26,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    children: [
+                      _BankChip(
+                        label: 'Todos',
+                        selected: filter.query.isEmpty,
+                        onTap: () {
+                          _searchController.clear();
+                          ref.read(creditsFilterProvider.notifier).setQuery('');
+                        },
+                      ),
+                      ...bankList.map((bank) {
+                        final selected = filter.query.toLowerCase() == bank.toLowerCase();
+                        return _BankChip(
+                          label: bank,
+                          selected: selected,
+                          onTap: () {
+                            final next = selected ? '' : bank;
+                            _searchController.text = next;
+                            ref.read(creditsFilterProvider.notifier).setQuery(next);
+                          },
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 12),
         TabBar(
           controller: _tabController,
-          tabs: const [
-            Tab(text: 'Activos'),
-            Tab(text: 'Finalizados'),
+          indicatorSize: TabBarIndicatorSize.label,
+          indicatorWeight: 2.5,
+          labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+          unselectedLabelColor: kredit.textTertiary,
+          tabs: [
+            Tab(text: 'Activos (${active.length})'),
+            Tab(text: 'Finalizados (${completed.length})'),
           ],
         ),
         Expanded(
@@ -331,17 +373,21 @@ class _FilteredList extends StatelessWidget {
     if (list.isEmpty) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 emptyText,
-                style: TextStyle(fontSize: 13, color: kredit.textTertiary),
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: kredit.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
               // Bug 5: privacy reassurance notice
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
@@ -350,7 +396,7 @@ class _FilteredList extends StatelessWidget {
                   const SizedBox(width: 4),
                   Text(
                     'Tus datos permanecen en tu dispositivo',
-                    style: TextStyle(fontSize: 11, color: kredit.textTertiary),
+                    style: TextStyle(fontSize: 12, color: kredit.textTertiary),
                   ),
                 ],
               ),
@@ -366,9 +412,8 @@ class _FilteredList extends StatelessWidget {
         final credit = list[i];
         return _StaggeredEntry(
           index: i,
-          child: CreditCardTile(
+          child: _CreditWalletListItem(
             credit: credit,
-            expanded: true,
             onTap: () => Navigator.of(context).pushNamed(
               '/credit-detail',
               arguments: credit.id,
@@ -380,6 +425,10 @@ class _FilteredList extends StatelessWidget {
   }
 }
 
+/// Filtro de banco expresado en tipografía pura: un punto circular pequeño
+/// (el mismo acento usado para "urgencia" en el dashboard) precede el
+/// nombre cuando está seleccionado, y el peso/color del texto marca el
+/// estado — sin pastilla rellena ni borde.
 class _BankChip extends StatelessWidget {
   final String label;
   final bool selected;
@@ -394,30 +443,31 @@ class _BankChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accentColor = Theme.of(context).colorScheme.primary;
     return Padding(
-      padding: const EdgeInsets.only(right: 6),
+      padding: const EdgeInsets.only(right: 18),
       child: InkWell(
-        borderRadius: BorderRadius.circular(KreditRadius.chip),
         onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          decoration: BoxDecoration(
-            color: selected ? Theme.of(context).colorScheme.primary : kredit.bgCard,
-            borderRadius: BorderRadius.circular(KreditRadius.chip),
-            border: Border.all(
-              color: selected ? Theme.of(context).colorScheme.primary : kredit.borderCard,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              curve: Curves.easeOut,
+              width: selected ? 6 : 0,
+              height: 6,
+              margin: EdgeInsets.only(right: selected ? 6 : 0),
+              decoration: BoxDecoration(color: accentColor, shape: BoxShape.circle),
             ),
-          ),
-          child: Center(
-            child: Text(
+            Text(
               label,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: selected ? Colors.black : kredit.textSecondary,
+                color: selected ? accentColor : kredit.textSecondary,
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -451,6 +501,56 @@ class _StaggeredEntry extends StatelessWidget {
         );
       },
       child: child,
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WalletCard list item: tarjeta visual completa + fila de stats debajo
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CreditWalletListItem extends StatefulWidget {
+  final Credit credit;
+  final VoidCallback onTap;
+
+  const _CreditWalletListItem({
+    required this.credit,
+    required this.onTap,
+  });
+
+  @override
+  State<_CreditWalletListItem> createState() => _CreditWalletListItemState();
+}
+
+class _CreditWalletListItemState extends State<_CreditWalletListItem> {
+  double _scale = 1.0;
+
+  void _setScale(double v) => setState(() => _scale = v);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: AnimatedScale(
+        scale: _scale,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: GestureDetector(
+          onTapDown: (_) => _setScale(0.97),
+          onTapUp: (_) {
+            _setScale(1.0);
+            widget.onTap();
+          },
+          onTapCancel: () => _setScale(1.0),
+          // La tarjeta visual ahora incluye sus propios datos clave (cupo /
+          // próximo pago / próxima cuota) integrados en su parte inferior —
+          // ya no hay una fila de stats separada debajo.
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: WalletCard(credit: widget.credit),
+          ),
+        ),
+      ),
     );
   }
 }

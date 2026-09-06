@@ -14,6 +14,12 @@ class ProgressRing extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = Theme.of(context).colorScheme.primary;
+    // Follows the theme's own text color instead of a hardcoded white, so
+    // the percentage stays legible in light mode too (dark text on light
+    // backgrounds), not just in the app's original dark-only design.
+    final textColor = Theme.of(context).brightness == Brightness.dark
+        ? Colors.white
+        : const Color(0xFF0F172A);
     final target = percent.clamp(0, 100).toDouble();
     return SizedBox(
       width: size,
@@ -41,15 +47,15 @@ class ProgressRing extends StatelessWidget {
                       // dashboard hero uses size: 76) so the number never
                       // crowds the ring's inner radius.
                       fontSize: size >= 88 ? 16 : 14,
-                      color: Colors.white,
+                      color: textColor,
                     ),
                   ),
                   Text(
                     'PAGADO',
                     style: TextStyle(
-                      fontSize: size >= 88 ? 9 : 8,
+                      fontSize: size >= 88 ? 10 : 9,
                       letterSpacing: 0.5,
-                      color: Colors.white70,
+                      color: textColor,
                     ),
                   ),
                 ],

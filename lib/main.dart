@@ -1,5 +1,5 @@
-import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'screens/account/account_screen.dart';
@@ -11,9 +11,11 @@ import 'screens/stats/stats_screen.dart';
 import 'widgets/kredit_logo.dart';
 import 'providers/app_lock_provider.dart';
 import 'providers/credits_provider.dart';
+import 'providers/navigation_provider.dart';
 import 'providers/notification_settings_provider.dart';
 import 'providers/onboarding_provider.dart';
 import 'providers/theme_provider.dart';
+import 'providers/widget_privacy_provider.dart';
 import 'screens/lock/lock_screen.dart';
 import 'screens/onboarding/welcome_screen.dart';
 import 'services/home_widget_service.dart';
@@ -40,8 +42,18 @@ class MyApp extends ConsumerWidget {
       ),
       themeAnimationDuration: const Duration(milliseconds: 350),
       themeAnimationCurve: Curves.easeInOutCubic,
+      // Spanish locale for built-in widgets (date/time pickers, etc.) — the
+      // whole app is written in Spanish, but without this Flutter's own
+      // Material widgets default to the device/English locale.
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('es', 'CO'), Locale('es')],
+      locale: const Locale('es', 'CO'),
       home: const AppLockGate(),
-      // Named routes for cross-screen navigation. '/credit-detail' expects
+      // Named routes for detail/creation modal views. '/credit-detail' expects
       // the credit id as a String route argument.
       onGenerateRoute: (settings) {
         switch (settings.name) {
@@ -54,11 +66,6 @@ class MyApp extends ConsumerWidget {
           case '/add-credit':
             return MaterialPageRoute(
               builder: (_) => const AddCreditSheet(),
-              settings: settings,
-            );
-          case '/credits':
-            return MaterialPageRoute(
-              builder: (_) => const CreditsListScreen(),
               settings: settings,
             );
         }
@@ -104,8 +111,6 @@ class RootScaffold extends ConsumerStatefulWidget {
 }
 
 class _RootScaffoldState extends ConsumerState<RootScaffold> {
-  int _index = 0;
-
   static const _screens = [
     DashboardScreen(),
     CreditsListScreen(),
@@ -138,6 +143,8 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
 
   @override
   Widget build(BuildContext context) {
+    final activeIndex = ref.watch(navigationIndexProvider);
+
     ref.listen(creditsProvider, (previous, next) {
       final credits = next.value;
       if (credits == null) return;
@@ -171,11 +178,19 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
     });
     // Home screen widget (Android): keep the total-debt/next-payment tile in
     // sync with the credit list, independent of the notification listener
-    // above. See services/home_widget_service.dart.
+    // above. See services/home_widget_service.dart. The widget is visible
+    // without unlocking the app, so whether real amounts are shown is
+    // gated by `widgetPrivacyProvider` (default: hidden).
     ref.listen(creditsProvider, (previous, next) {
       final credits = next.value;
       if (credits == null) return;
-      updateHomeWidget(credits);
+      final showAmounts = ref.read(widgetPrivacyProvider);
+      updateHomeWidget(credits, showAmounts: showAmounts);
+    });
+    ref.listen(widgetPrivacyProvider, (previous, next) {
+      final credits = ref.read(creditsProvider).value;
+      if (credits == null) return;
+      updateHomeWidget(credits, showAmounts: next);
     });
     return Scaffold(
       body: Stack(
@@ -194,27 +209,24 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
               ),
             ),
           ),
-          // Material's recommended bottom-nav motion: cross-fade + slight scale
-          // between top-level destinations instead of an abrupt IndexedStack swap.
-          PageTransitionSwitcher(
-            duration: const Duration(milliseconds: 300),
-            transitionBuilder: (child, primaryAnimation, secondaryAnimation) {
-              return FadeThroughTransition(
-                animation: primaryAnimation,
-                secondaryAnimation: secondaryAnimation,
-                child: child,
-              );
-            },
-            child: KeyedSubtree(
-              key: ValueKey(_index),
-              child: _screens[_index],
-            ),
+          // IndexedStack keeps all 4 tab screens alive in the tree (each
+          // builds once and stays mounted, offstage when not selected) so
+          // switching tabs never rebuilds a screen from scratch — scroll
+          // position, local filters, in-flight animations, etc. all survive.
+          // A previous attempt used PageTransitionSwitcher + KeyedSubtree
+          // keyed on the tab index for a cross-fade transition, but keying
+          // on the changing index forces Flutter to destroy and recreate
+          // the outgoing/incoming screen on every tab switch — exactly the
+          // state loss this app was built to avoid.
+          IndexedStack(
+            index: activeIndex,
+            children: _screens,
           ),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _index,
-        onTap: (i) => setState(() => _index = i),
+        currentIndex: activeIndex,
+        onTap: (i) => ref.read(navigationIndexProvider.notifier).state = i,
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(

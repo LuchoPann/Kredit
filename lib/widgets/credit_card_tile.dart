@@ -2,29 +2,34 @@ import 'package:flutter/material.dart';
 
 import '../data/models/credit.dart';
 import '../domain/bank_detector.dart';
-import '../domain/card_calculator.dart';
-import '../domain/date_utils.dart';
 import '../providers/credits_provider.dart' show isDemoCredit;
 import '../theme/app_theme.dart';
 import '../utils/credit_display_utils.dart';
 import 'demo_badge.dart';
 import 'wallet_card.dart' show bankLogoAssets, BankLogoChip;
 
+/// Compact credit row used by the dashboard's "Créditos activos" list.
+///
+/// Follows the typographic language introduced at the top of
+/// `dashboard_screen.dart` ("Próximos pagos" / `_UpcomingRow`): no bordered
+/// box wrapping the row — hierarchy comes from type size/weight, and a small
+/// circular accent (the bank's color, standing in for the urgency dot used
+/// above) replaces the old bank-logo avatar's boxed-circle-with-border
+/// treatment. Consecutive rows are separated by the caller with a hairline
+/// `Divider`, exactly as `_UpcomingList` does — see `CreditCardTileList`
+/// below, used by `dashboard_screen.dart`.
+///
+/// The richer, full-card presentation (visual [WalletCard] + stats row)
+/// lives in `wallet_card.dart` as `CreditStatsRow`/`WalletCard`, used by
+/// credits_list_screen.dart instead of this tile.
 class CreditCardTile extends StatefulWidget {
   final Credit credit;
   final VoidCallback onTap;
-
-  /// When true, renders extra rows below the header (cupo disponible /
-  /// próximo pago for cards, próxima cuota for loans) — used by
-  /// credits_list_screen.dart's richer cards. Dashboard rows stay compact
-  /// (default false) since they already carry that info via _UpcomingRow.
-  final bool expanded;
 
   const CreditCardTile({
     super.key,
     required this.credit,
     required this.onTap,
-    this.expanded = false,
   });
 
   @override
@@ -32,10 +37,10 @@ class CreditCardTile extends StatefulWidget {
 }
 
 class _CreditCardTileState extends State<CreditCardTile> {
-  double _scale = 1;
+  double _opacity = 1;
 
   void _setPressed(bool pressed) {
-    setState(() => _scale = pressed ? 0.97 : 1);
+    setState(() => _opacity = pressed ? 0.6 : 1);
   }
 
   @override
@@ -49,151 +54,104 @@ class _CreditCardTileState extends State<CreditCardTile> {
     final accent = parseHexColor(bank.accentColor);
     final logoAsset = bankLogoAssets[bank.cssClass];
     final kredit = Theme.of(context).extension<KreditColors>()!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return AnimatedScale(
-      scale: _scale,
-      duration: const Duration(milliseconds: 120),
-      curve: Curves.easeOut,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Material(
-          color: kredit.bgCard,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(KreditRadius.tile),
-            side: BorderSide(color: kredit.borderCard, width: 1),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: widget.onTap,
-            onTapDown: (_) => _setPressed(true),
-            onTapUp: (_) => _setPressed(false),
-            onTapCancel: () => _setPressed(false),
-            child: Container(
-              padding: const EdgeInsets.all(KreditSpacing.tile),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                children: [
-                  // Bank Logo Avatar — smaller than before (44 vs 52): the
-                  // logo is an identifier, not the hero of this row, so it
-                  // yields space to the remaining balance, which is the
-                  // number a user scanning a credit list actually cares
-                  // about first.
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: accent.withValues(alpha: 0.8), width: 2),
-                    ),
-                    padding: const EdgeInsets.all(7),
-                    child: Center(
-                      child: logoAsset != null
-                          ? FittedBox(
-                              fit: BoxFit.contain,
-                              child: BankLogoChip(assetPath: logoAsset, height: 24),
-                            )
-                          : Icon(
-                              credit.isCard ? Icons.credit_card : Icons.account_balance,
-                              color: accent,
-                              size: 20,
-                            ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+    return InkWell(
+      onTap: widget.onTap,
+      onTapDown: (_) => _setPressed(true),
+      onTapUp: (_) => _setPressed(false),
+      onTapCancel: () => _setPressed(false),
+      child: AnimatedOpacity(
+        opacity: _opacity,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 6),
+          child: Row(
+            children: [
+              // Small circular accent standing in for the bank identity —
+              // logo when we have one, otherwise a plain dot of the bank's
+              // color — the same footprint as the urgency dot in
+              // "Próximos pagos", not a boxed avatar.
+              SizedBox(
+                width: 22,
+                height: 22,
+                child: logoAsset != null
+                    ? ClipOval(
+                        child: ColoredBox(
+                          color: Colors.white,
+                          child: Padding(
+                            padding: const EdgeInsets.all(3),
+                            child: BankLogoChip(assetPath: logoAsset, height: 16),
+                          ),
+                        ),
+                      )
+                    : Container(
+                        decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
+                      ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                credit.name,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14,
-                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            if (isDemoCredit(credit.id)) const DemoBadge(),
-                          ],
-                        ),
-                        const SizedBox(height: 3),
-                        // Bank + type collapsed into one compact secondary
-                        // line (was bank-chip + type on one row, sublabel on
-                        // another) so the tile reads name → context → amount
-                        // in two lines instead of three, tightening density
-                        // for a scrollable list.
-                        Text(
-                          '${bank.shortLabel} · ${creditTypeLabel(credit)}',
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? accent : (accent == Colors.white ? Colors.black : accent),
+                        Flexible(
+                          child: Text(
+                            credit.name,
+                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          creditSublabel(credit),
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: isDark ? const Color(0xFF737373) : const Color(0xFF64748B),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        if (isDemoCredit(credit.id)) const DemoBadge(),
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  // Amount gets more visual weight than the rest of the row
-                  // (larger, bolder) since it's the primary decision-driving
-                  // fact in a credit list — "how much do I still owe here".
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        credit.isCard ? 'SALDO' : 'PENDIENTE',
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700,
-                          color: isDark ? const Color(0xFF737373) : const Color(0xFF64748B),
-                          letterSpacing: 0.5,
-                        ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${bank.shortLabel} · ${creditTypeLabel(credit)} · ${creditSublabel(credit)}',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: kredit.textTertiary,
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        creditRemainingLabel(credit),
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 16,
-                          letterSpacing: -0.2,
-                          color: isDark ? Colors.white : const Color(0xFF0F172A),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-                  ),
-                  if (widget.expanded) ...[
-                    const SizedBox(height: KreditSpacing.tile),
-                    Container(height: 1, color: kredit.borderCard),
-                    const SizedBox(height: 8),
-                    _ExpandedInfoRow(credit: credit, kredit: kredit),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              // Amount gets more visual weight than the rest of the row
+              // (larger, bolder) since it's the primary decision-driving
+              // fact in a credit list — "how much do I still owe here".
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    credit.isCard ? 'SALDO' : 'PENDIENTE',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                      color: kredit.textTertiary,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    creditRemainingLabel(credit),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14.5,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
                 ],
               ),
-            ),
+              const SizedBox(width: 6),
+              Icon(Icons.chevron_right, size: 18, color: kredit.textTertiary),
+            ],
           ),
         ),
       ),
@@ -201,90 +159,32 @@ class _CreditCardTileState extends State<CreditCardTile> {
   }
 }
 
-/// Secondary info row shown when [CreditCardTile.expanded] is true: cupo
-/// disponible + próximo pago for cards, próxima cuota for loans — the
-/// "how is this credit doing" facts that don't fit the compact row.
-class _ExpandedInfoRow extends StatelessWidget {
-  final Credit credit;
-  final KreditColors kredit;
+/// Wraps a run of [CreditCardTile]s with hairline dividers between
+/// consecutive rows — same pattern as `_UpcomingList` in
+/// `dashboard_screen.dart` — instead of each tile drawing its own bordered
+/// box. Used by the dashboard's "Tus créditos" section.
+class CreditCardTileList extends StatelessWidget {
+  final List<Credit> credits;
+  final void Function(Credit credit) onTap;
 
-  const _ExpandedInfoRow({required this.credit, required this.kredit});
-
-  @override
-  Widget build(BuildContext context) {
-    final items = <Widget>[];
-
-    if (credit is CardCredit) {
-      final card = credit as CardCredit;
-      final available = getCardAvailableLimit(card);
-      items.add(_InfoStat(
-        label: 'CUPO DISPONIBLE',
-        value: '${formatCOP(available)} / ${formatCOP(card.creditLimit)}',
-        kredit: kredit,
-      ));
-      if (card.currentBalance > 0) {
-        final due = getCardCycleDates(card).dueDate;
-        items.add(_InfoStat(
-          label: 'PRÓXIMO PAGO',
-          value: formatDate(toDateStr(due)),
-          kredit: kredit,
-        ));
-      }
-    } else if (credit is LoanCredit) {
-      final loan = credit as LoanCredit;
-      final unpaid = loan.installments.where((i) => !i.paid).toList()
-        ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
-      if (unpaid.isNotEmpty) {
-        final next = unpaid.first;
-        items.add(_InfoStat(
-          label: 'PRÓXIMA CUOTA',
-          value: '${formatCOP(next.amount)} · ${formatDate(next.dueDate)}',
-          kredit: kredit,
-        ));
-      }
-    }
-
-    if (items.isEmpty) return const SizedBox.shrink();
-
-    return Wrap(
-      spacing: 16,
-      runSpacing: 6,
-      children: items,
-    );
-  }
-}
-
-class _InfoStat extends StatelessWidget {
-  final String label;
-  final String value;
-  final KreditColors kredit;
-
-  const _InfoStat({required this.label, required this.value, required this.kredit});
+  const CreditCardTileList({
+    super.key,
+    required this.credits,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 9,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.4,
-            color: kredit.textTertiary,
+        for (var i = 0; i < credits.length; i++) ...[
+          CreditCardTile(
+            credit: credits[i],
+            onTap: () => onTap(credits[i]),
           ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 11.5,
-            fontWeight: FontWeight.w600,
-            color: kredit.textSecondary,
-          ),
-        ),
+          if (i != credits.length - 1) Divider(height: 1, color: kredit.borderCard),
+        ],
       ],
     );
   }

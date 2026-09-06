@@ -1,21 +1,15 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../providers/theme_provider.dart';
 import '../../theme/app_theme.dart';
-import 'shadowed_card.dart';
 
 class ProfileHeader extends ConsumerWidget {
   final String profileName;
   const ProfileHeader({super.key, required this.profileName});
-
-  String get _initials {
-    final parts = profileName.trim().split(RegExp(r'\s+'));
-    if (parts.isEmpty || parts.first.isEmpty) return '?';
-    final first = parts.first[0];
-    final second = parts.length > 1 && parts[1].isNotEmpty ? parts[1][0] : '';
-    return (first + second).toUpperCase();
-  }
 
   Future<void> _editName(BuildContext context, WidgetRef ref) async {
     final controller = TextEditingController(text: profileName);
@@ -45,55 +39,124 @@ class ProfileHeader extends ConsumerWidget {
     }
   }
 
+  Future<void> _pickImage(
+    BuildContext context,
+    WidgetRef ref,
+    ImageSource source,
+  ) async {
+    final picker = ImagePicker();
+    try {
+      final picked = await picker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      if (picked == null) return;
+      await ref.read(themePreferencesProvider.notifier).setAvatarFromFile(picked.path);
+    } catch (e) {
+      debugPrint('pickImage failed: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo cargar la imagen.')),
+        );
+      }
+    }
+  }
+
+  Future<void> _showAvatarOptions(
+    BuildContext context,
+    WidgetRef ref,
+    bool hasAvatar,
+  ) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text('Elegir de galería'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImage(context, ref, ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_camera_outlined),
+                title: const Text('Tomar foto'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImage(context, ref, ImageSource.camera);
+                },
+              ),
+              if (hasAvatar)
+                ListTile(
+                  leading: const Icon(Icons.delete_outline, color: AppColors.danger),
+                  title: const Text('Quitar imagen', style: TextStyle(color: AppColors.danger)),
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    await ref.read(themePreferencesProvider.notifier).clearAvatar();
+                  },
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final accent = ref.watch(themePreferencesProvider).accentColor;
+    final prefs = ref.watch(themePreferencesProvider);
+    final accent = prefs.accentColor;
+    final avatarPath = prefs.avatarPath;
     final kredit = Theme.of(context).extension<KreditColors>()!;
-    return ShadowedCard(
-      child: Padding(
-        padding: const EdgeInsets.all(KreditSpacing.card),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: accent,
-              child: Text(
-                _initials,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
+    return Row(
+      children: [
+        GestureDetector(
+          onTap: () => _showAvatarOptions(context, ref, avatarPath != null),
+          child: CircleAvatar(
+            radius: 28,
+            backgroundColor: accent,
+            backgroundImage: avatarPath != null ? FileImage(File(avatarPath)) : null,
+            child: avatarPath == null
+                ? Icon(
+                    Icons.person,
+                    color: legibleForegroundOn(accent),
+                    size: 32,
+                  )
+                : null,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                profileName,
+                style: TextStyle(
                   fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: kredit.textPrimary,
                 ),
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    profileName,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: kredit.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Presiona el lápiz para editar',
-                    style: TextStyle(fontSize: 12, color: kredit.textTertiary),
-                  ),
-                ],
+              const SizedBox(height: 4),
+              Text(
+                'Presiona la foto o el lápiz para editar',
+                style: TextStyle(fontSize: 12, color: kredit.textTertiary),
               ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.edit_outlined),
-              onPressed: () => _editName(context, ref),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
+        IconButton(
+          icon: const Icon(Icons.edit_outlined),
+          onPressed: () => _editName(context, ref),
+        ),
+      ],
     );
   }
 }

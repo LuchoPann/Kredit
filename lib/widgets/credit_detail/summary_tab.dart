@@ -11,6 +11,7 @@ import '../../domain/loan_calculator.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
 import '../card_movement_sheet.dart';
+import '../../utils/credit_display_utils.dart';
 import '../wallet_card.dart';
 import 'notes_tab.dart';
 import 'stat_box.dart';
@@ -39,32 +40,38 @@ class SummaryTab extends ConsumerWidget {
     if (credit is LoanCredit) {
       final loan = credit as LoanCredit;
       totalLabel = 'Monto Financiado';
-      totalValue = formatCurrency(loan.totalAmount);
+      totalValue = formatCOP(loan.totalAmount);
       interestRate = loan.interestRate;
     } else {
       final card = credit as CardCredit;
       totalLabel = 'Límite Total';
-      totalValue = formatCurrency(card.creditLimit);
+      totalValue = card.creditLimit > 0
+          ? formatCOP(card.creditLimit)
+          : 'No definido';
       interestRate = card.interestRate;
     }
+
+    final kredit = Theme.of(context).extension<KreditColors>()!;
 
     return ListView(
       padding: const EdgeInsets.all(KreditSpacing.card),
       children: [
         WalletCard(credit: credit),
-        const SizedBox(height: 16),
-        // "Pendiente" gets a full-width hero tile — it's the one number a
-        // user actually needs at a glance.
+        const SizedBox(height: 24),
+        // "Pendiente" leads as the protagonist figure — full jerarquía
+        // tipográfica sin caja, como en el dashboard.
         StatBox(
           label: 'Pendiente',
-          value: formatCurrency(remaining),
+          value: formatCOP(remaining),
           caption: 'Lo que falta por pagar',
           icon: Icons.account_balance_wallet_outlined,
           emphasized: true,
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 18),
+        Divider(height: 1, color: kredit.borderCard),
+        const SizedBox(height: 16),
         Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: StatBox(
@@ -73,7 +80,12 @@ class SummaryTab extends ConsumerWidget {
                 icon: Icons.paid_outlined,
               ),
             ),
-            const SizedBox(width: 10),
+            Container(
+              width: 1,
+              height: 34,
+              margin: const EdgeInsets.symmetric(horizontal: 18),
+              color: kredit.borderCard,
+            ),
             Expanded(
               child: StatBox(
                 label: 'Interés E.A.',
@@ -84,19 +96,29 @@ class SummaryTab extends ConsumerWidget {
           ],
         ),
         if (credit is LoanCredit) ...[
+          const SizedBox(height: 18),
+          Divider(height: 1, color: kredit.borderCard),
           const SizedBox(height: 20),
           _LoanProgress(credit: credit as LoanCredit),
-          const SizedBox(height: 14),
+          const SizedBox(height: 20),
+          Divider(height: 1, color: kredit.borderCard),
+          const SizedBox(height: 20),
           _NextInstallmentCard(credit: credit as LoanCredit),
         ] else ...[
+          const SizedBox(height: 18),
+          Divider(height: 1, color: kredit.borderCard),
           const SizedBox(height: 20),
           _CardUtilization(credit: credit as CardCredit),
-          const SizedBox(height: 14),
+          const SizedBox(height: 20),
+          Divider(height: 1, color: kredit.borderCard),
+          const SizedBox(height: 20),
           _CardCycleInfo(credit: credit as CardCredit),
-          const SizedBox(height: 14),
+          const SizedBox(height: 18),
           _CardQuickActions(credit: credit as CardCredit),
         ],
         const SizedBox(height: 20),
+        Divider(height: 1, color: kredit.borderCard),
+        const SizedBox(height: 4),
         NotesTab(credit: credit, embedded: true),
       ],
     );
@@ -116,49 +138,49 @@ class _LoanProgress extends StatelessWidget {
     final paidAmount = credit.installments
         .where((i) => i.paid)
         .fold(0.0, (s, i) => s + i.amount);
-    final totalAmount =
-        credit.installments.fold(0.0, (s, i) => s + i.amount);
+    final totalAmount = credit.installments.fold(0.0, (s, i) => s + i.amount);
     final pct = total > 0 ? paid / total : 0.0;
-    return Container(
-      padding: const EdgeInsets.all(KreditSpacing.tile),
-      decoration: BoxDecoration(
-        color: kredit.bgCard,
-        border: Border.all(color: kredit.borderCard),
-        borderRadius: BorderRadius.circular(KreditRadius.tile),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Progreso de Amortización',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kredit.textPrimary),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'PROGRESO DE AMORTIZACIÓN',
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.6,
+                color: kredit.textTertiary,
               ),
-              Text(
-                '$paid de $total cuotas · ${(pct * 100).round()}%',
-                style: TextStyle(fontSize: 12, color: kredit.textSecondary),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: pct,
-              minHeight: 8,
-              backgroundColor: kredit.borderCard,
-              color: Theme.of(context).colorScheme.primary,
             ),
+            Text(
+              '$paid de $total cuotas · ${(pct * 100).round()}%',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: kredit.textSecondary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: LinearProgressIndicator(
+            value: pct,
+            minHeight: 6,
+            backgroundColor: kredit.borderCard,
+            color: Theme.of(context).colorScheme.primary,
           ),
-          const SizedBox(height: 8),
-          Text(
-            '${formatCurrency(paidAmount)} pagado de ${formatCurrency(totalAmount)}',
-            style: TextStyle(fontSize: 11, color: kredit.textTertiary),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '${formatCOP(paidAmount)} pagado de ${formatCOP(totalAmount)}',
+          style: TextStyle(fontSize: 11.5, color: kredit.textTertiary),
+        ),
+      ],
     );
   }
 }
@@ -178,25 +200,25 @@ class _NextInstallmentCard extends ConsumerWidget {
       ..sort((a, b) => a.number.compareTo(b.number));
 
     if (unpaid.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(KreditSpacing.tile),
-        decoration: BoxDecoration(
-          color: kredit.bgCard,
-          border: Border.all(color: kredit.borderCard),
-          borderRadius: BorderRadius.circular(KreditRadius.tile),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary, size: 20),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Crédito totalmente pagado. ¡Sin cuotas pendientes!',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kredit.textPrimary),
+      return Row(
+        children: [
+          Icon(
+            Icons.check_circle,
+            color: Theme.of(context).colorScheme.primary,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Crédito totalmente pagado. ¡Sin cuotas pendientes!',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: kredit.textPrimary,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       );
     }
 
@@ -215,62 +237,66 @@ class _NextInstallmentCard extends ConsumerWidget {
       subtitle = 'Vence en $days día(s) · ${formatDate(next.dueDate)}';
     }
 
-    return Container(
-      padding: const EdgeInsets.all(KreditSpacing.tile),
-      decoration: BoxDecoration(
-        color: kredit.bgCard,
-        border: Border.all(color: isOverdue ? accent.withValues(alpha: 0.5) : kredit.borderCard),
-        borderRadius: BorderRadius.circular(KreditRadius.tile),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Próxima Cuota · #${next.number}',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kredit.textSecondary),
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'PRÓXIMA CUOTA · #${next.number}',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.6,
+                  color: kredit.textTertiary,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  formatCurrency(next.amount),
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kredit.textPrimary),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                formatCOP(next.amount),
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.4,
+                  color: isOverdue ? accent : kredit.textPrimary,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: isOverdue ? FontWeight.w600 : FontWeight.normal,
-                    color: isOverdue ? accent : kredit.textSecondary,
-                  ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: isOverdue ? FontWeight.w700 : FontWeight.normal,
+                  color: isOverdue ? accent : kredit.textSecondary,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const SizedBox(width: 10),
-          FilledButton.icon(
-            onPressed: () async {
-              final messenger = ScaffoldMessenger.of(context);
-              try {
-                await ref
-                    .read(creditsProvider.notifier)
-                    .toggleInstallmentPaid(credit.id, next.number);
-                messenger.showSnackBar(
-                  SnackBar(content: Text('Cuota ${next.number} registrada como pagada')),
-                );
-              } catch (e) {
-                messenger.showSnackBar(
-                  SnackBar(content: Text('No se pudo registrar el pago: $e')),
-                );
-              }
-            },
-            icon: const Icon(Icons.check, size: 16),
-            label: const Text('Pagar'),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(width: 10),
+        FilledButton.icon(
+          onPressed: () async {
+            final messenger = ScaffoldMessenger.of(context);
+            try {
+              await ref
+                  .read(creditsProvider.notifier)
+                  .toggleInstallmentPaid(credit.id, next.number);
+              messenger.showSnackBar(
+                SnackBar(
+                  content: Text('Cuota ${next.number} registrada como pagada'),
+                ),
+              );
+            } catch (e) {
+              messenger.showSnackBar(
+                SnackBar(content: Text('No se pudo registrar el pago: $e')),
+              );
+            }
+          },
+          icon: const Icon(Icons.check, size: 16),
+          label: const Text('Pagar'),
+        ),
+      ],
     );
   }
 }
@@ -285,59 +311,85 @@ class _CardUtilization extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
-    final accent = Theme.of(context).colorScheme.primary;
     final limit = credit.creditLimit;
     final used = credit.currentBalance;
-    final pct = limit > 0 ? (used / limit).clamp(0.0, 1.0) : 0.0;
+
+    // No limit was set at creation (left optional/empty) — a 0% bar or a
+    // "$0 disponible" line would misleadingly read as "no credit left"
+    // instead of "we don't know the limit", so just say so instead of
+    // rendering the usual progress bar.
+    if (limit <= 0) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'CUPO UTILIZADO',
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.6,
+              color: kredit.textTertiary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            used > 0
+                ? '${formatCOP(used)} en saldo · límite no definido'
+                : 'Límite no definido para esta tarjeta.',
+            style: TextStyle(fontSize: 11.5, color: kredit.textTertiary),
+          ),
+        ],
+      );
+    }
+
+    final accent = Theme.of(context).colorScheme.primary;
+    final pct = (used / limit).clamp(0.0, 1.0);
     final available = getCardAvailableLimit(credit);
     // High utilization is a signal worth flagging visually, not just a
     // decorative color choice.
     final isHigh = pct >= 0.8;
 
-    return Container(
-      padding: const EdgeInsets.all(KreditSpacing.tile),
-      decoration: BoxDecoration(
-        color: kredit.bgCard,
-        border: Border.all(color: isHigh ? accent.withValues(alpha: 0.5) : kredit.borderCard),
-        borderRadius: BorderRadius.circular(KreditRadius.tile),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Cupo Utilizado',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kredit.textPrimary),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'CUPO UTILIZADO',
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.6,
+                color: kredit.textTertiary,
               ),
-              Text(
-                '${(pct * 100).round()}%',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: isHigh ? accent : kredit.textSecondary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: pct,
-              minHeight: 8,
-              backgroundColor: kredit.borderCard,
-              color: accent,
             ),
+            Text(
+              '${(pct * 100).round()}%',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: isHigh ? accent : kredit.textSecondary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: LinearProgressIndicator(
+            value: pct,
+            minHeight: 6,
+            backgroundColor: kredit.borderCard,
+            color: accent,
           ),
-          const SizedBox(height: 8),
-          Text(
-            '${formatCurrency(used)} usado de ${formatCurrency(limit)} · ${formatCurrency(available)} disponible',
-            style: TextStyle(fontSize: 11, color: kredit.textTertiary),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '${formatCOP(used)} usado de ${formatCOP(limit)} · ${formatCOP(available)} disponible',
+          style: TextStyle(fontSize: 11.5, color: kredit.textTertiary),
+        ),
+      ],
     );
   }
 }
@@ -352,8 +404,13 @@ class _CardCycleInfo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dates = getCardCycleDates(credit);
+    // `.start`, not `.stretch` — this Row lives inside SummaryTab's
+    // ListView, which gives it an unbounded height; `.stretch` tries to
+    // force children to fill that height, which Flutter can't resolve
+    // against an infinite constraint and throws
+    // "BoxConstraints forces an infinite height".
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: StatBox(

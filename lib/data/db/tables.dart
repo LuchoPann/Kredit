@@ -24,6 +24,10 @@ class Credits extends Table {
 
   // shared by both (loan's tasa vs card's tasa E.A.)
   RealColumn get interestRate => real().nullable()();
+  // card-only: how interestRate is expressed (effectiveAnnual|
+  // effectiveMonthly|nominalMonthly). Null on rows created before this
+  // column existed; treated as effectiveAnnual (legacy behavior).
+  TextColumn get interestRateType => text().nullable()();
 
   // --- card-only fields ---
   RealColumn get creditLimit => real().nullable()();
@@ -68,4 +72,20 @@ class CardMovements extends Table {
   TextColumn get type => text()(); // charge|payment|interest|fee
   RealColumn get amount => real()();
   TextColumn get note => text().withDefault(const Constant(''))();
+}
+
+/// One row per loan "abono extra" (extra manual payment). Mirrors
+/// lib/data/models/loan_abono.dart; see applyLoanAbono in
+/// lib/domain/loan_calculator.dart for how the amount/installmentsSkipped
+/// are derived.
+@DataClassName('LoanAbonoRow')
+class LoanAbonos extends Table {
+  IntColumn get rowId => integer().autoIncrement()();
+  TextColumn get creditId =>
+      text().references(Credits, #id, onDelete: KeyAction.cascade)();
+  TextColumn get date => text()(); // YYYY-MM-DD
+  RealColumn get amount => real()();
+  TextColumn get note => text().withDefault(const Constant(''))();
+  IntColumn get installmentsSkipped =>
+      integer().withDefault(const Constant(0))();
 }

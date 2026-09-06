@@ -3,9 +3,12 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../data/models/credit.dart';
 import '../domain/bank_detector.dart';
+import '../domain/card_calculator.dart';
 import '../domain/credit_calculator.dart';
+import '../domain/date_utils.dart';
 import '../providers/credits_provider.dart' show isDemoCredit;
-import '../theme/app_theme.dart' show KreditRadius;
+import '../theme/app_theme.dart';
+import '../utils/credit_display_utils.dart';
 import 'demo_badge.dart';
 
 /// Real bank/issuer logo assets, keyed by [BankInfo.cssClass]. Only entities
@@ -54,19 +57,6 @@ class BankLogoChip extends StatelessWidget {
         ? SvgPicture.asset(assetPath, height: height, fit: BoxFit.contain)
         : Image.asset(assetPath, height: height, fit: BoxFit.contain);
   }
-}
-
-/// Format a numeric amount like the legacy `formatCurrency` (Intl COP,
-/// no decimals) — good enough visual parity without pulling `intl` in.
-String formatCurrency(double amount) {
-  final rounded = amount.round();
-  final s = rounded.abs().toString();
-  final buf = StringBuffer();
-  for (var i = 0; i < s.length; i++) {
-    if (i > 0 && (s.length - i) % 3 == 0) buf.write('.');
-    buf.write(s[i]);
-  }
-  return '${rounded < 0 ? '-' : ''}\$${buf.toString()}';
 }
 
 /// Gradient look-alike of the legacy .wallet-card.bank-* CSS classes
@@ -238,10 +228,29 @@ class WalletCard extends StatelessWidget {
     final gradient = _expandGradient(_gradientFor(bank.cssClass, credit.color));
     final remaining = getCreditRemainingBalance(credit);
 
+    // The card face can be any accent color the user picks (light or dark),
+    // so text color is derived from the actual gradient rather than assumed
+    // white — the same luminance-based approach used for the dashboard FAB
+    // (dashboard_screen.dart) applied per-stop and averaged, since the face
+    // is a gradient, not a single flat color.
+    final avgLuminance =
+        gradient.fold<double>(0, (sum, c) => sum + c.computeLuminance()) / gradient.length;
+    final isLightFace = avgLuminance > 0.5;
+    final ink = isLightFace ? Colors.black : Colors.white;
+    final inkStrong = ink;
+    final inkMid = ink.withValues(alpha: isLightFace ? 0.72 : 0.78);
+    final inkFaint = ink.withValues(alpha: isLightFace ? 0.55 : 0.6);
+    final chipChromeBorder = Colors.white.withValues(alpha: isLightFace ? 0.55 : 0.08);
+
+    final stats = _statsFor(credit);
+
     return AspectRatio(
-      aspectRatio: 1.65,
+      // Noticeably shorter than the previous 1.65 — same footprint width,
+      // less vertical real-estate, while the stats block below absorbs the
+      // data that used to live in a separate CreditStatsRow underneath.
+      aspectRatio: 1.9,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         child: Stack(
           children: [
             // Base gradient surface.
@@ -253,7 +262,7 @@ class WalletCard extends StatelessWidget {
                     end: Alignment.bottomRight,
                     colors: gradient,
                   ),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                  border: Border.all(color: chipChromeBorder),
                 ),
               ),
             ),
@@ -271,8 +280,8 @@ class WalletCard extends StatelessWidget {
               right: -40,
               child: IgnorePointer(
                 child: Container(
-                  width: 170,
-                  height: 170,
+                  width: 150,
+                  height: 150,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
@@ -292,8 +301,8 @@ class WalletCard extends StatelessWidget {
               left: -30,
               child: IgnorePointer(
                 child: Container(
-                  width: 140,
-                  height: 140,
+                  width: 130,
+                  height: 130,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
@@ -307,7 +316,7 @@ class WalletCard extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -323,7 +332,7 @@ class WalletCard extends StatelessWidget {
                               return Align(
                                 alignment: Alignment.centerLeft,
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(KreditRadius.chip),
@@ -331,17 +340,17 @@ class WalletCard extends StatelessWidget {
                                   child: FittedBox(
                                     fit: BoxFit.contain,
                                     alignment: Alignment.center,
-                                    child: BankLogoChip(assetPath: asset, height: 20),
+                                    child: BankLogoChip(assetPath: asset, height: 17),
                                   ),
                                 ),
                               );
                             }
                             return Text(
                               bank.fullLabel,
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: inkStrong,
                                 fontWeight: FontWeight.w700,
-                                fontSize: 14,
+                                fontSize: 13,
                                 letterSpacing: 0.5,
                               ),
                             );
@@ -351,71 +360,75 @@ class WalletCard extends StatelessWidget {
                       if (isDemoCredit(credit.id)) const DemoBadge(),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
                   // EMV chip + contactless icon, standard physical-card row.
-                  const Row(
+                  Row(
                     children: [
-                      _EmvChip(),
-                      Spacer(),
-                      Icon(Icons.wifi, color: Colors.white70, size: 20),
+                      const _EmvChip(),
+                      const Spacer(),
+                      Icon(Icons.wifi, color: inkMid, size: 18),
                     ],
                   ),
                   const Spacer(),
-                  // Purely decorative masked "card number" — Kredit never
-                  // stores real card numbers, this is aesthetic only, in a
-                  // monospaced face for the classic embossed-digit feel.
-                  Text(
-                    '••••  ••••  ••••  ••••',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.55),
-                      fontFamily: 'monospace',
-                      fontSize: 15,
-                      letterSpacing: 3,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
                   Text(
                     credit.isCard ? 'Tarjeta de Crédito' : 'Préstamo (${bank.shortLabel})',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white70,
+                    style: TextStyle(
+                      color: inkMid,
                       fontWeight: FontWeight.w600,
                       fontSize: 12,
                       letterSpacing: 0.4,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  // Remaining-balance block is the reason this card exists —
-                  // unmistakably the largest text on the face of the card.
+                  const SizedBox(height: 3),
+                  // Bottom block: deuda restante (left) and the next-payment
+                  // fact (right) as two matched columns, same caption/value
+                  // type scale on both sides so neither reads as an
+                  // afterthought — bottom-aligned so a taller side pushes the
+                  // shorter one's baseline down with it instead of the two
+                  // blocks drifting apart.
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text(
+                            Text(
                               'DEUDA RESTANTE',
                               style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 9,
+                                color: inkFaint,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
                                 letterSpacing: 1,
                               ),
                             ),
                             Text(
-                              formatCurrency(remaining),
-                              style: const TextStyle(
-                                color: Colors.white,
+                              formatCOP(remaining),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: inkStrong,
                                 fontWeight: FontWeight.w800,
-                                fontSize: 26,
+                                fontSize: 22,
                                 letterSpacing: -0.5,
                               ),
                             ),
                           ],
                         ),
                       ),
+                      if (stats.isNotEmpty) ...[
+                        const SizedBox(width: 12),
+                        _CardStatColumn(
+                          primary: stats[0],
+                          secondary: stats.length > 1 ? stats[1] : null,
+                          captionColor: inkFaint,
+                          valueColor: inkStrong,
+                          secondaryColor: inkMid,
+                        ),
+                      ],
                     ],
                   ),
                 ],
@@ -424,6 +437,128 @@ class WalletCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Builds the key-facts list shown at the bottom of [WalletCard]: available
+/// limit + next payment date for cards, next installment amount + due date
+/// for loans. Previously a separate `CreditStatsRow` rendered underneath the
+/// card; now the single source of truth lives here, inside the card face.
+List<_StatItem> _statsFor(Credit credit) {
+  final items = <_StatItem>[];
+
+  if (credit is CardCredit) {
+    // Skip the "cupo disponible" fact entirely when no limit was set (the
+    // user left it empty at creation) — showing "$0 disponible" would read
+    // as "you have no credit left" instead of "we don't know your limit".
+    if (credit.creditLimit > 0) {
+      final available = getCardAvailableLimit(credit);
+      items.add(_StatItem(
+        icon: Icons.credit_card_outlined,
+        label: 'Cupo disponible',
+        value: formatCOP(available),
+      ));
+    }
+    if (credit.currentBalance > 0) {
+      final due = getCardCycleDates(credit).dueDate;
+      items.add(_StatItem(
+        icon: Icons.event_outlined,
+        label: 'Próximo pago',
+        value: formatDate(toDateStr(due)),
+      ));
+    }
+  } else if (credit is LoanCredit) {
+    final unpaid = credit.installments.where((i) => !i.paid).toList()
+      ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
+    if (unpaid.isNotEmpty) {
+      final next = unpaid.first;
+      items.add(_StatItem(
+        icon: Icons.payments_outlined,
+        label: 'Próxima cuota',
+        value: formatCOP(next.amount),
+      ));
+      items.add(_StatItem(
+        icon: Icons.event_outlined,
+        label: 'Vence',
+        value: formatDate(next.dueDate),
+      ));
+    }
+  }
+
+  return items;
+}
+
+class _StatItem {
+  final IconData icon;
+  final String label;
+  final String value;
+  const _StatItem({required this.icon, required this.label, required this.value});
+}
+
+/// Right-side key-fact column rendered inside the [WalletCard] face,
+/// mirroring the left "DEUDA RESTANTE" block's type scale so the next
+/// payment fact reads with the same weight instead of a small afterthought:
+/// a caption the same size as "DEUDA RESTANTE" (10px) topping a value the
+/// same size as the debt amount (22px) — [secondary] (e.g. the due date)
+/// trails below at the smaller type-label scale (12px), same spot it held
+/// before this block was widened to match the left column.
+class _CardStatColumn extends StatelessWidget {
+  final _StatItem primary;
+  final _StatItem? secondary;
+  final Color captionColor;
+  final Color valueColor;
+  final Color secondaryColor;
+
+  const _CardStatColumn({
+    required this.primary,
+    required this.secondary,
+    required this.captionColor,
+    required this.valueColor,
+    required this.secondaryColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          primary.label.toUpperCase(),
+          style: TextStyle(
+            color: captionColor,
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1,
+          ),
+        ),
+        Text(
+          primary.value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: valueColor,
+            fontWeight: FontWeight.w800,
+            fontSize: 22,
+            letterSpacing: -0.5,
+          ),
+        ),
+        if (secondary != null) ...[
+          const SizedBox(height: 3),
+          Text(
+            '${secondary!.label}: ${secondary!.value}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: secondaryColor,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+              letterSpacing: 0.4,
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

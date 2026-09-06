@@ -5,14 +5,25 @@ import '../../data/models/card_movement.dart';
 import '../../data/models/credit.dart';
 import '../../domain/card_calculator.dart';
 import '../../domain/date_utils.dart';
+import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
 import '../card_movement_sheet.dart';
-import '../wallet_card.dart';
+import '../../utils/credit_display_utils.dart';
 import 'stat_box.dart';
 
 const _monthsEs = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+  'Enero',
+  'Febrero',
+  'Marzo',
+  'Abril',
+  'Mayo',
+  'Junio',
+  'Julio',
+  'Agosto',
+  'Septiembre',
+  'Octubre',
+  'Noviembre',
+  'Diciembre',
 ];
 
 /// Movement history grouped by calendar month — lets a cardholder answer
@@ -47,7 +58,7 @@ class MovementsTab extends ConsumerWidget {
               // full-width hero tile, cutoff/due dates as supporting detail.
               StatBox(
                 label: 'Límite Disponible',
-                value: formatCurrency(getCardAvailableLimit(credit)),
+                value: formatCOP(getCardAvailableLimit(credit)),
                 icon: Icons.account_balance_wallet_outlined,
                 emphasized: true,
               ),
@@ -109,20 +120,31 @@ class MovementsTab extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Text(
               'Movimientos',
-              style: TextStyle(fontWeight: FontWeight.w700, color: kredit.textPrimary),
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: kredit.textPrimary,
+              ),
             ),
           ),
         ),
         Expanded(
           child: movements.isEmpty
               ? Center(
-                  child: Text('Sin movimientos registrados', style: TextStyle(color: kredit.textSecondary)),
+                  child: Text(
+                    'Sin movimientos registrados',
+                    style: TextStyle(color: kredit.textSecondary),
+                  ),
                 )
               : ListView(
                   padding: const EdgeInsets.all(KreditSpacing.card),
                   children: [
                     for (final entry in groups.entries)
-                      _MonthGroup(monthKey: entry.key, movements: entry.value),
+                      _MonthGroup(
+                        creditId: credit.id,
+                        monthKey: entry.key,
+                        movements: entry.value,
+                        allMovements: credit.movements,
+                      ),
                   ],
                 ),
         ),
@@ -132,10 +154,17 @@ class MovementsTab extends ConsumerWidget {
 }
 
 class _MonthGroup extends StatelessWidget {
+  final String creditId;
   final String monthKey; // "YYYY-MM"
   final List<CardMovement> movements;
+  final List<CardMovement> allMovements;
 
-  const _MonthGroup({required this.monthKey, required this.movements});
+  const _MonthGroup({
+    required this.creditId,
+    required this.monthKey,
+    required this.movements,
+    required this.allMovements,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -172,13 +201,17 @@ class _MonthGroup extends StatelessWidget {
                 const Spacer(),
                 if (charged > 0)
                   Text(
-                    '+${formatCurrency(charged)}',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kredit.textPrimary),
+                    '+${formatCOP(charged)}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: kredit.textPrimary,
+                    ),
                   ),
                 if (charged > 0 && paid > 0) const SizedBox(width: 8),
                 if (paid > 0)
                   Text(
-                    '-${formatCurrency(paid)}',
+                    '-${formatCOP(paid)}',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
@@ -188,20 +221,59 @@ class _MonthGroup extends StatelessWidget {
               ],
             ),
           ),
-          for (final m in movements) _MovementTile(movement: m),
+          for (var i = 0; i < movements.length; i++) ...[
+            _MovementTile(
+              creditId: creditId,
+              movement: movements[i],
+              movementIndex: allMovements.indexOf(movements[i]),
+            ),
+            if (i != movements.length - 1)
+              Divider(height: 1, color: kredit.borderCard),
+          ],
         ],
       ),
     );
   }
 }
 
-class _MovementTile extends StatelessWidget {
+class _MovementTile extends ConsumerWidget {
+  final String creditId;
   final CardMovement movement;
+  final int movementIndex;
 
-  const _MovementTile({required this.movement});
+  const _MovementTile({
+    required this.creditId,
+    required this.movement,
+    required this.movementIndex,
+  });
+
+  Future<bool> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar movimiento'),
+        content: Text(
+          '¿Eliminar "${_labelFor(movement.type)}" por ${formatCOP(movement.amount)}? '
+          'El saldo de la tarjeta se recalculará. Esta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Theme.of(ctx).colorScheme.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    return confirmed == true;
+  }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
     final m = movement;
     final isCredit = m.type == CardMovementType.payment;
@@ -210,54 +282,73 @@ class _MovementTile extends StatelessWidget {
     // downward arrow; charges/interest/fees (money added to the balance)
     // share a neutral upward treatment so the sign of each line is legible
     // without reading the amount text.
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
+    return Dismissible(
+      key: ValueKey('card-movement-$movementIndex-${m.date}-${m.amount}-${m.type}'),
+      direction: DismissDirection.endToStart,
+      confirmDismiss: (_) => _confirmDelete(context),
+      onDismissed: (_) async {
+        final messenger = ScaffoldMessenger.of(context);
+        try {
+          await ref.read(creditsProvider.notifier).deleteMovement(creditId, movementIndex);
+          messenger.showSnackBar(
+            const SnackBar(content: Text('Movimiento eliminado')),
+          );
+        } catch (e) {
+          debugPrint('deleteMovement failed: $e');
+          messenger.showSnackBar(
+            const SnackBar(content: Text('No se pudo eliminar el movimiento.')),
+          );
+        }
+      },
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        color: Theme.of(context).colorScheme.error.withValues(alpha: 0.12),
+        child: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error),
+      ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-        child: Row(
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: (isCredit ? accent : kredit.textTertiary).withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                _iconFor(m.type),
-                size: 18,
-                color: isCredit ? accent : kredit.textPrimary,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _labelFor(m.type),
-                    style: TextStyle(fontWeight: FontWeight.w600, color: kredit.textPrimary),
+      padding: const EdgeInsets.symmetric(vertical: 11),
+      child: Row(
+        children: [
+          Icon(
+            _iconFor(m.type),
+            size: 17,
+            color: isCredit ? accent : kredit.textTertiary,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _labelFor(m.type),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14.5,
+                    color: kredit.textPrimary,
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    m.note.isNotEmpty ? m.note : formatDate(m.date),
-                    style: TextStyle(fontSize: 12, color: kredit.textSecondary),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  m.note.isNotEmpty ? m.note : formatDate(m.date),
+                  style: TextStyle(fontSize: 12.5, color: kredit.textSecondary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            Text(
-              '${isCredit ? '-' : '+'}${formatCurrency(m.amount)}',
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: isCredit ? accent : kredit.textPrimary,
-              ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '${isCredit ? '-' : '+'}${formatCOP(m.amount)}',
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 14.5,
+              color: isCredit ? accent : kredit.textPrimary,
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
       ),
     );
   }

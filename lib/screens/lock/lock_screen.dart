@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,6 +29,10 @@ class _LockScreenState extends ConsumerState<LockScreen>
   bool _error = false;
   bool _authenticating = false;
 
+  // ── PIN backoff countdown ────────────────────────────────────────────────
+  Timer? _countdownTimer;
+  Duration _remainingLockout = Duration.zero;
+
   // ── Animations ─────────────────────────────────────────────────────────────
   late final AnimationController _shakeCtrl;
   late final AnimationController _pulseCtrl;
@@ -43,7 +49,10 @@ class _LockScreenState extends ConsumerState<LockScreen>
       duration: const Duration(milliseconds: 1400),
     )..repeat();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeAutoBiometric());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncLockoutCountdown();
+      _maybeAutoBiometric();
+    });
   }
 
   @override
@@ -52,7 +61,33 @@ class _LockScreenState extends ConsumerState<LockScreen>
     _pinFocus.dispose();
     _shakeCtrl.dispose();
     _pulseCtrl.dispose();
+    _countdownTimer?.cancel();
     super.dispose();
+  }
+
+  /// Starts (or restarts) a 1s ticker reflecting `pinLockedUntil` from the
+  /// provider, so the lock screen shows a live "intenta de nuevo en Xs"
+  /// countdown instead of a static message.
+  void _syncLockoutCountdown() {
+    final until = ref.read(appLockProvider).pinLockedUntil;
+    _countdownTimer?.cancel();
+    if (until == null) {
+      setState(() => _remainingLockout = Duration.zero);
+      return;
+    }
+    void tick() {
+      final remaining = until.difference(DateTime.now().toUtc());
+      if (!mounted) return;
+      if (remaining.isNegative || remaining == Duration.zero) {
+        setState(() => _remainingLockout = Duration.zero);
+        _countdownTimer?.cancel();
+      } else {
+        setState(() => _remainingLockout = remaining);
+      }
+    }
+
+    tick();
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) => tick());
   }
 
   Future<void> _maybeAutoBiometric() async {
@@ -60,7 +95,12 @@ class _LockScreenState extends ConsumerState<LockScreen>
     if (method == LockMethod.biometric) {
       await _tryBiometric();
     } else if (method == LockMethod.pin) {
-      _pinFocus.requestFocus(); // open native keyboard immediately
+      // Small post-frame delay ensures the keyboard service is ready to accept focus on Android
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted) {
+          _pinFocus.requestFocus();
+        }
+      });
     }
   }
 
@@ -72,6 +112,11 @@ class _LockScreenState extends ConsumerState<LockScreen>
   }
 
   Future<void> _onPinChanged(String value) async {
+    if (_remainingLockout > Duration.zero) {
+      // Ignore input entirely while a backoff is active.
+      _pinCtrl.clear();
+      return;
+    }
     if (value.length > 6) {
       _pinCtrl.text = value.substring(0, 6);
       _pinCtrl.selection =
@@ -84,6 +129,16 @@ class _LockScreenState extends ConsumerState<LockScreen>
     if (value.length >= 4) {
       final ok = await ref.read(appLockProvider.notifier).verifyPin(value);
       if (ok) return; // provider navigates away
+      _syncLockoutCountdown();
+      if (_remainingLockout > Duration.zero) {
+        // Just entered a fresh backoff period: clear the field and let the
+        // countdown UI take over instead of showing a generic PIN error.
+        if (mounted) {
+          _pinCtrl.clear();
+          setState(() => _error = false);
+        }
+        return;
+      }
       if (value.length == 6) {
         setState(() => _error = true);
         _shakeCtrl.forward(from: 0);
@@ -94,6 +149,17 @@ class _LockScreenState extends ConsumerState<LockScreen>
         }
       }
     }
+  }
+
+  String _formatLockoutMessage(Duration remaining) {
+    final totalSeconds = remaining.inSeconds + 1; // ceil for a friendlier countdown
+    if (totalSeconds >= 60) {
+      final minutes = totalSeconds ~/ 60;
+      final seconds = totalSeconds % 60;
+      final secondsPart = seconds > 0 ? ' ${seconds}s' : '';
+      return 'Demasiados intentos. Intenta de nuevo en ${minutes}m$secondsPart.';
+    }
+    return 'Demasiados intentos. Intenta de nuevo en ${totalSeconds}s.';
   }
 
   @override
@@ -107,7 +173,9 @@ class _LockScreenState extends ConsumerState<LockScreen>
       // Tapping anywhere re-focuses the hidden field (PIN mode)
       body: GestureDetector(
         behavior: HitTestBehavior.translucent,
-        onTap: isPinMode ? () => _pinFocus.requestFocus() : null,
+        onTap: isPinMode && _remainingLockout == Duration.zero
+            ? () => _pinFocus.requestFocus()
+            : null,
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -169,6 +237,9 @@ class _LockScreenState extends ConsumerState<LockScreen>
                       error: _error,
                       shakeAnimation: _shakeCtrl,
                       onChanged: _onPinChanged,
+                      lockoutMessage: _remainingLockout > Duration.zero
+                          ? _formatLockoutMessage(_remainingLockout)
+                          : null,
                     ),
                 ],
               ),
@@ -190,6 +261,9 @@ class _NativePinField extends StatelessWidget {
   final bool error;
   final Animation<double> shakeAnimation;
   final Future<void> Function(String) onChanged;
+  /// Non-null while a PIN backoff is active; shown instead of the normal
+  /// "PIN incorrecto" message, and disables the field entirely.
+  final String? lockoutMessage;
 
   const _NativePinField({
     required this.controller,
@@ -197,95 +271,142 @@ class _NativePinField extends StatelessWidget {
     required this.error,
     required this.shakeAnimation,
     required this.onChanged,
+    this.lockoutMessage,
   });
 
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
+    final isLockedOut = lockoutMessage != null;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // ── Animated dot indicators ────────────────────────────────────────
-        AnimatedBuilder(
-          animation: shakeAnimation,
-          builder: (context, child) {
-            final t = shakeAnimation.value;
-            final offset = (t == 0 || t == 1)
-                ? 0.0
-                : _shakeSin(t * 4 * 3.1416) * 14 * (1 - t);
-            return Transform.translate(
-              offset: Offset(offset, 0),
-              child: child,
-            );
-          },
-          child: ValueListenableBuilder<TextEditingValue>(
-            valueListenable: controller,
-            builder: (_, value, _) {
-              final len = value.text.length;
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(6, (i) {
-                  final filled = i < len;
-                  final isActive = i == len; // next-to-fill
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 160),
-                    curve: Curves.easeOut,
-                    margin: const EdgeInsets.symmetric(horizontal: 9),
-                    width: filled ? 20 : 18,
-                    height: filled ? 20 : 18,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: error
-                          ? AppColors.danger
-                          : (filled ? kredit.textPrimary : Colors.transparent),
-                      border: Border.all(
-                        color: error
-                            ? AppColors.danger
-                            : (filled
-                                ? kredit.textPrimary
-                                : isActive
-                                    ? accent
-                                    : kredit.borderCard),
-                        width: isActive && !error ? 2.5 : 2,
-                      ),
-                    ),
+        // ── Interactive PIN dots with transparent layered TextField ────────
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            AnimatedBuilder(
+              animation: shakeAnimation,
+              builder: (context, child) {
+                final t = shakeAnimation.value;
+                final offset = (t == 0 || t == 1)
+                    ? 0.0
+                    : _shakeSin(t * 4 * 3.1416) * 14 * (1 - t);
+                return Transform.translate(
+                  offset: Offset(offset, 0),
+                  child: child,
+                );
+              },
+              child: ValueListenableBuilder<TextEditingValue>(
+                valueListenable: controller,
+                builder: (_, value, _) {
+                  final len = value.text.length;
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(6, (i) {
+                      final filled = i < len;
+                      final isActive = i == len; // next-to-fill
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 160),
+                        curve: Curves.easeOut,
+                        margin: const EdgeInsets.symmetric(horizontal: 9),
+                        width: filled ? 20 : 18,
+                        height: filled ? 20 : 18,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: error
+                              ? AppColors.danger
+                              : (filled ? kredit.textPrimary : Colors.transparent),
+                          border: Border.all(
+                            color: error
+                                ? AppColors.danger
+                                : (filled
+                                    ? kredit.textPrimary
+                                    : isActive
+                                        ? accent
+                                        : kredit.borderCard),
+                            width: isActive && !error ? 2.5 : 2,
+                          ),
+                        ),
+                      );
+                    }),
                   );
-                }),
-              );
-            },
-          ),
+                },
+              ),
+            ),
+            // Layered TextField over the dots: triggers system soft keyboard reliably
+            Positioned.fill(
+              child: Opacity(
+                opacity: 0.01,
+                child: TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  enabled: !isLockedOut,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  maxLength: 6,
+                  obscureText: true,
+                  autofocus: true,
+                  showCursor: false,
+                  enableSuggestions: false,
+                  autocorrect: false,
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    counterText: '',
+                    isCollapsed: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  onChanged: onChanged,
+                ),
+              ),
+            ),
+          ],
         ),
 
-        // ── Error / feedback message ───────────────────────────────────────
+        // ── Error / lockout / feedback message ──────────────────────────────
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 200),
-          child: error
+          child: isLockedOut
               ? Padding(
-                  key: const ValueKey('err'),
+                  key: const ValueKey('lockout'),
                   padding: const EdgeInsets.only(top: 16),
                   child: Text(
-                    'PIN incorrecto, intenta de nuevo',
-                    style: TextStyle(
+                    lockoutMessage!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
                       color: AppColors.danger,
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                 )
-              : const SizedBox(key: ValueKey('ok'), height: 16),
+              : error
+                  ? const Padding(
+                      key: ValueKey('err'),
+                      padding: EdgeInsets.only(top: 16),
+                      child: Text(
+                        'PIN incorrecto, intenta de nuevo',
+                        style: TextStyle(
+                          color: AppColors.danger,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    )
+                  : const SizedBox(key: ValueKey('ok'), height: 16),
         ),
 
         const SizedBox(height: 28),
 
         // ── Tap-to-open-keyboard area ──────────────────────────────────────
         GestureDetector(
-          onTap: () => focusNode.requestFocus(),
+          onTap: isLockedOut ? null : () => focusNode.requestFocus(),
           child: ValueListenableBuilder<TextEditingValue>(
             valueListenable: controller,
             builder: (_, value, _) => AnimatedOpacity(
-              opacity: value.text.isEmpty ? 1.0 : 0.0,
+              opacity: (!isLockedOut && value.text.isEmpty) ? 1.0 : 0.0,
               duration: const Duration(milliseconds: 200),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -304,36 +425,11 @@ class _NativePinField extends StatelessWidget {
           ),
         ),
 
-        // ── Hidden TextField — drives the native numeric keyboard ──────────
-        SizedBox(
-          width: 1,
-          height: 1,
-          child: Opacity(
-            opacity: 0,
-            child: TextField(
-              controller: controller,
-              focusNode: focusNode,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              maxLength: 6,
-              obscureText: true,
-              autofocus: true,
-              enableSuggestions: false,
-              autocorrect: false,
-              decoration: const InputDecoration(
-                border: InputBorder.none,
-                counterText: '',
-              ),
-              onChanged: onChanged,
-            ),
-          ),
-        ),
-
         const SizedBox(height: 20),
 
         // ── Fallback button if keyboard gets dismissed ─────────────────────
         TextButton.icon(
-          onPressed: () => focusNode.requestFocus(),
+          onPressed: isLockedOut ? null : () => focusNode.requestFocus(),
           icon: Icon(Icons.keyboard_outlined,
               size: 18, color: kredit.textTertiary),
           label: Text(

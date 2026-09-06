@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import '../../domain/loan_calculator.dart';
 import '../../theme/app_theme.dart';
 
-/// Compact status pill for an installment. Uses theme-aware colors: the
-/// accent for paid/overdue/warning states (so it reads consistently against
-/// both light and dark surfaces) and textTertiary for plain "pending" —
-/// avoids the fixed AppColors.success/danger which don't adapt per-theme.
+/// Compact status indicator for an installment — plain icon + text, no
+/// surrounding chip/border. Uses theme-aware colors: the accent for
+/// paid/overdue/warning states (so it reads consistently against both light
+/// and dark surfaces) and textTertiary for plain "pending" — avoids the
+/// fixed AppColors.success/danger which don't adapt per-theme.
 class StatusBadge extends StatelessWidget {
   final InstallmentStatus status;
 
@@ -15,42 +16,45 @@ class StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
-    final accent = Theme.of(context).colorScheme.primary;
     Color color;
     IconData icon;
     switch (status.state) {
       case InstallmentState.paid:
-        color = accent;
-        icon = Icons.check_circle;
+        color = kredit.success;
+        icon = Icons.check_circle_rounded;
         break;
       case InstallmentState.overdue:
-        color = kredit.textPrimary;
-        icon = Icons.error_outline;
+        color = kredit.danger;
+        icon = Icons.error_outline_rounded;
         break;
       case InstallmentState.warning:
-        color = kredit.textPrimary;
-        icon = Icons.schedule;
+        color = kredit.warning;
+        icon = Icons.schedule_rounded;
         break;
       case InstallmentState.pending:
         color = kredit.textTertiary;
         icon = Icons.circle_outlined;
         break;
     }
-    final filled = status.state == InstallmentState.overdue ||
-        status.state == InstallmentState.warning;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: filled ? color.withValues(alpha: 0.15) : color.withValues(alpha: 0.1),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(KreditRadius.chip),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 11, color: color),
+          Icon(icon, size: 12, color: color),
           const SizedBox(width: 4),
-          Text(status.label, style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
+          Text(
+            status.label,
+            style: TextStyle(
+              fontSize: 11.5,
+              color: color,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
     );

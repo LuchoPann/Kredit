@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../data/models/credit.dart';
 import '../../domain/credit_calculator.dart';
 import '../../theme/app_theme.dart';
-import 'shadowed_card.dart';
 
 /// Minimal COP-style currency formatter (avoids pulling in intl formatting
 /// conventions not already established elsewhere in this file's scope).
@@ -20,6 +19,9 @@ class NumberFormatLike {
   }
 }
 
+/// Top summary row on stats_screen.dart: three metrics expressed purely
+/// through typography — no surrounding boxes — separated by hairline
+/// dividers, matching the language established in dashboard_screen.dart.
 class StatsGrid extends StatelessWidget {
   final List<Credit> credits;
   const StatsGrid({super.key, required this.credits});
@@ -28,31 +30,40 @@ class StatsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeCount = credits.where(creditHasUnpaid).length;
+    final kredit = Theme.of(context).extension<KreditColors>()!;
     final totalBorrowed = getTotalBorrowed(credits);
     final totalPaid = _totalPaidHistorico(credits);
+    final finishedCount = credits.where((c) => !creditHasUnpaid(c)).length;
 
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: _StatTile(
-            icon: Icons.bolt_outlined,
-            label: 'Créditos activos',
-            value: '$activeCount',
+            label: 'Créditos finalizados',
+            value: '$finishedCount',
           ),
         ),
-        const SizedBox(width: 12),
+        Container(
+          width: 1,
+          height: 34,
+          margin: const EdgeInsets.symmetric(horizontal: 14),
+          color: kredit.borderCard,
+        ),
         Expanded(
           child: _StatTile(
-            icon: Icons.check_circle_outline,
             label: 'Total pagado',
             value: _currency.format(totalPaid),
           ),
         ),
-        const SizedBox(width: 12),
+        Container(
+          width: 1,
+          height: 34,
+          margin: const EdgeInsets.symmetric(horizontal: 14),
+          color: kredit.borderCard,
+        ),
         Expanded(
           child: _StatTile(
-            icon: Icons.account_balance_outlined,
             label: 'Total prestado',
             value: _currency.format(totalBorrowed),
           ),
@@ -70,7 +81,9 @@ class StatsGrid extends StatelessWidget {
     var sum = 0.0;
     for (final c in credits) {
       if (c is LoanCredit) {
-        sum += c.installments.where((i) => i.paid).fold(0.0, (s, i) => s + i.amount);
+        sum += c.installments
+            .where((i) => i.paid)
+            .fold(0.0, (s, i) => s + i.amount);
       } else if (c is CardCredit) {
         sum += c.movements
             .where((m) => m.type == 'payment')
@@ -82,39 +95,41 @@ class StatsGrid extends StatelessWidget {
 }
 
 class _StatTile extends StatelessWidget {
-  final IconData icon;
   final String label;
   final String value;
-  const _StatTile({required this.icon, required this.label, required this.value});
+  const _StatTile({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
-    return ShadowedCard(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: KreditSpacing.card, horizontal: 8),
-        child: Column(
-          children: [
-            Icon(icon, size: 16, color: kredit.textTertiary),
-            const SizedBox(height: 6),
-            Text(
-              value,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: kredit.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 11, color: kredit.textTertiary),
-            ),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 17,
+            letterSpacing: -0.3,
+            fontFeatures: [FontFeature.tabularFigures()],
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
-      ),
+        const SizedBox(height: 3),
+        Text(
+          label.toUpperCase(),
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+            color: kredit.textTertiary,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
     );
   }
 }

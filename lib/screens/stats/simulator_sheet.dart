@@ -3,9 +3,11 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/models/card_movement.dart';
 import '../../data/models/credit.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/currency_input_formatter.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Formateo de moneda (reutiliza la misma lógica que stats_screen.dart)
@@ -172,7 +174,7 @@ class _PurchaseTabState extends State<_PurchaseTab> {
   }
 
   void _simulate() {
-    final amount = double.tryParse(_amountCtrl.text.replaceAll(',', '.'));
+    final amount = double.tryParse(CurrencyInputFormatter.unformat(_amountCtrl.text));
     final quotas = int.tryParse(_quotasCtrl.text);
     final card = _selectedCard;
     if (amount == null || amount <= 0 || quotas == null || quotas <= 0 || card == null) return;
@@ -265,8 +267,8 @@ class _PurchaseTabState extends State<_PurchaseTab> {
                 flex: 2,
                 child: TextFormField(
                   controller: _amountCtrl,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: const [CurrencyInputFormatter()],
                   decoration: const InputDecoration(
                     labelText: 'Valor de la compra (\$)',
                     prefixText: '\$ ',
@@ -347,51 +349,55 @@ class _PurchaseResultCard extends StatelessWidget {
               fontWeight: FontWeight.w700,
               color: kredit.textPrimary),
         ),
-        const SizedBox(height: 12),
-        _ResultRow(
-          kredit: kredit,
-          icon: Icons.receipt_long_outlined,
-          label: 'Cuota mensual estimada',
-          value: _fmtCOP(result.monthlyInstallment),
-          valueColor: accent,
-        ),
-        _ResultRow(
-          kredit: kredit,
-          icon: Icons.account_balance_wallet_outlined,
-          label: 'Nuevo saldo total en ${result.cardName}',
-          value: _fmtCOP(result.newTotalBalance),
-          valueColor: kredit.textPrimary,
-        ),
-        _ResultRow(
-          kredit: kredit,
-          icon: Icons.credit_card_outlined,
-          label: 'Cupo disponible tras la compra',
-          value: _fmtCOP(result.availableCredit),
-          valueColor: kredit.textPrimary,
+        const SizedBox(height: 4),
+        Column(
+          children: _withDividers(
+            kredit,
+            [
+              _ResultRow(
+                icon: Icons.receipt_long_outlined,
+                label: 'Cuota mensual estimada',
+                value: _fmtCOP(result.monthlyInstallment),
+                valueColor: accent,
+                kredit: kredit,
+              ),
+              _ResultRow(
+                icon: Icons.account_balance_wallet_outlined,
+                label: 'Nuevo saldo total en ${result.cardName}',
+                value: _fmtCOP(result.newTotalBalance),
+                valueColor: kredit.textPrimary,
+                kredit: kredit,
+              ),
+              _ResultRow(
+                icon: Icons.credit_card_outlined,
+                label: 'Cupo disponible tras la compra',
+                value: _fmtCOP(result.availableCredit),
+                valueColor: kredit.textPrimary,
+                kredit: kredit,
+              ),
+              if (result.estimatedInterestCost > 0)
+                _ResultRow(
+                  icon: Icons.trending_up_outlined,
+                  label: 'Costo estimado en intereses (${result.quotas} cuotas)',
+                  value: _fmtCOP(result.estimatedInterestCost),
+                  valueColor: Colors.redAccent,
+                  kredit: kredit,
+                ),
+            ],
+          ),
         ),
         // Barra de utilización
-        const SizedBox(height: 8),
+        const SizedBox(height: 16),
         _UtilizationBar(
           pct: result.utilizationPct,
           kredit: kredit,
           highUtilization: highUtilization,
         ),
-        if (result.estimatedInterestCost > 0) ...[
-          const SizedBox(height: 12),
-          _ResultRow(
-            kredit: kredit,
-            icon: Icons.trending_up_outlined,
-            label: 'Costo estimado en intereses (${result.quotas} cuotas)',
-            value: _fmtCOP(result.estimatedInterestCost),
-            valueColor: Colors.redAccent,
-          ),
-        ],
         if (highUtilization) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           _WarningBanner(
-            kredit: kredit,
             text:
-                '⚠️ Alta utilización del crédito (${result.utilizationPct.round()}%). Se recomienda mantenerla por debajo del 80% para no afectar tu perfil crediticio.',
+                'Alta utilización del crédito (${result.utilizationPct.round()}%). Se recomienda mantenerla por debajo del 80% para no afectar tu perfil crediticio.',
           ),
         ],
       ],
@@ -468,7 +474,7 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
   }
 
   void _simulate() {
-    final amount = double.tryParse(_paymentCtrl.text.replaceAll(',', '.'));
+    final amount = double.tryParse(CurrencyInputFormatter.unformat(_paymentCtrl.text));
     final credit = _selectedCredit;
     if (amount == null || amount <= 0 || credit == null) return;
 
@@ -495,6 +501,7 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
 
     setState(() {
       _result = _PaymentResult(
+        credit: loan,
         creditName: loan.name,
         extraPayment: extraPayment,
         currentBalance: currentBalance,
@@ -530,6 +537,7 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
 
     setState(() {
       _result = _PaymentResult(
+        credit: card,
         creditName: card.name,
         extraPayment: extraPayment,
         currentBalance: card.currentBalance,
@@ -595,8 +603,8 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
         const SizedBox(height: 8),
         TextFormField(
           controller: _paymentCtrl,
-          keyboardType:
-              const TextInputType.numberWithOptions(decimal: true),
+          keyboardType: TextInputType.number,
+          inputFormatters: const [CurrencyInputFormatter()],
           decoration: const InputDecoration(
             labelText: 'Monto del abono (\$)',
             prefixText: '\$ ',
@@ -621,6 +629,7 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
 }
 
 class _PaymentResult {
+  final Credit credit;
   final String creditName;
   final double extraPayment;
   final double currentBalance;
@@ -632,6 +641,7 @@ class _PaymentResult {
   final double? newAvailable;
 
   const _PaymentResult({
+    required this.credit,
     required this.creditName,
     required this.extraPayment,
     required this.currentBalance,
@@ -644,7 +654,7 @@ class _PaymentResult {
   });
 }
 
-class _PaymentResultCard extends StatelessWidget {
+class _PaymentResultCard extends ConsumerStatefulWidget {
   final _PaymentResult result;
   final KreditColors kredit;
   final Color accent;
@@ -652,7 +662,62 @@ class _PaymentResultCard extends StatelessWidget {
       {required this.result, required this.kredit, required this.accent});
 
   @override
+  ConsumerState<_PaymentResultCard> createState() => _PaymentResultCardState();
+}
+
+class _PaymentResultCardState extends ConsumerState<_PaymentResultCard> {
+  bool _registering = false;
+
+  Future<void> _registerNow() async {
+    final result = widget.result;
+    setState(() => _registering = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    try {
+      if (!result.isCard) {
+        final abono = await ref.read(creditsProvider.notifier).registerLoanAbono(
+              result.credit.id,
+              result.extraPayment,
+              note: 'Registrado desde el simulador',
+            );
+        if (!mounted) return;
+        final skipped = abono.installmentsSkipped;
+        final message = abono.wasCapped
+            ? 'Se aplicaron \$${abono.amount.toStringAsFixed(0)} de los '
+                '\$${abono.requestedAmount.toStringAsFixed(0)} solicitados — '
+                '¡crédito saldado por completo! 🎉'
+            : 'Abono de \$${abono.amount.toStringAsFixed(0)} registrado'
+                '${skipped > 0 ? ' — $skipped cuota(s) adelantada(s)' : ''}';
+        navigator.pop(); // cierra el sheet del simulador
+        messenger.showSnackBar(SnackBar(content: Text(message)));
+      } else {
+        await ref.read(creditsProvider.notifier).registerMovement(
+              result.credit.id,
+              CardMovementType.payment,
+              result.extraPayment,
+              'Registrado desde el simulador',
+            );
+        if (!mounted) return;
+        navigator.pop(); // cierra el sheet del simulador
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Pago registrado')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _registering = false);
+        messenger.showSnackBar(
+          SnackBar(content: Text('No se pudo registrar el abono: $e')),
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final result = widget.result;
+    final kredit = widget.kredit;
+    final accent = widget.accent;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -663,89 +728,106 @@ class _PaymentResultCard extends StatelessWidget {
               fontWeight: FontWeight.w700,
               color: kredit.textPrimary),
         ),
-        const SizedBox(height: 12),
-        _ResultRow(
-          kredit: kredit,
-          icon: Icons.savings_outlined,
-          label: 'Abono aplicado a ${result.creditName}',
-          value: _fmtCOP(result.extraPayment),
-          valueColor: Colors.green,
-        ),
-        _ResultRow(
-          kredit: kredit,
-          icon: Icons.trending_down_outlined,
-          label: 'Saldo anterior',
-          value: _fmtCOP(result.currentBalance),
-          valueColor: kredit.textSecondary,
-        ),
-        _ResultRow(
-          kredit: kredit,
-          icon: Icons.account_balance_wallet_outlined,
-          label: 'Nuevo saldo',
-          value: _fmtCOP(result.newBalance),
-          valueColor: result.newBalance == 0 ? Colors.green : kredit.textPrimary,
-        ),
-        if (!result.isCard && result.quotasSkipped > 0)
-          _ResultRow(
-            kredit: kredit,
-            icon: Icons.fast_forward_outlined,
-            label: 'Cuotas adelantadas',
-            value: '~${result.quotasSkipped} cuota${result.quotasSkipped == 1 ? '' : 's'}',
-            valueColor: accent,
-          ),
-        if (!result.isCard && result.interestSaving > 0)
-          _ResultRow(
-            kredit: kredit,
-            icon: Icons.attach_money_outlined,
-            label: 'Ahorro estimado en intereses',
-            value: _fmtCOP(result.interestSaving),
-            valueColor: Colors.green,
-          ),
-        if (result.isCard) ...[
-          if (result.newAvailable != null)
-            _ResultRow(
-              kredit: kredit,
-              icon: Icons.credit_card_outlined,
-              label: 'Nuevo cupo disponible',
-              value: _fmtCOP(result.newAvailable!),
-              valueColor: kredit.textPrimary,
-            ),
-          if (result.monthsToPayoff > 0)
-            _ResultRow(
-              kredit: kredit,
-              icon: Icons.schedule_outlined,
-              label: 'Meses estimados para saldar (pago mínimo)',
-              value: '~${result.monthsToPayoff} mes${result.monthsToPayoff == 1 ? '' : 'es'}',
-              valueColor: kredit.textSecondary,
-            ),
-        ],
-        if (result.newBalance == 0) ...[
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.celebration_outlined,
-                    color: Colors.green, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '🎉 ¡Con este abono saldarías por completo este crédito!',
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: kredit.textPrimary,
-                        fontWeight: FontWeight.w600),
-                  ),
+        const SizedBox(height: 4),
+        Column(
+          children: _withDividers(
+            kredit,
+            [
+              _ResultRow(
+                icon: Icons.savings_outlined,
+                label: 'Abono aplicado a ${result.creditName}',
+                value: _fmtCOP(result.extraPayment),
+                valueColor: Colors.green,
+                kredit: kredit,
+              ),
+              _ResultRow(
+                icon: Icons.trending_down_outlined,
+                label: 'Saldo anterior',
+                value: _fmtCOP(result.currentBalance),
+                valueColor: kredit.textSecondary,
+                kredit: kredit,
+              ),
+              _ResultRow(
+                icon: Icons.account_balance_wallet_outlined,
+                label: 'Nuevo saldo',
+                value: _fmtCOP(result.newBalance),
+                valueColor:
+                    result.newBalance == 0 ? Colors.green : kredit.textPrimary,
+                kredit: kredit,
+              ),
+              if (!result.isCard && result.quotasSkipped > 0)
+                _ResultRow(
+                  icon: Icons.fast_forward_outlined,
+                  label: 'Cuotas adelantadas',
+                  value:
+                      '~${result.quotasSkipped} cuota${result.quotasSkipped == 1 ? '' : 's'}',
+                  valueColor: accent,
+                  kredit: kredit,
                 ),
-              ],
-            ),
+              if (!result.isCard && result.interestSaving > 0)
+                _ResultRow(
+                  icon: Icons.attach_money_outlined,
+                  label: 'Ahorro estimado en intereses',
+                  value: _fmtCOP(result.interestSaving),
+                  valueColor: Colors.green,
+                  kredit: kredit,
+                ),
+              if (result.isCard && result.newAvailable != null)
+                _ResultRow(
+                  icon: Icons.credit_card_outlined,
+                  label: 'Nuevo cupo disponible',
+                  value: _fmtCOP(result.newAvailable!),
+                  valueColor: kredit.textPrimary,
+                  kredit: kredit,
+                ),
+              if (result.isCard && result.monthsToPayoff > 0)
+                _ResultRow(
+                  icon: Icons.schedule_outlined,
+                  label: 'Meses estimados para saldar (pago mínimo)',
+                  value:
+                      '~${result.monthsToPayoff} mes${result.monthsToPayoff == 1 ? '' : 'es'}',
+                  valueColor: kredit.textSecondary,
+                  kredit: kredit,
+                ),
+            ],
+          ),
+        ),
+        if (result.newBalance == 0) ...[
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.celebration_outlined,
+                  color: Colors.green, size: 16),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '¡Con este abono saldarías por completo este crédito!',
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: kredit.textPrimary,
+                      fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
           ),
         ],
+        const SizedBox(height: 20),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            onPressed: _registering ? null : _registerNow,
+            icon: const Icon(Icons.check_circle_outline),
+            label: Text(_registering
+                ? 'Registrando...'
+                : 'Registrar este abono ahora'),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Esto aplicará el abono real de forma permanente sobre ${result.creditName}.',
+          style: TextStyle(fontSize: 11, color: kredit.textTertiary),
+        ),
       ],
     );
   }
@@ -754,6 +836,24 @@ class _PaymentResultCard extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // Widgets de apoyo reutilizables
 // ─────────────────────────────────────────────────────────────────────────────
+
+/// Intercala un `Divider` fino entre cada elemento de [rows], siguiendo el
+/// lenguaje "sin cajas" del dashboard: las filas de resultado se separan por
+/// líneas, no por tarjetas o fondos.
+List<Widget> _withDividers(KreditColors kredit, List<Widget> rows) {
+  final divider = Divider(height: 1, color: kredit.borderCard);
+  final result = <Widget>[];
+  for (var i = 0; i < rows.length; i++) {
+    if (i > 0) {
+      result.add(Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: divider,
+      ));
+    }
+    result.add(rows[i]);
+  }
+  return result;
+}
 
 class _ResultRow extends StatelessWidget {
   final IconData icon;
@@ -772,49 +872,56 @@ class _ResultRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: kredit.textTertiary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(label,
-                style: TextStyle(fontSize: 12, color: kredit.textSecondary)),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: valueColor),
-          ),
-        ],
-      ),
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: kredit.textTertiary),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(label,
+              style: TextStyle(fontSize: 12, color: kredit.textSecondary)),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+              fontSize: 14, fontWeight: FontWeight.w700, color: valueColor),
+        ),
+      ],
     );
   }
 }
 
+/// Alerta de utilización alta: solo tipografía + ícono en el color de
+/// advertencia del tema, sin fondo relleno ni borde — la distinción frente
+/// al texto informativo vive en el color, no en una caja.
 class _WarningBanner extends StatelessWidget {
-  final KreditColors kredit;
   final String text;
-  const _WarningBanner({required this.kredit, required this.text});
+  const _WarningBanner({required this.text});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.warning.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.warning.withValues(alpha: 0.5)),
-      ),
-      child: Text(text,
-          style: TextStyle(fontSize: 12, color: kredit.textPrimary)),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Icon(Icons.warning_amber_rounded,
+            size: 16, color: AppColors.warning),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.warning,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
 
+/// Texto informativo simple (sin tarjetas ni casos de acción) para estados
+/// vacíos del simulador — tipografía secundaria + ícono pequeño inline.
 class _InfoBanner extends StatelessWidget {
   final KreditColors kredit;
   final IconData icon;
@@ -824,23 +931,16 @@ class _InfoBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: kredit.bgSecondary,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: kredit.borderCard),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: kredit.textTertiary, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(text,
-                style: TextStyle(fontSize: 13, color: kredit.textSecondary)),
-          ),
-        ],
-      ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: kredit.textTertiary, size: 18),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(text,
+              style: TextStyle(fontSize: 13, color: kredit.textSecondary)),
+        ),
+      ],
     );
   }
 }

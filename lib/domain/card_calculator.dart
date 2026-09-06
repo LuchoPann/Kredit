@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import '../data/models/card_movement.dart';
 import '../data/models/credit.dart';
 import 'date_utils.dart';
+import 'interest_rate.dart';
 
 /// Card cycle engine, ported from app.js's "CREDIT CARD CYCLE ENGINE"
 /// section (~L668-773).
@@ -66,11 +67,15 @@ double _round2(double v) => (v * 100).round() / 100;
 
 /// Port of accrueCardCredit (app.js ~L703-756).
 ///
-/// Applies simple daily interest (E.A./365, NOT monthly compounding) and the
-/// management fee for every billing cycle closed since `lastAccrualCutoff`,
-/// bringing `currentBalance` up to date. Idempotent (safe to call on every
-/// app load) and capped at 36 cycles per call as a safety net against
-/// runaway loops.
+/// Applies simple daily interest (no compounding within/across cycles) and
+/// the management fee for every billing cycle closed since
+/// `lastAccrualCutoff`, bringing `currentBalance` up to date. The daily rate
+/// is derived from `credit.interestRate` normalized per how the user says
+/// it's expressed (`credit.interestRateType` — E.A., E.M., or simple
+/// monthly; see `interest_rate.dart`), so the entity that quoted the rate
+/// never needs to be known here. Idempotent (safe to call on every app
+/// load) and capped at 36 cycles per call as a safety net against runaway
+/// loops.
 void accrueCardCredit(CardCredit credit, [DateTime? now]) {
   final today = now ?? DateTime.now();
   final todayMidnight = DateTime(today.year, today.month, today.day);
@@ -84,8 +89,7 @@ void accrueCardCredit(CardCredit credit, [DateTime? now]) {
   }
 
   final cutoffDay = _clampCutoffDay(credit.cutoffDay);
-  final dailyRate =
-      credit.interestRate != 0 ? (credit.interestRate / 100 / 365) : 0.0;
+  final dailyRate = dailyRateFrom(credit.interestRate, credit.interestRateType);
 
   var cursorStr = credit.lastAccrualCutoff!;
   var safety = 0;
@@ -131,6 +135,42 @@ void accrueCardCredit(CardCredit credit, [DateTime? now]) {
   credit.lastAccrualCutoff = cursorStr;
 }
 
+/// Closes out any interest already accrued under the CURRENT
+/// `interestRate`/`interestRateType` up to [changeDate], anchoring
+/// `lastAccrualCutoff` there, so that a caller can safely overwrite the rate
+/// fields right after calling this and know the new rate will only ever be
+/// applied to cycles that close AFTER [changeDate].
+///
+/// This fixes a real financial bug: without this step, editing a card's
+/// rate after the app has been unopened for several billing cycles would
+/// cause the next `accrueCardCredit` call to charge the NEW rate
+/// retroactively over interest that, in reality, accrued under the OLD
+/// rate.
+///
+/// Call this BEFORE mutating `credit.interestRate` /
+/// `credit.interestRateType` — it reads the credit's current (pre-edit)
+/// rate to accrue whatever full cycles have elapsed, exactly like a normal
+/// `accrueCardCredit` call would, just capped at [changeDate] instead of
+/// "today".
+///
+/// Known limitation (documented, not fixed here): the engine has no
+/// intra-cycle daily-balance tracking, so a rate change that lands in the
+/// MIDDLE of an open cycle cannot be prorated by days. That cycle — the one
+/// still open at [changeDate] — is left untouched here (its cutoff hasn't
+/// arrived yet) and will be accrued in full, with whichever rate is current
+/// at the time its cutoff is reached, on a later `accrueCardCredit` call.
+/// This is the same simplification the engine already makes for ordinary
+/// accrual; this function only prevents the strictly worse case of
+/// retroactively re-rating cycles that already closed.
+void applyRateChangeAt(CardCredit credit, DateTime changeDate) {
+  // No prior accrual anchor yet (brand-new card, or never opened since
+  // creation): nothing has accrued under the old rate, so there is nothing
+  // to close out. `accrueCardCredit` will set the initial anchor on its own
+  // next run.
+  if (credit.lastAccrualCutoff == null) return;
+  accrueCardCredit(credit, changeDate);
+}
+
 /// Port of registerCardMovement (app.js ~L763-773), minus the
 /// persistence/save call which belongs to the data layer, not domain logic.
 void registerCardMovement(
@@ -148,6 +188,26 @@ void registerCardMovement(
     amount: amount.abs(),
     note: note,
   ));
+}
+
+/// Removes a previously-registered movement (identified by its index within
+/// `credit.movements`, most-recent-first order not assumed — callers must
+/// pass the index into the underlying `credit.movements` list) and reverses
+/// its effect on `currentBalance`, undoing exactly what [registerCardMovement]
+/// (or [accrueCardCredit], for interest/fee entries) applied when it was
+/// created. Lets a user correct a mis-registered charge/payment/interest/fee
+/// without leaving the balance out of sync with the visible history.
+void deleteCardMovement(CardCredit credit, int index) {
+  if (index < 0 || index >= credit.movements.length) return;
+  final removed = credit.movements[index];
+  // Payments reduced the balance (delta = -amount); every other type
+  // (charge/interest/fee) increased it (delta = +amount). Reversing means
+  // applying the opposite delta.
+  final delta = removed.type == CardMovementType.payment
+      ? removed.amount.abs()
+      : -removed.amount.abs();
+  credit.currentBalance = math.max(0.0, _round2(credit.currentBalance + delta));
+  credit.movements.removeAt(index);
 }
 
 /// Port of getCreditRemainingBalance for card credits (app.js ~L1332-1336).

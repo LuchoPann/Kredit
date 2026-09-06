@@ -9,7 +9,6 @@ import '../../widgets/account/danger_zone_card.dart';
 import '../../widgets/account/data_tools_card.dart';
 import '../../widgets/account/profile_header.dart';
 import '../../widgets/account/section_header.dart';
-import '../../widgets/account/shadowed_card.dart';
 import '../../widgets/notification_settings_tile.dart';
 import '../../widgets/security_settings_tile.dart';
 import 'how_it_works_screen.dart';
@@ -33,56 +32,62 @@ class AccountScreen extends ConsumerWidget {
         children: [
           ProfileHeader(profileName: prefs.profileName),
           const SizedBox(height: KreditSpacing.section),
-          sectionHeader(Icons.palette_outlined, 'Personalización'),
+          sectionHeader('Personalización'),
           const SizedBox(height: KreditSpacing.tile),
           const AccentColorPicker(),
           const SizedBox(height: KreditSpacing.card),
-          ShadowedCard(
-            child: SwitchListTile(
-              secondary: Icon(prefs.isDarkMode ? Icons.dark_mode_outlined : Icons.light_mode_outlined),
-              title: const Text('Modo Oscuro'),
-              subtitle: Text(prefs.isDarkMode ? 'Tema oscuro activo' : 'Tema claro activo'),
-              value: prefs.isDarkMode,
-              onChanged: (v) => ref.read(themePreferencesProvider.notifier).setIsDarkMode(v),
-            ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            secondary: Icon(prefs.isDarkMode ? Icons.dark_mode_outlined : Icons.light_mode_outlined),
+            title: const Text('Modo Oscuro'),
+            subtitle: Text(prefs.isDarkMode ? 'Tema oscuro activo' : 'Tema claro activo'),
+            value: prefs.isDarkMode,
+            onChanged: (v) => ref.read(themePreferencesProvider.notifier).setIsDarkMode(v),
           ),
           const SizedBox(height: KreditSpacing.card),
           const BgTonePicker(),
           const SizedBox(height: KreditSpacing.section),
-          sectionHeader(Icons.notifications_outlined, 'Notificaciones'),
+          Divider(height: 1, color: kredit.borderCard),
+          const SizedBox(height: KreditSpacing.section),
+          sectionHeader('Notificaciones'),
           const SizedBox(height: KreditSpacing.tile),
           const NotificationSettingsTile(),
           const SizedBox(height: KreditSpacing.section),
-          sectionHeader(Icons.security_outlined, 'Seguridad'),
+          Divider(height: 1, color: kredit.borderCard),
+          const SizedBox(height: KreditSpacing.section),
+          sectionHeader('Seguridad'),
           const SizedBox(height: KreditSpacing.tile),
           const SecuritySettingsTile(),
           const SizedBox(height: KreditSpacing.section),
+          Divider(height: 1, color: kredit.borderCard),
+          const SizedBox(height: KreditSpacing.section),
           sectionHeader(
-            Icons.storage_outlined,
             'Datos',
-            subtitle: 'Respaldá o restaurá tu información local',
+            subtitle: 'Respalda o restaura tu información local',
           ),
           const SizedBox(height: KreditSpacing.tile),
           const DataToolsCard(),
           const SizedBox(height: KreditSpacing.section),
-          sectionHeader(Icons.help_outline, 'Ayuda'),
+          Divider(height: 1, color: kredit.borderCard),
+          const SizedBox(height: KreditSpacing.section),
+          sectionHeader('Ayuda'),
           const SizedBox(height: KreditSpacing.tile),
-          ShadowedCard(
-            child: ListTile(
-              leading: Icon(Icons.help_outline, color: kredit.textSecondary),
-              title: const Text('Cómo funciona Kredit'),
-              subtitle: const Text('Guía rápida de la app y sus pantallas'),
-              trailing: Icon(Icons.chevron_right, color: kredit.textTertiary),
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const HowItWorksScreen()),
-                );
-              },
-            ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.help_outline, color: kredit.textSecondary),
+            title: const Text('Cómo funciona Kredit'),
+            subtitle: const Text('Guía rápida de la app y sus pantallas'),
+            trailing: Icon(Icons.chevron_right, color: kredit.textTertiary),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const HowItWorksScreen()),
+              );
+            },
           ),
           const SizedBox(height: KreditSpacing.section),
+          Divider(height: 1, color: kredit.borderCard),
+          const SizedBox(height: KreditSpacing.section),
           sectionHeader(
-            Icons.warning_amber_rounded,
             'Zona de riesgo',
             color: AppColors.danger,
             subtitle: 'Acciones permanentes — no se pueden deshacer',

@@ -18,7 +18,8 @@ class NotesTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
     final loan = credit is LoanCredit ? credit as LoanCredit : null;
-    final hasContent = (loan?.location?.isNotEmpty ?? false) ||
+    final hasContent =
+        (loan?.location?.isNotEmpty ?? false) ||
         (loan?.card?.isNotEmpty ?? false) ||
         (credit.notes?.isNotEmpty ?? false);
 
@@ -35,30 +36,36 @@ class NotesTab extends StatelessWidget {
       );
     }
 
-    final card = Card(
-      child: Padding(
-        padding: const EdgeInsets.all(KreditSpacing.card),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Notas y Detalles', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-            const SizedBox(height: 10),
-            if (loan?.location?.isNotEmpty ?? false)
-              _NoteLine(label: 'Establecimiento', value: loan!.location!),
-            if (loan?.card?.isNotEmpty ?? false)
-              _NoteLine(label: 'Tarjeta/Cuenta de Cargo', value: loan!.card!),
-            if (credit.notes?.isNotEmpty ?? false)
-              _NoteLine(label: 'Indicaciones / Comentarios', value: credit.notes!),
-          ],
+    final notesContent = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'NOTAS Y DETALLES',
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.6,
+            color: kredit.textTertiary,
+          ),
         ),
-      ),
+        const SizedBox(height: 12),
+        if (loan?.location?.isNotEmpty ?? false)
+          _NoteLine(label: 'Establecimiento', value: loan!.location!),
+        if (loan?.card?.isNotEmpty ?? false)
+          _NoteLine(label: 'Tarjeta/Cuenta de Cargo', value: loan!.card!),
+        if (credit.notes?.isNotEmpty ?? false)
+          _NoteLine(
+            label: 'Indicaciones / Comentarios',
+            value: credit.notes!,
+          ),
+      ],
     );
 
-    if (embedded) return card;
+    if (embedded) return notesContent;
 
     return ListView(
       padding: const EdgeInsets.all(KreditSpacing.card),
-      children: [card],
+      children: [notesContent],
     );
   }
 }
@@ -81,7 +88,10 @@ class _NoteLine extends StatelessWidget {
             TextSpan(text: '$label: '),
             TextSpan(
               text: value,
-              style: TextStyle(color: kredit.textPrimary, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                color: kredit.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),

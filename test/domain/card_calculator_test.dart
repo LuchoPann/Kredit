@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kredit/data/models/card_movement.dart';
 import 'package:kredit/data/models/credit.dart';
 import 'package:kredit/domain/card_calculator.dart';
 import 'package:kredit/domain/date_utils.dart';
@@ -71,28 +74,29 @@ void main() {
       expect(credit.movements, isEmpty);
     });
 
-    test('accrues simple daily E.A./365 interest for a single closed cycle', () {
+    test('accrues effective daily interest (from E.A.) for a single closed cycle', () {
       final credit = CardCredit(
         id: 'c1',
         name: 'Test',
         lender: 'Bank',
         currentBalance: 1000,
-        interestRate: 36.5, // dailyRate = 36.5/100/365 = 0.001 exactly
+        // dailyRate = (1.365)^(1/365) - 1 ~= 0.00085284 (effectiveAnnual, the default).
+        interestRate: 36.5,
         cutoffDay: 1,
         lastAccrualCutoff: '2026-02-01',
       );
       // Next cutoff after 2026-02-01 is 2026-03-01 -> 28 days in cycle (2026 not leap).
       accrueCardCredit(credit, DateTime(2026, 3, 5));
 
-      // interest = 1000 * 0.001 * 28 = 28.00
-      expect(credit.currentBalance, closeTo(1028.0, 1e-9));
+      // interest = round(1000 * 0.00085284... * 28) = 23.88
+      expect(credit.currentBalance, closeTo(1023.88, 1e-9));
       expect(credit.movements, hasLength(1));
       expect(credit.movements[0].type, 'interest');
-      expect(credit.movements[0].amount, closeTo(28.0, 1e-9));
+      expect(credit.movements[0].amount, closeTo(23.88, 1e-9));
       expect(credit.lastAccrualCutoff, '2026-03-01');
     });
 
-    test('accrues compounding-free simple interest across multiple cycles', () {
+    test('accrues compounding-free-per-cycle simple interest across multiple cycles', () {
       final credit = CardCredit(
         id: 'c1',
         name: 'Test',
@@ -106,10 +110,11 @@ void main() {
       accrueCardCredit(credit, DateTime(2026, 4, 5));
 
       expect(credit.movements.where((m) => m.type == 'interest'), hasLength(3));
-      // cycle 1: 1000 * .001 * 31 = 31.00 -> balance 1031.00
-      // cycle 2: 1031.00 * .001 * 28 = 28.868 -> rounds to 28.87 -> balance 1059.87
-      // cycle 3: 1059.87 * .001 * 31 = 32.856 -> rounds to 32.86 -> balance 1092.73
-      expect(credit.currentBalance, closeTo(1092.73, 1e-2));
+      // dailyRate = (1.365)^(1/365) - 1 ~= 0.00085284
+      // cycle 1: 1000 * dailyRate * 31 = 26.44 -> balance 1026.44
+      // cycle 2: 1026.44 * dailyRate * 28 = 24.51 -> balance 1050.95
+      // cycle 3: 1050.95 * dailyRate * 31 = 27.79 -> balance 1078.74
+      expect(credit.currentBalance, closeTo(1078.74, 1e-2));
       expect(credit.lastAccrualCutoff, '2026-04-01');
     });
 
@@ -202,6 +207,100 @@ void main() {
       );
       accrueCardCredit(credit, DateTime(2026, 1, 1));
       expect(credit.cycleCount, 36);
+    });
+  });
+
+  group('applyRateChangeAt', () {
+    test('closes pending cycles with the OLD rate before a rate edit, instead of back-charging the new rate', () {
+      // Card unopened for 3 full cycles (Jan01, Feb01, Mar01) at the old
+      // rate of 36.5% E.A. The user edits the rate to 60% E.A. today
+      // (2026-04-05), which is itself mid-cycle (next cutoff 2026-05-01).
+      final creditOldRateReference = CardCredit(
+        id: 'ref',
+        name: 'Test',
+        lender: 'Bank',
+        currentBalance: 1000,
+        interestRate: 36.5,
+        cutoffDay: 1,
+        lastAccrualCutoff: '2026-01-01',
+      );
+      // What SHOULD happen: the 3 elapsed cycles accrue at the OLD rate.
+      accrueCardCredit(creditOldRateReference, DateTime(2026, 4, 5));
+      final expectedBalanceAtOldRate = creditOldRateReference.currentBalance;
+
+      // What the bug would produce: same starting state, but accrual runs
+      // AFTER the rate field was already overwritten to 60%.
+      final creditBuggy = CardCredit(
+        id: 'buggy',
+        name: 'Test',
+        lender: 'Bank',
+        currentBalance: 1000,
+        interestRate: 36.5,
+        cutoffDay: 1,
+        lastAccrualCutoff: '2026-01-01',
+      );
+      creditBuggy.interestRate = 60; // simulate overwriting the rate first
+      accrueCardCredit(creditBuggy, DateTime(2026, 4, 5));
+      final buggyBalance = creditBuggy.currentBalance;
+
+      // The fix: call applyRateChangeAt with the OLD rate still in place,
+      // THEN overwrite the rate field.
+      final creditFixed = CardCredit(
+        id: 'fixed',
+        name: 'Test',
+        lender: 'Bank',
+        currentBalance: 1000,
+        interestRate: 36.5,
+        cutoffDay: 1,
+        lastAccrualCutoff: '2026-01-01',
+      );
+      applyRateChangeAt(creditFixed, DateTime(2026, 4, 5));
+      creditFixed.interestRate = 60;
+
+      // The 3 already-elapsed cycles must match the OLD-rate reference
+      // exactly, not the buggy new-rate result.
+      expect(creditFixed.currentBalance, closeTo(expectedBalanceAtOldRate, 1e-9));
+      expect(creditFixed.currentBalance, isNot(closeTo(buggyBalance, 1e-9)));
+      expect(creditFixed.lastAccrualCutoff, '2026-04-01');
+
+      // Now the pending (still-open) cycle from 2026-04-01 onward correctly
+      // uses the NEW rate once it closes.
+      accrueCardCredit(creditFixed, DateTime(2026, 5, 5));
+      expect(creditFixed.lastAccrualCutoff, '2026-05-01');
+      final lastInterestMovement =
+          creditFixed.movements.where((m) => m.type == CardMovementType.interest).last;
+      // dailyRate at 60% E.A. = (1.6)^(1/365)-1 ~= 0.0012872; 30 days in
+      // April; balance going into April is expectedBalanceAtOldRate.
+      final expectedNewCycleInterest =
+          (expectedBalanceAtOldRate * (math.pow(1.6, 1 / 365) - 1) * 30 * 100).round() / 100;
+      expect(lastInterestMovement.amount, closeTo(expectedNewCycleInterest, 1e-2));
+    });
+
+    test('on a brand-new card (no prior accrual) it is a no-op and does not break the first accrual', () {
+      final credit = CardCredit(
+        id: 'new1',
+        name: 'Test',
+        lender: 'Bank',
+        currentBalance: 500,
+        interestRate: 36.5,
+        cutoffDay: 1,
+      );
+      expect(credit.lastAccrualCutoff, isNull);
+
+      applyRateChangeAt(credit, DateTime(2026, 3, 10));
+      // No anchor existed yet, so nothing should have been charged and the
+      // anchor should still be unset (accrueCardCredit itself sets it on
+      // its normal first run).
+      expect(credit.lastAccrualCutoff, isNull);
+      expect(credit.currentBalance, 500);
+      expect(credit.movements, isEmpty);
+
+      credit.interestRate = 60;
+      // Normal first accrual afterwards still just anchors, no back-charge.
+      accrueCardCredit(credit, DateTime(2026, 3, 10));
+      expect(credit.lastAccrualCutoff, isNotNull);
+      expect(credit.currentBalance, 500);
+      expect(credit.movements, isEmpty);
     });
   });
 

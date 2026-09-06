@@ -1,14 +1,21 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/card_movement.dart';
 import '../../data/models/credit.dart';
+import '../../domain/bank_detector.dart';
+import '../../utils/currency_input_formatter.dart';
 import '../../domain/card_calculator.dart';
 import '../../domain/date_utils.dart';
 import '../../domain/entity_templates.dart';
+import '../../domain/interest_rate.dart';
 import '../../domain/loan_calculator.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/interest_rate_type_field.dart';
+import '../../widgets/wallet_card.dart';
 
 const List<String> _presetLenders = [
   'Bancolombia',
@@ -92,12 +99,29 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   final _installmentsCtrl = TextEditingController();
   final _quotaCtrl = TextEditingController();
   final _interestCtrl = TextEditingController();
+  String _interestRateType = InterestRateType.effectiveAnnual;
   String _frequency = CreditFrequency.monthly;
   DateTime? _startDate;
 
   String? _selectedLenderPreset = 'Bancolombia';
   String? _selectedLocationPreset;
   String? _selectedCardPreset;
+
+  // Tarea "auto-cálculo de cuota": whether the user has manually typed into
+  // the quota field themselves. While false, `_recalcSuggestedQuota` keeps
+  // overwriting `_quotaCtrl` live as monto/cuotas/tasa change (French
+  // amortization). Once the user edits the field by hand it flips to true
+  // and auto-fill stops — from then on we only show a dismissible
+  // "Sugerido: $X" hint instead of silently stomping their value. Picking
+  // the hint (tapping it) re-applies the suggestion and flips this back to
+  // false so live recalculation resumes.
+  bool _quotaTouched = false;
+
+  // Sub-entity refine step (e.g. Falabella -> CMR Falabella / Banco
+  // Falabella): tracks the label of whichever sub-brand the user picked, so
+  // the dropdown stays selected across rebuilds. Reset whenever the parent
+  // entity changes (see the lender dropdown's onChanged below).
+  String? _selectedSubEntityLabel;
 
   // Card fields
   final _limitCtrl = TextEditingController();
@@ -167,17 +191,69 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     super.dispose();
   }
 
-  // Port of calcSuggestedQuota (app.js ~L370-383): only auto-fills the
-  // quota field if the user hasn't typed anything into it yet.
-  void _suggestQuota() {
-    final amount = double.tryParse(_amountCtrl.text.replaceAll(',', '.'));
+  // Fixed-installment ("cuota fija") amount under French amortization:
+  // PMT = amount * i / (1 - (1+i)^-n), where `i` is the *periodic* rate for
+  // the loan's chosen frequency (weekly/biweekly/monthly), reusing
+  // `periodicRateFrom` from interest_rate.dart so this always agrees with
+  // whatever rate periodicity/frequency conversion the rest of the app
+  // uses. Falls back to simple division (amount / n) when there's no
+  // interest rate at all, matching the old (pre-formula) suggestion.
+  double? _calcSuggestedQuota() {
+    final amount = double.tryParse(CurrencyInputFormatter.unformat(_amountCtrl.text));
     final installments = int.tryParse(_installmentsCtrl.text);
-    if (amount != null && installments != null && installments > 0) {
-      if (_quotaCtrl.text.trim().isEmpty) {
-        _quotaCtrl.text = (amount / installments).toStringAsFixed(2);
+    if (amount == null || amount <= 0 || installments == null || installments <= 0) {
+      return null;
+    }
+    final rate = double.tryParse(_interestCtrl.text.replaceAll(',', '.'));
+    if (rate == null || rate <= 0) {
+      return amount / installments;
+    }
+    final i = periodicRateFrom(rate, _interestRateType, _frequency);
+    if (i <= 0) return amount / installments;
+    final denom = 1 - math.pow(1 + i, -installments);
+    if (denom <= 0) return amount / installments;
+    return amount * i / denom;
+  }
+
+  // Live-recalculates the suggested quota (French amortization) whenever
+  // monto/cuotas/tasa/frecuencia/tipo-de-tasa change, but ONLY while the
+  // user hasn't taken manual control of the quota field (`_quotaTouched`).
+  // Once they have, this becomes a no-op — the field keeps whatever they
+  // typed, and the suggestion is shown instead as a "Sugerido: $X" hint
+  // that they can tap to apply (see `_applySuggestedQuota`).
+  void _recalcSuggestedQuota() {
+    if (!_quotaTouched) {
+      final suggested = _calcSuggestedQuota();
+      if (suggested != null) {
+        _quotaCtrl.text = CurrencyInputFormatter.format(suggested);
       }
     }
     setState(() {});
+  }
+
+  // Applies the current suggestion to the field and hands control back to
+  // the auto-calculator (so further base-field edits keep recalculating
+  // live), used when the user taps the "Sugerido: $X" hint after having
+  // edited the quota by hand.
+  void _applySuggestedQuota() {
+    final suggested = _calcSuggestedQuota();
+    if (suggested == null) return;
+    setState(() {
+      _quotaCtrl.text = CurrencyInputFormatter.format(suggested);
+      _quotaTouched = false;
+    });
+  }
+
+  // Hint text shown under the quota field once the user has taken manual
+  // control of it ("Sugerido: $X — toca para ajustar"), only when there's
+  // an actual suggestion to show and it differs from what's currently
+  // typed (no point nagging the user about the value they already have).
+  String? get _quotaSuggestionHint {
+    final suggested = _calcSuggestedQuota();
+    if (suggested == null) return null;
+    final current = double.tryParse(CurrencyInputFormatter.unformat(_quotaCtrl.text));
+    if (current != null && (current - suggested).abs() < 0.5) return null;
+    return 'Sugerido: \$${CurrencyInputFormatter.format(suggested)} — toca para ajustar';
   }
 
   // Port of checkTypeSuggestion (app.js ~L340-354).
@@ -209,12 +285,17 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   String? get _interestRateWarning {
     final rate = double.tryParse(_interestCtrl.text.replaceAll(',', '.'));
     if (rate == null) return null;
+    if (_type == CreditType.card) {
+      final typeAware = rateInconsistencyWarning(rate, _interestRateType);
+      if (typeAware != null) return typeAware;
+      if (_interestRateType == InterestRateType.effectiveAnnual && rate > 0 && rate < 3) {
+        return 'Esa tasa parece baja para una tarjeta de crédito — verifica que sea la E.A. correcta.';
+      }
+      return null;
+    }
     if (rate > 60) {
       return 'Esa tasa parece alta para una E.A. — ¿la ingresaste como mensual por error? '
           'Una E.A. típica en Colombia ronda 15%-45%.';
-    }
-    if (_type == CreditType.card && rate > 0 && rate < 3) {
-      return 'Esa tasa parece baja para una tarjeta de crédito — verifica que sea la E.A. correcta.';
     }
     return null;
   }
@@ -256,7 +337,8 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
             onPressed: () => Navigator.of(ctx).pop(false),
             child: const Text('Cancelar'),
           ),
-          FilledButton(
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('Descartar'),
           ),
@@ -316,12 +398,12 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
 
     Credit credit;
     if (_type == CreditType.card) {
-      final creditLimit = double.tryParse(_limitCtrl.text.replaceAll(',', '.')) ?? 0;
-      final currentBalance = double.tryParse(_balanceCtrl.text.replaceAll(',', '.')) ?? 0;
+      final creditLimit = double.tryParse(CurrencyInputFormatter.unformat(_limitCtrl.text)) ?? 0;
+      final currentBalance = double.tryParse(CurrencyInputFormatter.unformat(_balanceCtrl.text)) ?? 0;
       final cutoffDay = int.tryParse(_cutoffDayCtrl.text) ?? 1;
       final paymentDueOffsetDays = int.tryParse(_paymentOffsetCtrl.text) ?? 20;
       final interestRate = double.tryParse(_interestCtrl.text.replaceAll(',', '.')) ?? 0;
-      final managementFee = double.tryParse(_managementFeeCtrl.text.replaceAll(',', '.')) ?? 0;
+      final managementFee = double.tryParse(CurrencyInputFormatter.unformat(_managementFeeCtrl.text)) ?? 0;
 
       final cardCredit = CardCredit(
         id: id,
@@ -334,6 +416,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         cutoffDay: cutoffDay,
         paymentDueOffsetDays: paymentDueOffsetDays,
         interestRate: interestRate,
+        interestRateType: _interestRateType,
         managementFee: managementFee,
         managementFeeFrequency: _managementFeeFrequency,
         movements: currentBalance > 0
@@ -351,9 +434,9 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       accrueCardCredit(cardCredit);
       credit = cardCredit;
     } else {
-      final totalAmount = double.parse(_amountCtrl.text.replaceAll(',', '.'));
+      final totalAmount = double.parse(CurrencyInputFormatter.unformat(_amountCtrl.text));
       final totalInstallments = int.parse(_installmentsCtrl.text);
-      final quotaAmount = double.parse(_quotaCtrl.text.replaceAll(',', '.'));
+      final quotaAmount = double.parse(CurrencyInputFormatter.unformat(_quotaCtrl.text));
       final interestRate = double.tryParse(_interestCtrl.text.replaceAll(',', '.')) ?? 0;
       final startDateStr = toDateStr(_startDate!);
 
@@ -363,6 +446,8 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         quotaAmount: quotaAmount,
         frequency: _frequency,
         startDate: startDateStr,
+        interestRate: interestRate,
+        interestRateType: _interestRateType,
       );
 
       credit = LoanCredit(
@@ -379,6 +464,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         frequency: _frequency,
         startDate: startDateStr,
         interestRate: interestRate,
+        interestRateType: _interestRateType,
         installments: installments,
       );
     }
@@ -392,10 +478,11 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         );
       }
     } catch (e) {
+      debugPrint('addCredit failed: $e');
       if (mounted) {
         setState(() => _saving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No se pudo guardar el crédito: $e')),
+          const SnackBar(content: Text('No se pudo guardar el crédito. Intenta de nuevo.')),
         );
       }
     }
@@ -478,6 +565,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
 
   List<Widget> _step1BasicData(KreditColors kredit) {
     final suggestion = _typeSuggestion;
+    final subEntityOptions = subEntitiesForLender(_lenderCtrl.text);
     return [
       const Text('Tipo de Crédito', style: TextStyle(fontWeight: FontWeight.w600)),
       const SizedBox(height: 8),
@@ -520,6 +608,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           Expanded(
             flex: _selectedLenderPreset == 'Otro...' ? 1 : 2,
             child: DropdownButtonFormField<String>(
+                isExpanded: true,
               initialValue: _selectedLenderPreset,
               decoration: InputDecoration(
                 labelText: _type == CreditType.card ? 'Banco / Entidad Emisora' : 'Banco / Prestamista',
@@ -530,6 +619,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               onChanged: (v) {
                 setState(() {
                   _selectedLenderPreset = v;
+                  _selectedSubEntityLabel = null;
                   if (v != null && v != 'Otro...') {
                     _lenderCtrl.text = v;
                     final lower = v.toLowerCase();
@@ -580,7 +670,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                 ),
                 validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
                 onChanged: (_) {
-                  setState(() {});
+                  setState(() => _selectedSubEntityLabel = null);
                   _applyEntityTemplate();
                 },
               ),
@@ -588,6 +678,28 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           ],
         ],
       ),
+      if (subEntityOptions.isNotEmpty) ...[
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String>(
+            isExpanded: true,
+          initialValue: _selectedSubEntityLabel,
+          decoration: const InputDecoration(
+            labelText: 'Sub-marca / Producto (opcional)',
+            hintText: 'Ej. CMR Falabella vs. Banco Falabella',
+          ),
+          items: subEntityOptions
+              .map((s) => DropdownMenuItem(value: s.label, child: Text(s.label)))
+              .toList(),
+          onChanged: (v) {
+            setState(() {
+              _selectedSubEntityLabel = v;
+              final option = subEntityOptions.firstWhere((s) => s.label == v);
+              _lenderCtrl.text = option.lenderText;
+            });
+            _applyEntityTemplate();
+          },
+        ),
+      ],
       if (suggestion != null) ...[
         const SizedBox(height: 8),
         Container(
@@ -651,15 +763,6 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           );
         }).toList(),
       ),
-      const SizedBox(height: 16),
-      TextFormField(
-        controller: _notesCtrl,
-        maxLines: 2,
-        decoration: const InputDecoration(
-          labelText: 'Indicaciones del Crédito / Comentarios',
-          hintText: 'Ej. Garantía guardada en la gaveta, seguro incluido...',
-        ),
-      ),
       const SizedBox(height: 20),
       Divider(color: kredit.borderCard),
       const SizedBox(height: 12),
@@ -675,22 +778,102 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         'Revisa que todo esté correcto antes de registrar el crédito.',
         style: TextStyle(fontSize: 11, color: kredit.textTertiary),
       ),
-      const SizedBox(height: 8),
-      Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(KreditSpacing.tile),
-        decoration: BoxDecoration(
-          color: kredit.bgSecondary,
-          border: Border.all(color: kredit.borderCard),
-          borderRadius: BorderRadius.circular(KreditRadius.tile),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: _summaryRows(),
-        ),
+      const SizedBox(height: 12),
+      ..._previewCard(),
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: _summaryRows(),
       ),
       const SizedBox(height: 12),
     ];
+  }
+
+  // Live preview of how this credit will look once saved, mirroring the
+  // "VISTA PREVIA DE TARJETA" block in edit_credit_sheet.dart so create and
+  // edit stay visually consistent. Only rendered once the fields needed to
+  // build a Credit are actually present — falls back to nothing (just the
+  // text summary below) if the data isn't parseable yet.
+  List<Widget> _previewCard() {
+    final credit = _buildPreviewCredit();
+    if (credit == null) return const [];
+    return [
+      const Text(
+        'VISTA PREVIA DE TARJETA',
+        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.8),
+      ),
+      const SizedBox(height: 8),
+      WalletCard(credit: credit),
+      const SizedBox(height: 16),
+    ];
+  }
+
+  // Builds a throwaway Credit from the current form state purely for the
+  // step-3 preview — never persisted. Returns null when the data isn't
+  // complete/parseable enough to render a meaningful card (the real
+  // validation/build happens in `_save`).
+  Credit? _buildPreviewCredit() {
+    final name = _nameCtrl.text.trim().isEmpty ? '(sin nombre)' : _nameCtrl.text.trim();
+    final lender = _lenderCtrl.text.trim().isEmpty ? '(sin definir)' : _lenderCtrl.text.trim();
+    try {
+      if (_type == CreditType.card) {
+        final creditLimit = double.tryParse(CurrencyInputFormatter.unformat(_limitCtrl.text)) ?? 0;
+        final currentBalance = double.tryParse(CurrencyInputFormatter.unformat(_balanceCtrl.text)) ?? 0;
+        final cutoffDay = int.tryParse(_cutoffDayCtrl.text) ?? 15;
+        final paymentDueOffsetDays = int.tryParse(_paymentOffsetCtrl.text) ?? 20;
+        final interestRate = double.tryParse(_interestCtrl.text.replaceAll(',', '.')) ?? 0;
+        final managementFee = double.tryParse(CurrencyInputFormatter.unformat(_managementFeeCtrl.text)) ?? 0;
+        return CardCredit(
+          id: 'preview',
+          name: name,
+          lender: lender,
+          color: _color,
+          notes: _notesCtrl.text.trim(),
+          creditLimit: creditLimit,
+          currentBalance: currentBalance,
+          cutoffDay: cutoffDay,
+          paymentDueOffsetDays: paymentDueOffsetDays,
+          interestRate: interestRate,
+          interestRateType: _interestRateType,
+          managementFee: managementFee,
+          managementFeeFrequency: _managementFeeFrequency,
+        );
+      }
+      if (_startDate == null) return null;
+      final totalAmount = double.tryParse(CurrencyInputFormatter.unformat(_amountCtrl.text));
+      final totalInstallments = int.tryParse(_installmentsCtrl.text);
+      final quotaAmount = double.tryParse(CurrencyInputFormatter.unformat(_quotaCtrl.text));
+      if (totalAmount == null || totalInstallments == null || quotaAmount == null) return null;
+      final interestRate = double.tryParse(_interestCtrl.text.replaceAll(',', '.')) ?? 0;
+      final startDateStr = toDateStr(_startDate!);
+      final installments = buildLoanInstallments(
+        totalAmount: totalAmount,
+        totalInstallments: totalInstallments,
+        quotaAmount: quotaAmount,
+        frequency: _frequency,
+        startDate: startDateStr,
+        interestRate: interestRate,
+        interestRateType: _interestRateType,
+      );
+      return LoanCredit(
+        id: 'preview',
+        name: name,
+        lender: lender,
+        color: _color,
+        notes: _notesCtrl.text.trim(),
+        location: _locationCtrl.text.trim(),
+        card: _cardCtrl.text.trim(),
+        totalAmount: totalAmount,
+        quotaAmount: quotaAmount,
+        totalInstallments: totalInstallments,
+        frequency: _frequency,
+        startDate: startDateStr,
+        interestRate: interestRate,
+        interestRateType: _interestRateType,
+        installments: installments,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   List<Widget> _summaryRows() {
@@ -699,16 +882,20 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     final typeLabel = _type == CreditType.card ? 'Tarjeta de Crédito' : 'Préstamo / Cuotas Fijas';
 
     if (_type == CreditType.card) {
-      final limit = _limitCtrl.text.trim().isEmpty ? '0' : _limitCtrl.text.trim();
-      final balance = _balanceCtrl.text.trim().isEmpty ? '0' : _balanceCtrl.text.trim();
+      final limitText = _limitCtrl.text.trim();
+      final limitValue = double.tryParse(CurrencyInputFormatter.unformat(limitText));
+      final limit = (limitText.isEmpty || limitValue == null || limitValue == 0)
+          ? 'No definido'
+          : '\$$limitText';
+      final balance = _balanceCtrl.text.trim().isEmpty ? '\$0' : '\$${_balanceCtrl.text.trim()}';
       final cutoff = _cutoffDayCtrl.text.trim().isEmpty ? '—' : 'Día ${_cutoffDayCtrl.text.trim()}';
       final offset = _paymentOffsetCtrl.text.trim().isEmpty ? '—' : '${_paymentOffsetCtrl.text.trim()} días después del corte';
       return [
         _SummaryRow(label: 'Nombre', value: name),
         _SummaryRow(label: 'Tipo', value: typeLabel),
         _SummaryRow(label: 'Entidad', value: lender),
-        _SummaryRow(label: 'Límite', value: '\$$limit'),
-        _SummaryRow(label: 'Saldo actual', value: '\$$balance'),
+        _SummaryRow(label: 'Límite', value: limit),
+        _SummaryRow(label: 'Saldo actual', value: balance),
         _SummaryRow(label: 'Corte', value: cutoff),
         _SummaryRow(label: 'Fecha límite', value: offset),
       ];
@@ -717,7 +904,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     final amount = _amountCtrl.text.trim().isEmpty ? '0' : _amountCtrl.text.trim();
     final installments = _installmentsCtrl.text.trim().isEmpty ? '—' : _installmentsCtrl.text.trim();
     final quota = _quotaCtrl.text.trim().isEmpty ? '0' : _quotaCtrl.text.trim();
-    final startDate = _startDate == null ? '(sin definir)' : toDateStr(_startDate!);
+    final startDate = _startDate == null ? '(sin definir)' : formatDate(toDateStr(_startDate!));
     return [
       _SummaryRow(label: 'Nombre', value: name),
       _SummaryRow(label: 'Tipo', value: typeLabel),
@@ -730,11 +917,12 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   }
 
   List<Widget> _loanFields() {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
     return [
       const SizedBox(height: 12),
-      _SectionCard(
-        label: 'DÓNDE Y CON QUÉ',
-        icon: Icons.storefront_outlined,
+      _CollapsibleSection(
+        title: 'Detalles adicionales (opcional)',
+        icon: Icons.more_horiz,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -744,6 +932,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     DropdownButtonFormField<String>(
+                        isExpanded: true,
                       initialValue: _selectedLocationPreset,
                       decoration: const InputDecoration(labelText: 'Comercio / Establecimiento'),
                       items: _presetLocations
@@ -779,6 +968,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     DropdownButtonFormField<String>(
+                        isExpanded: true,
                       initialValue: _selectedCardPreset,
                       decoration: const InputDecoration(labelText: 'Cuenta de Pago / Cargo'),
                       items: _presetCards
@@ -810,6 +1000,15 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _notesCtrl,
+            maxLines: 2,
+            decoration: const InputDecoration(
+              labelText: 'Notas / Indicaciones',
+              hintText: 'Ej. Garantía guardada en la gaveta, seguro incluido...',
+            ),
+          ),
         ],
       ),
       const SizedBox(height: 12),
@@ -822,11 +1021,12 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               Expanded(
                 child: TextFormField(
                   controller: _amountCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Monto Financiado (\$)', hintText: 'Ej. 1500000'),
-                  onChanged: (_) => _suggestQuota(),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: const [CurrencyInputFormatter()],
+                  decoration: const InputDecoration(labelText: 'Monto Financiado (\$)', hintText: 'Ej. 1.500.000'),
+                  onChanged: (_) => _recalcSuggestedQuota(),
                   validator: (v) {
-                    final n = double.tryParse((v ?? '').replaceAll(',', '.'));
+                    final n = double.tryParse(CurrencyInputFormatter.unformat(v ?? ''));
                     if (n == null || n <= 0) return 'Requerido';
                     return null;
                   },
@@ -838,7 +1038,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                   controller: _installmentsCtrl,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(labelText: 'Cantidad de Cuotas', hintText: 'Ej. 12'),
-                  onChanged: (_) => _suggestQuota(),
+                  onChanged: (_) => _recalcSuggestedQuota(),
                   validator: (v) {
                     final n = int.tryParse(v ?? '');
                     if (n == null || n <= 0) return 'Requerido';
@@ -850,27 +1050,33 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           ),
           const SizedBox(height: 12),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: TextFormField(
-                  controller: _quotaCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(
-                    labelText: 'Valor de la Cuota (\$)',
-                    hintText: () {
-                      final amount = double.tryParse(_amountCtrl.text.replaceAll(',', '.'));
-                      final n = int.tryParse(_installmentsCtrl.text);
-                      if (amount != null && n != null && n > 0) {
-                        return 'Sugerido: \$${(amount / n).toStringAsFixed(2)}';
-                      }
-                      return 'Ej. 125000';
-                    }(),
-                  ),
-                  validator: (v) {
-                    final n = double.tryParse((v ?? '').replaceAll(',', '.'));
-                    if (n == null || n <= 0) return 'Requerido';
-                    return null;
-                  },
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextFormField(
+                      controller: _quotaCtrl,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: const [CurrencyInputFormatter()],
+                      decoration: const InputDecoration(
+                        labelText: 'Valor de la Cuota (\$)',
+                        hintText: 'Ej. 125.000',
+                      ),
+                      onChanged: (_) => setState(() => _quotaTouched = true),
+                      validator: (v) {
+                        final n = double.tryParse(CurrencyInputFormatter.unformat(v ?? ''));
+                        if (n == null || n <= 0) return 'Requerido';
+                        return null;
+                      },
+                    ),
+                    if (_quotaTouched && _quotaSuggestionHint != null)
+                      _SuggestedQuotaHint(
+                        text: _quotaSuggestionHint!,
+                        onTap: _applySuggestedQuota,
+                      ),
+                  ],
                 ),
               ),
               const SizedBox(width: 12),
@@ -885,13 +1091,21 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                         labelText: 'Interés anual (%)',
                         hintText: 'Opcional (Ej. 28)',
                       ),
-                      onChanged: (_) => setState(() {}),
+                      onChanged: (_) => _recalcSuggestedQuota(),
                     ),
                     if (_interestRateWarning != null) _InterestRateWarningHint(text: _interestRateWarning!),
                   ],
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          InterestRateTypeField(
+            value: _interestRateType,
+            onChanged: (v) {
+              setState(() => _interestRateType = v);
+              _recalcSuggestedQuota();
+            },
           ),
         ],
       ),
@@ -901,27 +1115,53 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         icon: Icons.event_repeat_outlined,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: DropdownButtonFormField<String>(
-                  initialValue: _frequency,
-                  decoration: const InputDecoration(labelText: 'Frecuencia de Cuotas'),
-                  items: const [
-                    DropdownMenuItem(value: CreditFrequency.monthly, child: Text('Mensual')),
-                    DropdownMenuItem(value: CreditFrequency.biweekly, child: Text('Quincenal (14 días)')),
-                    DropdownMenuItem(value: CreditFrequency.weekly, child: Text('Semanal')),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    DropdownButtonFormField<String>(
+                        isExpanded: true,
+                      initialValue: _frequency,
+                      decoration: const InputDecoration(labelText: 'Frecuencia de Cuotas'),
+                      items: const [
+                        DropdownMenuItem(value: CreditFrequency.monthly, child: Text('Mensual')),
+                        DropdownMenuItem(value: CreditFrequency.biweekly, child: Text('Quincenal (14 días)')),
+                        DropdownMenuItem(value: CreditFrequency.weekly, child: Text('Semanal')),
+                      ],
+                      onChanged: (v) {
+                        setState(() => _frequency = v ?? CreditFrequency.monthly);
+                        _recalcSuggestedQuota();
+                      },
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '¿Cada cuánto vence una cuota? La mayoría de créditos son mensuales.',
+                      style: TextStyle(fontSize: 11, color: kredit.textTertiary),
+                    ),
                   ],
-                  onChanged: (v) => setState(() => _frequency = v ?? CreditFrequency.monthly),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: InkWell(
-                  onTap: _pickStartDate,
-                  child: InputDecorator(
-                    decoration: const InputDecoration(labelText: 'Fecha de Primer Pago'),
-                    child: Text(_startDate == null ? 'Selecciona una fecha' : toDateStr(_startDate!)),
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    InkWell(
+                      onTap: _pickStartDate,
+                      child: InputDecorator(
+                        decoration: const InputDecoration(labelText: 'Fecha de Primer Pago'),
+                        child: Text(_startDate == null ? 'Selecciona una fecha' : formatDate(toDateStr(_startDate!))),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'La fecha en que vence (o venció) tu primera cuota — la ves en tu '
+                      'contrato o primer recibo.',
+                      style: TextStyle(fontSize: 11, color: kredit.textTertiary),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -943,12 +1183,22 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               Expanded(
                 child: TextFormField(
                   controller: _limitCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration:
-                      const InputDecoration(labelText: 'Límite Total de la Tarjeta (\$)', hintText: 'Ej. 3000000'),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: const [CurrencyInputFormatter()],
+                  decoration: const InputDecoration(
+                    labelText: 'Límite de la tarjeta (opcional)',
+                    hintText: 'Ej. 3.000.000 — déjalo vacío si no lo sabes',
+                  ),
+                  // Optional: an empty limit is saved as 0 and the views
+                  // that depend on a real limit (cupo disponible, %
+                  // utilizado) show "No definido" instead of computing
+                  // against a limit of $0 — see wallet_card.dart/
+                  // summary_tab.dart. Still rejects a negative number if
+                  // the user does type something implausible.
                   validator: (v) {
-                    final n = double.tryParse((v ?? '').replaceAll(',', '.'));
-                    if (n == null || n < 0) return 'Requerido';
+                    if (v == null || v.trim().isEmpty) return null;
+                    final n = double.tryParse(CurrencyInputFormatter.unformat(v));
+                    if (n == null || n < 0) return 'Debe ser un número válido';
                     return null;
                   },
                 ),
@@ -957,8 +1207,18 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               Expanded(
                 child: TextFormField(
                   controller: _balanceCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Saldo Actual de Deuda (\$)', hintText: 'Ej. 500000'),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: const [CurrencyInputFormatter()],
+                  decoration: const InputDecoration(
+                    labelText: 'Saldo actual de deuda (opcional)',
+                    hintText: 'Ej. 500.000',
+                  ),
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return null;
+                    final n = double.tryParse(CurrencyInputFormatter.unformat(v));
+                    if (n == null || n < 0) return 'Debe ser un número válido';
+                    return null;
+                  },
                 ),
               ),
             ],
@@ -1046,17 +1306,24 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               Expanded(
                 child: TextFormField(
                   controller: _managementFeeCtrl,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: const [CurrencyInputFormatter()],
                   decoration: const InputDecoration(
                     labelText: 'Cuota de Mantenimiento (\$)',
-                    hintText: 'Ej. 15000 (0 si no cobra)',
+                    hintText: 'Ej. 15.000 (0 si no cobra)',
                   ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
+          InterestRateTypeField(
+            value: _interestRateType,
+            onChanged: (v) => setState(() => _interestRateType = v),
+          ),
+          const SizedBox(height: 12),
           DropdownButtonFormField<String>(
+              isExpanded: true,
             initialValue: _managementFeeFrequency,
             decoration: const InputDecoration(labelText: 'Frecuencia de Cobro de Mantenimiento'),
             items: const [
@@ -1067,7 +1334,55 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           ),
         ],
       ),
+      const SizedBox(height: 12),
+      _CollapsibleSection(
+        title: 'Detalles adicionales (opcional)',
+        icon: Icons.more_horiz,
+        children: [
+          TextFormField(
+            controller: _notesCtrl,
+            maxLines: 2,
+            decoration: const InputDecoration(
+              labelText: 'Notas / Indicaciones',
+              hintText: 'Ej. Garantía guardada en la gaveta, seguro incluido...',
+            ),
+          ),
+        ],
+      ),
     ];
+  }
+}
+
+/// Tappable "Sugerido: $X" hint shown under the quota field once the user
+/// has typed into it manually — never overwrites their value silently;
+/// tapping it applies the suggestion and hands auto-calc control back.
+class _SuggestedQuotaHint extends StatelessWidget {
+  final String text;
+  final VoidCallback onTap;
+  const _SuggestedQuotaHint({required this.text, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: InkWell(
+        onTap: onTap,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.calculate_outlined, size: 14, color: kredit.textTertiary),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                text,
+                style: TextStyle(fontSize: 11, color: kredit.textTertiary),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -1174,9 +1489,11 @@ class _StepProgress extends StatelessWidget {
   }
 }
 
-/// Boxed section used to visually separate a related cluster of fields
-/// within a step (e.g. "monto/cuotas" vs. "fecha/frecuencia") instead of
-/// letting them all run together in one long column.
+/// Typographic section separator used to group a related cluster of fields
+/// within a step (e.g. "monto/cuotas" vs. "fecha/frecuencia") — a small
+/// uppercase heading over a hairline [Divider] instead of a decorative
+/// bordered box, matching the "sin cajas" visual language used across the
+/// app (see dashboard_screen.dart).
 class _SectionCard extends StatelessWidget {
   final String label;
   final IconData icon;
@@ -1187,35 +1504,82 @@ class _SectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(KreditSpacing.tile),
-      decoration: BoxDecoration(
-        color: kredit.bgSecondary,
-        border: Border.all(color: kredit.borderCard),
-        borderRadius: BorderRadius.circular(KreditRadius.tile),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 14, color: kredit.textTertiary),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.4,
-                  color: kredit.textTertiary,
-                ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 14, color: kredit.textTertiary),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.4,
+                color: kredit.textTertiary,
               ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ...children,
-        ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Divider(height: 1, color: kredit.borderCard),
+        const SizedBox(height: 12),
+        ...children,
+      ],
+    );
+  }
+}
+
+/// Collapsible "Detalles adicionales (opcional)" group for secondary fields
+/// (comercio/cuenta de pago/notas) that most users don't need to touch —
+/// closed by default so the form reads shorter, but one tap away. Built as
+/// a typographic header + hairline [Divider] that expands/collapses (same
+/// "sin cajas" language as [_SectionCard]), not a boxed [Card], so it fits
+/// the app's established visual system.
+class _CollapsibleSection extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final List<Widget> children;
+
+  const _CollapsibleSection({
+    required this.title,
+    required this.icon,
+    required this.children,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    return Theme(
+      // Strip the default ExpansionTile dividers/ink so it reads as plain
+      // typography over a hairline, matching _SectionCard's look.
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        tilePadding: EdgeInsets.zero,
+        childrenPadding: const EdgeInsets.only(top: 12),
+        expandedAlignment: Alignment.centerLeft,
+        expandedCrossAxisAlignment: CrossAxisAlignment.start,
+        shape: const Border(),
+        collapsedShape: const Border(),
+        iconColor: kredit.textTertiary,
+        collapsedIconColor: kredit.textTertiary,
+        title: Row(
+          children: [
+            Icon(icon, size: 14, color: kredit.textTertiary),
+            const SizedBox(width: 6),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.4,
+                color: kredit.textTertiary,
+              ),
+            ),
+          ],
+        ),
+        children: children,
       ),
     );
   }

@@ -9,12 +9,24 @@ import '../../domain/credit_calculator.dart';
 import '../../domain/date_utils.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/credit_display_utils.dart';
 import '../../widgets/account/stats_grid.dart';
+import '../../widgets/progress_ring.dart';
 import 'simulator_sheet.dart';
 
 const _monthsEs = [
-  'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-  'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
+  'Ene',
+  'Feb',
+  'Mar',
+  'Abr',
+  'May',
+  'Jun',
+  'Jul',
+  'Ago',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dic',
 ];
 
 /// "Estadísticas avanzadas" screen: month-by-month debt projection, debt
@@ -34,13 +46,31 @@ class StatsScreen extends ConsumerWidget {
           if (credits.isEmpty) {
             return const _EmptyState();
           }
+          final kredit = Theme.of(context).extension<KreditColors>()!;
+          Widget sectionDivider() => Column(
+                children: [
+                  const SizedBox(height: 6),
+                  Divider(height: 1, color: kredit.borderCard),
+                  const SizedBox(height: 22),
+                ],
+              );
           return ListView(
             padding: const EdgeInsets.all(KreditSpacing.card),
             children: [
+              _DebtOverviewPanel(credits: credits),
+              const SizedBox(height: 22),
               StatsGrid(credits: credits),
-              const SizedBox(height: 24),
-              _ActionableMetricsSummary(credits: credits),
-              const SizedBox(height: 24),
+              sectionDivider(),
+              _statsSectionHeader(
+                context,
+                Icons.savings_outlined,
+                'Abonos extra realizados',
+                subtitle:
+                    'Impacto real de lo que ya has abonado a tus préstamos',
+              ),
+              const SizedBox(height: 12),
+              _AbonosHistorySummary(credits: credits),
+              sectionDivider(),
               _statsSectionHeader(
                 context,
                 Icons.show_chart_outlined,
@@ -49,16 +79,17 @@ class StatsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               _MonthlyDebtChart(credits: credits),
-              const SizedBox(height: 28),
+              sectionDivider(),
               _statsSectionHeader(
                 context,
                 Icons.donut_small_outlined,
                 'Distribución por entidad',
-                subtitle: 'Proporción de tu deuda pendiente por banco o entidad',
+                subtitle:
+                    'Proporción de tu deuda pendiente por banco o entidad',
               ),
               const SizedBox(height: 12),
               _LenderDistributionChart(credits: credits),
-              const SizedBox(height: 28),
+              sectionDivider(),
               _statsSectionHeader(
                 context,
                 Icons.event_available_outlined,
@@ -67,7 +98,7 @@ class StatsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               _PayoffProjectionList(credits: credits),
-              const SizedBox(height: 28),
+              sectionDivider(),
               _statsSectionHeader(
                 context,
                 Icons.calculate_outlined,
@@ -90,20 +121,26 @@ class StatsScreen extends ConsumerWidget {
   }
 }
 
-class _ActionableMetricsSummary extends StatelessWidget {
+/// Editorial header panel: "Deuda activa total" leads as the protagonist
+/// figure with a `ProgressRing` as its organic accent (same pattern as
+/// dashboard_screen.dart's "DEUDA TOTAL"), and cupo disponible follows as a
+/// secondary typographic stat — no surrounding boxes.
+class _DebtOverviewPanel extends StatelessWidget {
   final List<Credit> credits;
-  const _ActionableMetricsSummary({required this.credits});
+  const _DebtOverviewPanel({required this.credits});
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final kredit = Theme.of(context).extension<KreditColors>()!;
     double totalOwed = 0;
     double totalLimit = 0;
     int activeCount = 0;
 
     for (final c in credits) {
       if (c is LoanCredit) {
-        final unpaid = c.installments.where((i) => !i.paid).fold(0.0, (sum, i) => sum + i.amount);
+        final unpaid = c.installments
+            .where((i) => !i.paid)
+            .fold(0.0, (sum, i) => sum + i.amount);
         totalOwed += unpaid;
         if (unpaid > 0) activeCount++;
       } else if (c is CardCredit) {
@@ -113,30 +150,80 @@ class _ActionableMetricsSummary extends StatelessWidget {
       }
     }
 
-    final availableCredit = totalLimit > totalOwed ? totalLimit - totalOwed : 0.0;
-    final fmt = NumberFormatLike(); // Bug 4: thousands-separator formatter
+    final availableCredit = totalLimit > totalOwed
+        ? totalLimit - totalOwed
+        : 0.0;
+    final progressPct = getLoansProgressPercent(credits);
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
-              child: _MetricCard(
-                label: 'Deuda Activa Total',
-                value: fmt.format(totalOwed),
-                subtext: '$activeCount créditos vigentes',
-                color: colorScheme.error,
-                icon: Icons.account_balance_wallet_outlined,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'DEUDA ACTIVA TOTAL',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.4,
+                      color: kredit.textTertiary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    formatCOP(totalOwed),
+                    style: const TextStyle(
+                      fontSize: 38,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -1.2,
+                      height: 1.0,
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 16),
+            ProgressRing(percent: progressPct, size: 68),
+          ],
+        ),
+        const SizedBox(height: 22),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Expanded(
-              child: _MetricCard(
-                label: 'Cupo Disponible (Tarjetas)',
-                value: fmt.format(availableCredit),
-                subtext: 'Límite total ${fmt.format(totalLimit)}',
-                color: colorScheme.primary,
-                icon: Icons.credit_card_outlined,
+              child: _StatColumn(
+                label: 'Créditos activos',
+                value: '$activeCount',
+              ),
+            ),
+            Container(
+              width: 1,
+              height: 34,
+              margin: const EdgeInsets.symmetric(horizontal: 18),
+              color: kredit.borderCard,
+            ),
+            Expanded(
+              child: _StatColumn(
+                label: 'Cupo disponible',
+                value: formatCOP(availableCredit),
+              ),
+            ),
+            Container(
+              width: 1,
+              height: 34,
+              margin: const EdgeInsets.symmetric(horizontal: 18),
+              color: kredit.borderCard,
+            ),
+            Expanded(
+              child: _StatColumn(
+                label: 'Límite total',
+                value: formatCOP(totalLimit),
               ),
             ),
           ],
@@ -146,48 +233,54 @@ class _ActionableMetricsSummary extends StatelessWidget {
   }
 }
 
-class _MetricCard extends StatelessWidget {
+/// Secondary metric expressed purely through typography — a mid-weight
+/// value over a small-caps label, no surrounding box.
+class _StatColumn extends StatelessWidget {
   final String label;
   final String value;
-  final String subtext;
-  final Color color;
-  final IconData icon;
-
-  const _MetricCard({
-    required this.label,
-    required this.value,
-    required this.subtext,
-    required this.color,
-    required this.icon,
-  });
+  const _StatColumn({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
-    return Container(
-      padding: const EdgeInsets.all(KreditSpacing.tile),
-      decoration: BoxDecoration(
-        color: kredit.bgCard,
-        borderRadius: BorderRadius.circular(KreditRadius.card),
-        border: Border.all(color: kredit.borderCard),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 20, color: color),
-          const SizedBox(height: 10),
-          Text(label, style: TextStyle(fontSize: 11, color: kredit.textSecondary)),
-          const SizedBox(height: 4),
-          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kredit.textPrimary)),
-          const SizedBox(height: 2),
-          Text(subtext, style: TextStyle(fontSize: 10, color: kredit.textTertiary)),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 19,
+            letterSpacing: -0.3,
+            fontFeatures: [FontFeature.tabularFigures()],
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 3),
+        Text(
+          label.toUpperCase(),
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.6,
+            color: kredit.textTertiary,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
     );
   }
 }
 
-Widget _statsSectionHeader(BuildContext context, IconData icon, String title, {String? subtitle}) {
+Widget _statsSectionHeader(
+  BuildContext context,
+  IconData icon,
+  String title, {
+  String? subtitle,
+}) {
   final kredit = Theme.of(context).extension<KreditColors>()!;
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,7 +304,10 @@ Widget _statsSectionHeader(BuildContext context, IconData icon, String title, {S
         const SizedBox(height: 2),
         Padding(
           padding: const EdgeInsets.only(left: 26),
-          child: Text(subtitle, style: TextStyle(fontSize: 12, color: kredit.textTertiary)),
+          child: Text(
+            subtitle,
+            style: TextStyle(fontSize: 12, color: kredit.textTertiary),
+          ),
         ),
       ],
     ],
@@ -283,7 +379,11 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.bar_chart_outlined, size: 56, color: kredit.textTertiary),
+            Icon(
+              Icons.bar_chart_outlined,
+              size: 56,
+              color: kredit.textTertiary,
+            ),
             const SizedBox(height: 16),
             Text(
               'Sin datos para graficar',
@@ -328,7 +428,10 @@ class _MonthKey implements Comparable<_MonthKey> {
 /// Sums projected debt per month for the next [monthsAhead] months: loan
 /// installments (unpaid, grouped by dueDate month) plus each card's current
 /// balance placed in the month of its next due date.
-Map<_MonthKey, double> _projectMonthlyDebt(List<Credit> credits, {int monthsAhead = 6}) {
+Map<_MonthKey, double> _projectMonthlyDebt(
+  List<Credit> credits, {
+  int monthsAhead = 6,
+}) {
   final now = DateTime.now();
   final start = _MonthKey(now.year, now.month);
   final months = <_MonthKey>[];
@@ -378,71 +481,94 @@ class _MonthlyDebtChart extends StatelessWidget {
     final maxY = entries.fold<double>(0, (m, e) => e.value > m ? e.value : m);
 
     if (maxY <= 0) {
-      return const _InlineEmptyCard(text: 'No hay cuotas ni saldos próximos por proyectar.');
+      return const _InlineEmptyCard(
+        text: 'No hay cuotas ni saldos próximos por proyectar.',
+      );
     }
 
-    return Card(
-      elevation: 0,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 20, 20, 16),
-        child: SizedBox(
-          height: 220,
-          child: BarChart(
-            duration: const Duration(milliseconds: 600),
-            curve: Curves.easeOutCubic,
-            BarChartData(
-              maxY: maxY * 1.2,
-              alignment: BarChartAlignment.spaceAround,
-              gridData: const FlGridData(show: false),
-              borderData: FlBorderData(show: false),
-              barTouchData: BarTouchData(
-                touchTooltipData: BarTouchTooltipData(
-                  getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                    return BarTooltipItem(
-                      _currency.format(rod.toY),
-                      TextStyle(color: kredit.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 8, 8, 0),
+      child: SizedBox(
+        height: 220,
+        child: BarChart(
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeOutCubic,
+          BarChartData(
+            maxY: maxY * 1.2,
+            alignment: BarChartAlignment.spaceAround,
+            gridData: const FlGridData(show: false),
+            borderData: FlBorderData(show: false),
+            barTouchData: BarTouchData(
+              touchTooltipData: BarTouchTooltipData(
+                getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                  return BarTooltipItem(
+                    _currency.format(rod.toY),
+                    TextStyle(
+                      color: kredit.textPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  );
+                },
+              ),
+            ),
+            titlesData: FlTitlesData(
+              leftTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
+              topTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
+              rightTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false),
+              ),
+              bottomTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 36,
+                  getTitlesWidget: (value, meta) {
+                    final idx = value.toInt();
+                    if (idx < 0 || idx >= entries.length) {
+                      return const SizedBox.shrink();
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(
+                        entries[idx].key.label,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: kredit.textTertiary,
+                        ),
+                      ),
                     );
                   },
                 ),
               ),
-              titlesData: FlTitlesData(
-                leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 36,
-                    getTitlesWidget: (value, meta) {
-                      final idx = value.toInt();
-                      if (idx < 0 || idx >= entries.length) return const SizedBox.shrink();
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Text(
-                          entries[idx].key.label,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 10, color: kredit.textTertiary),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              barGroups: [
-                for (var i = 0; i < entries.length; i++)
-                  BarChartGroupData(
-                    x: i,
-                    barRods: [
-                      BarChartRodData(
-                        toY: entries[i].value,
-                        color: accent,
-                        width: 18,
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-                      ),
-                    ],
-                  ),
-              ],
             ),
+            barGroups: [
+              for (var i = 0; i < entries.length; i++)
+                BarChartGroupData(
+                  x: i,
+                  barRods: [
+                    BarChartRodData(
+                      toY: entries[i].value,
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                          accent.withValues(alpha: 0.45),
+                          accent,
+                        ],
+                      ),
+                      width: 20,
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(6),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
           ),
         ),
       ),
@@ -457,15 +583,11 @@ class _InlineEmptyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
-    return Card(
-      elevation: 0,
-      child: Padding(
-        padding: const EdgeInsets.all(KreditSpacing.card),
-        child: Text(
-          text,
-          textAlign: TextAlign.center,
-          style: TextStyle(color: kredit.textTertiary, fontSize: 13),
-        ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Text(
+        text,
+        style: TextStyle(fontSize: 12, color: kredit.textTertiary),
       ),
     );
   }
@@ -475,7 +597,11 @@ class _LenderSlice {
   final String label;
   final double amount;
   final Color color;
-  const _LenderSlice({required this.label, required this.amount, required this.color});
+  const _LenderSlice({
+    required this.label,
+    required this.amount,
+    required this.color,
+  });
 }
 
 List<_LenderSlice> _distributionByLender(List<Credit> credits) {
@@ -485,7 +611,10 @@ List<_LenderSlice> _distributionByLender(List<Credit> credits) {
   for (final credit in credits) {
     final balance = getCreditRemainingBalance(credit);
     if (balance <= 0) continue;
-    final bank = detectBank(lender: credit.lender, card: credit is LoanCredit ? credit.card : null);
+    final bank = detectBank(
+      lender: credit.lender,
+      card: credit is LoanCredit ? credit.card : null,
+    );
     final key = bank.shortLabel.isEmpty ? credit.lender : bank.shortLabel;
     byLender[key] = (byLender[key] ?? 0) + balance;
     colorByLender.putIfAbsent(key, () {
@@ -495,7 +624,8 @@ List<_LenderSlice> _distributionByLender(List<Credit> credits) {
     });
   }
 
-  final entries = byLender.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+  final entries = byLender.entries.toList()
+    ..sort((a, b) => b.value.compareTo(a.value));
   return [
     for (final e in entries)
       _LenderSlice(label: e.key, amount: e.value, color: colorByLender[e.key]!),
@@ -515,67 +645,67 @@ class _LenderDistributionChart extends StatelessWidget {
     final total = slices.fold<double>(0, (s, e) => s + e.amount);
 
     if (slices.isEmpty || total <= 0) {
-      return const _InlineEmptyCard(text: 'No hay deuda pendiente para distribuir.');
+      return const _InlineEmptyCard(
+        text: 'No hay deuda pendiente para distribuir.',
+      );
     }
 
-    return Card(
-      elevation: 0,
-      child: Padding(
-        padding: const EdgeInsets.all(KreditSpacing.card),
-        child: Column(
-          children: [
-            SizedBox(
-              height: 180,
-              child: PieChart(
-                duration: const Duration(milliseconds: 600),
-                curve: Curves.easeOutCubic,
-                PieChartData(
-                  sectionsSpace: 2,
-                  centerSpaceRadius: 44,
-                  sections: [
-                    for (final s in slices)
-                      PieChartSectionData(
-                        value: s.amount,
-                        color: s.color,
-                        title: '${(s.amount / total * 100).round()}%',
-                        radius: 46,
-                        titleStyle: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white, // Bug 1: always legible on vivid slice colors
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 16,
-              runSpacing: 8,
-              alignment: WrapAlignment.center,
-              children: [
+    return Column(
+      children: [
+        SizedBox(
+          height: 180,
+          child: PieChart(
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeOutCubic,
+            PieChartData(
+              sectionsSpace: 2,
+              centerSpaceRadius: 44,
+              sections: [
                 for (final s in slices)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(color: s.color, shape: BoxShape.circle),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '${s.label} · ${_currency.format(s.amount)}',
-                        style: TextStyle(fontSize: 12, color: kredit.textSecondary),
-                      ),
-                    ],
+                  PieChartSectionData(
+                    value: s.amount,
+                    color: s.color,
+                    title: '${(s.amount / total * 100).round()}%',
+                    radius: 46,
+                    titleStyle: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors
+                          .white, // Bug 1: always legible on vivid slice colors
+                    ),
                   ),
               ],
             ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 16,
+          runSpacing: 8,
+          alignment: WrapAlignment.center,
+          children: [
+            for (final s in slices)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: s.color,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${s.label} · ${_currency.format(s.amount)}',
+                    style: TextStyle(fontSize: 12, color: kredit.textSecondary),
+                  ),
+                ],
+              ),
           ],
         ),
-      ),
+      ],
     );
   }
 }
@@ -584,7 +714,11 @@ class _PayoffEntry {
   final String name;
   final DateTime endDate;
   final int monthsFromNow;
-  const _PayoffEntry({required this.name, required this.endDate, required this.monthsFromNow});
+  const _PayoffEntry({
+    required this.name,
+    required this.endDate,
+    required this.monthsFromNow,
+  });
 }
 
 List<_PayoffEntry> _payoffProjections(List<Credit> credits) {
@@ -600,11 +734,13 @@ List<_PayoffEntry> _payoffProjections(List<Credit> credits) {
         .map((i) => parseDateStr(i.dueDate))
         .reduce((a, b) => a.isAfter(b) ? a : b);
     final months = ((lastDue.difference(today).inDays) / 30).ceil();
-    entries.add(_PayoffEntry(
-      name: credit.name,
-      endDate: lastDue,
-      monthsFromNow: months < 0 ? 0 : months,
-    ));
+    entries.add(
+      _PayoffEntry(
+        name: credit.name,
+        endDate: lastDue,
+        monthsFromNow: months < 0 ? 0 : months,
+      ),
+    );
   }
 
   entries.sort((a, b) => a.endDate.compareTo(b.endDate));
@@ -621,33 +757,135 @@ class _PayoffProjectionList extends StatelessWidget {
     final entries = _payoffProjections(credits);
 
     if (entries.isEmpty) {
-      return const _InlineEmptyCard(text: 'No hay créditos con cuotas pendientes.');
+      return const _InlineEmptyCard(
+        text: 'No hay créditos con cuotas pendientes.',
+      );
     }
 
-    return Card(
-      elevation: 0,
-      child: Column(
-        children: [
-          for (var i = 0; i < entries.length; i++) ...[
-            if (i > 0) const Divider(height: 1),
-            ListTile(
-              // Bug 3: explicit KreditColors tokens for consistent theming
-              leading: Icon(Icons.event_available_outlined, color: kredit.textSecondary),
-              title: Text(entries[i].name, style: TextStyle(color: kredit.textPrimary, fontWeight: FontWeight.w600)),
-              subtitle: Text(
-                entries[i].monthsFromNow <= 0
-                    ? 'Termina este mes'
-                    : 'Termina en ${entries[i].monthsFromNow} mes${entries[i].monthsFromNow == 1 ? '' : 'es'}',
-                style: TextStyle(color: kredit.textSecondary, fontSize: 12),
-              ),
-              trailing: Text(
-                formatDate(toDateStr(entries[i].endDate)),
-                style: TextStyle(fontSize: 12, color: kredit.textTertiary),
-              ),
+    return Column(
+      children: [
+        for (var i = 0; i < entries.length; i++) ...[
+          if (i > 0) Divider(height: 1, color: kredit.borderCard),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.event_available_outlined,
+                  size: 18,
+                  color: kredit.textSecondary,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        entries[i].name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14.5,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        entries[i].monthsFromNow <= 0
+                            ? 'Termina este mes'
+                            : 'Termina en ${entries[i].monthsFromNow} mes${entries[i].monthsFromNow == 1 ? '' : 'es'}',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: kredit.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  formatDate(toDateStr(entries[i].endDate)),
+                  style: TextStyle(fontSize: 12, color: kredit.textTertiary),
+                ),
+              ],
             ),
-          ],
+          ),
         ],
-      ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Historial real de abonos extra (Hallazgo B)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _AbonosHistorySummary extends StatelessWidget {
+  final List<Credit> credits;
+  const _AbonosHistorySummary({required this.credits});
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = NumberFormatLike();
+
+    int abonoCount = 0;
+    double abonoTotal = 0;
+    int installmentsAdvanced = 0;
+
+    for (final c in credits) {
+      if (c is! LoanCredit) continue;
+      for (final abono in c.abonos) {
+        abonoCount++;
+        abonoTotal += abono.amount;
+        installmentsAdvanced += abono.installmentsSkipped;
+      }
+    }
+
+    if (abonoCount == 0) {
+      return const _InlineEmptyCard(
+        text:
+            'Aún no has registrado abonos extra. Cuando abones desde el '
+            'simulador o desde el detalle de un préstamo, aquí verás el '
+            'impacto real de esos abonos.',
+      );
+    }
+
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _StatColumn(
+            label: 'Abonos extra realizados',
+            value: '$abonoCount',
+          ),
+        ),
+        Container(
+          width: 1,
+          height: 34,
+          margin: const EdgeInsets.symmetric(horizontal: 18),
+          color: kredit.borderCard,
+        ),
+        Expanded(
+          child: _StatColumn(
+            label: 'Cuotas adelantadas',
+            value: '$installmentsAdvanced',
+          ),
+        ),
+        Container(
+          width: 1,
+          height: 34,
+          margin: const EdgeInsets.symmetric(horizontal: 18),
+          color: kredit.borderCard,
+        ),
+        Expanded(
+          child: _StatColumn(
+            label: 'Suma abonada',
+            value: fmt.format(abonoTotal),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -665,52 +903,40 @@ class _SimulatorEntryCard extends StatelessWidget {
     final kredit = Theme.of(context).extension<KreditColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
 
-    return Card(
-      elevation: 0,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => openSimulatorSheet(context),
-        child: Padding(
-          padding: const EdgeInsets.all(KreditSpacing.tile),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(Icons.calculate_outlined, color: accent, size: 24),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '¿Qué pasa si…?',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                        color: kredit.textPrimary,
-                      ),
+    return InkWell(
+      onTap: () => openSimulatorSheet(context),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            Icon(Icons.calculate_outlined, color: accent, size: 22),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '¿Qué pasa si…?',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14.5,
+                      color: kredit.textPrimary,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Simula una compra en cuotas o un abono extra a capital',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: kredit.textSecondary,
-                      ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Simula una compra en cuotas o un abono extra a capital',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: kredit.textSecondary,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Icon(Icons.chevron_right, color: kredit.textTertiary),
-            ],
-          ),
+            ),
+            const SizedBox(width: 8),
+            Icon(Icons.chevron_right, color: kredit.textTertiary),
+          ],
         ),
       ),
     );

@@ -26,12 +26,14 @@ void main() {
       totalInstallments: 4,
       frequency: CreditFrequency.monthly,
       startDate: '2026-01-01',
+      interestRate: 24,
       installments: buildLoanInstallments(
         totalAmount: 1000,
         totalInstallments: 4,
         quotaAmount: 300,
         frequency: CreditFrequency.monthly,
         startDate: '2026-01-01',
+        interestRate: 24,
       ),
     );
 
@@ -42,7 +44,10 @@ void main() {
     final loaded = all.first as LoanCredit;
     expect(loaded.name, 'Laptop');
     expect(loaded.installments, hasLength(4));
-    expect(loaded.installments[0].interest, closeTo(50, 1e-9));
+    // French amortization: first installment's interest is balance*periodRate
+    // (balance == totalAmount at the start), i.e. > 0 and decreasing after.
+    expect(loaded.installments[0].interest, greaterThan(0));
+    expect(loaded.installments[0].interest, greaterThan(loaded.installments[1].interest));
   });
 
   test('round-trips a card credit with movements', () async {

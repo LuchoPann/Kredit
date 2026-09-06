@@ -25,11 +25,9 @@ class NotificationSettingsTile extends ConsumerWidget {
     final dimmed = on ? kredit.textPrimary : kredit.textTertiary;
     final dimmedSecondary = on ? kredit.textSecondary : kredit.textTertiary;
 
-    return Card(
-      elevation: 0,
-      child: Padding(
-        padding: const EdgeInsets.all(KreditSpacing.card),
-        child: Column(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // --- Header: master on/off ---
@@ -141,7 +139,7 @@ class NotificationSettingsTile extends ConsumerWidget {
               enabled: on,
               icon: Icons.notifications_none,
               title: 'Un solo aviso',
-              subtitle: 'Recibís una notificación el día ${settings.daysBefore} antes del vencimiento.',
+              subtitle: 'Recibes una notificación el día ${settings.daysBefore} antes del vencimiento.',
               onTap: () => notifier.setRepeatDaily(false),
             ),
             const SizedBox(height: 8),
@@ -151,12 +149,11 @@ class NotificationSettingsTile extends ConsumerWidget {
               icon: Icons.repeat,
               title: 'Recordatorio diario',
               subtitle:
-                  'Recibís una notificación cada día, desde ${settings.daysBefore} día${settings.daysBefore == 1 ? '' : 's'} antes hasta el día del vencimiento.',
+                  'Recibes una notificación cada día, desde ${settings.daysBefore} día${settings.daysBefore == 1 ? '' : 's'} antes hasta el día del vencimiento.',
               onTap: () => notifier.setRepeatDaily(true),
             ),
           ],
         ),
-      ),
     );
   }
 }
