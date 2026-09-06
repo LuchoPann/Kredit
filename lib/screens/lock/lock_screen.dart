@@ -90,6 +90,18 @@ class _LockScreenState extends ConsumerState<LockScreen>
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) => tick());
   }
 
+  /// See [_NativePinField._showKeyboard]'s doc comment: `requestFocus()`
+  /// alone doesn't reopen the native keyboard once it's already been
+  /// dismissed while the field kept focus, so fall back to asking the
+  /// platform directly in that case.
+  void _showPinKeyboard() {
+    if (!_pinFocus.hasFocus) {
+      _pinFocus.requestFocus();
+    } else {
+      SystemChannels.textInput.invokeMethod('TextInput.show');
+    }
+  }
+
   Future<void> _maybeAutoBiometric() async {
     final method = ref.read(appLockProvider).method;
     if (method == LockMethod.biometric) {
@@ -174,7 +186,7 @@ class _LockScreenState extends ConsumerState<LockScreen>
       body: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: isPinMode && _remainingLockout == Duration.zero
-            ? () => _pinFocus.requestFocus()
+            ? _showPinKeyboard
             : null,
         child: SafeArea(
           child: Center(
@@ -273,6 +285,21 @@ class _NativePinField extends StatelessWidget {
     required this.onChanged,
     this.lockoutMessage,
   });
+
+  /// Reliably re-opens the native soft keyboard for [focusNode]. Just
+  /// calling `focusNode.requestFocus()` is a no-op — and the keyboard stays
+  /// closed — whenever the field ALREADY has focus but the user dismissed
+  /// the OS keyboard manually (swiped it down, tapped outside then back):
+  /// Flutter only asks the platform to show the keyboard on an actual focus
+  /// change, not on a redundant request. Explicitly invoking the
+  /// `TextInput.show` platform method covers that case.
+  void _showKeyboard() {
+    if (!focusNode.hasFocus) {
+      focusNode.requestFocus();
+    } else {
+      SystemChannels.textInput.invokeMethod('TextInput.show');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -402,7 +429,7 @@ class _NativePinField extends StatelessWidget {
 
         // ── Tap-to-open-keyboard area ──────────────────────────────────────
         GestureDetector(
-          onTap: isLockedOut ? null : () => focusNode.requestFocus(),
+          onTap: isLockedOut ? null : _showKeyboard,
           child: ValueListenableBuilder<TextEditingValue>(
             valueListenable: controller,
             builder: (_, value, _) => AnimatedOpacity(
@@ -429,7 +456,7 @@ class _NativePinField extends StatelessWidget {
 
         // ── Fallback button if keyboard gets dismissed ─────────────────────
         TextButton.icon(
-          onPressed: isLockedOut ? null : () => focusNode.requestFocus(),
+          onPressed: isLockedOut ? null : _showKeyboard,
           icon: Icon(Icons.keyboard_outlined,
               size: 18, color: kredit.textTertiary),
           label: Text(
