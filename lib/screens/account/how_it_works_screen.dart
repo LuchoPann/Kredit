@@ -42,7 +42,7 @@ class HowItWorksScreen extends StatelessWidget {
                 'Kredit calcula el cronograma de un préstamo con el sistema de '
                 'amortización francesa estándar (cuota fija, interés decreciente, '
                 'capital creciente) — el modelo matemático de referencia que usan la '
-                'mayoría de bancos y entidades de crédito. Es una MUY BUENA '
+                'mayoría de bancos y entidades de crédito. Es una muy buena '
                 'aproximación, pero no es una copia exacta del sistema interno de tu '
                 'banco.\n\n'
                 'Cada entidad puede aplicar sus propias reglas de redondeo, comisiones, '

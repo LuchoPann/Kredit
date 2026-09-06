@@ -61,7 +61,7 @@ class _LoanAbonoSheetState extends ConsumerState<LoanAbonoSheet> {
         final message = abono.wasCapped
             ? 'Se aplicaron \$${abono.amount.toStringAsFixed(0)} de los '
                 '\$${abono.requestedAmount.toStringAsFixed(0)} solicitados — '
-                '¡crédito saldado por completo! 🎉'
+                '¡crédito saldado por completo!'
             : 'Abono de \$${abono.amount.toStringAsFixed(0)} registrado'
                 '${skipped > 0 ? ' — $skipped cuota(s) adelantada(s)' : ''}'
                 '. Cronograma recalculado (estimado): confirma el valor real '

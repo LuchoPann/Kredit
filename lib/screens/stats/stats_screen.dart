@@ -102,7 +102,7 @@ class StatsScreen extends ConsumerWidget {
               _statsSectionHeader(
                 context,
                 Icons.calculate_outlined,
-                'Simulador Financiero',
+                'Simulador financiero',
                 subtitle: '¿Qué pasaría si hago una compra o abono extra?',
               ),
               const SizedBox(height: 12),

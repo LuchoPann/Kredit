@@ -203,7 +203,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
     if (newQuota > interestOnly) return null;
     return 'Con una cuota de ${CurrencyInputFormatter.format(newQuota)} no se cubre ni '
         'siquiera el interés del período actual (${CurrencyInputFormatter.format(interestOnly)}). '
-        'A este ritmo el crédito NUNCA se terminará de pagar: el capital nunca baja. '
+        'A este ritmo el crédito nunca se terminará de pagar: el capital nunca baja. '
         '¿Deseas continuar de todas formas?';
   }
 

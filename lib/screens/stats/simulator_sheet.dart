@@ -101,7 +101,7 @@ class _SimulatorSheetState extends ConsumerState<SimulatorSheet>
                     size: 22, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 10),
                 Text(
-                  'Simulador Financiero',
+                  'Simulador financiero',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
@@ -124,8 +124,8 @@ class _SimulatorSheetState extends ConsumerState<SimulatorSheet>
           TabBar(
             controller: _tabCtrl,
             tabs: const [
-              Tab(icon: Icon(Icons.shopping_cart_outlined, size: 18), text: 'Simular Compra'),
-              Tab(icon: Icon(Icons.payments_outlined, size: 18), text: 'Abonar Extra'),
+              Tab(icon: Icon(Icons.shopping_cart_outlined, size: 18), text: 'Simular compra'),
+              Tab(icon: Icon(Icons.payments_outlined, size: 18), text: 'Abonar extra'),
             ],
           ),
           // Content
@@ -291,7 +291,7 @@ class _PurchaseTabState extends State<_PurchaseTab> {
           FilledButton.icon(
             onPressed: _simulate,
             icon: const Icon(Icons.play_arrow_outlined),
-            label: const Text('Simular Compra'),
+            label: const Text('Simular compra'),
           ),
           if (_result != null) ...[
             const SizedBox(height: 24),
@@ -615,7 +615,7 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
         FilledButton.icon(
           onPressed: _simulate,
           icon: const Icon(Icons.play_arrow_outlined),
-          label: const Text('Simular Abono'),
+          label: const Text('Simular abono'),
         ),
         if (_result != null) ...[
           const SizedBox(height: 24),
