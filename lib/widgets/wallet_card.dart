@@ -298,6 +298,81 @@ class _VoucherBorderPainter extends CustomPainter {
       color != oldDelegate.color;
 }
 
+/// Builds a closed polygon path with every vertex rounded by [radius] —
+/// replaces each sharp corner with a short quadratic bezier between points
+/// pulled back along its two adjacent edges, the standard "rounded polygon"
+/// technique. Used by [_NequiWaveCornerPainter] for straight-edged,
+/// semi-rounded zigzag shapes (as opposed to a smooth sine-wave curve).
+Path _roundedPolygon(List<Offset> points, double radius) {
+  final path = Path();
+  final n = points.length;
+  for (var i = 0; i < n; i++) {
+    final curr = points[i];
+    final prev = points[(i - 1 + n) % n];
+    final next = points[(i + 1) % n];
+    final toPrev = prev - curr;
+    final toNext = next - curr;
+    final rBack = radius.clamp(0.0, toPrev.distance / 2);
+    final rFwd = radius.clamp(0.0, toNext.distance / 2);
+    final start = curr + toPrev / toPrev.distance * rBack;
+    final end = curr + toNext / toNext.distance * rFwd;
+    if (i == 0) {
+      path.moveTo(start.dx, start.dy);
+    } else {
+      path.lineTo(start.dx, start.dy);
+    }
+    path.quadraticBezierTo(curr.dx, curr.dy, end.dx, end.dy);
+  }
+  path.close();
+  return path;
+}
+
+/// Decorative zigzag cut in the voucher's top-left corner, styled after
+/// Nequi's own app (the dark-purple "Disponible" panel cut by straight,
+/// semi-rounded diagonal edges, with a magenta sliver peeking through at
+/// the valleys) — gives the Nequi cash-advance voucher a bit of that app's
+/// actual visual identity instead of a generic flat rectangle. Confined to
+/// the top-left area behind the bank logo chip; the rest of the voucher
+/// stays plain white paper.
+class _NequiWaveCornerPainter extends CustomPainter {
+  final Color purple;
+  final Color pink;
+  const _NequiWaveCornerPainter({required this.purple, required this.pink});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width * 0.62;
+    final h = size.height * 0.5;
+
+    // ONE shape each — a flat top edge that dips down to a single valley
+    // point and back up (not a repeating zigzag) — pink drawn first and
+    // sized/shifted a bit larger so it peeks out from behind purple's edge
+    // once purple is painted on top, same straight-edge/rounded-corner
+    // style for both.
+    final pinkPoints = [
+      const Offset(0, 0),
+      Offset(w * 1.06, 0),
+      Offset(w * 0.86, h * 0.78),
+      Offset(w * 0.32, h * 1.1),
+      Offset(0, h * 0.5),
+    ];
+    canvas.drawPath(_roundedPolygon(pinkPoints, 14), Paint()..color = pink);
+
+    final purplePoints = [
+      const Offset(0, 0),
+      Offset(w, 0),
+      Offset(w * 0.7, h * 0.62),
+      Offset(w * 0.24, h * 0.92),
+      Offset(0, h * 0.4),
+    ];
+    canvas.drawPath(_roundedPolygon(purplePoints, 14), Paint()..color = purple);
+  }
+
+  @override
+  bool shouldRepaint(covariant _NequiWaveCornerPainter oldDelegate) =>
+      purple != oldDelegate.purple || pink != oldDelegate.pink;
+}
+
 /// Big visual wallet-card mockup shown atop the credit detail "Resumen" tab,
 /// mirroring #detail-wallet-card in legacy_pwa/index.html (~L358-379).
 class WalletCard extends StatelessWidget {
@@ -330,7 +405,10 @@ class WalletCard extends StatelessWidget {
     // is a gradient, not a single flat color.
     final avgLuminance =
         gradient.fold<double>(0, (sum, c) => sum + c.computeLuminance()) / gradient.length;
-    final isLightFace = avgLuminance > 0.5;
+    // Voucher variant is white paper with black ink unconditionally (styled
+    // after Nequi's own app), regardless of the bank's brand gradient
+    // luminance — only a real plastic card derives ink color from its face.
+    final isLightFace = isVoucher || avgLuminance > 0.5;
     final ink = isLightFace ? Colors.black : Colors.white;
     final inkStrong = ink;
     final inkMid = ink.withValues(alpha: isLightFace ? 0.72 : 0.78);
@@ -354,22 +432,47 @@ class WalletCard extends StatelessWidget {
             : ShapeBorderClipper(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
         child: Stack(
           children: [
-            // Base gradient surface. The voucher variant skips the solid
-            // chrome border (a straight-edged Border.all would poke past the
-            // notched clip) — its edge comes entirely from the dashed
-            // outline painted below instead.
+            // Base surface: a real card gets the bank's brand gradient; the
+            // voucher variant is plain white paper instead (Nequi-styled —
+            // its own color shows only in the wave corner painted below).
+            // The voucher also skips the solid chrome border (a
+            // straight-edged Border.all would poke past the notched clip)
+            // — its edge comes entirely from the dashed outline instead.
             Positioned.fill(
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: gradient,
-                  ),
+                  color: isVoucher ? Colors.white : null,
+                  gradient: isVoucher
+                      ? null
+                      : LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: gradient,
+                        ),
                   border: isVoucher ? null : Border.all(color: chipChromeBorder),
                 ),
               ),
             ),
+            // Voucher variant: Nequi-styled wave cut in the top-left corner
+            // (dark purple + magenta sliver, echoing Nequi's own app) behind
+            // where the bank logo chip sits — the rest of the voucher stays
+            // white paper.
+            if (isVoucher)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    painter: const _NequiWaveCornerPainter(
+                      // Real Nequi brand tones, not the generic dark-navy
+                      // gradient this bank uses elsewhere as a card face —
+                      // deep violet + Nequi's actual magenta (#DA0081,
+                      // already used as its auto-picked accent color
+                      // elsewhere in the app).
+                      purple: Color(0xFF2A0944),
+                      pink: Color(0xFFDA0081),
+                    ),
+                  ),
+                ),
+              ),
             // Very tenuous diagonal-line texture, characteristic of
             // physical card mockups — pure decoration, no shadow. Skipped
             // for the voucher variant, which should read as flatter paper

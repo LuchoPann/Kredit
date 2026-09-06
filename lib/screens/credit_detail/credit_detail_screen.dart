@@ -112,12 +112,24 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
                 if (isDemoCredit(credit.id)) const DemoBadge(),
               ],
             ),
-            bottom: TabBar(
-              controller: _tabController,
-              tabs: [
-                const Tab(text: 'Resumen'),
-                Tab(text: isLoan ? 'Cronograma' : 'Movimientos'),
-              ],
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(kToolbarHeight + 34),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: _CreditTypeBadge(isLoan: isLoan),
+                  ),
+                  TabBar(
+                    controller: _tabController,
+                    tabs: [
+                      const Tab(text: 'Resumen'),
+                      Tab(text: isLoan ? 'Cronograma' : 'Movimientos'),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
           body: TabBarView(
@@ -158,6 +170,48 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
           ),
         );
       },
+    );
+  }
+}
+
+/// Small chip identifying whether this credit is a "Préstamo" or a "Tarjeta
+/// de Crédito" — shown right below the AppBar title, before the tabs, since
+/// the tab labels alone ("Cronograma" vs "Movimientos") aren't an obvious
+/// enough signal on their own. Visual language matches `StatusBadge`
+/// (icon + text over a soft tinted pill).
+class _CreditTypeBadge extends StatelessWidget {
+  final bool isLoan;
+  const _CreditTypeBadge({required this.isLoan});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.primary;
+    final icon = isLoan
+        ? Icons.request_quote_outlined
+        : Icons.credit_card_outlined;
+    final label = isLoan ? 'Préstamo' : 'Tarjeta de Crédito';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(KreditRadius.chip),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: color,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

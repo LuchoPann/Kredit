@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kredit/data/models/credit.dart';
 import 'package:kredit/data/models/installment.dart';
+import 'package:kredit/data/models/loan_abono.dart';
 import 'package:kredit/domain/date_utils.dart';
 import 'package:kredit/domain/interest_rate.dart';
 import 'package:kredit/domain/loan_calculator.dart';
@@ -579,6 +580,120 @@ void main() {
       expect(credit.scheduleManuallyAdjusted, isFalse);
       applyLoanAbono(credit, totalDebt);
       expect(credit.scheduleManuallyAdjusted, isTrue);
+    });
+
+    test('records previousQuotaAmount and previousInstallmentsSnapshot for the '
+        'reamortization path (reducirCuota)', () {
+      final credit = buildLoan(); // quotaAmount 300 before the abono
+      final abono = applyLoanAbono(credit, 200, strategy: AbonoStrategy.reducirCuota);
+
+      expect(abono.previousQuotaAmount, closeTo(300, 1e-9));
+      expect(abono.previousInstallmentsSnapshot, hasLength(4));
+      for (final inst in abono.previousInstallmentsSnapshot!.take(3)) {
+        expect(inst.principal, closeTo(300, 1e-6)); // quota 300, rate 0
+      }
+    });
+
+    test('does not record previousQuotaAmount/snapshot when the abono settles the '
+        'whole loan', () {
+      final credit = buildLoan();
+      final totalDebt = getLoanRemainingBalance(credit);
+      final abono = applyLoanAbono(credit, totalDebt);
+
+      expect(abono.previousQuotaAmount, isNull);
+      expect(abono.previousInstallmentsSnapshot, isNull);
+    });
+  });
+
+  group('reverseLoanAbono', () {
+    LoanCredit buildLoan({String? startDate}) {
+      final start = startDate ?? toDateStr(DateTime.now().add(const Duration(days: 30)));
+      return LoanCredit(
+        id: 'c1',
+        name: 'Test',
+        lender: 'Lender',
+        totalAmount: 1000,
+        quotaAmount: 300,
+        totalInstallments: 4,
+        frequency: CreditFrequency.monthly,
+        startDate: start,
+        installments: buildLoanInstallments(
+          totalAmount: 1000,
+          totalInstallments: 4,
+          quotaAmount: 300,
+          frequency: CreditFrequency.monthly,
+          startDate: start,
+        ),
+      );
+    }
+
+    test('deleting an abono applied with reducirCuota restores the original '
+        'quotaAmount (regression test for the bug where the lowered cuota was '
+        'never reverted)', () {
+      final credit = buildLoan();
+      expect(credit.quotaAmount, 300);
+
+      final abono = applyLoanAbono(credit, 200, strategy: AbonoStrategy.reducirCuota);
+      // The abono did lower the quota — sanity check the setup actually
+      // exercises the bug scenario.
+      expect(credit.quotaAmount, closeTo(200, 1e-9));
+
+      reverseLoanAbono(credit, abono);
+
+      expect(credit.quotaAmount, closeTo(300, 1e-9));
+      expect(credit.installments, hasLength(4));
+      for (final inst in credit.installments.take(3)) {
+        expect(inst.principal, closeTo(300, 1e-6));
+        expect(inst.paid, isFalse);
+      }
+      expect(getLoanRemainingBalance(credit), closeTo(1000, 1e-6));
+    });
+
+    test('deleting an abono applied with reducirPlazo restores the dropped '
+        'installments and the original schedule', () {
+      final credit = buildLoan();
+      final abono = applyLoanAbono(credit, 400, strategy: AbonoStrategy.reducirPlazo);
+      expect(credit.installments, hasLength(2)); // 2 dropped
+
+      reverseLoanAbono(credit, abono);
+
+      expect(credit.installments, hasLength(4));
+      expect(credit.quotaAmount, closeTo(300, 1e-9));
+      for (final inst in credit.installments.take(3)) {
+        expect(inst.paid, isFalse);
+        expect(inst.principal, closeTo(300, 1e-6));
+      }
+      expect(getLoanRemainingBalance(credit), closeTo(1000, 1e-6));
+    });
+
+    test('reversing an abono that fully settled the loan (wasCapped) unmarks '
+        'every installment, unaffected by the quota/snapshot fix', () {
+      final credit = buildLoan();
+      final totalDebt = getLoanRemainingBalance(credit);
+      final abono = applyLoanAbono(credit, 5000); // capped surplus
+      expect(credit.installments.every((i) => i.paid), isTrue);
+
+      reverseLoanAbono(credit, abono);
+
+      expect(credit.installments.every((i) => !i.paid), isTrue);
+      expect(getLoanRemainingBalance(credit), closeTo(totalDebt, 1e-9));
+    });
+
+    test('falls back to the old best-effort undo for abonos persisted before '
+        'the previousQuotaAmount/snapshot fields existed', () {
+      final credit = buildLoan();
+      applyLoanAbono(credit, 200, strategy: AbonoStrategy.reducirCuota);
+      // Simulate a legacy-persisted abono (no snapshot/previousQuotaAmount),
+      // e.g. loaded from a database row written before this fix.
+      final legacyAbono = const LoanAbono(
+        date: '2024-01-01',
+        amount: 200,
+        installmentsSkipped: 0,
+      );
+
+      // Should not throw, and should leave the quota as-is (no info to
+      // restore it) rather than crash.
+      expect(() => reverseLoanAbono(credit, legacyAbono), returnsNormally);
     });
   });
 

@@ -5,6 +5,8 @@
 /// that produces one of these.
 library;
 
+import 'installment.dart';
+
 class LoanAbono {
   /// "YYYY-MM-DD"
   final String date;
@@ -28,12 +30,35 @@ class LoanAbono {
   /// abonos that predate this field (no cap ever happened for them).
   final double requestedAmount;
 
+  /// The loan's `quotaAmount` immediately before this abono was applied —
+  /// only set for the reamortization path (not the "capped/settled the
+  /// whole loan" path, where the quota is irrelevant since every remaining
+  /// installment was marked paid). `null` for abonos that predate this
+  /// field, or for the settle-the-whole-loan case.
+  ///
+  /// [AbonoStrategy.reducirCuota] always changes `loan.quotaAmount` to a
+  /// lower value; [AbonoStrategy.reducirPlazo] normally leaves it untouched
+  /// but may internally fall back to `reducirCuota` (see
+  /// `applyLoanAbono`'s doc comment), so this is recorded unconditionally
+  /// whenever a reamortization happens, to be safe.
+  final double? previousQuotaAmount;
+
+  /// Snapshot of every unpaid installment exactly as it was immediately
+  /// before this abono reamortized (and, for [AbonoStrategy.reducirPlazo],
+  /// possibly dropped) them — lets [reverseLoanAbono] restore the schedule
+  /// precisely instead of only approximating it. `null` for abonos that
+  /// predate this field, or for the settle-the-whole-loan case (where
+  /// [reverseLoanAbono] already has an exact, simpler undo).
+  final List<Installment>? previousInstallmentsSnapshot;
+
   const LoanAbono({
     required this.date,
     required this.amount,
     this.note = '',
     this.installmentsSkipped = 0,
     double? requestedAmount,
+    this.previousQuotaAmount,
+    this.previousInstallmentsSnapshot,
   }) : requestedAmount = requestedAmount ?? amount;
 
   /// True if the requested amount exceeded the loan's pending balance and
@@ -47,6 +72,9 @@ class LoanAbono {
         'note': note,
         'installmentsSkipped': installmentsSkipped,
         'requestedAmount': requestedAmount,
+        'previousQuotaAmount': previousQuotaAmount,
+        'previousInstallmentsSnapshot':
+            previousInstallmentsSnapshot?.map((i) => i.toJson()).toList(),
       };
 
   factory LoanAbono.fromJson(Map<String, dynamic> json) => LoanAbono(
@@ -55,5 +83,10 @@ class LoanAbono {
         note: json['note'] as String? ?? '',
         installmentsSkipped: (json['installmentsSkipped'] as num?)?.toInt() ?? 0,
         requestedAmount: (json['requestedAmount'] as num?)?.toDouble(),
+        previousQuotaAmount: (json['previousQuotaAmount'] as num?)?.toDouble(),
+        previousInstallmentsSnapshot: (json['previousInstallmentsSnapshot']
+                as List<dynamic>?)
+            ?.map((e) => Installment.fromJson(e as Map<String, dynamic>))
+            .toList(),
       );
 }

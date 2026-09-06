@@ -591,6 +591,16 @@ LoanAbono applyLoanAbono(
   final periodRate =
       periodicRateFrom(loan.interestRate, loan.interestRateType, loan.frequency);
 
+  // Snapshot the pre-reamortization state so reverseLoanAbono can restore it
+  // exactly — both the quota (which reducirCuota always changes, and
+  // reducirPlazo may change via its reducirCuota fallback) and every unpaid
+  // installment (which either strategy rewrites, and reducirPlazo may drop
+  // outright).
+  final previousQuotaAmount = loan.quotaAmount;
+  final previousInstallmentsSnapshot = unpaid
+      .map((i) => Installment.fromJson(i.toJson()))
+      .toList();
+
   var installmentsDropped = 0;
   if (strategy == AbonoStrategy.reducirPlazo) {
     final n = _periodsToPayoff(
@@ -637,6 +647,8 @@ LoanAbono applyLoanAbono(
     amount: amount,
     note: note,
     installmentsSkipped: installmentsDropped,
+    previousQuotaAmount: previousQuotaAmount,
+    previousInstallmentsSnapshot: previousInstallmentsSnapshot,
   );
 }
 
@@ -653,14 +665,26 @@ LoanAbono applyLoanAbono(
 ///   off the lowest-numbered unpaid installments first — so the most
 ///   recently-applied abono's skips are the highest-numbered paid ones.
 ///
-/// This is an approximation, not an exact undo: it does not restore a
-/// partial principal reduction the abono may have applied to the next
-/// installment after its full skips (that adjustment isn't tracked
-/// separately from the installment's current state), and if other
-/// abonos/manual payments happened after this one, unmarking "the highest
-/// paid installments" may not be exactly the ones this abono touched. It is
-/// intended for correcting an abono shortly after registering it, not for
-/// rewriting arbitrary history.
+/// If [abono] carries a [LoanAbono.previousInstallmentsSnapshot] (i.e. it was
+/// registered after this snapshot was introduced), the undo is EXACT for the
+/// reamortization path: every unpaid installment is replaced with its
+/// pre-abono state — restoring principal/interest/amount for installments
+/// [applyLoanAbono] reamortized in place, and re-adding any installment
+/// [AbonoStrategy.reducirPlazo] had dropped outright — and `loan.quotaAmount`
+/// is restored from [LoanAbono.previousQuotaAmount] (needed for
+/// [AbonoStrategy.reducirCuota], which always lowers it, and for
+/// [AbonoStrategy.reducirPlazo]'s occasional fallback to that same
+/// strategy).
+///
+/// For abonos that predate that field (persisted before this fix), this
+/// falls back to the old best-effort approximation: the highest-numbered
+/// currently-paid installments (up to [LoanAbono.installmentsSkipped]) are
+/// unmarked, since abonos always pay off the lowest-numbered unpaid
+/// installments first — so the most recently-applied abono's skips are the
+/// highest-numbered paid ones. This old path does NOT restore a partial
+/// principal reduction or quota change and, if other abonos/manual payments
+/// happened after this one, unmarking "the highest paid installments" may
+/// not be exactly the ones this abono touched.
 void reverseLoanAbono(LoanCredit loan, LoanAbono abono) {
   if (abono.wasCapped) {
     for (final inst in loan.installments) {
@@ -668,6 +692,22 @@ void reverseLoanAbono(LoanCredit loan, LoanAbono abono) {
       inst.paymentDate = null;
       inst.interestWaived = false;
     }
+    return;
+  }
+
+  final snapshot = abono.previousInstallmentsSnapshot;
+  if (snapshot != null) {
+    if (abono.previousQuotaAmount != null) {
+      loan.quotaAmount = abono.previousQuotaAmount!;
+    }
+    // Everything the reamortization touched was, by construction, unpaid at
+    // the time (see applyLoanAbono) — replace that whole slice with its
+    // pre-abono snapshot, including installments reducirPlazo dropped.
+    loan.installments.removeWhere((inst) => !inst.paid);
+    loan.installments.addAll(
+      snapshot.map((i) => Installment.fromJson(i.toJson())),
+    );
+    loan.installments.sort((a, b) => a.number.compareTo(b.number));
     return;
   }
 

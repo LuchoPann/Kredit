@@ -100,4 +100,14 @@ class LoanAbonos extends Table {
   TextColumn get note => text().withDefault(const Constant(''))();
   IntColumn get installmentsSkipped =>
       integer().withDefault(const Constant(0))();
+
+  /// `loan.quotaAmount` immediately before this abono reamortized the
+  /// schedule — null for abonos predating this column, or for the
+  /// settle-the-whole-loan case. See LoanAbono.previousQuotaAmount.
+  RealColumn get previousQuotaAmount => real().nullable()();
+
+  /// JSON-encoded list of the unpaid installments' pre-abono state — null
+  /// for abonos predating this column, or for the settle-the-whole-loan
+  /// case. See LoanAbono.previousInstallmentsSnapshot.
+  TextColumn get previousInstallmentsSnapshot => text().nullable()();
 }

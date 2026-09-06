@@ -262,12 +262,12 @@ class _StatColumn extends StatelessWidget {
         Text(
           label.toUpperCase(),
           style: TextStyle(
-            fontSize: 11.5,
+            fontSize: 10.5,
             fontWeight: FontWeight.w600,
-            letterSpacing: 0.6,
+            letterSpacing: 0.3,
             color: kredit.textTertiary,
           ),
-          maxLines: 1,
+          maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
       ],
@@ -698,7 +698,8 @@ class _LenderDistributionChart extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    '${s.label} · ${_currency.format(s.amount)}',
+                    '${s.label} · ${(s.amount / total * 100).round()}% · '
+                    '${_currency.format(s.amount)}',
                     style: TextStyle(fontSize: 12, color: kredit.textSecondary),
                   ),
                 ],
@@ -857,7 +858,7 @@ class _AbonosHistorySummary extends StatelessWidget {
       children: [
         Expanded(
           child: _StatColumn(
-            label: 'Abonos extra realizados',
+            label: 'Abonos realizados',
             value: '$abonoCount',
           ),
         ),
@@ -869,7 +870,7 @@ class _AbonosHistorySummary extends StatelessWidget {
         ),
         Expanded(
           child: _StatColumn(
-            label: 'Cuotas adelantadas',
+            label: 'Adelantos',
             value: '$installmentsAdvanced',
           ),
         ),

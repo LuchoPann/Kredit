@@ -40,7 +40,7 @@ class StatsGrid extends StatelessWidget {
       children: [
         Expanded(
           child: _StatTile(
-            label: 'Créditos finalizados',
+            label: 'Finalizados',
             value: '$finishedCount',
           ),
         ),
@@ -121,12 +121,12 @@ class _StatTile extends StatelessWidget {
         Text(
           label.toUpperCase(),
           style: TextStyle(
-            fontSize: 11,
+            fontSize: 10.5,
             fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
+            letterSpacing: 0.3,
             color: kredit.textTertiary,
           ),
-          maxLines: 1,
+          maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
       ],

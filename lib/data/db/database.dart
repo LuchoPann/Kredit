@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 
 import '../../domain/interest_rate.dart';
@@ -21,7 +23,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -37,6 +39,11 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 4) {
             await m.addColumn(credits, credits.scheduleManuallyAdjusted);
+          }
+          if (from < 5) {
+            await m.addColumn(loanAbonos, loanAbonos.previousQuotaAmount);
+            await m.addColumn(
+                loanAbonos, loanAbonos.previousInstallmentsSnapshot);
           }
         },
       );
@@ -187,6 +194,15 @@ class AppDatabase extends _$AppDatabase {
                     amount: a.amount,
                     note: a.note,
                     installmentsSkipped: a.installmentsSkipped,
+                    previousQuotaAmount: a.previousQuotaAmount,
+                    previousInstallmentsSnapshot:
+                        a.previousInstallmentsSnapshot == null
+                            ? null
+                            : (jsonDecode(a.previousInstallmentsSnapshot!)
+                                    as List<dynamic>)
+                                .map((e) => Installment.fromJson(
+                                    e as Map<String, dynamic>))
+                                .toList(),
                   ))
               .toList(),
         ));
@@ -227,6 +243,14 @@ class AppDatabase extends _$AppDatabase {
             amount: abono.amount,
             note: Value(abono.note),
             installmentsSkipped: Value(abono.installmentsSkipped),
+            previousQuotaAmount: Value(abono.previousQuotaAmount),
+            previousInstallmentsSnapshot: Value(
+              abono.previousInstallmentsSnapshot == null
+                  ? null
+                  : jsonEncode(abono.previousInstallmentsSnapshot!
+                      .map((i) => i.toJson())
+                      .toList()),
+            ),
           ));
         }
       } else if (credit is CardCredit) {

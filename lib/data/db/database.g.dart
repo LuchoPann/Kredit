@@ -2479,6 +2479,28 @@ class $LoanAbonosTable extends LoanAbonos
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _previousQuotaAmountMeta =
+      const VerificationMeta('previousQuotaAmount');
+  @override
+  late final GeneratedColumn<double> previousQuotaAmount =
+      GeneratedColumn<double>(
+        'previous_quota_amount',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _previousInstallmentsSnapshotMeta =
+      const VerificationMeta('previousInstallmentsSnapshot');
+  @override
+  late final GeneratedColumn<String> previousInstallmentsSnapshot =
+      GeneratedColumn<String>(
+        'previous_installments_snapshot',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     rowId,
@@ -2487,6 +2509,8 @@ class $LoanAbonosTable extends LoanAbonos
     amount,
     note,
     installmentsSkipped,
+    previousQuotaAmount,
+    previousInstallmentsSnapshot,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2545,6 +2569,24 @@ class $LoanAbonosTable extends LoanAbonos
         ),
       );
     }
+    if (data.containsKey('previous_quota_amount')) {
+      context.handle(
+        _previousQuotaAmountMeta,
+        previousQuotaAmount.isAcceptableOrUnknown(
+          data['previous_quota_amount']!,
+          _previousQuotaAmountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('previous_installments_snapshot')) {
+      context.handle(
+        _previousInstallmentsSnapshotMeta,
+        previousInstallmentsSnapshot.isAcceptableOrUnknown(
+          data['previous_installments_snapshot']!,
+          _previousInstallmentsSnapshotMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -2578,6 +2620,14 @@ class $LoanAbonosTable extends LoanAbonos
         DriftSqlType.int,
         data['${effectivePrefix}installments_skipped'],
       )!,
+      previousQuotaAmount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}previous_quota_amount'],
+      ),
+      previousInstallmentsSnapshot: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}previous_installments_snapshot'],
+      ),
     );
   }
 
@@ -2594,6 +2644,16 @@ class LoanAbonoRow extends DataClass implements Insertable<LoanAbonoRow> {
   final double amount;
   final String note;
   final int installmentsSkipped;
+
+  /// `loan.quotaAmount` immediately before this abono reamortized the
+  /// schedule — null for abonos predating this column, or for the
+  /// settle-the-whole-loan case. See LoanAbono.previousQuotaAmount.
+  final double? previousQuotaAmount;
+
+  /// JSON-encoded list of the unpaid installments' pre-abono state — null
+  /// for abonos predating this column, or for the settle-the-whole-loan
+  /// case. See LoanAbono.previousInstallmentsSnapshot.
+  final String? previousInstallmentsSnapshot;
   const LoanAbonoRow({
     required this.rowId,
     required this.creditId,
@@ -2601,6 +2661,8 @@ class LoanAbonoRow extends DataClass implements Insertable<LoanAbonoRow> {
     required this.amount,
     required this.note,
     required this.installmentsSkipped,
+    this.previousQuotaAmount,
+    this.previousInstallmentsSnapshot,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2611,6 +2673,14 @@ class LoanAbonoRow extends DataClass implements Insertable<LoanAbonoRow> {
     map['amount'] = Variable<double>(amount);
     map['note'] = Variable<String>(note);
     map['installments_skipped'] = Variable<int>(installmentsSkipped);
+    if (!nullToAbsent || previousQuotaAmount != null) {
+      map['previous_quota_amount'] = Variable<double>(previousQuotaAmount);
+    }
+    if (!nullToAbsent || previousInstallmentsSnapshot != null) {
+      map['previous_installments_snapshot'] = Variable<String>(
+        previousInstallmentsSnapshot,
+      );
+    }
     return map;
   }
 
@@ -2622,6 +2692,13 @@ class LoanAbonoRow extends DataClass implements Insertable<LoanAbonoRow> {
       amount: Value(amount),
       note: Value(note),
       installmentsSkipped: Value(installmentsSkipped),
+      previousQuotaAmount: previousQuotaAmount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(previousQuotaAmount),
+      previousInstallmentsSnapshot:
+          previousInstallmentsSnapshot == null && nullToAbsent
+          ? const Value.absent()
+          : Value(previousInstallmentsSnapshot),
     );
   }
 
@@ -2639,6 +2716,12 @@ class LoanAbonoRow extends DataClass implements Insertable<LoanAbonoRow> {
       installmentsSkipped: serializer.fromJson<int>(
         json['installmentsSkipped'],
       ),
+      previousQuotaAmount: serializer.fromJson<double?>(
+        json['previousQuotaAmount'],
+      ),
+      previousInstallmentsSnapshot: serializer.fromJson<String?>(
+        json['previousInstallmentsSnapshot'],
+      ),
     );
   }
   @override
@@ -2651,6 +2734,10 @@ class LoanAbonoRow extends DataClass implements Insertable<LoanAbonoRow> {
       'amount': serializer.toJson<double>(amount),
       'note': serializer.toJson<String>(note),
       'installmentsSkipped': serializer.toJson<int>(installmentsSkipped),
+      'previousQuotaAmount': serializer.toJson<double?>(previousQuotaAmount),
+      'previousInstallmentsSnapshot': serializer.toJson<String?>(
+        previousInstallmentsSnapshot,
+      ),
     };
   }
 
@@ -2661,6 +2748,8 @@ class LoanAbonoRow extends DataClass implements Insertable<LoanAbonoRow> {
     double? amount,
     String? note,
     int? installmentsSkipped,
+    Value<double?> previousQuotaAmount = const Value.absent(),
+    Value<String?> previousInstallmentsSnapshot = const Value.absent(),
   }) => LoanAbonoRow(
     rowId: rowId ?? this.rowId,
     creditId: creditId ?? this.creditId,
@@ -2668,6 +2757,12 @@ class LoanAbonoRow extends DataClass implements Insertable<LoanAbonoRow> {
     amount: amount ?? this.amount,
     note: note ?? this.note,
     installmentsSkipped: installmentsSkipped ?? this.installmentsSkipped,
+    previousQuotaAmount: previousQuotaAmount.present
+        ? previousQuotaAmount.value
+        : this.previousQuotaAmount,
+    previousInstallmentsSnapshot: previousInstallmentsSnapshot.present
+        ? previousInstallmentsSnapshot.value
+        : this.previousInstallmentsSnapshot,
   );
   LoanAbonoRow copyWithCompanion(LoanAbonosCompanion data) {
     return LoanAbonoRow(
@@ -2679,6 +2774,12 @@ class LoanAbonoRow extends DataClass implements Insertable<LoanAbonoRow> {
       installmentsSkipped: data.installmentsSkipped.present
           ? data.installmentsSkipped.value
           : this.installmentsSkipped,
+      previousQuotaAmount: data.previousQuotaAmount.present
+          ? data.previousQuotaAmount.value
+          : this.previousQuotaAmount,
+      previousInstallmentsSnapshot: data.previousInstallmentsSnapshot.present
+          ? data.previousInstallmentsSnapshot.value
+          : this.previousInstallmentsSnapshot,
     );
   }
 
@@ -2690,14 +2791,24 @@ class LoanAbonoRow extends DataClass implements Insertable<LoanAbonoRow> {
           ..write('date: $date, ')
           ..write('amount: $amount, ')
           ..write('note: $note, ')
-          ..write('installmentsSkipped: $installmentsSkipped')
+          ..write('installmentsSkipped: $installmentsSkipped, ')
+          ..write('previousQuotaAmount: $previousQuotaAmount, ')
+          ..write('previousInstallmentsSnapshot: $previousInstallmentsSnapshot')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(rowId, creditId, date, amount, note, installmentsSkipped);
+  int get hashCode => Object.hash(
+    rowId,
+    creditId,
+    date,
+    amount,
+    note,
+    installmentsSkipped,
+    previousQuotaAmount,
+    previousInstallmentsSnapshot,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2707,7 +2818,10 @@ class LoanAbonoRow extends DataClass implements Insertable<LoanAbonoRow> {
           other.date == this.date &&
           other.amount == this.amount &&
           other.note == this.note &&
-          other.installmentsSkipped == this.installmentsSkipped);
+          other.installmentsSkipped == this.installmentsSkipped &&
+          other.previousQuotaAmount == this.previousQuotaAmount &&
+          other.previousInstallmentsSnapshot ==
+              this.previousInstallmentsSnapshot);
 }
 
 class LoanAbonosCompanion extends UpdateCompanion<LoanAbonoRow> {
@@ -2717,6 +2831,8 @@ class LoanAbonosCompanion extends UpdateCompanion<LoanAbonoRow> {
   final Value<double> amount;
   final Value<String> note;
   final Value<int> installmentsSkipped;
+  final Value<double?> previousQuotaAmount;
+  final Value<String?> previousInstallmentsSnapshot;
   const LoanAbonosCompanion({
     this.rowId = const Value.absent(),
     this.creditId = const Value.absent(),
@@ -2724,6 +2840,8 @@ class LoanAbonosCompanion extends UpdateCompanion<LoanAbonoRow> {
     this.amount = const Value.absent(),
     this.note = const Value.absent(),
     this.installmentsSkipped = const Value.absent(),
+    this.previousQuotaAmount = const Value.absent(),
+    this.previousInstallmentsSnapshot = const Value.absent(),
   });
   LoanAbonosCompanion.insert({
     this.rowId = const Value.absent(),
@@ -2732,6 +2850,8 @@ class LoanAbonosCompanion extends UpdateCompanion<LoanAbonoRow> {
     required double amount,
     this.note = const Value.absent(),
     this.installmentsSkipped = const Value.absent(),
+    this.previousQuotaAmount = const Value.absent(),
+    this.previousInstallmentsSnapshot = const Value.absent(),
   }) : creditId = Value(creditId),
        date = Value(date),
        amount = Value(amount);
@@ -2742,6 +2862,8 @@ class LoanAbonosCompanion extends UpdateCompanion<LoanAbonoRow> {
     Expression<double>? amount,
     Expression<String>? note,
     Expression<int>? installmentsSkipped,
+    Expression<double>? previousQuotaAmount,
+    Expression<String>? previousInstallmentsSnapshot,
   }) {
     return RawValuesInsertable({
       if (rowId != null) 'row_id': rowId,
@@ -2751,6 +2873,10 @@ class LoanAbonosCompanion extends UpdateCompanion<LoanAbonoRow> {
       if (note != null) 'note': note,
       if (installmentsSkipped != null)
         'installments_skipped': installmentsSkipped,
+      if (previousQuotaAmount != null)
+        'previous_quota_amount': previousQuotaAmount,
+      if (previousInstallmentsSnapshot != null)
+        'previous_installments_snapshot': previousInstallmentsSnapshot,
     });
   }
 
@@ -2761,6 +2887,8 @@ class LoanAbonosCompanion extends UpdateCompanion<LoanAbonoRow> {
     Value<double>? amount,
     Value<String>? note,
     Value<int>? installmentsSkipped,
+    Value<double?>? previousQuotaAmount,
+    Value<String?>? previousInstallmentsSnapshot,
   }) {
     return LoanAbonosCompanion(
       rowId: rowId ?? this.rowId,
@@ -2769,6 +2897,9 @@ class LoanAbonosCompanion extends UpdateCompanion<LoanAbonoRow> {
       amount: amount ?? this.amount,
       note: note ?? this.note,
       installmentsSkipped: installmentsSkipped ?? this.installmentsSkipped,
+      previousQuotaAmount: previousQuotaAmount ?? this.previousQuotaAmount,
+      previousInstallmentsSnapshot:
+          previousInstallmentsSnapshot ?? this.previousInstallmentsSnapshot,
     );
   }
 
@@ -2793,6 +2924,16 @@ class LoanAbonosCompanion extends UpdateCompanion<LoanAbonoRow> {
     if (installmentsSkipped.present) {
       map['installments_skipped'] = Variable<int>(installmentsSkipped.value);
     }
+    if (previousQuotaAmount.present) {
+      map['previous_quota_amount'] = Variable<double>(
+        previousQuotaAmount.value,
+      );
+    }
+    if (previousInstallmentsSnapshot.present) {
+      map['previous_installments_snapshot'] = Variable<String>(
+        previousInstallmentsSnapshot.value,
+      );
+    }
     return map;
   }
 
@@ -2804,7 +2945,9 @@ class LoanAbonosCompanion extends UpdateCompanion<LoanAbonoRow> {
           ..write('date: $date, ')
           ..write('amount: $amount, ')
           ..write('note: $note, ')
-          ..write('installmentsSkipped: $installmentsSkipped')
+          ..write('installmentsSkipped: $installmentsSkipped, ')
+          ..write('previousQuotaAmount: $previousQuotaAmount, ')
+          ..write('previousInstallmentsSnapshot: $previousInstallmentsSnapshot')
           ..write(')'))
         .toString();
   }
@@ -4491,6 +4634,8 @@ typedef $$LoanAbonosTableCreateCompanionBuilder =
       required double amount,
       Value<String> note,
       Value<int> installmentsSkipped,
+      Value<double?> previousQuotaAmount,
+      Value<String?> previousInstallmentsSnapshot,
     });
 typedef $$LoanAbonosTableUpdateCompanionBuilder =
     LoanAbonosCompanion Function({
@@ -4500,6 +4645,8 @@ typedef $$LoanAbonosTableUpdateCompanionBuilder =
       Value<double> amount,
       Value<String> note,
       Value<int> installmentsSkipped,
+      Value<double?> previousQuotaAmount,
+      Value<String?> previousInstallmentsSnapshot,
     });
 
 final class $$LoanAbonosTableReferences
@@ -4555,6 +4702,16 @@ class $$LoanAbonosTableFilterComposer
 
   ColumnFilters<int> get installmentsSkipped => $composableBuilder(
     column: $table.installmentsSkipped,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get previousQuotaAmount => $composableBuilder(
+    column: $table.previousQuotaAmount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get previousInstallmentsSnapshot => $composableBuilder(
+    column: $table.previousInstallmentsSnapshot,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4616,6 +4773,17 @@ class $$LoanAbonosTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get previousQuotaAmount => $composableBuilder(
+    column: $table.previousQuotaAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get previousInstallmentsSnapshot =>
+      $composableBuilder(
+        column: $table.previousInstallmentsSnapshot,
+        builder: (column) => ColumnOrderings(column),
+      );
+
   $$CreditsTableOrderingComposer get creditId {
     final $$CreditsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -4665,6 +4833,17 @@ class $$LoanAbonosTableAnnotationComposer
     column: $table.installmentsSkipped,
     builder: (column) => column,
   );
+
+  GeneratedColumn<double> get previousQuotaAmount => $composableBuilder(
+    column: $table.previousQuotaAmount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get previousInstallmentsSnapshot =>
+      $composableBuilder(
+        column: $table.previousInstallmentsSnapshot,
+        builder: (column) => column,
+      );
 
   $$CreditsTableAnnotationComposer get creditId {
     final $$CreditsTableAnnotationComposer composer = $composerBuilder(
@@ -4724,6 +4903,9 @@ class $$LoanAbonosTableTableManager
                 Value<double> amount = const Value.absent(),
                 Value<String> note = const Value.absent(),
                 Value<int> installmentsSkipped = const Value.absent(),
+                Value<double?> previousQuotaAmount = const Value.absent(),
+                Value<String?> previousInstallmentsSnapshot =
+                    const Value.absent(),
               }) => LoanAbonosCompanion(
                 rowId: rowId,
                 creditId: creditId,
@@ -4731,6 +4913,8 @@ class $$LoanAbonosTableTableManager
                 amount: amount,
                 note: note,
                 installmentsSkipped: installmentsSkipped,
+                previousQuotaAmount: previousQuotaAmount,
+                previousInstallmentsSnapshot: previousInstallmentsSnapshot,
               ),
           createCompanionCallback:
               ({
@@ -4740,6 +4924,9 @@ class $$LoanAbonosTableTableManager
                 required double amount,
                 Value<String> note = const Value.absent(),
                 Value<int> installmentsSkipped = const Value.absent(),
+                Value<double?> previousQuotaAmount = const Value.absent(),
+                Value<String?> previousInstallmentsSnapshot =
+                    const Value.absent(),
               }) => LoanAbonosCompanion.insert(
                 rowId: rowId,
                 creditId: creditId,
@@ -4747,6 +4934,8 @@ class $$LoanAbonosTableTableManager
                 amount: amount,
                 note: note,
                 installmentsSkipped: installmentsSkipped,
+                previousQuotaAmount: previousQuotaAmount,
+                previousInstallmentsSnapshot: previousInstallmentsSnapshot,
               ),
           withReferenceMapper: (p0) => p0
               .map(
