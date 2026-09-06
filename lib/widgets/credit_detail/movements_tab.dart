@@ -99,7 +99,11 @@ class MovementsTab extends ConsumerWidget {
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: OutlinedButton.icon(
+                    // Filled/primary here, matching the same priority given
+                    // to "Registrar Pago" in summary_tab.dart's quick
+                    // actions — paying down the balance is the recommended
+                    // action, registering a new charge is secondary.
+                    child: FilledButton.icon(
                       onPressed: () => CardMovementSheet.show(
                         context,
                         creditId: credit.id,
@@ -203,7 +207,7 @@ class _MonthGroup extends StatelessWidget {
                   Text(
                     '+${formatCOP(charged)}',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 12.5,
                       fontWeight: FontWeight.w700,
                       color: kredit.textPrimary,
                     ),
@@ -213,7 +217,7 @@ class _MonthGroup extends StatelessWidget {
                   Text(
                     '-${formatCOP(paid)}',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 12.5,
                       fontWeight: FontWeight.w700,
                       color: Theme.of(context).colorScheme.primary,
                     ),

@@ -170,16 +170,20 @@ class _CreditsListBodyState extends ConsumerState<_CreditsListBody>
                     filled: true,
                     fillColor: kredit.bgCard,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    // Same radius family as the dashboard's section cards
+                    // (_DashboardSectionCard, 20) and a near-invisible
+                    // border instead of a solid one — reads as one soft
+                    // surface, not a distinct boxed form control.
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: kredit.borderCard),
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: kredit.borderCard.withValues(alpha: 0.6)),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: kredit.borderCard),
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: kredit.borderCard.withValues(alpha: 0.6)),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
                     ),
                     isDense: true,
@@ -187,31 +191,44 @@ class _CreditsListBodyState extends ConsumerState<_CreditsListBody>
                   onChanged: (v) => ref.read(creditsFilterProvider.notifier).setQuery(v),
                 ),
               ),
-              const SizedBox(width: 4),
-              PopupMenuButton<CreditsSortOption>(
-                tooltip: 'Ordenar por',
-                icon: Icon(Icons.sort, color: kredit.textSecondary, size: 22),
-                color: kredit.bgCard,
-                initialValue: filter.sort,
-                onSelected: (v) => ref.read(creditsFilterProvider.notifier).setSort(v),
-                itemBuilder: (context) => const [
-                    PopupMenuItem(
-                      value: CreditsSortOption.dueDate,
-                      child: Text('Próximo Pago'),
-                    ),
-                    PopupMenuItem(
-                      value: CreditsSortOption.debtDesc,
-                      child: Text('Mayor Deuda'),
-                    ),
-                    PopupMenuItem(
-                      value: CreditsSortOption.debtAsc,
-                      child: Text('Menor Deuda'),
-                    ),
-                    PopupMenuItem(
-                      value: CreditsSortOption.name,
-                      child: Text('Nombre A-Z'),
-                    ),
-                  ],
+              const SizedBox(width: 8),
+              // Same soft-surface language as the search field (bgCard +
+              // faint border, matching radius) so the sort control reads as
+              // part of the same row instead of a bare icon floating next
+              // to a boxed field.
+              Container(
+                height: 44,
+                width: 44,
+                decoration: BoxDecoration(
+                  color: kredit.bgCard,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: kredit.borderCard.withValues(alpha: 0.6)),
+                ),
+                child: PopupMenuButton<CreditsSortOption>(
+                  tooltip: 'Ordenar por',
+                  icon: Icon(Icons.sort, color: kredit.textSecondary, size: 22),
+                  color: kredit.bgCard,
+                  initialValue: filter.sort,
+                  onSelected: (v) => ref.read(creditsFilterProvider.notifier).setSort(v),
+                  itemBuilder: (context) => const [
+                      PopupMenuItem(
+                        value: CreditsSortOption.dueDate,
+                        child: Text('Próximo Pago'),
+                      ),
+                      PopupMenuItem(
+                        value: CreditsSortOption.debtDesc,
+                        child: Text('Mayor Deuda'),
+                      ),
+                      PopupMenuItem(
+                        value: CreditsSortOption.debtAsc,
+                        child: Text('Menor Deuda'),
+                      ),
+                      PopupMenuItem(
+                        value: CreditsSortOption.name,
+                        child: Text('Nombre A-Z'),
+                      ),
+                    ],
+                ),
               ),
             ],
           ),

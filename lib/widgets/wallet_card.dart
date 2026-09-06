@@ -441,7 +441,7 @@ class WalletCard extends StatelessWidget {
         // so a plain ClipRect-equivalent isn't needed here.
         clipper: isVoucher
             ? const _VoucherClipper()
-            : ShapeBorderClipper(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+            : ShapeBorderClipper(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
         child: Stack(
           children: [
             // Base surface: a real card gets the bank's brand gradient; the

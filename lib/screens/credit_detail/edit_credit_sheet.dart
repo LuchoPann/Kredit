@@ -429,7 +429,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                         const Text(
                           'VISTA PREVIA DE TARJETA',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 13,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.8,
                           ),
@@ -546,7 +546,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                       'Datos Financieros',
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
-                        fontSize: 13,
+                        fontSize: 15,
                       ),
                     ),
                   ],
@@ -599,39 +599,40 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                   const SizedBox(height: 12),
                   _EditSectionCard(
                     label: 'MONTO Y CUOTA',
-                    icon: Icons.percent_outlined,
+                    icon: Icons.request_quote_outlined,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _quotaCtrl,
-                              keyboardType: TextInputType.number,
-                              inputFormatters: const [CurrencyInputFormatter()],
-                              decoration: const InputDecoration(
-                                labelText: 'Valor Cuota (\$)',
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextFormField(
-                              controller: _interestCtrl,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              decoration: const InputDecoration(
-                                labelText: 'Interés anual (%)',
-                              ),
-                            ),
-                          ),
-                        ],
+                      TextFormField(
+                        controller: _interestCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Interés anual (%)',
+                        ),
                       ),
                       const SizedBox(height: 12),
                       InterestRateTypeField(
                         value: _interestRateType,
                         onChanged: (v) => setState(() => _interestRateType = v),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _quotaCtrl,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: const [CurrencyInputFormatter()],
+                        decoration: const InputDecoration(
+                          labelText: 'Valor Cuota (\$)',
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Normalmente se recalcula sola según monto, cuotas e '
+                        'interés, pero puedes sobreescribirla manualmente si '
+                        'renegociaste con el banco.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: kredit.textTertiary,
+                        ),
                       ),
                     ],
                   ),
@@ -743,7 +744,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                   const SizedBox(height: 12),
                   _EditSectionCard(
                     label: 'MANTENIMIENTO',
-                    icon: Icons.request_quote_outlined,
+                    icon: Icons.percent_outlined,
                     children: [
                       Row(
                         children: [
@@ -842,7 +843,7 @@ class _EditSectionCard extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.4,
                 color: kredit.textTertiary,
@@ -883,7 +884,7 @@ class _EditInterestRateWarningHint extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(fontSize: 11, color: kredit.textTertiary),
+              style: TextStyle(fontSize: 13, color: kredit.textTertiary),
             ),
           ),
         ],

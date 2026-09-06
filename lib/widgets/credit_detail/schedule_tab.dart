@@ -392,7 +392,10 @@ class _SectionGroup extends StatelessWidget {
                   Text(
                     formatCOP(total),
                     style: TextStyle(
-                      fontSize: 11,
+                      // Slightly larger than the section label/count next to
+                      // it — this is a real money figure someone scans for
+                      // ("how much is overdue"), not just decorative meta.
+                      fontSize: 12.5,
                       fontWeight: FontWeight.w700,
                       color: emphasized
                           ? kredit.textPrimary
