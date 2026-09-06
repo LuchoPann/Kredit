@@ -561,9 +561,11 @@ class _CreditWalletListItemState extends State<_CreditWalletListItem> {
           onTapCancel: () => _setScale(1.0),
           // La tarjeta visual ahora incluye sus propios datos clave (cupo /
           // próximo pago / próxima cuota) integrados en su parte inferior —
-          // ya no hay una fila de stats separada debajo.
+          // ya no hay una fila de stats separada debajo. Mismo radio que las
+          // demás "surfaces" de nivel superior (KreditRadius.card), en vez de
+          // un valor suelto propio de esta pantalla.
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(KreditRadius.card),
             child: WalletCard(credit: widget.credit),
           ),
         ),

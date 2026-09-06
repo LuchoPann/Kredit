@@ -94,6 +94,11 @@ class StatsGrid extends StatelessWidget {
   }
 }
 
+/// Misma jerarquía tipográfica que `_SecondaryStat` (dashboard_screen.dart) y
+/// `_StatColumn` (stats_screen.dart) — las tres son la misma "fila de
+/// métricas separadas por una línea fina" y antes tenían tamaños/pesos de
+/// label y valor ligeramente distintos sin ninguna razón de diseño; ahora
+/// comparten un único valor 19px/w700 y label 11.5px/w600/letterSpacing 0.6.
 class _StatTile extends StatelessWidget {
   final String label;
   final String value;
@@ -110,7 +115,7 @@ class _StatTile extends StatelessWidget {
           value,
           style: const TextStyle(
             fontWeight: FontWeight.w700,
-            fontSize: 17,
+            fontSize: 19,
             letterSpacing: -0.3,
             fontFeatures: [FontFeature.tabularFigures()],
           ),
@@ -121,12 +126,12 @@ class _StatTile extends StatelessWidget {
         Text(
           label.toUpperCase(),
           style: TextStyle(
-            fontSize: 10.5,
+            fontSize: 11.5,
             fontWeight: FontWeight.w600,
-            letterSpacing: 0.3,
+            letterSpacing: 0.6,
             color: kredit.textTertiary,
           ),
-          maxLines: 2,
+          maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
       ],

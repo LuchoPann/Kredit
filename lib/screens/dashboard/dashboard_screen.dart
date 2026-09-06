@@ -372,7 +372,11 @@ class _DashboardBody extends ConsumerWidget {
 /// apenas elevado sobre el fondo de la pantalla (kredit.bgCard, ya usado en
 /// otras superficies "de tarjeta" de la app) y un borde de 1px casi
 /// imperceptible en vez de una sombra dura, para que se lea como una
-/// separación suave y no como una caja pesada.
+/// separación suave y no como una caja pesada. Usa los tokens
+/// [KreditRadius.card]/[KreditSpacing.card] — los mismos que el resto de
+/// "surfaces" de nivel superior de la app (buscador de créditos, tarjetas de
+/// wallet, etc.) — en vez de valores sueltos, para no introducir una familia
+/// de radio/padding propia.
 class _DashboardSectionCard extends StatelessWidget {
   final Widget child;
   const _DashboardSectionCard({required this.child});
@@ -382,10 +386,10 @@ class _DashboardSectionCard extends StatelessWidget {
     final kredit = Theme.of(context).extension<KreditColors>()!;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(KreditSpacing.card),
       decoration: BoxDecoration(
         color: kredit.bgCard,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(KreditRadius.card),
         border: Border.all(color: kredit.borderCard.withValues(alpha: 0.6)),
       ),
       child: child,
