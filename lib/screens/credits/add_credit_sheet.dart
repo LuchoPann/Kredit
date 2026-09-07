@@ -514,12 +514,12 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       Text(
         'Cuotas fijas: pagas lo mismo cada vez, con fecha de fin definida. '
         'Tarjeta: saldo que sube y baja, con corte y fecha límite cada mes.',
-        style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textTertiary),
+        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
       ),
       const SizedBox(height: 20),
       Divider(color: kredit.borderCard),
       const SizedBox(height: 4),
-      const Text('Datos Básicos', style: TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.bodyLarge)),
+      const Text('Datos Básicos', style: TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.body)),
       const SizedBox(height: 8),
       TextFormField(
         controller: _nameCtrl,
@@ -644,11 +644,11 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               const Icon(Icons.warning_amber_rounded, size: 16, color: AppColors.warning),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(suggestion.text, style: const TextStyle(fontSize: KreditTextSize.label)),
+                child: Text(suggestion.text, style: const TextStyle(fontSize: KreditTextSize.caption)),
               ),
               TextButton(
                 onPressed: () => setState(() => _type = CreditType.loan),
-                child: const Text('Cambiar a Préstamo', style: TextStyle(fontSize: KreditTextSize.label)),
+                child: const Text('Cambiar a Préstamo', style: TextStyle(fontSize: KreditTextSize.caption)),
               ),
             ],
           ),
@@ -660,7 +660,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
 
   List<Widget> _step2FinancialData(KreditColors kredit) {
     return [
-      const Text('Datos Financieros', style: TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.bodyLarge)),
+      const Text('Datos Financieros', style: TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.body)),
       if (_type == CreditType.loan) ..._loanFields(),
       if (_type == CreditType.card) ..._cardFields(),
       const SizedBox(height: 12),
@@ -673,13 +673,13 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         children: [
           Icon(Icons.fact_check_outlined, size: 14, color: kredit.textTertiary),
           const SizedBox(width: 6),
-          const Text('Confirmación', style: TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.bodyLarge)),
+          const Text('Confirmación', style: TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.body)),
         ],
       ),
       const SizedBox(height: 4),
       Text(
         'Revisa que todo esté correcto antes de registrar el crédito.',
-        style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textTertiary),
+        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
       ),
       const SizedBox(height: 12),
       ..._previewCard(),
@@ -702,7 +702,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     return [
       const Text(
         'VISTA PREVIA DE TARJETA',
-        style: TextStyle(fontSize: KreditTextSize.label, fontWeight: FontWeight.bold, letterSpacing: 0.8),
+        style: TextStyle(fontSize: KreditTextSize.caption, fontWeight: FontWeight.bold, letterSpacing: 0.8),
       ),
       const SizedBox(height: 8),
       WalletCard(credit: credit),
@@ -1087,7 +1087,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
             const SizedBox(height: 6),
             Text(
               _entityTemplateNote!,
-              style: TextStyle(fontSize: KreditTextSize.label, color: Theme.of(context).extension<KreditColors>()!.textTertiary),
+              style: TextStyle(fontSize: KreditTextSize.caption, color: Theme.of(context).extension<KreditColors>()!.textTertiary),
             ),
           ],
         ],
@@ -1188,7 +1188,7 @@ class _InterestRateWarningHint extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textTertiary),
+              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
             ),
           ),
         ],
@@ -1295,7 +1295,7 @@ class _SectionCard extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontSize: KreditTextSize.label,
+                fontSize: KreditTextSize.caption,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.4,
                 color: kredit.textTertiary,
@@ -1352,7 +1352,7 @@ class _CollapsibleSection extends StatelessWidget {
             Text(
               title,
               style: TextStyle(
-                fontSize: KreditTextSize.label,
+                fontSize: KreditTextSize.caption,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.4,
                 color: kredit.textTertiary,

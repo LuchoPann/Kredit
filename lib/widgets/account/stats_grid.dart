@@ -115,7 +115,7 @@ class _StatTile extends StatelessWidget {
           value,
           style: const TextStyle(
             fontWeight: FontWeight.w700,
-            fontSize: KreditTextSize.value,
+            fontSize: KreditTextSize.heading,
             letterSpacing: -0.3,
             fontFeatures: [FontFeature.tabularFigures()],
           ),

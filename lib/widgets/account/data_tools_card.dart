@@ -155,7 +155,7 @@ class DataToolsCard extends ConsumerWidget {
         Text(
           'Tus datos viven solo en este dispositivo. Puedes respaldarlos '
           'o restaurarlos en cualquier momento.',
-          style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textTertiary),
+          style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
         ),
         const SizedBox(height: 12),
         _DataToolOption(
@@ -219,13 +219,13 @@ class _DataToolOption extends StatelessWidget {
                     style: TextStyle(
                       color: kredit.textPrimary,
                       fontWeight: FontWeight.w600,
-                      fontSize: KreditTextSize.bodyLarge,
+                      fontSize: KreditTextSize.body,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textSecondary),
+                    style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary),
                   ),
                   const SizedBox(height: 6),
                   Container(

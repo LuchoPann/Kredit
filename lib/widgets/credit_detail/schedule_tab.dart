@@ -293,14 +293,14 @@ class _AbonoTile extends ConsumerWidget {
                       : 'Abono a capital',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
-                    fontSize: KreditTextSize.bodyLarge,
+                    fontSize: KreditTextSize.body,
                     color: kredit.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   abono.note.isNotEmpty ? abono.note : formatDate(abono.date),
-                  style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textSecondary),
+                  style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -312,7 +312,7 @@ class _AbonoTile extends ConsumerWidget {
             '-${formatCOP(abono.amount)}',
             style: TextStyle(
               fontWeight: FontWeight.w800,
-              fontSize: KreditTextSize.bodyLarge,
+              fontSize: KreditTextSize.body,
               color: accent,
             ),
           ),
@@ -395,7 +395,7 @@ class _SectionGroup extends StatelessWidget {
                       // Slightly larger than the section label/count next to
                       // it — this is a real money figure someone scans for
                       // ("how much is overdue"), not just decorative meta.
-                      fontSize: KreditTextSize.label,
+                      fontSize: KreditTextSize.caption,
                       fontWeight: FontWeight.w700,
                       color: emphasized
                           ? kredit.textPrimary
@@ -484,7 +484,7 @@ class _InstallmentTile extends ConsumerWidget {
                     'Cuota ${inst.number} — ${formatCOP(inst.amount)}',
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
-                      fontSize: KreditTextSize.bodyLarge,
+                      fontSize: KreditTextSize.body,
                       color: kredit.textPrimary,
                     ),
                   ),
@@ -492,7 +492,7 @@ class _InstallmentTile extends ConsumerWidget {
                   Text(
                     'Vence: ${formatDate(inst.dueDate)}',
                     style: TextStyle(
-                      fontSize: KreditTextSize.label,
+                      fontSize: KreditTextSize.caption,
                       color: kredit.textSecondary,
                     ),
                   ),
@@ -676,7 +676,7 @@ class _RegisterPaymentSheetState extends ConsumerState<_RegisterPaymentSheet> {
             const SizedBox(height: 16),
             Text(
               'Valor calculado por Kredit: ${formatCOP(widget.inst.amount)}',
-              style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textSecondary),
+              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary),
             ),
             const SizedBox(height: 12),
             Text(
@@ -694,7 +694,7 @@ class _RegisterPaymentSheetState extends ConsumerState<_RegisterPaymentSheet> {
               keyboardType: TextInputType.number,
               inputFormatters: const [CurrencyInputFormatter()],
               autofocus: true,
-              style: const TextStyle(fontSize: KreditTextSize.valueLarge, fontWeight: FontWeight.w700),
+              style: const TextStyle(fontSize: KreditTextSize.emphasis, fontWeight: FontWeight.w700),
               decoration: const InputDecoration(prefixText: '\$ '),
               onChanged: (_) => setState(() {}),
               validator: (v) {

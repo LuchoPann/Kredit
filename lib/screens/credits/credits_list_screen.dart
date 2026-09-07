@@ -93,7 +93,7 @@ class _ErrorState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textSecondary),
+              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary),
             ),
             const SizedBox(height: 20),
             OutlinedButton.icon(
@@ -156,7 +156,7 @@ class _CreditsListBodyState extends ConsumerState<_CreditsListBody>
                   controller: _searchController,
                   decoration: InputDecoration(
                     hintText: 'Buscar crédito, banco...',
-                    hintStyle: TextStyle(fontSize: KreditTextSize.label, color: kredit.textTertiary),
+                    hintStyle: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
                     prefixIcon: Icon(Icons.search, size: 20, color: kredit.textSecondary),
                     suffixIcon: filter.query.isNotEmpty
                         ? IconButton(
@@ -397,7 +397,7 @@ class _FilteredList extends StatelessWidget {
               Text(
                 emptyText,
                 style: TextStyle(
-                  fontSize: KreditTextSize.bodyLarge,
+                  fontSize: KreditTextSize.body,
                   fontWeight: FontWeight.w600,
                   color: kredit.textSecondary,
                 ),
@@ -413,7 +413,7 @@ class _FilteredList extends StatelessWidget {
                   const SizedBox(width: 4),
                   Text(
                     'Tus datos permanecen en tu dispositivo',
-                    style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textTertiary),
+                    style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
                   ),
                 ],
               ),
@@ -479,7 +479,7 @@ class _BankChip extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontSize: KreditTextSize.label,
+                fontSize: KreditTextSize.caption,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 color: selected ? accentColor : kredit.textSecondary,
               ),

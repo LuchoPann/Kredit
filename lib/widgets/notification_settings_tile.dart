@@ -66,7 +66,7 @@ class NotificationSettingsTile extends ConsumerWidget {
                       Text(
                         '${settings.daysBefore} día${settings.daysBefore == 1 ? '' : 's'} antes',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: dimmed, fontWeight: FontWeight.w700, fontSize: KreditTextSize.bodyLarge),
+                        style: TextStyle(color: dimmed, fontWeight: FontWeight.w700, fontSize: KreditTextSize.body),
                       ),
                       Slider(
                         value: settings.daysBefore.toDouble(),
@@ -175,7 +175,7 @@ class _StepLabel extends StatelessWidget {
           child: Text('$number', style: TextStyle(fontSize: KreditTextSize.caption, fontWeight: FontWeight.w700, color: color)),
         ),
         const SizedBox(width: 8),
-        Text(text, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: KreditTextSize.label)),
+        Text(text, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: KreditTextSize.caption)),
       ],
     );
   }
@@ -254,7 +254,7 @@ class _FrequencyOption extends StatelessWidget {
                 children: [
                   Text(title, style: TextStyle(color: textColor, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
-                  Text(subtitle, style: TextStyle(fontSize: KreditTextSize.label, color: subtitleColor)),
+                  Text(subtitle, style: TextStyle(fontSize: KreditTextSize.caption, color: subtitleColor)),
                 ],
               ),
             ),

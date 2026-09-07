@@ -163,14 +163,14 @@ class _LockOptionTile extends StatelessWidget {
                       title,
                       style: TextStyle(
                         color: contentColor,
-                        fontSize: KreditTextSize.bodyLarge,
+                        fontSize: KreditTextSize.body,
                         fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: TextStyle(color: kredit.textSecondary, fontSize: KreditTextSize.label),
+                      style: TextStyle(color: kredit.textSecondary, fontSize: KreditTextSize.caption),
                     ),
                   ],
                 ),
@@ -429,7 +429,7 @@ class _PinSetupFlowState extends State<_PinSetupFlow>
                             'Los PIN no coinciden, intenta de nuevo',
                             style: TextStyle(
                               color: AppColors.danger,
-                              fontSize: KreditTextSize.label,
+                              fontSize: KreditTextSize.caption,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -464,7 +464,7 @@ class _PinSetupFlowState extends State<_PinSetupFlow>
                       size: 18, color: kredit.textTertiary),
                   label: Text(
                     'Abrir teclado',
-                    style: TextStyle(color: kredit.textTertiary, fontSize: KreditTextSize.label),
+                    style: TextStyle(color: kredit.textTertiary, fontSize: KreditTextSize.caption),
                   ),
                 ),
               ],

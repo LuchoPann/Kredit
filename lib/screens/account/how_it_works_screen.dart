@@ -170,7 +170,7 @@ class _Lead extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(
-          fontSize: KreditTextSize.title,
+          fontSize: KreditTextSize.heading,
           fontWeight: FontWeight.w600,
           height: 1.5,
           color: kredit.textPrimary,
@@ -196,7 +196,7 @@ class _Section extends StatelessWidget {
           Text(
             title,
             style: TextStyle(
-              fontSize: KreditTextSize.title,
+              fontSize: KreditTextSize.heading,
               fontWeight: FontWeight.w700,
               color: kredit.textPrimary,
               letterSpacing: 0.1,

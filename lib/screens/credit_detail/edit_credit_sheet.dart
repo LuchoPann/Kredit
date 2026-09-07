@@ -429,7 +429,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                         const Text(
                           'VISTA PREVIA DE TARJETA',
                           style: TextStyle(
-                            fontSize: KreditTextSize.label,
+                            fontSize: KreditTextSize.caption,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.8,
                           ),
@@ -457,6 +457,9 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                         Expanded(
                           child: TextFormField(
                             controller: _nameCtrl,
+                            style: const TextStyle(
+                              fontSize: KreditTextSize.body,
+                            ),
                             decoration: const InputDecoration(
                               labelText: 'Nombre del Crédito',
                               isDense: true,
@@ -470,7 +473,17 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                              isExpanded: true,
+                            isExpanded: true,
+                            // Mismo fontSize explícito que el TextFormField
+                            // vecino — sin esto, el texto del dropdown cae
+                            // al estilo por defecto de Material (más chico
+                            // que el del campo de texto) y el Row, al no
+                            // estirar sus hijos, terminaba con dos cajas de
+                            // alturas distintas pese a compartir isDense.
+                            style: TextStyle(
+                              fontSize: KreditTextSize.body,
+                              color: kredit.textPrimary,
+                            ),
                             initialValue: _selectedLenderPreset,
                             decoration: const InputDecoration(
                               labelText: 'Banco / Prestamista',
@@ -478,7 +491,15 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                             ),
                             items: _presetLenders
                                 .map(
-                                  (l) => DropdownMenuItem(value: l, child: Text(l)),
+                                  (l) => DropdownMenuItem(
+                                    value: l,
+                                    child: Text(
+                                      l,
+                                      style: const TextStyle(
+                                        fontSize: KreditTextSize.body,
+                                      ),
+                                    ),
+                                  ),
                                 )
                                 .toList(),
                             onChanged: (v) {
@@ -561,7 +582,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                     Text(
                       'DATOS FINANCIEROS',
                       style: TextStyle(
-                        fontSize: KreditTextSize.label,
+                        fontSize: KreditTextSize.caption,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.4,
                         color: kredit.textTertiary,
@@ -658,7 +679,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                         'interés, pero puedes sobreescribirla manualmente si '
                         'renegociaste con el banco.',
                         style: TextStyle(
-                          fontSize: KreditTextSize.label,
+                          fontSize: KreditTextSize.caption,
                           color: kredit.textTertiary,
                         ),
                       ),
@@ -895,7 +916,7 @@ class _EditSectionCard extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: KreditTextSize.label,
+                  fontSize: KreditTextSize.caption,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.4,
                   color: kredit.textTertiary,
@@ -935,7 +956,7 @@ class _EditInterestRateWarningHint extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textTertiary),
+              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
             ),
           ),
         ],

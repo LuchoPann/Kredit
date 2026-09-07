@@ -140,7 +140,7 @@ class _LoanAbonoSheetState extends ConsumerState<LoanAbonoSheet> {
               keyboardType: TextInputType.number,
               inputFormatters: const [CurrencyInputFormatter()],
               autofocus: true,
-              style: const TextStyle(fontSize: KreditTextSize.valueLarge, fontWeight: FontWeight.w700),
+              style: const TextStyle(fontSize: KreditTextSize.emphasis, fontWeight: FontWeight.w700),
               decoration: const InputDecoration(prefixText: '\$ ', hintText: 'Ej. 500.000'),
               validator: (v) {
                 final n = double.tryParse(CurrencyInputFormatter.unformat(v ?? ''));

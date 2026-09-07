@@ -103,7 +103,7 @@ class _SimulatorSheetState extends ConsumerState<SimulatorSheet>
                 Text(
                   'Simulador financiero',
                   style: TextStyle(
-                    fontSize: KreditTextSize.value,
+                    fontSize: KreditTextSize.heading,
                     fontWeight: FontWeight.w700,
                     color: kredit.textPrimary,
                   ),
@@ -116,7 +116,7 @@ class _SimulatorSheetState extends ConsumerState<SimulatorSheet>
             padding: const EdgeInsets.only(left: 52, right: 20),
             child: Text(
               '¿Qué pasaría si…? Resultados aproximados.',
-              style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textTertiary),
+              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
             ),
           ),
           const SizedBox(height: 12),
@@ -233,7 +233,7 @@ class _PurchaseTabState extends State<_PurchaseTab> {
           Text('¿Con qué tarjeta harías la compra?',
               style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  fontSize: KreditTextSize.label,
+                  fontSize: KreditTextSize.caption,
                   color: kredit.textPrimary)),
           const SizedBox(height: 8),
           DropdownButtonFormField<CardCredit>(
@@ -257,7 +257,7 @@ class _PurchaseTabState extends State<_PurchaseTab> {
           Text('¿Cuánto vale la compra?',
               style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  fontSize: KreditTextSize.label,
+                  fontSize: KreditTextSize.caption,
                   color: kredit.textPrimary)),
           const SizedBox(height: 8),
           Row(
@@ -425,10 +425,10 @@ class _UtilizationBar extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text('Utilización del cupo',
-                style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textSecondary)),
+                style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary)),
             Text('${pct.toStringAsFixed(1)}%',
                 style: TextStyle(
-                    fontSize: KreditTextSize.label,
+                    fontSize: KreditTextSize.caption,
                     fontWeight: FontWeight.w700,
                     color: barColor)),
           ],
@@ -574,7 +574,7 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
         Text('¿A qué crédito harías el abono?',
             style: TextStyle(
                 fontWeight: FontWeight.w600,
-                fontSize: KreditTextSize.label,
+                fontSize: KreditTextSize.caption,
                 color: kredit.textPrimary)),
         const SizedBox(height: 8),
         DropdownButtonFormField<Credit>(
@@ -598,7 +598,7 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
         Text('¿Cuánto abonarías?',
             style: TextStyle(
                 fontWeight: FontWeight.w600,
-                fontSize: KreditTextSize.label,
+                fontSize: KreditTextSize.caption,
                 color: kredit.textPrimary)),
         const SizedBox(height: 8),
         TextFormField(
@@ -804,7 +804,7 @@ class _PaymentResultCardState extends ConsumerState<_PaymentResultCard> {
                 child: Text(
                   '¡Con este abono saldarías por completo este crédito!',
                   style: TextStyle(
-                      fontSize: KreditTextSize.label,
+                      fontSize: KreditTextSize.caption,
                       color: kredit.textPrimary,
                       fontWeight: FontWeight.w600),
                 ),
@@ -878,7 +878,7 @@ class _ResultRow extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: Text(label,
-              style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textSecondary)),
+              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary)),
         ),
         Text(
           value,
@@ -909,7 +909,7 @@ class _WarningBanner extends StatelessWidget {
           child: Text(
             text,
             style: const TextStyle(
-              fontSize: KreditTextSize.label,
+              fontSize: KreditTextSize.caption,
               fontWeight: FontWeight.w600,
               color: AppColors.warning,
             ),
@@ -938,7 +938,7 @@ class _InfoBanner extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: Text(text,
-              style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textSecondary)),
+              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary)),
         ),
       ],
     );

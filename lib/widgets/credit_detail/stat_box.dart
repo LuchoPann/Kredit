@@ -60,7 +60,7 @@ class StatBox extends StatelessWidget {
         Text(
           value,
           style: TextStyle(
-            fontSize: emphasized ? KreditTextSize.valueLarge : KreditTextSize.title,
+            fontSize: emphasized ? KreditTextSize.emphasis : KreditTextSize.heading,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.4,
             color: emphasized ? accent : kredit.textPrimary,

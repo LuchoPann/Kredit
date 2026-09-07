@@ -83,7 +83,7 @@ class _NoteLine extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: RichText(
         text: TextSpan(
-          style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textSecondary),
+          style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary),
           children: [
             TextSpan(text: '$label: '),
             TextSpan(

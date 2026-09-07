@@ -99,7 +99,7 @@ class _CreditCardTileState extends State<CreditCardTile> {
                         Flexible(
                           child: Text(
                             credit.name,
-                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.bodyLarge),
+                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.body),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -111,7 +111,7 @@ class _CreditCardTileState extends State<CreditCardTile> {
                     Text(
                       '${bank.shortLabel} · ${creditTypeLabel(credit)} · ${creditSublabel(credit)}',
                       style: TextStyle(
-                        fontSize: KreditTextSize.label,
+                        fontSize: KreditTextSize.caption,
                         fontWeight: FontWeight.w600,
                         color: kredit.textTertiary,
                       ),
@@ -132,7 +132,7 @@ class _CreditCardTileState extends State<CreditCardTile> {
                   Text(
                     credit.isCard ? 'SALDO' : 'PENDIENTE',
                     style: TextStyle(
-                      fontSize: KreditTextSize.micro,
+                      fontSize: KreditTextSize.caption,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.5,
                       color: kredit.textTertiary,
@@ -143,7 +143,7 @@ class _CreditCardTileState extends State<CreditCardTile> {
                     creditRemainingLabel(credit),
                     style: const TextStyle(
                       fontWeight: FontWeight.w800,
-                      fontSize: KreditTextSize.bodyLarge,
+                      fontSize: KreditTextSize.body,
                       letterSpacing: -0.2,
                     ),
                   ),

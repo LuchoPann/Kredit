@@ -183,7 +183,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
               keyboardType: TextInputType.number,
               inputFormatters: const [CurrencyInputFormatter()],
               autofocus: true,
-              style: const TextStyle(fontSize: KreditTextSize.valueLarge, fontWeight: FontWeight.w700),
+              style: const TextStyle(fontSize: KreditTextSize.emphasis, fontWeight: FontWeight.w700),
               decoration: const InputDecoration(prefixText: '\$ ', hintText: 'Ej. 80.000'),
               validator: (v) {
                 final n = double.tryParse(CurrencyInputFormatter.unformat(v ?? ''));
@@ -227,7 +227,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
                       child: Text(
                         preset,
                         style: TextStyle(
-                          fontSize: KreditTextSize.label,
+                          fontSize: KreditTextSize.caption,
                           fontWeight: FontWeight.w600,
                           color: accent,
                         ),
@@ -259,7 +259,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
                         'Algunos bancos permiten sobrecupo con un cargo adicional; revisa las '
                         'condiciones de tu tarjeta antes de continuar.',
                         style: TextStyle(
-                          fontSize: KreditTextSize.label,
+                          fontSize: KreditTextSize.caption,
                           color: Theme.of(context).colorScheme.error,
                         ),
                       ),

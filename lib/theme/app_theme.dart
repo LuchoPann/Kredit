@@ -62,42 +62,38 @@ class KreditRadius {
 /// deliberate differences. This class collapses them into a small, named
 /// scale keyed to semantic role (not to whichever file happened to write
 /// the number), so the same kind of text reads at the same size everywhere.
-/// This does NOT mean "one size for all text" — different roles (a section
-/// title vs. a caption) are still visually distinct on purpose.
+///
+/// By explicit product decision this is capped at exactly FOUR sizes for
+/// the whole app's reading hierarchy — [caption], [body], [heading] and
+/// [emphasis] — instead of the finer-grained 9-step scale this class
+/// started with. Distinct *roles* that used to get their own slightly
+/// different pixel value (e.g. "section eyebrow" at 11 vs. "row subtitle"
+/// at 12.5) now share one step of the hierarchy; they stay visually
+/// distinguishable through weight/letter-spacing/color instead of size.
+/// [hero] is the single documented exception: the dashboard's one-off
+/// giant balance numeral is a numeral/logotype treatment, not a step in
+/// the reading hierarchy, so it isn't counted among the four.
 class KreditTextSize {
-  /// Smallest extreme: tiny badges/counters (e.g. demo badge, progress-ring
-  /// mini label).
-  static const micro = 10.0;
+  /// Step 1 — smallest: uppercase section eyebrows/labels (e.g. "MONTO Y
+  /// CUOTA"), hint text, contextual help/notes, row subtitles/metadata,
+  /// tiny badges/counters.
+  static const caption = 12.0;
 
-  /// Uppercase section eyebrows/labels (e.g. "MONTO Y CUOTA"), secondary
-  /// captions.
-  static const caption = 11.0;
-
-  /// Secondary/metadata text: row subtitles, contextual help/notes under a
-  /// field, hint text.
-  static const label = 12.5;
-
-  /// Default "normal" text: form field values, list-row titles, most body
-  /// copy.
+  /// Step 2 — default "normal" text: form field values, list-row titles,
+  /// most body copy, sub-section titles.
   static const body = 14.0;
 
-  /// Sub-section titles within a screen (one step below [title]).
-  static const bodyLarge = 15.0;
+  /// Step 3 — section titles at the screen level (e.g. "Próximos pagos",
+  /// "Tus créditos") and stat-tile figures.
+  static const heading = 18.0;
 
-  /// Full section titles at the screen level (e.g. "Próximos pagos", "Tus
-  /// créditos").
-  static const title = 17.0;
+  /// Step 4 — largest of the four: second-level highlighted figures
+  /// (dialog confirmation amounts, larger stat call-outs).
+  static const emphasis = 24.0;
 
-  /// Stat-tile figures (matches the recently-unified `_SecondaryStat` /
-  /// `_StatColumn` / `_StatTile` value size).
-  static const value = 19.0;
-
-  /// Second-level highlighted figures (dialog confirmation amounts, larger
-  /// stat call-outs).
-  static const valueLarge = 22.0;
-
-  /// Dashboard hero figure ("DEUDA TOTAL").
-  static const display = 38.0;
+  /// Exception, not part of the 4-step hierarchy above: the dashboard's
+  /// hero balance figure ("DEUDA TOTAL") — a one-off numeral treatment.
+  static const hero = 38.0;
 }
 
 /// Shared padding tokens, same rationale as [KreditRadius].

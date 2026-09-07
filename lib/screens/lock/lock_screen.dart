@@ -219,7 +219,7 @@ class _LockScreenState extends ConsumerState<LockScreen>
                     'Kredit bloqueado',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: KreditTextSize.valueLarge,
+                      fontSize: KreditTextSize.emphasis,
                       fontWeight: FontWeight.bold,
                       color: kredit.textPrimary,
                       letterSpacing: -0.3,
@@ -404,7 +404,7 @@ class _NativePinField extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: AppColors.danger,
-                      fontSize: KreditTextSize.label,
+                      fontSize: KreditTextSize.caption,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -417,7 +417,7 @@ class _NativePinField extends StatelessWidget {
                         'PIN incorrecto, intenta de nuevo',
                         style: TextStyle(
                           color: AppColors.danger,
-                          fontSize: KreditTextSize.label,
+                          fontSize: KreditTextSize.caption,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -444,7 +444,7 @@ class _NativePinField extends StatelessWidget {
                   const SizedBox(width: 6),
                   Text(
                     'Toca para ingresar tu PIN',
-                    style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textTertiary),
+                    style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
                   ),
                 ],
               ),
@@ -461,7 +461,7 @@ class _NativePinField extends StatelessWidget {
               size: 18, color: kredit.textTertiary),
           label: Text(
             'Abrir teclado',
-            style: TextStyle(color: kredit.textTertiary, fontSize: KreditTextSize.label),
+            style: TextStyle(color: kredit.textTertiary, fontSize: KreditTextSize.caption),
           ),
         ),
       ],

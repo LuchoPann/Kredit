@@ -207,7 +207,7 @@ class _MonthGroup extends StatelessWidget {
                   Text(
                     '+${formatCOP(charged)}',
                     style: TextStyle(
-                      fontSize: KreditTextSize.label,
+                      fontSize: KreditTextSize.caption,
                       fontWeight: FontWeight.w700,
                       color: kredit.textPrimary,
                     ),
@@ -217,7 +217,7 @@ class _MonthGroup extends StatelessWidget {
                   Text(
                     '-${formatCOP(paid)}',
                     style: TextStyle(
-                      fontSize: KreditTextSize.label,
+                      fontSize: KreditTextSize.caption,
                       fontWeight: FontWeight.w700,
                       color: Theme.of(context).colorScheme.primary,
                     ),
@@ -328,14 +328,14 @@ class _MovementTile extends ConsumerWidget {
                   _labelFor(m.type),
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
-                    fontSize: KreditTextSize.bodyLarge,
+                    fontSize: KreditTextSize.body,
                     color: kredit.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   m.note.isNotEmpty ? m.note : formatDate(m.date),
-                  style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textSecondary),
+                  style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -347,7 +347,7 @@ class _MovementTile extends ConsumerWidget {
             '${isCredit ? '-' : '+'}${formatCOP(m.amount)}',
             style: TextStyle(
               fontWeight: FontWeight.w800,
-              fontSize: KreditTextSize.bodyLarge,
+              fontSize: KreditTextSize.body,
               color: isCredit ? accent : kredit.textPrimary,
             ),
           ),

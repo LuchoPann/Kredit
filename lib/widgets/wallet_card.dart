@@ -588,7 +588,7 @@ class WalletCard extends StatelessWidget {
                               style: TextStyle(
                                 color: inkStrong,
                                 fontWeight: FontWeight.w700,
-                                fontSize: KreditTextSize.label,
+                                fontSize: KreditTextSize.caption,
                                 letterSpacing: 0.5,
                               ),
                             );
@@ -620,7 +620,7 @@ class WalletCard extends StatelessWidget {
                     style: TextStyle(
                       color: inkMid,
                       fontWeight: FontWeight.w600,
-                      fontSize: KreditTextSize.label,
+                      fontSize: KreditTextSize.caption,
                       letterSpacing: 0.4,
                     ),
                   ),
@@ -643,7 +643,7 @@ class WalletCard extends StatelessWidget {
                               'DEUDA RESTANTE',
                               style: TextStyle(
                                 color: inkFaint,
-                                fontSize: KreditTextSize.micro,
+                                fontSize: KreditTextSize.caption,
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: 1,
                               ),
@@ -655,7 +655,7 @@ class WalletCard extends StatelessWidget {
                               style: TextStyle(
                                 color: inkStrong,
                                 fontWeight: FontWeight.w800,
-                                fontSize: KreditTextSize.valueLarge,
+                                fontSize: KreditTextSize.emphasis,
                                 letterSpacing: -0.5,
                               ),
                             ),
@@ -771,7 +771,7 @@ class _CardStatColumn extends StatelessWidget {
           primary.label.toUpperCase(),
           style: TextStyle(
             color: captionColor,
-            fontSize: KreditTextSize.micro,
+            fontSize: KreditTextSize.caption,
             fontWeight: FontWeight.w600,
             letterSpacing: 1,
           ),
@@ -783,7 +783,7 @@ class _CardStatColumn extends StatelessWidget {
           style: TextStyle(
             color: valueColor,
             fontWeight: FontWeight.w800,
-            fontSize: KreditTextSize.valueLarge,
+            fontSize: KreditTextSize.emphasis,
             letterSpacing: -0.5,
           ),
         ),
@@ -796,7 +796,7 @@ class _CardStatColumn extends StatelessWidget {
             style: TextStyle(
               color: secondaryColor,
               fontWeight: FontWeight.w600,
-              fontSize: KreditTextSize.label,
+              fontSize: KreditTextSize.caption,
               letterSpacing: 0.4,
             ),
           ),

@@ -171,7 +171,7 @@ class DangerZoneCard extends ConsumerWidget {
                   const SizedBox(height: 2),
                   Text(
                     'Elimina todos tus créditos de forma permanente',
-                    style: TextStyle(fontSize: KreditTextSize.label, color: Theme.of(context).extension<KreditColors>()!.textSecondary),
+                    style: TextStyle(fontSize: KreditTextSize.caption, color: Theme.of(context).extension<KreditColors>()!.textSecondary),
                   ),
                   const SizedBox(height: 6),
                   const Text(

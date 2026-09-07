@@ -158,7 +158,7 @@ class _LoanProgress extends StatelessWidget {
             Text(
               '$paid de $total cuotas · ${(pct * 100).round()}%',
               style: TextStyle(
-                fontSize: KreditTextSize.label,
+                fontSize: KreditTextSize.caption,
                 fontWeight: FontWeight.w600,
                 color: kredit.textSecondary,
               ),
@@ -212,7 +212,7 @@ class _NextInstallmentCard extends ConsumerWidget {
             child: Text(
               'Crédito totalmente pagado. ¡Sin cuotas pendientes!',
               style: TextStyle(
-                fontSize: KreditTextSize.label,
+                fontSize: KreditTextSize.caption,
                 fontWeight: FontWeight.w600,
                 color: kredit.textPrimary,
               ),
@@ -256,7 +256,7 @@ class _NextInstallmentCard extends ConsumerWidget {
               Text(
                 formatCOP(next.amount),
                 style: TextStyle(
-                  fontSize: KreditTextSize.valueLarge,
+                  fontSize: KreditTextSize.emphasis,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.4,
                   color: isOverdue ? accent : kredit.textPrimary,
@@ -266,7 +266,7 @@ class _NextInstallmentCard extends ConsumerWidget {
               Text(
                 subtitle,
                 style: TextStyle(
-                  fontSize: KreditTextSize.label,
+                  fontSize: KreditTextSize.caption,
                   fontWeight: isOverdue ? FontWeight.w700 : FontWeight.normal,
                   color: isOverdue ? accent : kredit.textSecondary,
                 ),
@@ -367,7 +367,7 @@ class _CardUtilization extends StatelessWidget {
             Text(
               '${(pct * 100).round()}%',
               style: TextStyle(
-                fontSize: KreditTextSize.label,
+                fontSize: KreditTextSize.caption,
                 fontWeight: FontWeight.w700,
                 color: isHigh ? accent : kredit.textSecondary,
               ),

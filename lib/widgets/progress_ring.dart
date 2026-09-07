@@ -48,14 +48,14 @@ class ProgressRing extends StatelessWidget {
                       // Scales down gracefully at compact sizes (e.g. the
                       // dashboard hero uses size: 76) so the number never
                       // crowds the ring's inner radius.
-                      fontSize: size >= 88 ? KreditTextSize.title : KreditTextSize.body,
+                      fontSize: size >= 88 ? KreditTextSize.heading : KreditTextSize.body,
                       color: textColor,
                     ),
                   ),
                   Text(
                     'PAGADO',
                     style: TextStyle(
-                      fontSize: KreditTextSize.micro,
+                      fontSize: KreditTextSize.caption,
                       letterSpacing: 0.5,
                       color: textColor,
                     ),
