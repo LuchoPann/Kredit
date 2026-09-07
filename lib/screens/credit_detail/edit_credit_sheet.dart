@@ -544,6 +544,12 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                   ],
                 ),
                 const SizedBox(height: 12),
+                // Mismo estilo de encabezado que el label interno de
+                // _EditSectionCard (icono 14 + mayúsculas + label token +
+                // textTertiary) — antes este header flotaba con un estilo
+                // totalmente distinto (bodyLarge, mixed-case, color
+                // primario) al lado de "DATOS BÁSICOS", que sí usa el
+                // patrón de tarjeta — la asimetría venía de ahí.
                 Row(
                   children: [
                     Icon(
@@ -552,11 +558,13 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                       color: kredit.textTertiary,
                     ),
                     const SizedBox(width: 6),
-                    const Text(
-                      'Datos Financieros',
+                    Text(
+                      'DATOS FINANCIEROS',
                       style: TextStyle(
+                        fontSize: KreditTextSize.label,
                         fontWeight: FontWeight.w700,
-                        fontSize: KreditTextSize.bodyLarge,
+                        letterSpacing: 0.4,
+                        color: kredit.textTertiary,
                       ),
                     ),
                   ],
