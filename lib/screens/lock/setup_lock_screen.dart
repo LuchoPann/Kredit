@@ -163,14 +163,14 @@ class _LockOptionTile extends StatelessWidget {
                       title,
                       style: TextStyle(
                         color: contentColor,
-                        fontSize: 15,
+                        fontSize: KreditTextSize.bodyLarge,
                         fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: TextStyle(color: kredit.textSecondary, fontSize: 12.5),
+                      style: TextStyle(color: kredit.textSecondary, fontSize: KreditTextSize.label),
                     ),
                   ],
                 ),
@@ -327,7 +327,7 @@ class _PinSetupFlowState extends State<_PinSetupFlow>
                       ? 'Ingresa el PIN de nuevo para confirmar'
                       : 'Ingresa de 4 a 6 dígitos',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: kredit.textSecondary, fontSize: 14),
+                  style: TextStyle(color: kredit.textSecondary, fontSize: KreditTextSize.body),
                 ),
                 const SizedBox(height: 36),
 
@@ -429,7 +429,7 @@ class _PinSetupFlowState extends State<_PinSetupFlow>
                             'Los PIN no coinciden, intenta de nuevo',
                             style: TextStyle(
                               color: AppColors.danger,
-                              fontSize: 13,
+                              fontSize: KreditTextSize.label,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -464,7 +464,7 @@ class _PinSetupFlowState extends State<_PinSetupFlow>
                       size: 18, color: kredit.textTertiary),
                   label: Text(
                     'Abrir teclado',
-                    style: TextStyle(color: kredit.textTertiary, fontSize: 13),
+                    style: TextStyle(color: kredit.textTertiary, fontSize: KreditTextSize.label),
                   ),
                 ),
               ],

@@ -429,7 +429,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                         const Text(
                           'VISTA PREVIA DE TARJETA',
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: KreditTextSize.label,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.8,
                           ),
@@ -441,99 +441,109 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                     );
                   },
                 ),
-                TextFormField(
-                  controller: _nameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Nombre del Crédito',
-                  ),
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Requerido' : null,
-                  onChanged: (_) => setState(() {}),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                // "Datos Básicos" ahora es una tarjeta sutil más — antes
+                // flotaba sin ninguna agrupación visual mientras el resto
+                // del sheet (Datos Financieros y sus _EditSectionCard) sí
+                // la tenía, rompiendo la separación consistente.
+                _EditSectionCard(
+                  label: 'DATOS BÁSICOS',
+                  icon: Icons.badge_outlined,
                   children: [
-                    Expanded(
-                      flex: _selectedLenderPreset == 'Otro...' ? 1 : 2,
-                      child: DropdownButtonFormField<String>(
-                          isExpanded: true,
-                        initialValue: _selectedLenderPreset,
-                        decoration: const InputDecoration(
-                          labelText: 'Banco / Prestamista',
+                    // Nombre y Banco lado a lado — reduce el espacio
+                    // vertical que ocupaban antes uno debajo del otro.
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _nameCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Nombre del Crédito',
+                              isDense: true,
+                            ),
+                            validator: (v) => (v == null || v.trim().isEmpty)
+                                ? 'Requerido'
+                                : null,
+                            onChanged: (_) => setState(() {}),
+                          ),
                         ),
-                        items: _presetLenders
-                            .map(
-                              (l) => DropdownMenuItem(value: l, child: Text(l)),
-                            )
-                            .toList(),
-                        onChanged: (v) {
-                          setState(() {
-                            _selectedLenderPreset = v;
-                            if (v != null && v != 'Otro...') {
-                              _lenderCtrl.text = v;
-                              final lower = v.toLowerCase();
-                              if (lower.contains('nequi')) {
-                                _color = '#DA0081';
-                              } else if (lower.contains('nu')) {
-                                _color = '#820AD1';
-                              } else if (lower.contains('bancolombia')) {
-                                _color = '#FFDD00';
-                              } else if (lower.contains('davivienda') ||
-                                  lower.contains('daviplata')) {
-                                _color = '#E4032E';
-                              } else if (lower.contains('bbva')) {
-                                _color = '#004481';
-                              } else if (lower.contains('rappi')) {
-                                _color = '#FE3F23';
-                              } else if (lower.contains('lulo')) {
-                                _color = '#00E28A';
-                              } else if (lower.contains('popular')) {
-                                _color = '#00875A';
-                              } else if (lower.contains('occidente')) {
-                                _color = '#00205B';
-                              } else if (lower.contains('villas')) {
-                                _color = '#0055A5';
-                              } else if (lower.contains('itaú') ||
-                                  lower.contains('itau')) {
-                                _color = '#EC7000';
-                              } else if (lower.contains('tuya') ||
-                                  lower.contains('exito')) {
-                                _color = '#FFD100';
-                              }
-                            } else if (v == 'Otro...') {
-                              _lenderCtrl.clear();
-                            }
-                          });
-                        },
-                        validator: (_) => (_lenderCtrl.text.trim().isEmpty)
-                            ? 'Requerido'
-                            : null,
-                      ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                              isExpanded: true,
+                            initialValue: _selectedLenderPreset,
+                            decoration: const InputDecoration(
+                              labelText: 'Banco / Prestamista',
+                              isDense: true,
+                            ),
+                            items: _presetLenders
+                                .map(
+                                  (l) => DropdownMenuItem(value: l, child: Text(l)),
+                                )
+                                .toList(),
+                            onChanged: (v) {
+                              setState(() {
+                                _selectedLenderPreset = v;
+                                if (v != null && v != 'Otro...') {
+                                  _lenderCtrl.text = v;
+                                  final lower = v.toLowerCase();
+                                  if (lower.contains('nequi')) {
+                                    _color = '#DA0081';
+                                  } else if (lower.contains('nu')) {
+                                    _color = '#820AD1';
+                                  } else if (lower.contains('bancolombia')) {
+                                    _color = '#FFDD00';
+                                  } else if (lower.contains('davivienda') ||
+                                      lower.contains('daviplata')) {
+                                    _color = '#E4032E';
+                                  } else if (lower.contains('bbva')) {
+                                    _color = '#004481';
+                                  } else if (lower.contains('rappi')) {
+                                    _color = '#FE3F23';
+                                  } else if (lower.contains('lulo')) {
+                                    _color = '#00E28A';
+                                  } else if (lower.contains('popular')) {
+                                    _color = '#00875A';
+                                  } else if (lower.contains('occidente')) {
+                                    _color = '#00205B';
+                                  } else if (lower.contains('villas')) {
+                                    _color = '#0055A5';
+                                  } else if (lower.contains('itaú') ||
+                                      lower.contains('itau')) {
+                                    _color = '#EC7000';
+                                  } else if (lower.contains('tuya') ||
+                                      lower.contains('exito')) {
+                                    _color = '#FFD100';
+                                  }
+                                } else if (v == 'Otro...') {
+                                  _lenderCtrl.clear();
+                                }
+                              });
+                            },
+                            validator: (_) => (_lenderCtrl.text.trim().isEmpty)
+                                ? 'Requerido'
+                                : null,
+                          ),
+                        ),
+                      ],
                     ),
                     if (_selectedLenderPreset == 'Otro...') ...[
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 1,
-                        child: TextFormField(
-                          controller: _lenderCtrl,
-                          autofocus: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Escribir libre',
-                            hintText: 'Ej. PrestaYa...',
-                          ),
-                          validator: (v) => (v == null || v.trim().isEmpty)
-                              ? 'Requerido'
-                              : null,
-                          onChanged: (_) => setState(() {}),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _lenderCtrl,
+                        autofocus: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Escribir libre',
+                          hintText: 'Ej. PrestaYa...',
                         ),
+                        validator: (v) =>
+                            (v == null || v.trim().isEmpty) ? 'Requerido' : null,
+                        onChanged: (_) => setState(() {}),
                       ),
                     ],
                   ],
                 ),
-                const SizedBox(height: 20),
-                Divider(color: kredit.borderCard),
-                const SizedBox(height: 4),
+                const SizedBox(height: 12),
                 Row(
                   children: [
                     Icon(
@@ -546,7 +556,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                       'Datos Financieros',
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
-                        fontSize: 15,
+                        fontSize: KreditTextSize.bodyLarge,
                       ),
                     ),
                   ],
@@ -601,19 +611,29 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                     label: 'MONTO Y CUOTA',
                     icon: Icons.request_quote_outlined,
                     children: [
-                      TextFormField(
-                        controller: _interestCtrl,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        decoration: const InputDecoration(
-                          labelText: 'Interés anual (%)',
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      InterestRateTypeField(
-                        value: _interestRateType,
-                        onChanged: (v) => setState(() => _interestRateType = v),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _interestCtrl,
+                              keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true,
+                              ),
+                              decoration: const InputDecoration(
+                                labelText: 'Interés anual (%)',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: InterestRateTypeField(
+                              value: _interestRateType,
+                              onChanged: (v) =>
+                                  setState(() => _interestRateType = v),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
@@ -630,7 +650,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                         'interés, pero puedes sobreescribirla manualmente si '
                         'renegociaste con el banco.',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: KreditTextSize.label,
                           color: kredit.textTertiary,
                         ),
                       ),
@@ -787,15 +807,28 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                     ],
                   ),
                 ],
-                const SizedBox(height: 20),
-                Divider(color: kredit.borderCard),
                 const SizedBox(height: 12),
-                TextFormField(
-                  controller: _notesCtrl,
-                  maxLines: 2,
-                  decoration: const InputDecoration(
-                    labelText: 'Indicaciones / Comentarios',
-                  ),
+                // Su propia tarjeta, como el resto del sheet — antes era un
+                // TextFormField suelto con el subrayado default de Material,
+                // que quedaba flotando sin relación clara con el texto
+                // arriba. Con la tarjeta como contenedor, el borde interno
+                // ya no hace falta (InputBorder.none): el propio cuadro
+                // cumple ese rol.
+                _EditSectionCard(
+                  label: 'NOTAS',
+                  icon: Icons.sticky_note_2_outlined,
+                  children: [
+                    TextFormField(
+                      controller: _notesCtrl,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        hintText: 'Indicaciones, comentarios, garantía...',
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
@@ -814,11 +847,14 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
   }
 }
 
-/// Typographic section separator used to group a related cluster of fields
-/// within the edit form (e.g. "monto/cuota" vs. "corte/fecha de pago") — a
-/// small uppercase heading over a hairline [Divider] instead of a decorative
-/// bordered box, matching the "sin cajas" visual language used across the
-/// app (see `_SectionCard` in add_credit_sheet.dart, dashboard_screen.dart).
+/// Groups a related cluster of fields within the edit form (e.g.
+/// "monto/cuota" vs. "corte/fecha de pago") inside a subtle card — same
+/// soft-surface language as `_DashboardSectionCard` in dashboard_screen.dart
+/// (bgCard background, KreditRadius.card, near-invisible border) instead of
+/// a bare typographic heading + hairline divider. With several of these
+/// sections stacked in one long scrolling sheet, a faint box per group reads
+/// as a clearer separation than a divider alone — the user specifically
+/// asked for this after finding the plain divider version hard to scan.
 class _EditSectionCard extends StatelessWidget {
   final String label;
   final IconData icon;
@@ -833,29 +869,36 @@ class _EditSectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: 14, color: kredit.textTertiary),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.4,
-                color: kredit.textTertiary,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(KreditSpacing.card),
+      decoration: BoxDecoration(
+        color: kredit.bgCard,
+        borderRadius: BorderRadius.circular(KreditRadius.card),
+        border: Border.all(color: kredit.borderCard.withValues(alpha: 0.6)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 14, color: kredit.textTertiary),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: KreditTextSize.label,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.4,
+                  color: kredit.textTertiary,
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Divider(height: 1, color: kredit.borderCard),
-        const SizedBox(height: 12),
-        ...children,
-      ],
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
     );
   }
 }
@@ -884,7 +927,7 @@ class _EditInterestRateWarningHint extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(fontSize: 13, color: kredit.textTertiary),
+              style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textTertiary),
             ),
           ),
         ],

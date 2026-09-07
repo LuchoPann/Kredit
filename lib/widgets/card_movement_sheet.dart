@@ -171,7 +171,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
             Text(
               'MONTO',
               style: TextStyle(
-                fontSize: 11,
+                fontSize: KreditTextSize.caption,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.4,
                 color: kredit.textTertiary,
@@ -183,7 +183,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
               keyboardType: TextInputType.number,
               inputFormatters: const [CurrencyInputFormatter()],
               autofocus: true,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+              style: const TextStyle(fontSize: KreditTextSize.valueLarge, fontWeight: FontWeight.w700),
               decoration: const InputDecoration(prefixText: '\$ ', hintText: 'Ej. 80.000'),
               validator: (v) {
                 final n = double.tryParse(CurrencyInputFormatter.unformat(v ?? ''));
@@ -203,7 +203,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
             Text(
               'SUGERENCIAS RÁPIDAS',
               style: TextStyle(
-                fontSize: 11,
+                fontSize: KreditTextSize.caption,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.4,
                 color: kredit.textTertiary,
@@ -227,7 +227,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
                       child: Text(
                         preset,
                         style: TextStyle(
-                          fontSize: 12.5,
+                          fontSize: KreditTextSize.label,
                           fontWeight: FontWeight.w600,
                           color: accent,
                         ),
@@ -259,7 +259,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
                         'Algunos bancos permiten sobrecupo con un cargo adicional; revisa las '
                         'condiciones de tu tarjeta antes de continuar.',
                         style: TextStyle(
-                          fontSize: 12.5,
+                          fontSize: KreditTextSize.label,
                           color: Theme.of(context).colorScheme.error,
                         ),
                       ),

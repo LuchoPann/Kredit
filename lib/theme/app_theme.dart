@@ -54,6 +54,52 @@ class KreditRadius {
   static const chip = 8.0;
 }
 
+/// Shared font-size tokens, same rationale as [KreditRadius]/[KreditSpacing]:
+/// an audit of every inline `TextStyle(fontSize: ...)` across the app found
+/// ~20 distinct raw values (9, 10, 10.5, 11, 11.5, 12, 12.5, 13, 13.5, 14,
+/// 14.5, 15, 16, 17, 18, 19, 20, 22, 26, 38) — mostly the same handful of
+/// design intentions repeated with small, accidental variations rather than
+/// deliberate differences. This class collapses them into a small, named
+/// scale keyed to semantic role (not to whichever file happened to write
+/// the number), so the same kind of text reads at the same size everywhere.
+/// This does NOT mean "one size for all text" — different roles (a section
+/// title vs. a caption) are still visually distinct on purpose.
+class KreditTextSize {
+  /// Smallest extreme: tiny badges/counters (e.g. demo badge, progress-ring
+  /// mini label).
+  static const micro = 10.0;
+
+  /// Uppercase section eyebrows/labels (e.g. "MONTO Y CUOTA"), secondary
+  /// captions.
+  static const caption = 11.0;
+
+  /// Secondary/metadata text: row subtitles, contextual help/notes under a
+  /// field, hint text.
+  static const label = 12.5;
+
+  /// Default "normal" text: form field values, list-row titles, most body
+  /// copy.
+  static const body = 14.0;
+
+  /// Sub-section titles within a screen (one step below [title]).
+  static const bodyLarge = 15.0;
+
+  /// Full section titles at the screen level (e.g. "Próximos pagos", "Tus
+  /// créditos").
+  static const title = 17.0;
+
+  /// Stat-tile figures (matches the recently-unified `_SecondaryStat` /
+  /// `_StatColumn` / `_StatTile` value size).
+  static const value = 19.0;
+
+  /// Second-level highlighted figures (dialog confirmation amounts, larger
+  /// stat call-outs).
+  static const valueLarge = 22.0;
+
+  /// Dashboard hero figure ("DEUDA TOTAL").
+  static const display = 38.0;
+}
+
 /// Shared padding tokens, same rationale as [KreditRadius].
 class KreditSpacing {
   /// Standard inner padding for a top-level card/sheet.

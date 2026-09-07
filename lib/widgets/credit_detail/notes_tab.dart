@@ -42,7 +42,7 @@ class NotesTab extends StatelessWidget {
         Text(
           'NOTAS Y DETALLES',
           style: TextStyle(
-            fontSize: 11.5,
+            fontSize: KreditTextSize.caption,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.6,
             color: kredit.textTertiary,
@@ -83,7 +83,7 @@ class _NoteLine extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: RichText(
         text: TextSpan(
-          style: TextStyle(fontSize: 13, color: kredit.textSecondary),
+          style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textSecondary),
           children: [
             TextSpan(text: '$label: '),
             TextSpan(

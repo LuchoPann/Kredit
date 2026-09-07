@@ -50,7 +50,7 @@ class StatusBadge extends StatelessWidget {
           Text(
             status.label,
             style: TextStyle(
-              fontSize: 11.5,
+              fontSize: KreditTextSize.caption,
               color: color,
               fontWeight: FontWeight.w700,
             ),

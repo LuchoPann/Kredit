@@ -20,6 +20,7 @@ class InterestRateTypeField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
+      isExpanded: true,
       initialValue: value,
       decoration: const InputDecoration(labelText: '¿Cómo está expresada tu tasa?'),
       items: const [

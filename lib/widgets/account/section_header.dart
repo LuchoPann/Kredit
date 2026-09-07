@@ -17,11 +17,11 @@ Widget sectionHeader(String title, {Color? color, String? subtitle}) {
         children: [
           Text(
             title,
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17, color: resolvedColor),
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.title, color: resolvedColor),
           ),
           if (subtitle != null) ...[
             const SizedBox(height: 3),
-            Text(subtitle, style: TextStyle(fontSize: 12, color: kredit.textTertiary)),
+            Text(subtitle, style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textTertiary)),
           ],
         ],
       );

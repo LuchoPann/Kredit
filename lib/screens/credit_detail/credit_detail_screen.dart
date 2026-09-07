@@ -205,7 +205,7 @@ class _CreditTypeBadge extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: KreditTextSize.label,
               color: color,
               fontWeight: FontWeight.w700,
             ),

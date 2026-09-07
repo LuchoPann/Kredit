@@ -45,7 +45,7 @@ class StatBox extends StatelessWidget {
               child: Text(
                 label.toUpperCase(),
                 style: TextStyle(
-                  fontSize: 11.5,
+                  fontSize: KreditTextSize.caption,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.6,
                   color: kredit.textTertiary,
@@ -60,7 +60,7 @@ class StatBox extends StatelessWidget {
         Text(
           value,
           style: TextStyle(
-            fontSize: emphasized ? 26 : 17,
+            fontSize: emphasized ? KreditTextSize.valueLarge : KreditTextSize.title,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.4,
             color: emphasized ? accent : kredit.textPrimary,
@@ -72,7 +72,7 @@ class StatBox extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             caption!,
-            style: TextStyle(fontSize: 11, color: kredit.textTertiary),
+            style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

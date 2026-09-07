@@ -196,7 +196,7 @@ class _MonthGroup extends StatelessWidget {
                 Text(
                   label.toUpperCase(),
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: KreditTextSize.caption,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.6,
                     color: kredit.textSecondary,
@@ -207,7 +207,7 @@ class _MonthGroup extends StatelessWidget {
                   Text(
                     '+${formatCOP(charged)}',
                     style: TextStyle(
-                      fontSize: 12.5,
+                      fontSize: KreditTextSize.label,
                       fontWeight: FontWeight.w700,
                       color: kredit.textPrimary,
                     ),
@@ -217,7 +217,7 @@ class _MonthGroup extends StatelessWidget {
                   Text(
                     '-${formatCOP(paid)}',
                     style: TextStyle(
-                      fontSize: 12.5,
+                      fontSize: KreditTextSize.label,
                       fontWeight: FontWeight.w700,
                       color: Theme.of(context).colorScheme.primary,
                     ),
@@ -328,14 +328,14 @@ class _MovementTile extends ConsumerWidget {
                   _labelFor(m.type),
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
-                    fontSize: 14.5,
+                    fontSize: KreditTextSize.bodyLarge,
                     color: kredit.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   m.note.isNotEmpty ? m.note : formatDate(m.date),
-                  style: TextStyle(fontSize: 12.5, color: kredit.textSecondary),
+                  style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textSecondary),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -347,7 +347,7 @@ class _MovementTile extends ConsumerWidget {
             '${isCredit ? '-' : '+'}${formatCOP(m.amount)}',
             style: TextStyle(
               fontWeight: FontWeight.w800,
-              fontSize: 14.5,
+              fontSize: KreditTextSize.bodyLarge,
               color: isCredit ? accent : kredit.textPrimary,
             ),
           ),

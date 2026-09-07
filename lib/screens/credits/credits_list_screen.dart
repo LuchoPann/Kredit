@@ -93,7 +93,7 @@ class _ErrorState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: kredit.textSecondary),
+              style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textSecondary),
             ),
             const SizedBox(height: 20),
             OutlinedButton.icon(
@@ -156,7 +156,7 @@ class _CreditsListBodyState extends ConsumerState<_CreditsListBody>
                   controller: _searchController,
                   decoration: InputDecoration(
                     hintText: 'Buscar crédito, banco...',
-                    hintStyle: TextStyle(fontSize: 13.5, color: kredit.textTertiary),
+                    hintStyle: TextStyle(fontSize: KreditTextSize.label, color: kredit.textTertiary),
                     prefixIcon: Icon(Icons.search, size: 20, color: kredit.textSecondary),
                     suffixIcon: filter.query.isNotEmpty
                         ? IconButton(
@@ -258,7 +258,7 @@ class _CreditsListBodyState extends ConsumerState<_CreditsListBody>
                   child: Text(
                     'Filtrar por entidad',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: KreditTextSize.caption,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.4,
                       color: kredit.textTertiary,
@@ -304,8 +304,8 @@ class _CreditsListBodyState extends ConsumerState<_CreditsListBody>
           controller: _tabController,
           indicatorSize: TabBarIndicatorSize.label,
           indicatorWeight: 2.5,
-          labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+          labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.body),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: KreditTextSize.body),
           unselectedLabelColor: kredit.textTertiary,
           tabs: [
             Tab(text: 'Activos (${active.length})'),
@@ -397,7 +397,7 @@ class _FilteredList extends StatelessWidget {
               Text(
                 emptyText,
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: KreditTextSize.bodyLarge,
                   fontWeight: FontWeight.w600,
                   color: kredit.textSecondary,
                 ),
@@ -413,7 +413,7 @@ class _FilteredList extends StatelessWidget {
                   const SizedBox(width: 4),
                   Text(
                     'Tus datos permanecen en tu dispositivo',
-                    style: TextStyle(fontSize: 12, color: kredit.textTertiary),
+                    style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textTertiary),
                   ),
                 ],
               ),
@@ -479,7 +479,7 @@ class _BankChip extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: KreditTextSize.label,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 color: selected ? accentColor : kredit.textSecondary,
               ),

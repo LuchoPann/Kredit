@@ -128,7 +128,7 @@ class _LoanAbonoSheetState extends ConsumerState<LoanAbonoSheet> {
             Text(
               'MONTO',
               style: TextStyle(
-                fontSize: 11,
+                fontSize: KreditTextSize.caption,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.4,
                 color: kredit.textTertiary,
@@ -140,7 +140,7 @@ class _LoanAbonoSheetState extends ConsumerState<LoanAbonoSheet> {
               keyboardType: TextInputType.number,
               inputFormatters: const [CurrencyInputFormatter()],
               autofocus: true,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+              style: const TextStyle(fontSize: KreditTextSize.valueLarge, fontWeight: FontWeight.w700),
               decoration: const InputDecoration(prefixText: '\$ ', hintText: 'Ej. 500.000'),
               validator: (v) {
                 final n = double.tryParse(CurrencyInputFormatter.unformat(v ?? ''));
@@ -160,7 +160,7 @@ class _LoanAbonoSheetState extends ConsumerState<LoanAbonoSheet> {
             Text(
               'QUÉ HACER CON EL SALDO',
               style: TextStyle(
-                fontSize: 11,
+                fontSize: KreditTextSize.caption,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.4,
                 color: kredit.textTertiary,
@@ -193,7 +193,7 @@ class _LoanAbonoSheetState extends ConsumerState<LoanAbonoSheet> {
               _strategy == AbonoStrategy.reducirCuota
                   ? 'Mismo número de cuotas restantes, pero cada una más barata.'
                   : 'Misma cuota mensual, pero el crédito termina antes.',
-              style: TextStyle(fontSize: 11.5, color: kredit.textTertiary),
+              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
             ),
             const SizedBox(height: 20),
             SizedBox(

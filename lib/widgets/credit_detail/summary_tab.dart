@@ -149,7 +149,7 @@ class _LoanProgress extends StatelessWidget {
             Text(
               'PROGRESO DE AMORTIZACIÓN',
               style: TextStyle(
-                fontSize: 11.5,
+                fontSize: KreditTextSize.caption,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.6,
                 color: kredit.textTertiary,
@@ -158,7 +158,7 @@ class _LoanProgress extends StatelessWidget {
             Text(
               '$paid de $total cuotas · ${(pct * 100).round()}%',
               style: TextStyle(
-                fontSize: 12,
+                fontSize: KreditTextSize.label,
                 fontWeight: FontWeight.w600,
                 color: kredit.textSecondary,
               ),
@@ -178,7 +178,7 @@ class _LoanProgress extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           '${formatCOP(paidAmount)} pagado de ${formatCOP(totalAmount)}',
-          style: TextStyle(fontSize: 11.5, color: kredit.textTertiary),
+          style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
         ),
       ],
     );
@@ -212,7 +212,7 @@ class _NextInstallmentCard extends ConsumerWidget {
             child: Text(
               'Crédito totalmente pagado. ¡Sin cuotas pendientes!',
               style: TextStyle(
-                fontSize: 13,
+                fontSize: KreditTextSize.label,
                 fontWeight: FontWeight.w600,
                 color: kredit.textPrimary,
               ),
@@ -246,7 +246,7 @@ class _NextInstallmentCard extends ConsumerWidget {
               Text(
                 'PRÓXIMA CUOTA · #${next.number}',
                 style: TextStyle(
-                  fontSize: 11.5,
+                  fontSize: KreditTextSize.caption,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.6,
                   color: kredit.textTertiary,
@@ -256,7 +256,7 @@ class _NextInstallmentCard extends ConsumerWidget {
               Text(
                 formatCOP(next.amount),
                 style: TextStyle(
-                  fontSize: 22,
+                  fontSize: KreditTextSize.valueLarge,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.4,
                   color: isOverdue ? accent : kredit.textPrimary,
@@ -266,7 +266,7 @@ class _NextInstallmentCard extends ConsumerWidget {
               Text(
                 subtitle,
                 style: TextStyle(
-                  fontSize: 12.5,
+                  fontSize: KreditTextSize.label,
                   fontWeight: isOverdue ? FontWeight.w700 : FontWeight.normal,
                   color: isOverdue ? accent : kredit.textSecondary,
                 ),
@@ -325,7 +325,7 @@ class _CardUtilization extends StatelessWidget {
           Text(
             'CUPO UTILIZADO',
             style: TextStyle(
-              fontSize: 11.5,
+              fontSize: KreditTextSize.caption,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.6,
               color: kredit.textTertiary,
@@ -336,7 +336,7 @@ class _CardUtilization extends StatelessWidget {
             used > 0
                 ? '${formatCOP(used)} en saldo · límite no definido'
                 : 'Límite no definido para esta tarjeta.',
-            style: TextStyle(fontSize: 11.5, color: kredit.textTertiary),
+            style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
           ),
         ],
       );
@@ -358,7 +358,7 @@ class _CardUtilization extends StatelessWidget {
             Text(
               'CUPO UTILIZADO',
               style: TextStyle(
-                fontSize: 11.5,
+                fontSize: KreditTextSize.caption,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.6,
                 color: kredit.textTertiary,
@@ -367,7 +367,7 @@ class _CardUtilization extends StatelessWidget {
             Text(
               '${(pct * 100).round()}%',
               style: TextStyle(
-                fontSize: 12,
+                fontSize: KreditTextSize.label,
                 fontWeight: FontWeight.w700,
                 color: isHigh ? accent : kredit.textSecondary,
               ),
@@ -387,7 +387,7 @@ class _CardUtilization extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           '${formatCOP(used)} usado de ${formatCOP(limit)} · ${formatCOP(available)} disponible',
-          style: TextStyle(fontSize: 11.5, color: kredit.textTertiary),
+          style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
         ),
       ],
     );

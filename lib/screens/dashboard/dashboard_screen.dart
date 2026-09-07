@@ -114,7 +114,7 @@ class _DashboardErrorState extends StatelessWidget {
             Text(
               'No se pudieron cargar tus créditos.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: kredit.textSecondary),
+              style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textSecondary),
             ),
             const SizedBox(height: 20),
             OutlinedButton.icon(
@@ -190,7 +190,7 @@ class _DashboardBody extends ConsumerWidget {
                   const SizedBox(height: 2),
                   Text(
                     'Tu situación crediticia',
-                    style: TextStyle(fontSize: 13, color: kredit.textSecondary),
+                    style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textSecondary),
                   ),
                 ],
               ),
@@ -217,7 +217,7 @@ class _DashboardBody extends ConsumerWidget {
                   Text(
                     'DEUDA TOTAL',
                     style: TextStyle(
-                      fontSize: 11.5,
+                      fontSize: KreditTextSize.caption,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.4,
                       color: kredit.textTertiary,
@@ -227,7 +227,7 @@ class _DashboardBody extends ConsumerWidget {
                   Text(
                     formatCOP(totalDebt),
                     style: const TextStyle(
-                      fontSize: 38,
+                      fontSize: KreditTextSize.display,
                       fontWeight: FontWeight.w800,
                       letterSpacing: -1.2,
                       height: 1.0,
@@ -282,13 +282,13 @@ class _DashboardBody extends ConsumerWidget {
                 children: [
                   const Text(
                     'Próximos pagos',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.title),
                   ),
                   const SizedBox(width: 8),
                   Text(
                     '${upcoming.length}',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: KreditTextSize.body,
                       fontWeight: FontWeight.w600,
                       color: kredit.textTertiary,
                     ),
@@ -297,7 +297,7 @@ class _DashboardBody extends ConsumerWidget {
                   if (upcoming.length > 3)
                     TextButton(
                       onPressed: () => _showAllUpcomingSheet(context, upcoming),
-                      child: const Text('Ver todos', style: TextStyle(fontSize: 12)),
+                      child: const Text('Ver todos', style: TextStyle(fontSize: KreditTextSize.label)),
                     ),
                 ],
               ),
@@ -331,13 +331,13 @@ class _DashboardBody extends ConsumerWidget {
                   children: [
                     const Text(
                       'Tus créditos',
-                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
+                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.title),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       '${activeCredits.length}',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: KreditTextSize.body,
                         fontWeight: FontWeight.w600,
                         color: kredit.textTertiary,
                       ),
@@ -346,7 +346,7 @@ class _DashboardBody extends ConsumerWidget {
                     TextButton(
                       onPressed: () =>
                           ref.read(navigationIndexProvider.notifier).state = AppNavTab.credits,
-                      child: const Text('Ver todos', style: TextStyle(fontSize: 12)),
+                      child: const Text('Ver todos', style: TextStyle(fontSize: KreditTextSize.label)),
                     ),
                   ],
                 ),
@@ -418,7 +418,7 @@ class _SecondaryStat extends StatelessWidget {
           value,
           style: const TextStyle(
             fontWeight: FontWeight.w700,
-            fontSize: 19,
+            fontSize: KreditTextSize.value,
             letterSpacing: -0.3,
             fontFeatures: [FontFeature.tabularFigures()],
           ),
@@ -429,7 +429,7 @@ class _SecondaryStat extends StatelessWidget {
         Text(
           label.toUpperCase(),
           style: TextStyle(
-            fontSize: 11.5,
+            fontSize: KreditTextSize.caption,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.6,
             color: kredit.textTertiary,
@@ -574,14 +574,14 @@ class _UpcomingRow extends ConsumerWidget {
                 children: [
                   Text(
                     item.credit.name,
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5),
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.bodyLarge),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
                   Text(
                     '${item.credit.lender} · $urgencyLabel',
-                    style: TextStyle(fontSize: 12.5, color: urgencyColor, fontWeight: FontWeight.w600),
+                    style: TextStyle(fontSize: KreditTextSize.label, color: urgencyColor, fontWeight: FontWeight.w600),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -594,7 +594,7 @@ class _UpcomingRow extends ConsumerWidget {
               children: [
                 Text(
                   amountStr,
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5),
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.bodyLarge),
                 ),
                 const SizedBox(height: 4),
                 if (isLoan)
@@ -625,7 +625,7 @@ class _UpcomingRow extends ConsumerWidget {
                           child: Text(
                             item.installment!.paid ? 'Pagado' : 'Marcar pago',
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: KreditTextSize.label,
                               fontWeight: FontWeight.w700,
                               color: item.installment!.paid ? kredit.success : fgColor,
                             ),
@@ -662,13 +662,13 @@ class _EmptyDashboard extends StatelessWidget {
             const SizedBox(height: 16),
             const Text(
               'Aún no tienes créditos registrados',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: KreditTextSize.bodyLarge),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 6),
             Text(
               'Agrega tu primera tarjeta o préstamo para empezar a llevar el control.',
-              style: TextStyle(fontSize: 12, color: kredit.textSecondary),
+              style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
@@ -695,7 +695,7 @@ class _InlineEmpty extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Text(
         text,
-        style: TextStyle(fontSize: 12, color: kredit.textTertiary),
+        style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textTertiary),
       ),
     );
   }
@@ -751,7 +751,7 @@ class _AllUpcomingPaymentsSheet extends ConsumerWidget {
                   Text(
                     'Todos los próximos pagos',
                     style: TextStyle(
-                      fontSize: 17,
+                      fontSize: KreditTextSize.title,
                       fontWeight: FontWeight.w700,
                       color: kredit.textPrimary,
                     ),
@@ -760,7 +760,7 @@ class _AllUpcomingPaymentsSheet extends ConsumerWidget {
                   Text(
                     '(${items.length})',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: KreditTextSize.body,
                       fontWeight: FontWeight.w600,
                       color: kredit.textTertiary,
                     ),

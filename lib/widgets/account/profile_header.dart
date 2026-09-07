@@ -139,7 +139,7 @@ class ProfileHeader extends ConsumerWidget {
               Text(
                 profileName,
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: KreditTextSize.value,
                   fontWeight: FontWeight.bold,
                   color: kredit.textPrimary,
                 ),
@@ -147,7 +147,7 @@ class ProfileHeader extends ConsumerWidget {
               const SizedBox(height: 4),
               Text(
                 'Presiona la foto o el lápiz para editar',
-                style: TextStyle(fontSize: 12, color: kredit.textTertiary),
+                style: TextStyle(fontSize: KreditTextSize.label, color: kredit.textTertiary),
               ),
             ],
           ),

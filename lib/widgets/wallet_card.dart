@@ -223,7 +223,7 @@ Path _voucherOutline(
   Rect rect, {
   double radius = 0,
   double notchWidth = 14,
-  double notchHeight = 26,
+  double notchHeight = 38,
 }) {
   final base = Path()..addRRect(RRect.fromRectAndRadius(rect, Radius.circular(radius)));
   final notchCenterY = rect.top + rect.height / 2;
@@ -588,7 +588,7 @@ class WalletCard extends StatelessWidget {
                               style: TextStyle(
                                 color: inkStrong,
                                 fontWeight: FontWeight.w700,
-                                fontSize: 13,
+                                fontSize: KreditTextSize.label,
                                 letterSpacing: 0.5,
                               ),
                             );
@@ -620,7 +620,7 @@ class WalletCard extends StatelessWidget {
                     style: TextStyle(
                       color: inkMid,
                       fontWeight: FontWeight.w600,
-                      fontSize: 12,
+                      fontSize: KreditTextSize.label,
                       letterSpacing: 0.4,
                     ),
                   ),
@@ -643,7 +643,7 @@ class WalletCard extends StatelessWidget {
                               'DEUDA RESTANTE',
                               style: TextStyle(
                                 color: inkFaint,
-                                fontSize: 10,
+                                fontSize: KreditTextSize.micro,
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: 1,
                               ),
@@ -655,7 +655,7 @@ class WalletCard extends StatelessWidget {
                               style: TextStyle(
                                 color: inkStrong,
                                 fontWeight: FontWeight.w800,
-                                fontSize: 22,
+                                fontSize: KreditTextSize.valueLarge,
                                 letterSpacing: -0.5,
                               ),
                             ),
@@ -771,7 +771,7 @@ class _CardStatColumn extends StatelessWidget {
           primary.label.toUpperCase(),
           style: TextStyle(
             color: captionColor,
-            fontSize: 10,
+            fontSize: KreditTextSize.micro,
             fontWeight: FontWeight.w600,
             letterSpacing: 1,
           ),
@@ -783,7 +783,7 @@ class _CardStatColumn extends StatelessWidget {
           style: TextStyle(
             color: valueColor,
             fontWeight: FontWeight.w800,
-            fontSize: 22,
+            fontSize: KreditTextSize.valueLarge,
             letterSpacing: -0.5,
           ),
         ),
@@ -796,7 +796,7 @@ class _CardStatColumn extends StatelessWidget {
             style: TextStyle(
               color: secondaryColor,
               fontWeight: FontWeight.w600,
-              fontSize: 12,
+              fontSize: KreditTextSize.label,
               letterSpacing: 0.4,
             ),
           ),

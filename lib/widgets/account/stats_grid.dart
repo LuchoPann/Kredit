@@ -115,7 +115,7 @@ class _StatTile extends StatelessWidget {
           value,
           style: const TextStyle(
             fontWeight: FontWeight.w700,
-            fontSize: 19,
+            fontSize: KreditTextSize.value,
             letterSpacing: -0.3,
             fontFeatures: [FontFeature.tabularFigures()],
           ),
@@ -126,7 +126,7 @@ class _StatTile extends StatelessWidget {
         Text(
           label.toUpperCase(),
           style: TextStyle(
-            fontSize: 11.5,
+            fontSize: KreditTextSize.caption,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.6,
             color: kredit.textTertiary,

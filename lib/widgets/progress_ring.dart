@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+
 /// Circular amortization-progress indicator, ported from the SVG
 /// `.progress-ring` in legacy_pwa/index.html (~L108-123): a track circle plus
 /// an arc circle that fills clockwise from the top as [percent] rises.
@@ -46,14 +48,14 @@ class ProgressRing extends StatelessWidget {
                       // Scales down gracefully at compact sizes (e.g. the
                       // dashboard hero uses size: 76) so the number never
                       // crowds the ring's inner radius.
-                      fontSize: size >= 88 ? 16 : 14,
+                      fontSize: size >= 88 ? KreditTextSize.title : KreditTextSize.body,
                       color: textColor,
                     ),
                   ),
                   Text(
                     'PAGADO',
                     style: TextStyle(
-                      fontSize: size >= 88 ? 10 : 9,
+                      fontSize: KreditTextSize.micro,
                       letterSpacing: 0.5,
                       color: textColor,
                     ),

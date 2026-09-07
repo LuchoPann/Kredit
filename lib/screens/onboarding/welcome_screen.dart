@@ -127,7 +127,7 @@ class WelcomeScreen extends ConsumerWidget {
                   'Empezar',
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    fontSize: 15,
+                    fontSize: KreditTextSize.bodyLarge,
                     color: ctaForeground,
                   ),
                 ),
