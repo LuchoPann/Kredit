@@ -53,7 +53,49 @@ class StatsScreen extends ConsumerWidget {
               _DebtOverviewPanel(credits: credits),
               const SizedBox(height: 22),
               StatsGrid(credits: credits),
-              const SizedBox(height: 22),
+              const SizedBox(height: 30),
+
+              // Grupo 1 · Proyecciones: los dos visuales que responden
+              // "¿cómo evoluciona mi deuda?" — el de barras va primero y más
+              // grande por ser el más accionable (próximos 6 meses), el de
+              // torta lo acompaña más compacto como su complemento.
+              _GroupLabel(text: 'PROYECCIONES'),
+              const SizedBox(height: 12),
+              KreditSectionCard(
+                children: [
+                  _statsSectionHeader(
+                    context,
+                    Icons.show_chart_outlined,
+                    'Deuda proyectada por mes',
+                    subtitle: 'Próximos 6 meses, según cuotas y saldos vigentes',
+                  ),
+                  const SizedBox(height: 12),
+                  _MonthlyDebtChart(credits: credits),
+                ],
+              ),
+              const SizedBox(height: 16),
+              KreditSectionCard(
+                children: [
+                  _statsSectionHeader(
+                    context,
+                    Icons.donut_small_outlined,
+                    'Distribución por entidad',
+                    subtitle:
+                        'Proporción de tu deuda pendiente por banco o entidad',
+                  ),
+                  const SizedBox(height: 12),
+                  _LenderDistributionChart(credits: credits, compact: true),
+                ],
+              ),
+              const SizedBox(height: 30),
+
+              // Grupo 2 · Historial y herramientas: lo que ya pasó (abonos),
+              // lo que se viene (fechas de fin de pago) y un acceso rápido al
+              // simulador — este último no es un panel de datos, es una
+              // acción de navegación, así que va como fila simple con
+              // chevron en vez de otra tarjeta idéntica a las anteriores.
+              _GroupLabel(text: 'HISTORIAL Y HERRAMIENTAS'),
+              const SizedBox(height: 12),
               KreditSectionCard(
                 children: [
                   _statsSectionHeader(
@@ -67,34 +109,7 @@ class StatsScreen extends ConsumerWidget {
                   _AbonosHistorySummary(credits: credits),
                 ],
               ),
-              const SizedBox(height: 22),
-              KreditSectionCard(
-                children: [
-                  _statsSectionHeader(
-                    context,
-                    Icons.show_chart_outlined,
-                    'Deuda proyectada por mes',
-                    subtitle: 'Próximos 6 meses, según cuotas y saldos vigentes',
-                  ),
-                  const SizedBox(height: 12),
-                  _MonthlyDebtChart(credits: credits),
-                ],
-              ),
-              const SizedBox(height: 22),
-              KreditSectionCard(
-                children: [
-                  _statsSectionHeader(
-                    context,
-                    Icons.donut_small_outlined,
-                    'Distribución por entidad',
-                    subtitle:
-                        'Proporción de tu deuda pendiente por banco o entidad',
-                  ),
-                  const SizedBox(height: 12),
-                  _LenderDistributionChart(credits: credits),
-                ],
-              ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 16),
               KreditSectionCard(
                 children: [
                   _statsSectionHeader(
@@ -107,19 +122,8 @@ class StatsScreen extends ConsumerWidget {
                   _PayoffProjectionList(credits: credits),
                 ],
               ),
-              const SizedBox(height: 22),
-              KreditSectionCard(
-                children: [
-                  _statsSectionHeader(
-                    context,
-                    Icons.calculate_outlined,
-                    'Simulador financiero',
-                    subtitle: '¿Qué pasaría si hago una compra o abono extra?',
-                  ),
-                  const SizedBox(height: 12),
-                  _SimulatorEntryCard(credits: credits),
-                ],
-              ),
+              const SizedBox(height: 16),
+              _SimulatorEntryRow(credits: credits),
               const SizedBox(height: 24),
             ],
           );
@@ -287,6 +291,29 @@ class _StatColumn extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
         ),
       ],
+    );
+  }
+}
+
+/// Encabezado de grupo tipográfico puro — sin caja, mismo lenguaje que la
+/// etiqueta "DEUDA ACTIVA TOTAL" de [_DebtOverviewPanel] — usado para separar
+/// temáticamente las tarjetas de abajo y suavizar el salto de estilo entre
+/// la zona superior sin caja y la zona de tarjetas.
+class _GroupLabel extends StatelessWidget {
+  final String text;
+  const _GroupLabel({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: KreditTextSize.caption,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 1.2,
+        color: kredit.textTertiary,
+      ),
     );
   }
 }
@@ -650,7 +677,10 @@ List<_LenderSlice> _distributionByLender(List<Credit> credits) {
 
 class _LenderDistributionChart extends StatelessWidget {
   final List<Credit> credits;
-  const _LenderDistributionChart({required this.credits});
+  // Se muestra un poco más pequeño que el gráfico de barras que lo precede
+  // en el grupo "Proyecciones" — es el complemento, no el protagonista.
+  final bool compact;
+  const _LenderDistributionChart({required this.credits, this.compact = false});
 
   static final _currency = NumberFormatLike();
 
@@ -669,7 +699,7 @@ class _LenderDistributionChart extends StatelessWidget {
     return Column(
       children: [
         SizedBox(
-          height: 180,
+          height: compact ? 160 : 180,
           child: PieChart(
             duration: const Duration(milliseconds: 600),
             curve: Curves.easeOutCubic,
@@ -908,54 +938,41 @@ class _AbonosHistorySummary extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Simulator entry card
+// Simulator entry — fila de navegación, no un panel de datos
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _SimulatorEntryCard extends StatelessWidget {
+/// El simulador no es un gráfico ni un resumen: es un punto de entrada a
+/// otra pantalla (`simulator_sheet.dart`). Por eso, a diferencia de las
+/// demás secciones, no vive dentro de un [KreditSectionCard] — se muestra
+/// como una fila simple tipo `ListTile` con chevron, el mismo patrón que
+/// usan los accesos de navegación en `account_screen.dart`, para que su peso
+/// visual sea el de una acción y no el de un dato más.
+class _SimulatorEntryRow extends StatelessWidget {
   final List<Credit> credits;
-  const _SimulatorEntryCard({required this.credits});
+  const _SimulatorEntryRow({required this.credits});
 
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
 
-    return InkWell(
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
       onTap: () => openSimulatorSheet(context),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          children: [
-            Icon(Icons.calculate_outlined, color: accent, size: KreditIconSize.small),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '¿Qué pasa si…?',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: KreditTextSize.body,
-                      color: kredit.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Simula una compra en cuotas o un abono extra a capital',
-                    style: TextStyle(
-                      fontSize: KreditTextSize.caption,
-                      color: kredit.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Icon(Icons.chevron_right, color: kredit.textTertiary, size: KreditIconSize.small),
-          ],
+      leading: Icon(Icons.calculate_outlined, color: accent),
+      title: Text(
+        '¿Qué pasa si…?',
+        style: TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: KreditTextSize.body,
+          color: kredit.textPrimary,
         ),
       ),
+      subtitle: Text(
+        'Simula una compra en cuotas o un abono extra a capital',
+        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary),
+      ),
+      trailing: Icon(Icons.chevron_right, color: kredit.textTertiary),
     );
   }
 }
