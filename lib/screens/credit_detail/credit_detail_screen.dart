@@ -149,7 +149,7 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () => EditCreditSheet.show(context, credit),
-                    icon: const Icon(Icons.edit),
+                    icon: const Icon(Icons.edit_outlined),
                     label: const Text('Editar Crédito'),
                   ),
                 ),

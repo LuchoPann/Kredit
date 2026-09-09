@@ -134,9 +134,36 @@ class MovementsTab extends ConsumerWidget {
         Expanded(
           child: movements.isEmpty
               ? Center(
-                  child: Text(
-                    'Sin movimientos registrados',
-                    style: TextStyle(color: kredit.textSecondary),
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.receipt_long_outlined,
+                          size: 48,
+                          color: kredit.textTertiary,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Sin movimientos registrados',
+                          style: TextStyle(
+                            fontSize: KreditTextSize.body,
+                            fontWeight: FontWeight.w600,
+                            color: kredit.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Los cargos y pagos que registres aparecerán aquí.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: KreditTextSize.caption,
+                            color: kredit.textTertiary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 )
               : ListView(
