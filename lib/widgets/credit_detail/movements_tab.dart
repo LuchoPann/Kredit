@@ -93,7 +93,7 @@ class MovementsTab extends ConsumerWidget {
                         creditId: credit.id,
                         movementType: CardMovementType.charge,
                       ),
-                      icon: const Icon(Icons.arrow_upward, size: 16),
+                      icon: const Icon(Icons.arrow_upward, size: KreditIconSize.small),
                       label: const Text('Cargo/Compra'),
                     ),
                   ),
@@ -109,7 +109,7 @@ class MovementsTab extends ConsumerWidget {
                         creditId: credit.id,
                         movementType: CardMovementType.payment,
                       ),
-                      icon: const Icon(Icons.arrow_downward, size: 16),
+                      icon: const Icon(Icons.arrow_downward, size: KreditIconSize.small),
                       label: const Text('Registrar Pago'),
                     ),
                   ),
@@ -141,7 +141,7 @@ class MovementsTab extends ConsumerWidget {
                       children: [
                         Icon(
                           Icons.receipt_long_outlined,
-                          size: 48,
+                          size: KreditIconSize.large,
                           color: kredit.textTertiary,
                         ),
                         const SizedBox(height: 16),
@@ -343,7 +343,7 @@ class _MovementTile extends ConsumerWidget {
         children: [
           Icon(
             _iconFor(m.type),
-            size: 17,
+            size: KreditIconSize.small,
             color: isCredit ? accent : kredit.textTertiary,
           ),
           const SizedBox(width: 14),

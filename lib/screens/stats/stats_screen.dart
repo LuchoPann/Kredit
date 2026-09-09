@@ -290,7 +290,7 @@ Widget _statsSectionHeader(
     children: [
       Row(
         children: [
-          Icon(icon, size: 18, color: kredit.textSecondary),
+          Icon(icon, size: KreditIconSize.small, color: kredit.textSecondary),
           const SizedBox(width: 8),
           Text(
             title,
@@ -350,7 +350,7 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: kredit.textTertiary),
+            Icon(Icons.error_outline, size: KreditIconSize.large, color: kredit.textTertiary),
             const SizedBox(height: 16),
             Text(
               message,
@@ -360,7 +360,7 @@ class _ErrorState extends StatelessWidget {
             const SizedBox(height: 20),
             OutlinedButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh, size: 18),
+              icon: const Icon(Icons.refresh, size: KreditIconSize.small),
               label: const Text('Reintentar'),
             ),
           ],
@@ -384,7 +384,7 @@ class _EmptyState extends StatelessWidget {
           children: [
             Icon(
               Icons.bar_chart_outlined,
-              size: 56,
+              size: KreditIconSize.large,
               color: kredit.textTertiary,
             ),
             const SizedBox(height: 16),
@@ -776,7 +776,7 @@ class _PayoffProjectionList extends StatelessWidget {
               children: [
                 Icon(
                   Icons.event_available_outlined,
-                  size: 18,
+                  size: KreditIconSize.small,
                   color: kredit.textSecondary,
                 ),
                 const SizedBox(width: 14),
@@ -913,7 +913,7 @@ class _SimulatorEntryCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
           children: [
-            Icon(Icons.calculate_outlined, color: accent, size: 22),
+            Icon(Icons.calculate_outlined, color: accent, size: KreditIconSize.small),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -939,7 +939,7 @@ class _SimulatorEntryCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Icon(Icons.chevron_right, color: kredit.textTertiary),
+            Icon(Icons.chevron_right, color: kredit.textTertiary, size: KreditIconSize.small),
           ],
         ),
       ),

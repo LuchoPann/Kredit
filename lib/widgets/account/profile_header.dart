@@ -126,7 +126,7 @@ class ProfileHeader extends ConsumerWidget {
                 ? Icon(
                     Icons.person,
                     color: legibleForegroundOn(accent),
-                    size: 32,
+                    size: KreditIconSize.small,
                   )
                 : null,
           ),

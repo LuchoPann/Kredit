@@ -156,7 +156,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
                   ),
                   child: Icon(
                     isCharge ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
-                    size: 18,
+                    size: KreditIconSize.small,
                     color: accent,
                   ),
                 ),
@@ -249,7 +249,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
                   children: [
                     Icon(
                       Icons.info_outline,
-                      size: 18,
+                      size: KreditIconSize.small,
                       color: Theme.of(context).colorScheme.error,
                     ),
                     const SizedBox(width: 10),

@@ -53,7 +53,7 @@ class AccentColorPicker extends ConsumerWidget {
                   ),
                 ),
                 child: isSelected
-                    ? Icon(Icons.check, size: 18, color: checkColor)
+                    ? Icon(Icons.check, size: KreditIconSize.small, color: checkColor)
                     : null,
               ),
             );

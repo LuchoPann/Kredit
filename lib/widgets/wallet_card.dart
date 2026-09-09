@@ -607,7 +607,7 @@ class WalletCard extends StatelessWidget {
                       children: [
                         const _EmvChip(),
                         const Spacer(),
-                        Icon(Icons.wifi, color: inkMid, size: 18),
+                        Icon(Icons.wifi, color: inkMid, size: KreditIconSize.small),
                       ],
                     ),
                   const Spacer(),

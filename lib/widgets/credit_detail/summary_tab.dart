@@ -205,7 +205,7 @@ class _NextInstallmentCard extends ConsumerWidget {
           Icon(
             Icons.check_circle,
             color: Theme.of(context).colorScheme.primary,
-            size: 20,
+            size: KreditIconSize.small,
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -293,7 +293,7 @@ class _NextInstallmentCard extends ConsumerWidget {
               );
             }
           },
-          icon: const Icon(Icons.check, size: 16),
+          icon: const Icon(Icons.check, size: KreditIconSize.small),
           label: const Text('Pagar'),
         ),
       ],
@@ -450,7 +450,7 @@ class _CardQuickActions extends StatelessWidget {
               creditId: credit.id,
               movementType: CardMovementType.charge,
             ),
-            icon: const Icon(Icons.arrow_upward, size: 16),
+            icon: const Icon(Icons.arrow_upward, size: KreditIconSize.small),
             label: const Text('Cargo/Compra'),
           ),
         ),
@@ -462,7 +462,7 @@ class _CardQuickActions extends StatelessWidget {
               creditId: credit.id,
               movementType: CardMovementType.payment,
             ),
-            icon: const Icon(Icons.arrow_downward, size: 16),
+            icon: const Icon(Icons.arrow_downward, size: KreditIconSize.small),
             label: const Text('Registrar Pago'),
           ),
         ),

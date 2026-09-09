@@ -118,7 +118,7 @@ class _LoanAbonoSheetState extends ConsumerState<LoanAbonoSheet> {
                     color: accent.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.savings_outlined, size: 18, color: accent),
+                  child: Icon(Icons.savings_outlined, size: KreditIconSize.small, color: accent),
                 ),
                 const SizedBox(width: 10),
                 Text('Registrar Abono Extra', style: Theme.of(context).textTheme.titleLarge),

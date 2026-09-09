@@ -200,7 +200,7 @@ class _CreditTypeBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: color),
+          Icon(icon, size: KreditIconSize.small, color: color),
           const SizedBox(width: 5),
           Text(
             label,

@@ -187,7 +187,7 @@ class DangerZoneCard extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 4),
-            Icon(Icons.chevron_right, size: 18, color: AppColors.danger.withValues(alpha: 0.7)),
+            Icon(Icons.chevron_right, size: KreditIconSize.small, color: AppColors.danger.withValues(alpha: 0.7)),
           ],
         ),
       ),

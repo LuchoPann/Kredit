@@ -208,7 +208,7 @@ class _DataToolOption extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 20, color: kredit.textSecondary),
+            Icon(icon, size: KreditIconSize.small, color: kredit.textSecondary),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -247,7 +247,7 @@ class _DataToolOption extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Icon(Icons.chevron_right, size: 18, color: kredit.textTertiary),
+            Icon(Icons.chevron_right, size: KreditIconSize.small, color: kredit.textTertiary),
           ],
         ),
       ),

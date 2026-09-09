@@ -33,7 +33,7 @@ class NotificationSettingsTile extends ConsumerWidget {
             // --- Header: master on/off ---
             Row(
               children: [
-                Icon(Icons.notifications_active_outlined, size: 18, color: kredit.textSecondary),
+                Icon(Icons.notifications_active_outlined, size: KreditIconSize.small, color: kredit.textSecondary),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -112,7 +112,7 @@ class NotificationSettingsTile extends ConsumerWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.schedule_outlined, size: 18, color: dimmedSecondary),
+                    Icon(Icons.schedule_outlined, size: KreditIconSize.small, color: dimmedSecondary),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text('Hora del aviso', style: TextStyle(color: dimmedSecondary)),
@@ -123,7 +123,7 @@ class NotificationSettingsTile extends ConsumerWidget {
                     ),
                     if (on) ...[
                       const SizedBox(width: 4),
-                      Icon(Icons.chevron_right, size: 18, color: dimmedSecondary),
+                      Icon(Icons.chevron_right, size: KreditIconSize.small, color: dimmedSecondary),
                     ],
                   ],
                 ),
@@ -242,11 +242,11 @@ class _FrequencyOption extends StatelessWidget {
           children: [
             Icon(
               selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-              size: 20,
+              size: KreditIconSize.small,
               color: selected && enabled ? accent : kredit.textTertiary,
             ),
             const SizedBox(width: 10),
-            Icon(icon, size: 18, color: subtitleColor),
+            Icon(icon, size: KreditIconSize.small, color: subtitleColor),
             const SizedBox(width: 8),
             Expanded(
               child: Column(

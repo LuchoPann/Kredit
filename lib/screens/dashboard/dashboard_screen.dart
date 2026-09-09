@@ -109,7 +109,7 @@ class _DashboardErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: kredit.textTertiary),
+            Icon(Icons.error_outline, size: KreditIconSize.large, color: kredit.textTertiary),
             const SizedBox(height: 16),
             Text(
               'No se pudieron cargar tus créditos.',
@@ -119,7 +119,7 @@ class _DashboardErrorState extends StatelessWidget {
             const SizedBox(height: 20),
             OutlinedButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh, size: 18),
+              icon: const Icon(Icons.refresh, size: KreditIconSize.small),
               label: const Text('Reintentar'),
             ),
           ],
@@ -635,7 +635,7 @@ class _UpcomingRow extends ConsumerWidget {
                     },
                   )
                 else
-                  Icon(Icons.chevron_right, size: 18, color: kredit.textTertiary),
+                  Icon(Icons.chevron_right, size: KreditIconSize.small, color: kredit.textTertiary),
               ],
             ),
           ],
@@ -658,7 +658,7 @@ class _EmptyDashboard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.account_balance_wallet_outlined,
-                size: 56, color: kredit.textTertiary),
+                size: KreditIconSize.large, color: kredit.textTertiary),
             const SizedBox(height: 16),
             const Text(
               'Aún no tienes créditos registrados',
@@ -746,7 +746,7 @@ class _AllUpcomingPaymentsSheet extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 16, 12, 12),
               child: Row(
                 children: [
-                  Icon(Icons.calendar_month_outlined, color: accent, size: 22),
+                  Icon(Icons.calendar_month_outlined, color: accent, size: KreditIconSize.small),
                   const SizedBox(width: 10),
                   Text(
                     'Todos los próximos pagos',
@@ -767,7 +767,7 @@ class _AllUpcomingPaymentsSheet extends ConsumerWidget {
                   ),
                   const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.close, size: 20),
+                    icon: const Icon(Icons.close, size: KreditIconSize.small),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
@@ -793,7 +793,7 @@ class _AllUpcomingPaymentsSheet extends ConsumerWidget {
                   ref.read(navigationIndexProvider.notifier).state =
                       AppNavTab.credits;
                 },
-                icon: const Icon(Icons.credit_card_outlined, size: 18),
+                icon: const Icon(Icons.credit_card_outlined, size: KreditIconSize.small),
                 label: const Text('Ver en lista de créditos'),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size.fromHeight(44),

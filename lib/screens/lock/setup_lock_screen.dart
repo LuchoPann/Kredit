@@ -153,7 +153,7 @@ class _LockOptionTile extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Icon(icon, size: 22, color: selected ? accent : contentColor),
+              Icon(icon, size: KreditIconSize.small, color: selected ? accent : contentColor),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -183,7 +183,7 @@ class _LockOptionTile extends StatelessWidget {
                   decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
                 )
               else if (enabled)
-                Icon(Icons.chevron_right, size: 18, color: kredit.textTertiary),
+                Icon(Icons.chevron_right, size: KreditIconSize.small, color: kredit.textTertiary),
             ],
           ),
         ),
@@ -315,7 +315,7 @@ class _PinSetupFlowState extends State<_PinSetupFlow>
                   ),
                   child: Icon(
                     Icons.pin_outlined,
-                    size: 32,
+                    size: KreditIconSize.large,
                     color: kredit.textPrimary,
                   ),
                 ),
@@ -461,7 +461,7 @@ class _PinSetupFlowState extends State<_PinSetupFlow>
                 TextButton.icon(
                   onPressed: () => _pinFocus.requestFocus(),
                   icon: Icon(Icons.keyboard_outlined,
-                      size: 18, color: kredit.textTertiary),
+                      size: KreditIconSize.small, color: kredit.textTertiary),
                   label: Text(
                     'Abrir teclado',
                     style: TextStyle(color: kredit.textTertiary, fontSize: KreditTextSize.caption),

@@ -38,7 +38,7 @@ class StatBox extends StatelessWidget {
         Row(
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 13, color: kredit.textTertiary),
+              Icon(icon, size: KreditIconSize.small, color: kredit.textTertiary),
               const SizedBox(width: 4),
             ],
             Expanded(

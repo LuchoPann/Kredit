@@ -98,7 +98,7 @@ class _SimulatorSheetState extends ConsumerState<SimulatorSheet>
             child: Row(
               children: [
                 Icon(Icons.calculate_outlined,
-                    size: 22, color: Theme.of(context).colorScheme.primary),
+                    size: KreditIconSize.small, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 10),
                 Text(
                   'Simulador financiero',
@@ -124,8 +124,8 @@ class _SimulatorSheetState extends ConsumerState<SimulatorSheet>
           TabBar(
             controller: _tabCtrl,
             tabs: const [
-              Tab(icon: Icon(Icons.shopping_cart_outlined, size: 18), text: 'Simular compra'),
-              Tab(icon: Icon(Icons.payments_outlined, size: 18), text: 'Abonar extra'),
+              Tab(icon: Icon(Icons.shopping_cart_outlined, size: KreditIconSize.small), text: 'Simular compra'),
+              Tab(icon: Icon(Icons.payments_outlined, size: KreditIconSize.small), text: 'Abonar extra'),
             ],
           ),
           // Content
@@ -798,7 +798,7 @@ class _PaymentResultCardState extends ConsumerState<_PaymentResultCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Icon(Icons.celebration_outlined,
-                  color: Colors.green, size: 16),
+                  color: Colors.green, size: KreditIconSize.small),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -874,7 +874,7 @@ class _ResultRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: kredit.textTertiary),
+        Icon(icon, size: KreditIconSize.small, color: kredit.textTertiary),
         const SizedBox(width: 10),
         Expanded(
           child: Text(label,
@@ -903,7 +903,7 @@ class _WarningBanner extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Icon(Icons.warning_amber_rounded,
-            size: 16, color: AppColors.warning),
+            size: KreditIconSize.small, color: AppColors.warning),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
@@ -934,7 +934,7 @@ class _InfoBanner extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: kredit.textTertiary, size: 18),
+        Icon(icon, color: kredit.textTertiary, size: KreditIconSize.small),
         const SizedBox(width: 10),
         Expanded(
           child: Text(text,
@@ -954,7 +954,7 @@ class _DisclaimerBanner extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(Icons.info_outline, size: 13, color: kredit.textTertiary),
+        Icon(Icons.info_outline, size: KreditIconSize.small, color: kredit.textTertiary),
         const SizedBox(width: 6),
         Expanded(
           child: Text(

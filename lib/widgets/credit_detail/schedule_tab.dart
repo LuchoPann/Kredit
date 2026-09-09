@@ -120,7 +120,7 @@ class _ScheduleTabState extends ConsumerState<ScheduleTab> {
                                     context,
                                     creditId: credit.id,
                                   ),
-                            icon: const Icon(Icons.savings_outlined, size: 16),
+                            icon: const Icon(Icons.savings_outlined, size: KreditIconSize.small),
                             label: const Text('Abono Extra'),
                           )
                         : OutlinedButton.icon(
@@ -130,7 +130,7 @@ class _ScheduleTabState extends ConsumerState<ScheduleTab> {
                                     context,
                                     creditId: credit.id,
                                   ),
-                            icon: const Icon(Icons.savings_outlined, size: 16),
+                            icon: const Icon(Icons.savings_outlined, size: KreditIconSize.small),
                             label: const Text('Abono Extra'),
                           ),
                   ),
@@ -145,14 +145,14 @@ class _ScheduleTabState extends ConsumerState<ScheduleTab> {
                             onPressed: unpaidCount == 0
                                 ? null
                                 : () => _markAllPaid(context, ref, credit, unpaidCount),
-                            icon: const Icon(Icons.check, size: 16),
+                            icon: const Icon(Icons.check, size: KreditIconSize.small),
                             label: const Text('Pago total'),
                           )
                         : OutlinedButton.icon(
                             onPressed: unpaidCount == 0
                                 ? null
                                 : () => _markAllPaid(context, ref, credit, unpaidCount),
-                            icon: const Icon(Icons.check, size: 16),
+                            icon: const Icon(Icons.check, size: KreditIconSize.small),
                             label: const Text('Pago total'),
                           ),
                   ),
@@ -319,7 +319,7 @@ class _AbonoTile extends ConsumerWidget {
           IconButton(
             icon: Icon(
               Icons.delete_outline,
-              size: 18,
+              size: KreditIconSize.small,
               color: kredit.textTertiary,
             ),
             visualDensity: VisualDensity.compact,
@@ -406,7 +406,7 @@ class _SectionGroup extends StatelessWidget {
                     const SizedBox(width: 6),
                     Icon(
                       expanded ? Icons.expand_less : Icons.expand_more,
-                      size: 18,
+                      size: KreditIconSize.small,
                       color: kredit.textTertiary,
                     ),
                   ],
@@ -472,7 +472,7 @@ class _InstallmentTile extends ConsumerWidget {
               child: AnimatedOpacity(
                 duration: const Duration(milliseconds: 150),
                 opacity: inst.paid ? 1 : 0,
-                child: const Icon(Icons.check, size: 15, color: Colors.white),
+                child: const Icon(Icons.check, size: KreditIconSize.small, color: Colors.white),
               ),
             ),
             const SizedBox(width: 14),
@@ -507,7 +507,7 @@ class _InstallmentTile extends ConsumerWidget {
                         children: [
                           Icon(
                             Icons.warning_amber_rounded,
-                            size: 12,
+                            size: KreditIconSize.small,
                             color: kredit.warning,
                           ),
                           const SizedBox(width: 4),
@@ -660,7 +660,7 @@ class _RegisterPaymentSheetState extends ConsumerState<_RegisterPaymentSheet> {
                     color: accent.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.check_circle_outline, size: 18, color: accent),
+                  child: Icon(Icons.check_circle_outline, size: KreditIconSize.small, color: accent),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -708,7 +708,7 @@ class _RegisterPaymentSheetState extends ConsumerState<_RegisterPaymentSheet> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.info_outline, size: 14, color: kredit.textTertiary),
+                  Icon(Icons.info_outline, size: KreditIconSize.small, color: kredit.textTertiary),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(

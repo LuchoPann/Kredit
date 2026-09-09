@@ -150,7 +150,7 @@ class _CreditCardTileState extends State<CreditCardTile> {
                 ],
               ),
               const SizedBox(width: 6),
-              Icon(Icons.chevron_right, size: 18, color: kredit.textTertiary),
+              Icon(Icons.chevron_right, size: KreditIconSize.small, color: kredit.textTertiary),
             ],
           ),
         ),

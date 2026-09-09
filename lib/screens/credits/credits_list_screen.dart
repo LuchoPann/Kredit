@@ -88,7 +88,7 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: kredit.textTertiary),
+            Icon(Icons.error_outline, size: KreditIconSize.large, color: kredit.textTertiary),
             const SizedBox(height: 16),
             Text(
               message,
@@ -98,7 +98,7 @@ class _ErrorState extends StatelessWidget {
             const SizedBox(height: 20),
             OutlinedButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh, size: 18),
+              icon: const Icon(Icons.refresh, size: KreditIconSize.small),
               label: const Text('Reintentar'),
             ),
           ],
@@ -157,10 +157,10 @@ class _CreditsListBodyState extends ConsumerState<_CreditsListBody>
                   decoration: InputDecoration(
                     hintText: 'Buscar crédito, banco...',
                     hintStyle: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
-                    prefixIcon: Icon(Icons.search, size: 20, color: kredit.textSecondary),
+                    prefixIcon: Icon(Icons.search, size: KreditIconSize.small, color: kredit.textSecondary),
                     suffixIcon: filter.query.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear, size: 18),
+                            icon: const Icon(Icons.clear, size: KreditIconSize.small),
                             onPressed: () {
                               _searchController.clear();
                               ref.read(creditsFilterProvider.notifier).setQuery('');
@@ -206,7 +206,7 @@ class _CreditsListBodyState extends ConsumerState<_CreditsListBody>
                 ),
                 child: PopupMenuButton<CreditsSortOption>(
                   tooltip: 'Ordenar por',
-                  icon: Icon(Icons.sort, color: kredit.textSecondary, size: 22),
+                  icon: Icon(Icons.sort, color: kredit.textSecondary, size: KreditIconSize.small),
                   color: kredit.bgCard,
                   initialValue: filter.sort,
                   onSelected: (v) => ref.read(creditsFilterProvider.notifier).setSort(v),
@@ -409,7 +409,7 @@ class _FilteredList extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.lock_outline, size: 12, color: kredit.textTertiary),
+                  Icon(Icons.lock_outline, size: KreditIconSize.small, color: kredit.textTertiary),
                   const SizedBox(width: 4),
                   Text(
                     'Tus datos permanecen en tu dispositivo',

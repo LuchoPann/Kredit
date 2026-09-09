@@ -575,7 +575,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                   children: [
                     Icon(
                       Icons.request_quote_outlined,
-                      size: 14,
+                      size: KreditIconSize.small,
                       color: kredit.textTertiary,
                     ),
                     const SizedBox(width: 6),
@@ -911,7 +911,7 @@ class _EditSectionCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: 14, color: kredit.textTertiary),
+              Icon(icon, size: KreditIconSize.small, color: kredit.textTertiary),
               const SizedBox(width: 6),
               Text(
                 label,
@@ -949,7 +949,7 @@ class _EditInterestRateWarningHint extends StatelessWidget {
         children: [
           const Icon(
             Icons.warning_amber_rounded,
-            size: 14,
+            size: KreditIconSize.small,
             color: AppColors.warning,
           ),
           const SizedBox(width: 6),

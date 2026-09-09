@@ -40,7 +40,7 @@ class WelcomeScreen extends ConsumerWidget {
             children: [
               const SizedBox(height: 24),
               Icon(Icons.account_balance_wallet_rounded,
-                  size: 56, color: accentColor),
+                  size: KreditIconSize.large, color: accentColor),
               const SizedBox(height: 16),
               Text(
                 '¡Bienvenido a Kredit!',
@@ -178,7 +178,7 @@ class _InfoItem extends StatelessWidget {
                   color: iconColor.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: iconColor, size: 16),
+                child: Icon(icon, color: iconColor, size: KreditIconSize.small),
               ),
               const SizedBox(width: 12),
               Expanded(

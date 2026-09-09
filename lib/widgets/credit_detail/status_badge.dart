@@ -45,7 +45,7 @@ class StatusBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: color),
+          Icon(icon, size: KreditIconSize.small, color: color),
           const SizedBox(width: 4),
           Text(
             status.label,

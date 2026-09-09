@@ -208,7 +208,7 @@ class _LockScreenState extends ConsumerState<LockScreen>
                     ),
                     child: Icon(
                       isPinMode ? Icons.pin_outlined : Icons.lock_outline,
-                      size: 36,
+                      size: KreditIconSize.large,
                       color: kredit.textPrimary,
                     ),
                   ),
@@ -440,7 +440,7 @@ class _NativePinField extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.keyboard_outlined,
-                      size: 16, color: kredit.textTertiary),
+                      size: KreditIconSize.small, color: kredit.textTertiary),
                   const SizedBox(width: 6),
                   Text(
                     'Toca para ingresar tu PIN',
@@ -458,7 +458,7 @@ class _NativePinField extends StatelessWidget {
         TextButton.icon(
           onPressed: isLockedOut ? null : _showKeyboard,
           icon: Icon(Icons.keyboard_outlined,
-              size: 18, color: kredit.textTertiary),
+              size: KreditIconSize.small, color: kredit.textTertiary),
           label: Text(
             'Abrir teclado',
             style: TextStyle(color: kredit.textTertiary, fontSize: KreditTextSize.caption),
@@ -542,7 +542,7 @@ class _BiometricPrompt extends StatelessWidget {
               ),
               child: Icon(
                 Icons.fingerprint,
-                size: 38,
+                size: KreditIconSize.large,
                 color: authenticating ? accent : kredit.textSecondary,
               ),
             ),
@@ -559,7 +559,7 @@ class _BiometricPrompt extends StatelessWidget {
         const SizedBox(height: 28),
         FilledButton.icon(
           onPressed: authenticating ? null : onRetry,
-          icon: const Icon(Icons.fingerprint, size: 20),
+          icon: const Icon(Icons.fingerprint, size: KreditIconSize.small),
           label: const Text('Reintentar'),
           style: FilledButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),

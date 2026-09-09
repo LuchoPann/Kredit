@@ -641,7 +641,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           ),
           child: Row(
             children: [
-              const Icon(Icons.warning_amber_rounded, size: 16, color: AppColors.warning),
+              const Icon(Icons.warning_amber_rounded, size: KreditIconSize.small, color: AppColors.warning),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(suggestion.text, style: const TextStyle(fontSize: KreditTextSize.caption)),
@@ -671,7 +671,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     return [
       Row(
         children: [
-          Icon(Icons.fact_check_outlined, size: 14, color: kredit.textTertiary),
+          Icon(Icons.fact_check_outlined, size: KreditIconSize.small, color: kredit.textTertiary),
           const SizedBox(width: 6),
           const Text('Confirmación', style: TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.body)),
         ],
@@ -1183,7 +1183,7 @@ class _InterestRateWarningHint extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.warning_amber_rounded, size: 14, color: AppColors.warning),
+          const Icon(Icons.warning_amber_rounded, size: KreditIconSize.small, color: AppColors.warning),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
@@ -1247,7 +1247,7 @@ class _StepProgress extends StatelessWidget {
                   ),
                 ),
                 child: done
-                    ? Icon(Icons.check, size: 14, color: Theme.of(context).scaffoldBackgroundColor)
+                    ? Icon(Icons.check, size: KreditIconSize.small, color: Theme.of(context).scaffoldBackgroundColor)
                     : Text(
                         '${step + 1}',
                         style: TextStyle(
@@ -1290,7 +1290,7 @@ class _SectionCard extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(icon, size: 14, color: kredit.textTertiary),
+            Icon(icon, size: KreditIconSize.small, color: kredit.textTertiary),
             const SizedBox(width: 6),
             Text(
               label,
@@ -1347,7 +1347,7 @@ class _CollapsibleSection extends StatelessWidget {
         collapsedIconColor: kredit.textTertiary,
         title: Row(
           children: [
-            Icon(icon, size: 14, color: kredit.textTertiary),
+            Icon(icon, size: KreditIconSize.small, color: kredit.textTertiary),
             const SizedBox(width: 6),
             Text(
               title,

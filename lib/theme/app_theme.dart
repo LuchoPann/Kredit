@@ -96,6 +96,19 @@ class KreditTextSize {
   static const hero = 38.0;
 }
 
+/// Exactly two icon sizes for the whole app (the `KreditLogo` brand mark is
+/// the one deliberate exception, sized per its own context) — same
+/// "small fixed set of named roles" rationale as [KreditTextSize].
+class KreditIconSize {
+  /// Inline/dense icons: section-header glyphs, row leading icons, button
+  /// icons, badges — the vast majority of icons in the app.
+  static const small = 18.0;
+
+  /// Prominent icons: empty-state/error placeholders (the single icon that
+  /// anchors a whole empty screen).
+  static const large = 48.0;
+}
+
 /// Shared padding tokens, same rationale as [KreditRadius].
 class KreditSpacing {
   /// Standard inner padding for a top-level card/sheet.
