@@ -300,7 +300,7 @@ class _DashboardBody extends ConsumerWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
               if (upcoming.isEmpty)
                 const _InlineEmpty(text: 'No tienes pagos pendientes próximos.')
               else
