@@ -884,6 +884,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           const SizedBox(height: 12),
           TextFormField(
             controller: _interestCtrl,
+            style: const TextStyle(fontSize: KreditTextSize.body),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(
               labelText: 'Interés anual (%)',
@@ -904,6 +905,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           TextFormField(
             controller: _quotaCtrl,
             enabled: false,
+            style: const TextStyle(fontSize: KreditTextSize.body),
             keyboardType: TextInputType.number,
             inputFormatters: const [CurrencyInputFormatter()],
             decoration: const InputDecoration(
@@ -1105,6 +1107,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                   children: [
                     TextFormField(
                       controller: _interestCtrl,
+                      style: const TextStyle(fontSize: KreditTextSize.body),
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: const InputDecoration(
                         labelText: 'Interés anual (%)',
@@ -1120,6 +1123,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               Expanded(
                 child: TextFormField(
                   controller: _managementFeeCtrl,
+                  style: const TextStyle(fontSize: KreditTextSize.body),
                   keyboardType: TextInputType.number,
                   inputFormatters: const [CurrencyInputFormatter()],
                   decoration: const InputDecoration(
@@ -1138,6 +1142,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
               isExpanded: true,
+            style: TextStyle(fontSize: KreditTextSize.body, color: Theme.of(context).extension<KreditColors>()!.textPrimary),
             initialValue: _managementFeeFrequency,
             decoration: const InputDecoration(labelText: 'Frecuencia de Cobro de Mantenimiento'),
             items: const [

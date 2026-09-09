@@ -57,19 +57,26 @@ class SummaryTab extends ConsumerWidget {
       padding: const EdgeInsets.all(KreditSpacing.card),
       children: [
         WalletCard(credit: credit),
-        const SizedBox(height: 24),
-        // "Pendiente" leads as the protagonist figure — full jerarquía
-        // tipográfica sin caja, como en el dashboard.
-        StatBox(
-          label: 'Pendiente',
-          value: formatCOP(remaining),
-          caption: 'Lo que falta por pagar',
-          icon: Icons.account_balance_wallet_outlined,
-          emphasized: true,
-        ),
-        const SizedBox(height: 18),
-        Divider(height: 1, color: kredit.borderCard),
-        const SizedBox(height: 16),
+        // El monto pendiente ya se muestra como "DEUDA RESTANTE" dentro del
+        // WalletCard de arriba para préstamos, así que aquí no se repite —
+        // solo las tarjetas de crédito conservan este bloque, porque su
+        // WalletCard no incluye esa cifra.
+        if (credit is! LoanCredit) ...[
+          const SizedBox(height: 24),
+          // "Pendiente" leads as the protagonist figure — full jerarquía
+          // tipográfica sin caja, como en el dashboard.
+          StatBox(
+            label: 'Pendiente',
+            value: formatCOP(remaining),
+            caption: 'Lo que falta por pagar',
+            icon: Icons.account_balance_wallet_outlined,
+            emphasized: true,
+          ),
+          const SizedBox(height: 18),
+          Divider(height: 1, color: kredit.borderCard),
+          const SizedBox(height: 16),
+        ] else
+          const SizedBox(height: 24),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -253,22 +260,16 @@ class _NextInstallmentCard extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 5),
-              Text(
-                formatCOP(next.amount),
-                style: TextStyle(
-                  fontSize: KreditTextSize.emphasis,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.4,
-                  color: isOverdue ? accent : kredit.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 3),
+              // El monto ya protagoniza el WalletCard de arriba ("PRÓXIMA
+              // CUOTA"); aquí solo aporta contexto nuevo (el número de cuota
+              // arriba y cuánto falta/si está vencida abajo), así que va en
+              // un tamaño secundario en vez de repetirse como cifra grande.
               Text(
                 subtitle,
                 style: TextStyle(
-                  fontSize: KreditTextSize.caption,
-                  fontWeight: isOverdue ? FontWeight.w700 : FontWeight.normal,
-                  color: isOverdue ? accent : kredit.textSecondary,
+                  fontSize: KreditTextSize.body,
+                  fontWeight: isOverdue ? FontWeight.w700 : FontWeight.w600,
+                  color: isOverdue ? accent : kredit.textPrimary,
                 ),
               ),
             ],

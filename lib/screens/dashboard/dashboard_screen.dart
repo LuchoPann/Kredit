@@ -295,6 +295,11 @@ class _DashboardBody extends ConsumerWidget {
                   const Spacer(),
                   if (upcoming.length > 3)
                     TextButton(
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
                       onPressed: () => _showAllUpcomingSheet(context, upcoming),
                       child: const Text('Ver todos', style: TextStyle(fontSize: KreditTextSize.caption)),
                     ),
@@ -339,7 +344,19 @@ class _DashboardBody extends ConsumerWidget {
                       ),
                     ),
                     const Spacer(),
+                    // Padding/tap-target por defecto de Material inflaban
+                    // esta fila más que la de "Próximos pagos" (que no
+                    // siempre tiene un TextButton en el header) — con
+                    // CrossAxisAlignment.baseline eso empujaba el título
+                    // hacia abajo, dejando más aire arriba en esta tarjeta
+                    // que en la otra pese a compartir el mismo padding del
+                    // Container. Encogido al tamaño de su propio texto.
                     TextButton(
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
                       onPressed: () =>
                           ref.read(navigationIndexProvider.notifier).state = AppNavTab.credits,
                       child: const Text('Ver todos', style: TextStyle(fontSize: KreditTextSize.caption)),

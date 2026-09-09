@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../domain/interest_rate.dart';
+import '../theme/app_theme.dart';
 
 /// Shared "¿Cómo está expresada tu tasa?" dropdown (E.A. / E.M. / mensual
 /// simple), used by both the card and loan sections of add/edit credit
@@ -19,22 +20,29 @@ class InterestRateTypeField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    // Mismo fontSize explícito que el campo de texto vecino (ej. "Interés
+    // anual (%)") — sin esto, este dropdown cae al estilo por defecto de
+    // Material (distinto tamaño/peso) y ambos campos de la misma fila se
+    // ven visiblemente descuadrados entre sí, aunque compartan isDense.
+    const style = TextStyle(fontSize: KreditTextSize.body);
     return DropdownButtonFormField<String>(
       isExpanded: true,
+      style: style.copyWith(color: kredit.textPrimary),
       initialValue: value,
       decoration: const InputDecoration(labelText: '¿Cómo está expresada tu tasa?'),
       items: const [
         DropdownMenuItem(
           value: InterestRateType.effectiveAnnual,
-          child: Text('Efectiva Anual (E.A.)'),
+          child: Text('Efectiva Anual (E.A.)', style: style),
         ),
         DropdownMenuItem(
           value: InterestRateType.effectiveMonthly,
-          child: Text('Efectiva Mensual (E.M.)'),
+          child: Text('Efectiva Mensual (E.M.)', style: style),
         ),
         DropdownMenuItem(
           value: InterestRateType.nominalMonthly,
-          child: Text('Mensual simple (sin capitalizar)'),
+          child: Text('Mensual simple (sin capitalizar)', style: style),
         ),
       ],
       onChanged: (v) => onChanged(v ?? InterestRateType.effectiveAnnual),
