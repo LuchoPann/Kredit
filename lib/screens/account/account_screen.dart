@@ -9,6 +9,7 @@ import '../../widgets/account/danger_zone_card.dart';
 import '../../widgets/account/data_tools_card.dart';
 import '../../widgets/account/profile_header.dart';
 import '../../widgets/account/section_header.dart';
+import '../../widgets/kredit_section_card.dart';
 import '../../widgets/notification_settings_tile.dart';
 import '../../widgets/security_settings_tile.dart';
 import 'how_it_works_screen.dart';
@@ -32,61 +33,77 @@ class AccountScreen extends ConsumerWidget {
         children: [
           ProfileHeader(profileName: prefs.profileName),
           const SizedBox(height: KreditSpacing.section),
-          sectionHeader('Personalización'),
-          const SizedBox(height: KreditSpacing.tile),
-          const AccentColorPicker(),
-          const SizedBox(height: KreditSpacing.card),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            secondary: Icon(prefs.isDarkMode ? Icons.dark_mode_outlined : Icons.light_mode_outlined),
-            title: const Text('Modo Oscuro'),
-            subtitle: Text(prefs.isDarkMode ? 'Tema oscuro activo' : 'Tema claro activo'),
-            value: prefs.isDarkMode,
-            onChanged: (v) => ref.read(themePreferencesProvider.notifier).setIsDarkMode(v),
-          ),
-          const SizedBox(height: KreditSpacing.card),
-          const BgTonePicker(),
-          const SizedBox(height: KreditSpacing.section),
-          Divider(height: 1, color: kredit.borderCard),
-          const SizedBox(height: KreditSpacing.section),
-          sectionHeader('Notificaciones'),
-          const SizedBox(height: KreditSpacing.tile),
-          const NotificationSettingsTile(),
-          const SizedBox(height: KreditSpacing.section),
-          Divider(height: 1, color: kredit.borderCard),
-          const SizedBox(height: KreditSpacing.section),
-          sectionHeader('Seguridad'),
-          const SizedBox(height: KreditSpacing.tile),
-          const SecuritySettingsTile(),
-          const SizedBox(height: KreditSpacing.section),
-          Divider(height: 1, color: kredit.borderCard),
-          const SizedBox(height: KreditSpacing.section),
-          sectionHeader(
-            'Datos',
-            subtitle: 'Respalda o restaura tu información local',
-          ),
-          const SizedBox(height: KreditSpacing.tile),
-          const DataToolsCard(),
-          const SizedBox(height: KreditSpacing.section),
-          Divider(height: 1, color: kredit.borderCard),
-          const SizedBox(height: KreditSpacing.section),
-          sectionHeader('Ayuda'),
-          const SizedBox(height: KreditSpacing.tile),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.help_outline, color: kredit.textSecondary),
-            title: const Text('Cómo funciona Kredit'),
-            subtitle: const Text('Guía rápida de la app y sus pantallas'),
-            trailing: Icon(Icons.chevron_right, color: kredit.textTertiary),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const HowItWorksScreen()),
-              );
-            },
+          KreditSectionCard(
+            children: [
+              sectionHeader('Personalización'),
+              const SizedBox(height: KreditSpacing.tile),
+              const AccentColorPicker(),
+              const SizedBox(height: KreditSpacing.card),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                secondary: Icon(prefs.isDarkMode ? Icons.dark_mode_outlined : Icons.light_mode_outlined),
+                title: const Text('Modo Oscuro'),
+                subtitle: Text(prefs.isDarkMode ? 'Tema oscuro activo' : 'Tema claro activo'),
+                value: prefs.isDarkMode,
+                onChanged: (v) => ref.read(themePreferencesProvider.notifier).setIsDarkMode(v),
+              ),
+              const SizedBox(height: KreditSpacing.card),
+              const BgTonePicker(),
+            ],
           ),
           const SizedBox(height: KreditSpacing.section),
-          Divider(height: 1, color: kredit.borderCard),
+          KreditSectionCard(
+            children: [
+              sectionHeader('Notificaciones'),
+              const SizedBox(height: KreditSpacing.tile),
+              const NotificationSettingsTile(),
+            ],
+          ),
           const SizedBox(height: KreditSpacing.section),
+          KreditSectionCard(
+            children: [
+              sectionHeader('Seguridad'),
+              const SizedBox(height: KreditSpacing.tile),
+              const SecuritySettingsTile(),
+            ],
+          ),
+          const SizedBox(height: KreditSpacing.section),
+          KreditSectionCard(
+            children: [
+              sectionHeader(
+                'Datos',
+                subtitle: 'Respalda o restaura tu información local',
+              ),
+              const SizedBox(height: KreditSpacing.tile),
+              const DataToolsCard(),
+            ],
+          ),
+          const SizedBox(height: KreditSpacing.section),
+          KreditSectionCard(
+            children: [
+              sectionHeader('Ayuda'),
+              const SizedBox(height: KreditSpacing.tile),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.help_outline, color: kredit.textSecondary),
+                title: const Text('Cómo funciona Kredit'),
+                subtitle: const Text('Guía rápida de la app y sus pantallas'),
+                trailing: Icon(Icons.chevron_right, color: kredit.textTertiary),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const HowItWorksScreen()),
+                  );
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: KreditSpacing.section),
+          // Zona de riesgo se deja fuera del patrón de tarjeta sutil: es
+          // contenido destructivo cuyo color de peligro (título + botones en
+          // AppColors.danger dentro de DangerZoneCard) ya es la señal visual
+          // distintiva que necesita — meterlo en la misma caja bgCard/borderCard
+          // neutra que el resto de secciones "normales" diluiría esa señal en
+          // vez de reforzarla.
           sectionHeader(
             'Zona de riesgo',
             color: AppColors.danger,

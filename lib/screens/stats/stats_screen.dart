@@ -11,6 +11,7 @@ import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/credit_display_utils.dart';
 import '../../widgets/account/stats_grid.dart';
+import '../../widgets/kredit_section_card.dart';
 import '../../widgets/progress_ring.dart';
 import 'simulator_sheet.dart';
 
@@ -46,67 +47,79 @@ class StatsScreen extends ConsumerWidget {
           if (credits.isEmpty) {
             return const _EmptyState();
           }
-          final kredit = Theme.of(context).extension<KreditColors>()!;
-          Widget sectionDivider() => Column(
-                children: [
-                  const SizedBox(height: 6),
-                  Divider(height: 1, color: kredit.borderCard),
-                  const SizedBox(height: 22),
-                ],
-              );
           return ListView(
             padding: const EdgeInsets.all(KreditSpacing.card),
             children: [
               _DebtOverviewPanel(credits: credits),
               const SizedBox(height: 22),
               StatsGrid(credits: credits),
-              sectionDivider(),
-              _statsSectionHeader(
-                context,
-                Icons.savings_outlined,
-                'Abonos extra realizados',
-                subtitle:
-                    'Impacto real de lo que ya has abonado a tus préstamos',
+              const SizedBox(height: 22),
+              KreditSectionCard(
+                children: [
+                  _statsSectionHeader(
+                    context,
+                    Icons.savings_outlined,
+                    'Abonos extra realizados',
+                    subtitle:
+                        'Impacto real de lo que ya has abonado a tus préstamos',
+                  ),
+                  const SizedBox(height: 12),
+                  _AbonosHistorySummary(credits: credits),
+                ],
               ),
-              const SizedBox(height: 12),
-              _AbonosHistorySummary(credits: credits),
-              sectionDivider(),
-              _statsSectionHeader(
-                context,
-                Icons.show_chart_outlined,
-                'Deuda proyectada por mes',
-                subtitle: 'Próximos 6 meses, según cuotas y saldos vigentes',
+              const SizedBox(height: 22),
+              KreditSectionCard(
+                children: [
+                  _statsSectionHeader(
+                    context,
+                    Icons.show_chart_outlined,
+                    'Deuda proyectada por mes',
+                    subtitle: 'Próximos 6 meses, según cuotas y saldos vigentes',
+                  ),
+                  const SizedBox(height: 12),
+                  _MonthlyDebtChart(credits: credits),
+                ],
               ),
-              const SizedBox(height: 12),
-              _MonthlyDebtChart(credits: credits),
-              sectionDivider(),
-              _statsSectionHeader(
-                context,
-                Icons.donut_small_outlined,
-                'Distribución por entidad',
-                subtitle:
-                    'Proporción de tu deuda pendiente por banco o entidad',
+              const SizedBox(height: 22),
+              KreditSectionCard(
+                children: [
+                  _statsSectionHeader(
+                    context,
+                    Icons.donut_small_outlined,
+                    'Distribución por entidad',
+                    subtitle:
+                        'Proporción de tu deuda pendiente por banco o entidad',
+                  ),
+                  const SizedBox(height: 12),
+                  _LenderDistributionChart(credits: credits),
+                ],
               ),
-              const SizedBox(height: 12),
-              _LenderDistributionChart(credits: credits),
-              sectionDivider(),
-              _statsSectionHeader(
-                context,
-                Icons.event_available_outlined,
-                'Proyección de fin de pago',
-                subtitle: 'Cuándo terminarías de pagar cada préstamo activo',
+              const SizedBox(height: 22),
+              KreditSectionCard(
+                children: [
+                  _statsSectionHeader(
+                    context,
+                    Icons.event_available_outlined,
+                    'Proyección de fin de pago',
+                    subtitle: 'Cuándo terminarías de pagar cada préstamo activo',
+                  ),
+                  const SizedBox(height: 12),
+                  _PayoffProjectionList(credits: credits),
+                ],
               ),
-              const SizedBox(height: 12),
-              _PayoffProjectionList(credits: credits),
-              sectionDivider(),
-              _statsSectionHeader(
-                context,
-                Icons.calculate_outlined,
-                'Simulador financiero',
-                subtitle: '¿Qué pasaría si hago una compra o abono extra?',
+              const SizedBox(height: 22),
+              KreditSectionCard(
+                children: [
+                  _statsSectionHeader(
+                    context,
+                    Icons.calculate_outlined,
+                    'Simulador financiero',
+                    subtitle: '¿Qué pasaría si hago una compra o abono extra?',
+                  ),
+                  const SizedBox(height: 12),
+                  _SimulatorEntryCard(credits: credits),
+                ],
               ),
-              const SizedBox(height: 12),
-              _SimulatorEntryCard(credits: credits),
               const SizedBox(height: 24),
             ],
           );

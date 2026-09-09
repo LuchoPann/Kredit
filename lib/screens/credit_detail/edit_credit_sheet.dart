@@ -11,6 +11,7 @@ import '../../domain/loan_calculator.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/interest_rate_type_field.dart';
+import '../../widgets/kredit_section_card.dart';
 import '../../widgets/wallet_card.dart';
 
 const List<String> _presetLenders = [
@@ -445,7 +446,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                 // flotaba sin ninguna agrupación visual mientras el resto
                 // del sheet (Datos Financieros y sus _EditSectionCard) sí
                 // la tenía, rompiendo la separación consistente.
-                _EditSectionCard(
+                KreditSectionCard(
                   label: 'DATOS BÁSICOS',
                   icon: Icons.badge_outlined,
                   children: [
@@ -592,7 +593,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                 ),
                 const SizedBox(height: 12),
                 if (!isCard) ...[
-                  _EditSectionCard(
+                  KreditSectionCard(
                     label: 'DÓNDE Y CON QUÉ',
                     icon: Icons.storefront_outlined,
                     children: [
@@ -636,7 +637,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _EditSectionCard(
+                  KreditSectionCard(
                     label: 'MONTO Y CUOTA',
                     icon: Icons.request_quote_outlined,
                     children: [
@@ -686,7 +687,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                     ],
                   ),
                 ] else ...[
-                  _EditSectionCard(
+                  KreditSectionCard(
                     label: 'LÍMITE E INTERÉS',
                     icon: Icons.credit_card_outlined,
                     children: [
@@ -730,7 +731,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _EditSectionCard(
+                  KreditSectionCard(
                     label: 'CORTE Y FECHA DE PAGO',
                     icon: Icons.event_available_outlined,
                     children: [
@@ -791,7 +792,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  _EditSectionCard(
+                  KreditSectionCard(
                     label: 'MANTENIMIENTO',
                     icon: Icons.percent_outlined,
                     children: [
@@ -843,7 +844,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                 // arriba. Con la tarjeta como contenedor, el borde interno
                 // ya no hace falta (InputBorder.none): el propio cuadro
                 // cumple ese rol.
-                _EditSectionCard(
+                KreditSectionCard(
                   label: 'NOTAS',
                   icon: Icons.sticky_note_2_outlined,
                   children: [
@@ -871,62 +872,6 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
             ),
           );
         },
-      ),
-    );
-  }
-}
-
-/// Groups a related cluster of fields within the edit form (e.g.
-/// "monto/cuota" vs. "corte/fecha de pago") inside a subtle card — same
-/// soft-surface language as `_DashboardSectionCard` in dashboard_screen.dart
-/// (bgCard background, KreditRadius.card, near-invisible border) instead of
-/// a bare typographic heading + hairline divider. With several of these
-/// sections stacked in one long scrolling sheet, a faint box per group reads
-/// as a clearer separation than a divider alone — the user specifically
-/// asked for this after finding the plain divider version hard to scan.
-class _EditSectionCard extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final List<Widget> children;
-
-  const _EditSectionCard({
-    required this.label,
-    required this.icon,
-    required this.children,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(KreditSpacing.card),
-      decoration: BoxDecoration(
-        color: kredit.bgCard,
-        borderRadius: BorderRadius.circular(KreditRadius.card),
-        border: Border.all(color: kredit.borderCard.withValues(alpha: 0.6)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: KreditIconSize.small, color: kredit.textTertiary),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: KreditTextSize.caption,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.4,
-                  color: kredit.textTertiary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ...children,
-        ],
       ),
     );
   }
