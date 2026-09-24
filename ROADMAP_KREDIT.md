@@ -717,6 +717,67 @@ Criterio de exito:
 El usuario puede tomar una decision antes de pagar, no solo registrar lo que ya
 hizo.
 
+### Implementacion real (Cloud, 2026-09-23)
+
+Estado: **parcial, avanzado**. Archivo principal:
+`lib/screens/stats/simulator_sheet.dart` (~1050 lineas). No se reconstruyo
+desde cero — ya existia un simulador funcional (compra + abono extra) de
+sesiones previas; esta ronda lo llevo mas cerca del criterio de exito.
+
+**Estructura del archivo (para orientarse rapido):**
+
+- `openSimulatorSheet(context, {initialCreditId})` — funcion de entrada, abre
+  un `showModalBottomSheet` con `SimulatorSheet`.
+- `SimulatorSheet` — `ConsumerStatefulWidget` con `TabController` de 2
+  pestanas: "Simular compra" (index 0, solo tarjetas) y "Abonar extra"
+  (index 1, tarjetas y prestamos). Si `initialCreditId` apunta a un
+  `LoanCredit`, abre directo en index 1 (las tarjetas no aplican para
+  "Simular compra" en un prestamo).
+- `_PurchaseTab` / `_PurchaseTabState` — simulador de compra a cuotas sobre
+  una tarjeta: monto + cuotas -> cuota mensual, costo total con interes,
+  nueva utilizacion del cupo.
+- `_ExtraPaymentTab` / `_ExtraPaymentTabState` — el simulador de abono
+  extra, el que mas se toco esta sesion. Aqui vive `_scenarios`
+  (`List<_PaymentResult>`), la lista comparativa.
+- `_PaymentResult` — clase inmutable con el resultado de una simulacion
+  (monto abonado, cuotas adelantadas o meses para saldar, interes ahorrado,
+  nuevo saldo). Tiene `toJson()`/`fromJson()` propios (ver persistencia
+  abajo).
+- `_QuickAmountRow` — chips `$50.000` / `$100.000` / `$200.000` que
+  autocompletan el campo de monto (`ActionChip`, `Wrap` con `spacing: 8`).
+- `_ScenarioComparisonTable` — la tabla comparativa: una fila por escenario,
+  la mas reciente resaltada con `accent.withValues(alpha: 0.08)` de fondo.
+  Cada fila muestra: monto abonado (columna izquierda, negrita en la fila
+  activa), cuotas adelantadas o "N mes(es) para saldar" (columna central),
+  interes ahorrado o saldo restante (columna derecha, color `kredit.success`).
+
+**Como se ve:** dentro del bottom sheet, debajo del boton "Simular abono" y
+del resultado del ultimo calculo, aparece un titulo pequeno "Comparar
+escenarios de esta sesion" y una tarjeta con borde tenue (mismo lenguaje
+visual que el resto de la app — sin `boxShadow`) que contiene la lista de
+filas descrita arriba, separadas por un divisor tenue horizontal.
+
+**Persistencia de escenarios (lo que resuelve "guardar simulaciones"):**
+cada escenario simulado se guarda en `SharedPreferences` bajo la clave
+`sim_scenarios_<creditId>` como una lista JSON (`jsonEncode`/`jsonDecode`).
+Al abrir el simulador con un credito preseleccionado, o al cambiar el
+credito en el dropdown, `_loadScenarios(credit)` lee esa clave y repuebla
+`_scenarios` — asi los escenarios sobreviven a cerrar el simulador o la app
+entera, sin necesitar una tabla nueva en la base de datos Drift (es una
+previsualizacion, no un abono real, asi que vivir fuera de la base de datos
+de creditos es la decision correcta). Tope de 5 escenarios por credito
+(`_maxScenarios`), mas antiguo se descarta.
+
+Que falta para el criterio de exito completo:
+
+- [ ] Comparar automaticamente **3 escenarios fijos** ("seguir igual" /
+  "abonar reduciendo cuota" / "abonar reduciendo plazo") en vez de comparar
+  solo los montos que el usuario ya eligio simular. Hoy la comparacion es
+  reactiva (el usuario simula N montos y los ve lado a lado), no proactiva
+  (la app no propone los 3 escenarios por su cuenta).
+- [ ] Acceso directo desde el dashboard (hoy solo esta en detalle del
+  credito y en Estadisticas via `_SimulatorEntryRow`).
+
 ## Fase 7: Estadisticas que expliquen
 
 Objetivo: que Estadisticas responda preguntas concretas y no solo muestre
@@ -777,13 +838,15 @@ Reglas iniciales:
 - [x] Pago mas urgente.
   - Implementado inicialmente con `buildPendingPayments` y
     `buildPrimaryRecommendation`.
-- [ ] Deuda mas costosa.
-- [ ] Tarjeta con uso alto.
-- [ ] Credito ideal para abonar.
+- [x] Deuda mas costosa. — `buildRiskRecommendations()`, ver detalle abajo.
+- [x] Tarjeta con uso alto. — `buildRiskRecommendations()`, umbral 85% del cupo.
+- [x] Credito ideal para abonar. — `buildBestPrepaymentRecommendation()`.
 - [x] Pagos proximos.
   - Implementado como lista de `PendingPayment`, reusable fuera del dashboard.
 - [x] Riesgo por mora o vencimiento.
-  - Implementado por severidad `danger`/`warning` segun dias de vencimiento.
+  - Implementado por severidad `danger`/`warning` segun dias de vencimiento
+    (`buildPrimaryRecommendation`) + regla de mora acumulada agregada esta
+    sesion (ver detalle abajo).
 
 Implementacion sugerida:
 
@@ -800,6 +863,91 @@ Criterio de exito:
 
 Kredit empieza a actuar como asistente financiero, no solo como registro de
 deudas.
+
+### Implementacion real (Cloud, 2026-09-23)
+
+Estado: **avanzado**. Archivo: `lib/domain/recommendations.dart` (~280
+lineas, cero dependencias de Flutter — es dominio puro, se puede testear sin
+levantar widgets). Estructura de dos capas que conviene entender antes de
+tocarlo:
+
+**Capa 1 — "un pago a la vez" (ya existia antes de esta sesion):**
+
+- `PendingPayment` — envuelve un `Credit` con su proxima fecha de pago y
+  monto. `daysUntilDue()` y `urgency()` (reusa `urgencyScore()` de
+  `urgency_score.dart`) son metodos, no campos, para que siempre reflejen
+  el `now` que se les pase (facilita testear con fechas fijas).
+- `buildPendingPayments(credits, {now})` — recorre todos los creditos y arma
+  la lista de `PendingPayment`, ordenada por urgencia descendente. Para
+  `LoanCredit` toma la primera cuota `!paid`; para `CardCredit` con saldo,
+  usa `getCardCycleDates(c).dueDate`.
+- `buildPaymentWeekSummary(payments, {now})` — cuenta vencidos, vencen-hoy,
+  vencen-en-7-dias y el total a pagar en la semana. Alimenta el resumen del
+  dashboard.
+- `buildPrimaryRecommendation(credits, {now})` — la UNA recomendacion mas
+  importante ahora mismo (vencido > vence-hoy > vence-en-3-dias > proximo >
+  todo-al-dia). Es lo que ve el usuario como "Siguiente compromiso" en el
+  dashboard.
+
+**Capa 2 — "comparar el conjunto completo" (`buildRiskRecommendations`,
+nueva esta sesion):** a diferencia de la Capa 1, que mira un pago a la vez,
+esta funcion compara TODOS los creditos activos entre si para encontrar
+riesgos que solo se ven al verlos juntos. Devuelve `List<FinancialRecommendation>`
+(puede haber 0, 1 o varias a la vez — no es "la unica" como
+`buildPrimaryRecommendation`). Cuatro reglas, en este orden dentro de la
+funcion:
+
+1. **Deuda concentrada** — si un solo acreedor representa >=60% de la deuda
+   pendiente total (comparando `getCreditRemainingBalance()` de cada
+   credito). Severidad `warning`.
+2. **Cupo casi agotado** — cualquier `CardCredit` con `currentBalance /
+   creditLimit >= 0.85`. Severidad `warning`.
+3. **Deuda mas costosa** — compara `effectiveAnnualRate()` (ver abajo) entre
+   todos los creditos con saldo pendiente; si el mas caro tiene una tasa
+   >=1.5x el promedio de los demas Y esa tasa es >=30% E.A., alerta.
+   Severidad `warning`. Esto es lo que responde "a quien le debo mas caro",
+   no solo "a quien le debo mas" (eso ya lo cubria "Deuda concentrada").
+4. **Mora acumulada** (agregada en esta ronda) — NO requiere una tabla nueva
+   en la base de datos ni guardar historial: se calcula sobre los pagos
+   vencidos que ya existen ahora mismo, via `buildPendingPayments(now:
+   now).where((p) => p.daysUntilDue(now) < 0)`. Dispara cuando el problema
+   ya es sistemico: 2+ creditos vencidos simultaneamente, o uno solo
+   vencido por 30+ dias. Severidad `danger` (la unica de las 4 reglas que
+   usa `danger` — las otras son advertencias, esta es una senal de alarma
+   real). Un solo pago vencido reciente NO dispara esta regla — eso ya lo
+   cubre `buildPrimaryRecommendation` de la Capa 1, y repetirlo aqui seria
+   ruido.
+
+**`effectiveAnnualRate(Credit credit)`** — normaliza la tasa de CUALQUIER
+credito (loan o card, cualquier periodicidad: E.A./E.M./nominal mensual) a
+una tasa efectiva anual comparable. Reutiliza `dailyRateFrom()` de
+`interest_rate.dart` (que ya existia para el calculo de intereses de
+tarjetas) y la anualiza: `(1 + dailyRate)^365 - 1`. Esta funcion es LA
+PIEZA CLAVE que permite comparar "cuesta mas" entre un prestamo al 24% E.A.
+y una tarjeta al 2.5% mensual sin convertir manualmente — todo se reduce a
+la misma unidad antes de comparar.
+
+**`buildBestPrepaymentRecommendation(credits)`** — entre los `LoanCredit`
+con cuotas pendientes (2 o mas; con uno solo no hay "primero" que elegir),
+recomienda abonar primero al de mayor `effectiveAnnualRate()`. Devuelve
+`null` si no hay suficientes prestamos activos para comparar. Severidad
+`info` (es una sugerencia, no una alerta).
+
+**Donde se consume (para que GPT sepa donde buscar el efecto visual):**
+`lib/screens/stats/stats_screen.dart` — seccion nueva "RIESGOS DETECTADOS"
+(solo aparece si `buildRiskRecommendations()` devuelve algo, cada item como
+`_RiskRow`: icono de advertencia ambar + titulo en negrita + descripcion) y
+una linea de insight bajo "Proyeccion de fin de pago" que usa
+`buildBestPrepaymentRecommendation()?.description` directamente (widget
+`_InsightLine`, texto tenue, se oculta solo si es null).
+
+Que falta para el criterio de exito completo:
+
+- [ ] "Riesgo por mora acumulada" en su version completa (con severidad
+  progresiva segun dias exactos en mora) requeriria guardar un historial de
+  dias-en-mora por credito, no solo mirar el estado actual — eso si es un
+  cambio de modelo de datos (migracion Drift), y se descarto por ahora a
+  proposito para no tocar la base de datos sin necesidad real.
 
 ## Orden recomendado de implementacion
 
