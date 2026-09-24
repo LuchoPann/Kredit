@@ -268,16 +268,23 @@ class _TabFadeLayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // AnimatedOpacity must wrap TickerMode, not the other way around: its
+    // fade-out animation needs its own ticker to keep running for the
+    // outgoing tab, and TickerMode(enabled: false) disables every ticker in
+    // its subtree — including AnimatedOpacity's, if placed underneath it.
+    // With that inverted, the outgoing tab froze fully opaque mid-transition
+    // and, being painted above lower-index tabs in the Stack, visually
+    // blocked navigation back to them (bug reported 2026-09-23).
     return IgnorePointer(
       ignoring: !active,
       child: ExcludeSemantics(
         excluding: !active,
-        child: TickerMode(
-          enabled: active,
-          child: AnimatedOpacity(
-            opacity: active ? 1 : 0,
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
+        child: AnimatedOpacity(
+          opacity: active ? 1 : 0,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          child: TickerMode(
+            enabled: active,
             child: child,
           ),
         ),
