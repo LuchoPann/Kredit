@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/credit.dart';
 import '../../domain/bank_detector.dart';
 import '../../domain/credit_calculator.dart';
+import '../../domain/urgency_score.dart';
 import '../../providers/credits_filter_provider.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
@@ -212,6 +213,10 @@ class _CreditsListBodyState extends ConsumerState<_CreditsListBody>
                   onSelected: (v) => ref.read(creditsFilterProvider.notifier).setSort(v),
                   itemBuilder: (context) => const [
                       PopupMenuItem(
+                        value: CreditsSortOption.urgency,
+                        child: Text('Mayor urgencia'),
+                      ),
+                      PopupMenuItem(
                         value: CreditsSortOption.dueDate,
                         child: Text('Próximo Pago'),
                       ),
@@ -224,6 +229,10 @@ class _CreditsListBodyState extends ConsumerState<_CreditsListBody>
                         child: Text('Menor Deuda'),
                       ),
                       PopupMenuItem(
+                        value: CreditsSortOption.entity,
+                        child: Text('Entidad A-Z'),
+                      ),
+                      PopupMenuItem(
                         value: CreditsSortOption.name,
                         child: Text('Nombre A-Z'),
                       ),
@@ -233,73 +242,9 @@ class _CreditsListBodyState extends ConsumerState<_CreditsListBody>
             ],
           ),
         ),
-        const SizedBox(height: 14),
-        Builder(
-          builder: (context) {
-            // Dynamically extract unique banks that the user actually has in their credits
-            final availableBanks = <String>{};
-            for (final c in widget.credits) {
-              final bank = detectBank(
-                lender: c.lender,
-                card: c is LoanCredit ? c.card : null,
-              );
-              availableBanks.add(bank.shortLabel);
-            }
-            final bankList = availableBanks.toList()..sort();
-
-            if (bankList.isEmpty) return const SizedBox.shrink();
-
-            final kredit = Theme.of(context).extension<KreditColors>()!;
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    'Filtrar por entidad',
-                    style: TextStyle(
-                      fontSize: KreditTextSize.caption,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.4,
-                      color: kredit.textTertiary,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                SizedBox(
-                  height: 26,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    children: [
-                      _BankChip(
-                        label: 'Todos',
-                        selected: filter.query.isEmpty,
-                        onTap: () {
-                          _searchController.clear();
-                          ref.read(creditsFilterProvider.notifier).setQuery('');
-                        },
-                      ),
-                      ...bankList.map((bank) {
-                        final selected = filter.query.toLowerCase() == bank.toLowerCase();
-                        return _BankChip(
-                          label: bank,
-                          selected: selected,
-                          onTap: () {
-                            final next = selected ? '' : bank;
-                            _searchController.text = next;
-                            ref.read(creditsFilterProvider.notifier).setQuery(next);
-                          },
-                        );
-                      }),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
         const SizedBox(height: 12),
+        _QuickFilterBar(filter: filter),
+        const SizedBox(height: 8),
         TabBar(
           controller: _tabController,
           indicatorSize: TabBarIndicatorSize.label,
@@ -322,6 +267,99 @@ class _CreditsListBodyState extends ConsumerState<_CreditsListBody>
           ),
         ),
       ],
+    );
+  }
+}
+
+class _QuickFilterBar extends ConsumerWidget {
+  final CreditsFilterState filter;
+
+  const _QuickFilterBar({required this.filter});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SizedBox(
+      height: 34,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: [
+          _QuickFilterChip(
+            label: 'Todos',
+            selected: filter.quickFilter == CreditsQuickFilter.all,
+            onTap: () => ref
+                .read(creditsFilterProvider.notifier)
+                .setQuickFilter(CreditsQuickFilter.all),
+          ),
+          _QuickFilterChip(
+            label: 'Vencidos',
+            selected: filter.quickFilter == CreditsQuickFilter.overdue,
+            onTap: () => ref
+                .read(creditsFilterProvider.notifier)
+                .setQuickFilter(CreditsQuickFilter.overdue),
+          ),
+          _QuickFilterChip(
+            label: 'Próximos',
+            selected: filter.quickFilter == CreditsQuickFilter.upcoming,
+            onTap: () => ref
+                .read(creditsFilterProvider.notifier)
+                .setQuickFilter(CreditsQuickFilter.upcoming),
+          ),
+          _QuickFilterChip(
+            label: 'Tarjetas',
+            selected: filter.quickFilter == CreditsQuickFilter.cards,
+            onTap: () => ref
+                .read(creditsFilterProvider.notifier)
+                .setQuickFilter(CreditsQuickFilter.cards),
+          ),
+          _QuickFilterChip(
+            label: 'Préstamos',
+            selected: filter.quickFilter == CreditsQuickFilter.loans,
+            onTap: () => ref
+                .read(creditsFilterProvider.notifier)
+                .setQuickFilter(CreditsQuickFilter.loans),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickFilterChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _QuickFilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accent = Theme.of(context).colorScheme.primary;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: selected,
+        onSelected: (_) => onTap(),
+        labelStyle: TextStyle(
+          fontSize: KreditTextSize.caption,
+          fontWeight: FontWeight.w700,
+          color: selected ? legibleForegroundOn(accent) : kredit.textSecondary,
+        ),
+        selectedColor: accent,
+        backgroundColor: kredit.bgCard,
+        side: BorderSide(
+          color: selected ? accent : kredit.borderCard.withValues(alpha: 0.7),
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(KreditRadius.chip),
+        ),
+      ),
     );
   }
 }
@@ -356,8 +394,13 @@ class _FilteredList extends StatelessWidget {
       }).toList();
     }
 
+    result = result.where(_matchesQuickFilter).toList();
+
     final sorted = [...result];
     switch (filter.sort) {
+      case CreditsSortOption.urgency:
+        sorted.sort((a, b) => _creditUrgency(b).compareTo(_creditUrgency(a)));
+        break;
       case CreditsSortOption.dueDate:
         sorted.sort((a, b) {
           final da = getNextDueDate(a);
@@ -376,11 +419,62 @@ class _FilteredList extends StatelessWidget {
         sorted.sort((a, b) =>
             getCreditRemainingBalance(a).compareTo(getCreditRemainingBalance(b)));
         break;
+      case CreditsSortOption.entity:
+        sorted.sort((a, b) {
+          final bankA = detectBank(
+            lender: a.lender,
+            card: a is LoanCredit ? a.card : null,
+          ).shortLabel;
+          final bankB = detectBank(
+            lender: b.lender,
+            card: b is LoanCredit ? b.card : null,
+          ).shortLabel;
+          final bankCompare = bankA.toLowerCase().compareTo(bankB.toLowerCase());
+          if (bankCompare != 0) return bankCompare;
+          return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        });
+        break;
       case CreditsSortOption.name:
         sorted.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
         break;
     }
     return sorted;
+  }
+
+  bool _matchesQuickFilter(Credit credit) {
+    switch (filter.quickFilter) {
+      case CreditsQuickFilter.all:
+        return true;
+      case CreditsQuickFilter.overdue:
+        final next = getNextDueDate(credit);
+        if (next == null) return false;
+        return _daysUntil(next) < 0;
+      case CreditsQuickFilter.upcoming:
+        final next = getNextDueDate(credit);
+        if (next == null) return false;
+        final days = _daysUntil(next);
+        return days >= 0 && days <= 7;
+      case CreditsQuickFilter.cards:
+        return credit is CardCredit;
+      case CreditsQuickFilter.loans:
+        return credit is LoanCredit;
+    }
+  }
+
+  double _creditUrgency(Credit credit) {
+    final next = getNextDueDate(credit);
+    if (next == null) return double.negativeInfinity;
+    return urgencyScore(
+      daysUntilDue: _daysUntil(next),
+      amount: getCreditRemainingBalance(credit),
+    );
+  }
+
+  int _daysUntil(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final due = DateTime(date.year, date.month, date.day);
+    return due.difference(today).inDays;
   }
 
   @override
@@ -438,55 +532,6 @@ class _FilteredList extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-/// Filtro de banco expresado en tipografía pura: un punto circular pequeño
-/// (el mismo acento usado para "urgencia" en el dashboard) precede el
-/// nombre cuando está seleccionado, y el peso/color del texto marca el
-/// estado — sin pastilla rellena ni borde.
-class _BankChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _BankChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
-    final accentColor = Theme.of(context).colorScheme.primary;
-    return Padding(
-      padding: const EdgeInsets.only(right: 18),
-      child: InkWell(
-        onTap: onTap,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 160),
-              curve: Curves.easeOut,
-              width: selected ? 6 : 0,
-              height: 6,
-              margin: EdgeInsets.only(right: selected ? 6 : 0),
-              decoration: BoxDecoration(color: accentColor, shape: BoxShape.circle),
-            ),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: KreditTextSize.caption,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: selected ? accentColor : kredit.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -566,9 +611,130 @@ class _CreditWalletListItemState extends State<_CreditWalletListItem> {
           // por tipo (esquinas cuadradas + muescas para el voucher, radio
           // reducido para una tarjeta real) — envolverlo en otro ClipRRect
           // con un radio uniforme por encima anulaba esa forma específica.
-          child: WalletCard(credit: widget.credit),
+          child: Column(
+            children: [
+              WalletCard(credit: widget.credit),
+              _CreditComparisonStrip(credit: widget.credit),
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+class _CreditComparisonStrip extends StatelessWidget {
+  final Credit credit;
+
+  const _CreditComparisonStrip({required this.credit});
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accent = _stripColor(context, credit);
+    final progress = _progressValue(credit);
+    final label = _progressLabel(credit);
+    final detail = _progressDetail(credit);
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(14, 0, 14, 0),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 11),
+      decoration: BoxDecoration(
+        color: kredit.bgCard,
+        borderRadius: const BorderRadius.vertical(
+          bottom: Radius.circular(KreditRadius.card),
+        ),
+        border: Border(
+          left: BorderSide(color: kredit.borderCard.withValues(alpha: 0.78)),
+          right: BorderSide(color: kredit.borderCard.withValues(alpha: 0.78)),
+          bottom: BorderSide(color: kredit.borderCard.withValues(alpha: 0.78)),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.045),
+            blurRadius: 10,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: KreditTextSize.caption,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                    color: kredit.textTertiary,
+                  ),
+                ),
+              ),
+              Text(
+                detail,
+                style: TextStyle(
+                  fontSize: KreditTextSize.caption,
+                  fontWeight: FontWeight.w800,
+                  color: accent,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 4,
+              backgroundColor: kredit.borderCard.withValues(alpha: 0.55),
+              valueColor: AlwaysStoppedAnimation<Color>(accent),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+double _progressValue(Credit credit) {
+  if (credit is CardCredit) {
+    if (credit.creditLimit <= 0) return 0;
+    return (credit.currentBalance / credit.creditLimit).clamp(0.0, 1.0);
+  }
+  if (credit is LoanCredit) {
+    if (credit.installments.isEmpty) return 0;
+    final paid = credit.installments.where((i) => i.paid).length;
+    return (paid / credit.installments.length).clamp(0.0, 1.0);
+  }
+  return 0;
+}
+
+String _progressLabel(Credit credit) {
+  if (credit is CardCredit) return 'Uso de cupo';
+  return 'Progreso pagado';
+}
+
+String _progressDetail(Credit credit) {
+  final pct = (_progressValue(credit) * 100).round();
+  if (credit is CardCredit && credit.creditLimit <= 0) return 'Sin límite';
+  if (credit is LoanCredit) {
+    final paid = credit.installments.where((i) => i.paid).length;
+    return '$paid/${credit.installments.length} · $pct%';
+  }
+  return '$pct%';
+}
+
+Color _stripColor(BuildContext context, Credit credit) {
+  final kredit = Theme.of(context).extension<KreditColors>()!;
+  final accent = Theme.of(context).colorScheme.primary;
+  if (credit is CardCredit) {
+    final progress = _progressValue(credit);
+    if (progress >= 0.85) return kredit.danger;
+    if (progress >= 0.65) return kredit.warning;
+    return accent;
+  }
+  return accent;
 }

@@ -210,18 +210,19 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
               ),
             ),
           ),
-          // IndexedStack keeps all 4 tab screens alive in the tree (each
-          // builds once and stays mounted, offstage when not selected) so
-          // switching tabs never rebuilds a screen from scratch — scroll
-          // position, local filters, in-flight animations, etc. all survive.
-          // A previous attempt used PageTransitionSwitcher + KeyedSubtree
-          // keyed on the tab index for a cross-fade transition, but keying
-          // on the changing index forces Flutter to destroy and recreate
-          // the outgoing/incoming screen on every tab switch — exactly the
-          // state loss this app was built to avoid.
-          IndexedStack(
-            index: activeIndex,
-            children: _screens,
+          // Keep every tab alive, but fade the active one in/out instead of
+          // jumping instantly. The screens stay mounted, so scroll position,
+          // local filters and form state survive tab changes.
+          Positioned.fill(
+            child: Stack(
+              children: [
+                for (var i = 0; i < _screens.length; i++)
+                  _TabFadeLayer(
+                    active: i == activeIndex,
+                    child: _screens[i],
+                  ),
+              ],
+            ),
           ),
         ],
       ),
@@ -256,3 +257,31 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
   }
 }
 
+class _TabFadeLayer extends StatelessWidget {
+  final bool active;
+  final Widget child;
+
+  const _TabFadeLayer({
+    required this.active,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      ignoring: !active,
+      child: ExcludeSemantics(
+        excluding: !active,
+        child: TickerMode(
+          enabled: active,
+          child: AnimatedOpacity(
+            opacity: active ? 1 : 0,
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+}

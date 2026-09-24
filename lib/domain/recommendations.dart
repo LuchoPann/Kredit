@@ -1,0 +1,202 @@
+import '../data/models/credit.dart';
+import '../data/models/installment.dart';
+import 'card_calculator.dart';
+import 'credit_calculator.dart';
+import 'date_utils.dart';
+import 'urgency_score.dart';
+
+enum RecommendationSeverity { calm, info, warning, danger }
+
+class PendingPayment {
+  final Credit credit;
+  final DateTime dueDate;
+  final Installment? installment;
+
+  PendingPayment({
+    required this.credit,
+    required this.dueDate,
+    this.installment,
+  });
+
+  bool get isLoanInstallment => installment != null;
+
+  double get amount {
+    if (installment != null) return installment!.amount;
+    final c = credit;
+    return c is CardCredit ? c.currentBalance : 0;
+  }
+
+  int daysUntilDue([DateTime? now]) {
+    final ref = now ?? DateTime.now();
+    final today = DateTime(ref.year, ref.month, ref.day);
+    final due = DateTime(dueDate.year, dueDate.month, dueDate.day);
+    return due.difference(today).inDays;
+  }
+
+  double urgency([DateTime? now]) {
+    return urgencyScore(daysUntilDue: daysUntilDue(now), amount: amount);
+  }
+}
+
+class PaymentWeekSummary {
+  final double dueWithin7Days;
+  final int overdueCount;
+  final int dueTodayCount;
+  final int dueSoonCount;
+  final PendingPayment? nextPayment;
+
+  const PaymentWeekSummary({
+    required this.dueWithin7Days,
+    required this.overdueCount,
+    required this.dueTodayCount,
+    required this.dueSoonCount,
+    required this.nextPayment,
+  });
+
+  int get actionCount => overdueCount + dueTodayCount;
+}
+
+class FinancialRecommendation {
+  final String title;
+  final String description;
+  final RecommendationSeverity severity;
+  final PendingPayment? payment;
+
+  const FinancialRecommendation({
+    required this.title,
+    required this.description,
+    required this.severity,
+    this.payment,
+  });
+}
+
+List<PendingPayment> buildPendingPayments(
+  List<Credit> credits, {
+  DateTime? now,
+}) {
+  final items = <PendingPayment>[];
+  for (final c in credits) {
+    if (c is LoanCredit) {
+      final unpaid = c.installments.where((i) => !i.paid).toList()
+        ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
+      if (unpaid.isNotEmpty) {
+        items.add(
+          PendingPayment(
+            credit: c,
+            dueDate: parseDateStr(unpaid.first.dueDate),
+            installment: unpaid.first,
+          ),
+        );
+      }
+    } else if (c is CardCredit && c.currentBalance > 0) {
+      items.add(PendingPayment(credit: c, dueDate: getCardCycleDates(c).dueDate));
+    }
+  }
+  items.sort((a, b) => b.urgency(now).compareTo(a.urgency(now)));
+  return items;
+}
+
+PaymentWeekSummary buildPaymentWeekSummary(
+  List<PendingPayment> payments, {
+  DateTime? now,
+}) {
+  final ref = now ?? DateTime.now();
+  final today = DateTime(ref.year, ref.month, ref.day);
+  final horizon = today.add(const Duration(days: 7));
+  var dueWithin7Days = 0.0;
+  var overdueCount = 0;
+  var dueTodayCount = 0;
+  var dueSoonCount = 0;
+
+  PendingPayment? nextPayment;
+  for (final payment in payments) {
+    final due = DateTime(
+      payment.dueDate.year,
+      payment.dueDate.month,
+      payment.dueDate.day,
+    );
+    final days = payment.daysUntilDue(today);
+    if (days < 0) overdueCount++;
+    if (days == 0) dueTodayCount++;
+    if (days > 0 && days <= 7) dueSoonCount++;
+    if (!due.isAfter(horizon)) dueWithin7Days += payment.amount;
+    if (nextPayment == null || due.isBefore(nextPayment.dueDate)) {
+      nextPayment = payment;
+    }
+  }
+
+  return PaymentWeekSummary(
+    dueWithin7Days: dueWithin7Days,
+    overdueCount: overdueCount,
+    dueTodayCount: dueTodayCount,
+    dueSoonCount: dueSoonCount,
+    nextPayment: nextPayment,
+  );
+}
+
+FinancialRecommendation buildPrimaryRecommendation(
+  List<Credit> credits, {
+  DateTime? now,
+}) {
+  final payments = buildPendingPayments(credits, now: now);
+  if (payments.isEmpty) {
+    return const FinancialRecommendation(
+      title: 'Todo al dia',
+      description: 'No tienes pagos pendientes por resolver.',
+      severity: RecommendationSeverity.calm,
+    );
+  }
+
+  final payment = payments.first;
+  final days = payment.daysUntilDue(now);
+  if (days < 0) {
+    return FinancialRecommendation(
+      title: 'Resolver pago vencido',
+      description: 'Conviene pagar ${payment.credit.name} antes de revisar compromisos futuros.',
+      severity: RecommendationSeverity.danger,
+      payment: payment,
+    );
+  }
+  if (days == 0) {
+    return FinancialRecommendation(
+      title: 'Pagar hoy',
+      description: '${payment.credit.name} vence hoy. Si ya pagaste, marcalo para limpiar tu agenda.',
+      severity: RecommendationSeverity.warning,
+      payment: payment,
+    );
+  }
+  if (days <= 3) {
+    return FinancialRecommendation(
+      title: 'Preparar pago cercano',
+      description: '${payment.credit.name} esta dentro de la ventana critica de los proximos 3 dias.',
+      severity: RecommendationSeverity.warning,
+      payment: payment,
+    );
+  }
+
+  return FinancialRecommendation(
+    title: 'Siguiente compromiso',
+    description: '${payment.credit.name} es el proximo pago en tu calendario.',
+    severity: RecommendationSeverity.info,
+    payment: payment,
+  );
+}
+
+String buildFinancialHealthLine(
+  List<Credit> credits,
+  PaymentWeekSummary summary,
+) {
+  if (credits.where(creditHasUnpaid).isEmpty) {
+    return 'No tienes deuda activa registrada.';
+  }
+  if (summary.overdueCount > 0) {
+    return 'Tienes ${summary.overdueCount} pago${summary.overdueCount == 1 ? '' : 's'} vencido${summary.overdueCount == 1 ? '' : 's'} por resolver.';
+  }
+  if (summary.dueTodayCount > 0) {
+    return 'Tienes ${summary.dueTodayCount} pago${summary.dueTodayCount == 1 ? '' : 's'} para hoy.';
+  }
+  if (summary.dueSoonCount > 0) {
+    return 'Tienes ${summary.dueSoonCount} compromiso${summary.dueSoonCount == 1 ? '' : 's'} en los proximos 7 dias.';
+  }
+  return 'Todo esta al dia para esta semana.';
+}

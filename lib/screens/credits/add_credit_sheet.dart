@@ -447,11 +447,13 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               Expanded(
                 child: ListView(
                   padding: const EdgeInsets.all(KreditSpacing.card),
-                  children: switch (_currentStep) {
-                    0 => _step1BasicData(kredit),
-                    1 => _step2FinancialData(kredit),
-                    _ => _step3ColorNotesConfirm(kredit),
-                  },
+                  children: [
+                    ...switch (_currentStep) {
+                      0 => _step1BasicData(kredit),
+                      1 => _step2FinancialData(kredit),
+                      _ => _step3ColorNotesConfirm(kredit),
+                    },
+                  ],
                 ),
               ),
               _buildControls(),
@@ -497,24 +499,14 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     final suggestion = _typeSuggestion;
     final subEntityOptions = subEntitiesForLender(_lenderCtrl.text);
     return [
-      const Text('Tipo de Crédito', style: TextStyle(fontWeight: FontWeight.w600)),
-      const SizedBox(height: 8),
-      SegmentedButton<String>(
-        segments: const [
-          ButtonSegment(value: CreditType.loan, label: Text('Préstamo / Cuotas Fijas')),
-          ButtonSegment(value: CreditType.card, label: Text('Tarjeta de Crédito')),
-        ],
-        selected: {_type},
-        onSelectionChanged: (s) {
-          setState(() => _type = s.first);
+      const Text('¿Qué quieres registrar?', style: TextStyle(fontWeight: FontWeight.w700)),
+      const SizedBox(height: 10),
+      _CreditTypePicker(
+        selectedType: _type,
+        onChanged: (value) {
+          setState(() => _type = value);
           _applyEntityTemplate();
         },
-      ),
-      const SizedBox(height: 4),
-      Text(
-        'Cuotas fijas: pagas lo mismo cada vez, con fecha de fin definida. '
-        'Tarjeta: saldo que sube y baja, con corte y fecha límite cada mes.',
-        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
       ),
       const SizedBox(height: 20),
       Divider(color: kredit.borderCard),
@@ -1197,6 +1189,116 @@ class _InterestRateWarningHint extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CreditTypePicker extends StatelessWidget {
+  final String selectedType;
+  final ValueChanged<String> onChanged;
+
+  const _CreditTypePicker({
+    required this.selectedType,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _CreditTypeOption(
+          selected: selectedType == CreditType.loan,
+          icon: Icons.payments_outlined,
+          title: 'Préstamo / Cupo en cuotas',
+          subtitle: 'Pagas cuotas fijas y existe una fecha estimada de finalización.',
+          onTap: () => onChanged(CreditType.loan),
+        ),
+        const SizedBox(height: 10),
+        _CreditTypeOption(
+          selected: selectedType == CreditType.card,
+          icon: Icons.credit_card_outlined,
+          title: 'Tarjeta de crédito',
+          subtitle: 'Maneja saldo rotativo, fecha de corte, fecha límite y cupo disponible.',
+          onTap: () => onChanged(CreditType.card),
+        ),
+      ],
+    );
+  }
+}
+
+class _CreditTypeOption extends StatelessWidget {
+  final bool selected;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _CreditTypeOption({
+    required this.selected,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accent = Theme.of(context).colorScheme.primary;
+    return Material(
+      color: selected ? accent.withValues(alpha: 0.12) : kredit.bgCard,
+      borderRadius: BorderRadius.circular(KreditRadius.card),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(KreditRadius.card),
+        child: Container(
+          padding: const EdgeInsets.all(KreditSpacing.card),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(KreditRadius.card),
+            border: Border.all(
+              color: selected ? accent : kredit.borderCard,
+              width: selected ? 1.3 : 1,
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, size: KreditIconSize.small, color: selected ? accent : kredit.textTertiary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: KreditTextSize.body,
+                        fontWeight: FontWeight.w800,
+                        color: kredit.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: KreditTextSize.caption,
+                        color: kredit.textSecondary,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                size: KreditIconSize.small,
+                color: selected ? accent : kredit.textTertiary,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

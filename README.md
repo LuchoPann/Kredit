@@ -1,53 +1,73 @@
-# 📱 Kredit - Control de Créditos y Cuotas para Android
+# Kredit
 
-¡Kredit está lista! Esta es una **Progressive Web App (PWA)** móvil diseñada con una interfaz premium para que lleves el control de tus deudas directamente en tu celular de forma fácil y cómoda.
+Kredit es una app Flutter para gestionar créditos y préstamos en Colombia:
+tarjetas de crédito, préstamos de cuota fija y productos tipo cupo.
 
----
+La meta del proyecto es ir más allá de una lista de deudas. Kredit busca
+ayudar a decidir qué pagar, cuándo pagar y qué impacto tienen los abonos a
+capital sobre el plazo, la cuota y el costo total.
 
-## 🚀 Cómo abrir e instalar Kredit en tu celular desde Termux
+## Estado actual
 
-Dado que estás desarrollando en **Termux**, puedes levantar un servidor web local en cuestión de segundos para abrir e instalar la app en tu teléfono Android.
+- App Flutter multiplataforma con foco móvil.
+- Persistencia local con Drift/SQLite.
+- Estado reactivo con Riverpod.
+- Cálculo de préstamos con amortización francesa.
+- Soporte para tarjetas de crédito rotativas.
+- Abonos a capital con estrategia de reducir cuota o reducir plazo.
+- Importación y exportación de respaldos JSON versionados.
+- Recordatorios locales de vencimientos.
+- Bloqueo de app y almacenamiento seguro para preferencias sensibles.
+- Widget Android con privacidad configurable.
+- Logos y detección de entidades financieras colombianas.
 
-### Paso 1: Inicia el Servidor Web
-Ejecuta uno de los siguientes comandos en tu terminal de Termux (dentro de la carpeta de este proyecto `/Kredit`):
+También se conserva una versión PWA anterior en `legacy_pwa/` como referencia
+histórica del producto.
 
-* **Si tienes Python instalado (Recomendado):**
-  ```bash
-  python -m http.server 8080
-  ```
+## Enfoque de producto
 
-* **Si prefieres Node.js:**
-  ```bash
-  npx http-server -p 8080
-  ```
+Kredit está pensado para una persona que quiere entender rápido su situación:
 
-### Paso 2: Abre la App en tu Celular
-1. Abre tu navegador web favorito (se recomienda **Google Chrome** en Android para la mejor compatibilidad de PWA).
-2. Entra a la siguiente dirección en el navegador:
-   ```text
-   http://localhost:8080
-   ```
+- cuánto debe;
+- qué pago es más urgente;
+- cuánto tiene que cubrir esta semana;
+- qué pasa si hace un abono extra;
+- qué tarjeta o cupo le está consumiendo más dinero.
 
-### Paso 3: Instala la App en Android (Agregar a Pantalla de Inicio)
-Una vez abierta la aplicación en tu navegador:
-1. Dirígete a la pestaña **Ajustes** en la esquina inferior derecha de la app.
-2. Presiona el botón **Instalar** (o usa el menú de Chrome de 3 puntos en la esquina superior derecha y selecciona **"Instalar aplicación"** o **"Agregar a la pantalla principal"**).
-3. ¡Listo! Se creará un icono llamado **Kredit** con su logotipo en el menú de aplicaciones de tu celular. Ahora podrás abrirla a pantalla completa sin barra de direcciones y funcionará incluso sin internet (offline).
+El diferencial debe estar en traducir lógica financiera compleja a decisiones
+claras y accionables.
 
----
+## Estructura principal
 
-## 🛠️ Estructura del Proyecto
+- `lib/domain/`: reglas financieras, cálculos de préstamos, tarjetas, tasas,
+  urgencia, importación/exportación.
+- `lib/data/`: modelos y base de datos Drift.
+- `lib/providers/`: estado de créditos, tema, navegación, bloqueo,
+  notificaciones y preferencias.
+- `lib/screens/`: pantallas principales de la app.
+- `lib/widgets/`: componentes reutilizables.
+- `test/`: pruebas de dominio y persistencia.
+- `legacy_pwa/`: versión PWA anterior.
 
-* **[index.html](file:///data/data/com.termux/files/home/storage/downloads/MinijuegosTareaMiAmor/Kredit/index.html):** Contiene la estructura y vistas de la Single Page Application (SPA).
-* **[css/style.css](file:///data/data/com.termux/files/home/storage/downloads/MinijuegosTareaMiAmor/Kredit/css/style.css):** Hoja de estilos con efectos de Glassmorphism, paleta de colores neon y adaptabilidad móvil.
-* **[js/app.js](file:///data/data/com.termux/files/home/storage/downloads/MinijuegosTareaMiAmor/Kredit/js/app.js):** Lógica matemática de amortización, alertas de vencimiento, almacenamiento local (`localStorage`) e importación/exportación de respaldos.
-* **[manifest.json](file:///data/data/com.termux/files/home/storage/downloads/MinijuegosTareaMiAmor/Kredit/manifest.json):** Archivo de manifiesto que indica a Android que es una PWA instalable.
-* **[sw.js](file:///data/data/com.termux/files/home/storage/downloads/MinijuegosTareaMiAmor/Kredit/sw.js):** Service worker que cachea los archivos para que funcione sin conexión.
-* **`icons/icon.jpg`:** Icono premium diseñado para Kredit.
+## Ejecutar
 
----
+```bash
+flutter pub get
+flutter run
+```
 
-## 💾 Respaldo y Seguridad
-Tus datos se guardan de manera segura de forma local en tu celular (dentro de tu navegador) para total privacidad.
-> [!IMPORTANT]
-> Recuerda usar la opción **Exportar** dentro de la pestaña **Ajustes** cada cierto tiempo para descargar un archivo de respaldo. Si alguna vez borras el caché completo de tu navegador, podrás recuperar todos tus créditos al subir ese archivo con el botón **Importar**.
+## Probar
+
+```bash
+flutter test
+```
+
+## Visión de desarrollo
+
+Las próximas mejoras deberían priorizar:
+
+1. Recomendaciones inteligentes de pago.
+2. Simuladores de abonos más visibles y accionables.
+3. Flujos de creación más guiados para usuarios no financieros.
+4. Mejor explicación de tasas colombianas, fechas de corte y fechas límite.
+5. Visualizaciones que respondan preguntas concretas, no solo gráficos.
