@@ -1,8 +1,11 @@
+import 'dart:math' as math;
+
 import '../data/models/credit.dart';
 import '../data/models/installment.dart';
 import 'card_calculator.dart';
 import 'credit_calculator.dart';
 import 'date_utils.dart';
+import 'interest_rate.dart';
 import 'urgency_score.dart';
 
 enum RecommendationSeverity { calm, info, warning, danger }
@@ -231,7 +234,82 @@ List<FinancialRecommendation> buildRiskRecommendations(List<Credit> credits) {
     }
   }
 
+  // Riesgo 3: deuda mas costosa — un credito activo con una tasa mucho mas
+  // alta que el resto encarece el conjunto aunque su saldo no sea el mayor.
+  final rated = <Credit, double>{
+    for (final c in credits)
+      if (getCreditRemainingBalance(c) > 0) c: effectiveAnnualRate(c),
+  }..removeWhere((_, r) => r <= 0);
+  if (rated.length > 1) {
+    final costliest = rated.entries.reduce((a, b) => b.value > a.value ? b : a);
+    final others = rated.entries.where((e) => e.key != costliest.key);
+    final avgOthers = others.fold<double>(0, (s, e) => s + e.value) / others.length;
+    if (costliest.value >= avgOthers * 1.5 && costliest.value >= 30) {
+      risks.add(
+        FinancialRecommendation(
+          title: 'Deuda mas costosa',
+          description:
+              '${costliest.key.name} tiene una tasa efectiva anual de '
+              '~${costliest.value.round()}%, muy por encima de tus otros '
+              'creditos — es el que mas intereses te genera por cada peso '
+              'pendiente.',
+          severity: RecommendationSeverity.warning,
+        ),
+      );
+    }
+  }
+
   return risks;
+}
+
+/// Normaliza la tasa de un credito (loan o card, cualquier periodicidad
+/// declarada) a una tasa efectiva anual comparable, reutilizando
+/// `dailyRateFrom` de interest_rate.dart. Devuelve 0 para creditos sin tasa
+/// registrada.
+double effectiveAnnualRate(Credit credit) {
+  final rate = credit is LoanCredit
+      ? credit.interestRate
+      : credit is CardCredit
+          ? credit.interestRate
+          : 0.0;
+  if (rate <= 0) return 0;
+  final rateType = credit is LoanCredit
+      ? credit.interestRateType
+      : credit is CardCredit
+          ? credit.interestRateType
+          : InterestRateType.effectiveAnnual;
+  final daily = dailyRateFrom(rate, rateType);
+  return (math.pow(1 + daily, 365) - 1) * 100;
+}
+
+/// Fase 6/9: entre los creditos activos (tipo prestamo, con cuotas
+/// pendientes), cual conviene abonar primero — el de mayor tasa efectiva
+/// anual es el que mas intereses evita por cada peso abonado de mas.
+/// Devuelve null cuando hay menos de dos prestamos activos para comparar
+/// (con uno solo no hay "primero" que elegir).
+FinancialRecommendation? buildBestPrepaymentRecommendation(
+  List<Credit> credits,
+) {
+  final loans = credits
+      .whereType<LoanCredit>()
+      .where((l) => l.installments.any((i) => !i.paid))
+      .toList();
+  if (loans.length < 2) return null;
+
+  final best = loans.reduce(
+    (a, b) => effectiveAnnualRate(b) > effectiveAnnualRate(a) ? b : a,
+  );
+  final rate = effectiveAnnualRate(best);
+  if (rate <= 0) return null;
+
+  return FinancialRecommendation(
+    title: 'Conviene abonar primero',
+    description:
+        '${best.name} tiene la tasa efectiva anual mas alta de tus '
+        'prestamos activos (~${rate.round()}%) — un abono extra ahi es '
+        'donde mas interes te ahorras.',
+    severity: RecommendationSeverity.info,
+  );
 }
 
 String buildFinancialHealthLine(

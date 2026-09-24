@@ -489,6 +489,14 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
   Credit? _selectedCredit;
   _PaymentResult? _result;
 
+  // Tarea 2 del roadmap ("comparativas"): guarda los últimos escenarios
+  // simulados en esta sesión (no persistido — cambiar de crédito o cerrar
+  // el simulador limpia la lista) para poder comparar distintos montos de
+  // abono lado a lado, sin tener que recordarlos de memoria. Más reciente
+  // primero, tope de 5 para que la tabla no crezca sin límite.
+  final List<_PaymentResult> _scenarios = [];
+  static const _maxScenarios = 5;
+
   @override
   void initState() {
     super.initState();
@@ -532,19 +540,17 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
         .take(quotasSkipped)
         .fold(0.0, (s, i) => s + i.interest);
 
-    setState(() {
-      _result = _PaymentResult(
-        credit: loan,
-        creditName: loan.name,
-        extraPayment: extraPayment,
-        currentBalance: currentBalance,
-        newBalance: newBalance,
-        quotasSkipped: quotasSkipped,
-        interestSaving: saving,
-        isCard: false,
-        monthsToPayoff: 0,
-      );
-    });
+    _addScenario(_PaymentResult(
+      credit: loan,
+      creditName: loan.name,
+      extraPayment: extraPayment,
+      currentBalance: currentBalance,
+      newBalance: newBalance,
+      quotasSkipped: quotasSkipped,
+      interestSaving: saving,
+      isCard: false,
+      monthsToPayoff: 0,
+    ));
   }
 
   void _simulateCard(CardCredit card, double extraPayment) {
@@ -568,19 +574,27 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
       }
     }
 
+    _addScenario(_PaymentResult(
+      credit: card,
+      creditName: card.name,
+      extraPayment: extraPayment,
+      currentBalance: card.currentBalance,
+      newBalance: newBalance,
+      quotasSkipped: 0,
+      interestSaving: 0,
+      isCard: true,
+      monthsToPayoff: monthsToPayoff,
+      newAvailable: math.max(0, card.creditLimit - newBalance),
+    ));
+  }
+
+  void _addScenario(_PaymentResult result) {
     setState(() {
-      _result = _PaymentResult(
-        credit: card,
-        creditName: card.name,
-        extraPayment: extraPayment,
-        currentBalance: card.currentBalance,
-        newBalance: newBalance,
-        quotasSkipped: 0,
-        interestSaving: 0,
-        isCard: true,
-        monthsToPayoff: monthsToPayoff,
-        newAvailable: math.max(0, card.creditLimit - newBalance),
-      );
+      _result = result;
+      _scenarios.insert(0, result);
+      if (_scenarios.length > _maxScenarios) {
+        _scenarios.removeRange(_maxScenarios, _scenarios.length);
+      }
     });
   }
 
@@ -625,6 +639,7 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
           onChanged: (v) => setState(() {
             _selectedCredit = v;
             _result = null;
+            _scenarios.clear();
           }),
         ),
         const SizedBox(height: 16),
@@ -653,6 +668,10 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
         if (_result != null) ...[
           const SizedBox(height: 24),
           _PaymentResultCard(result: _result!, kredit: kredit, accent: accent),
+        ],
+        if (_scenarios.length > 1) ...[
+          const SizedBox(height: 20),
+          _ScenarioComparisonTable(scenarios: _scenarios, kredit: kredit),
         ],
         const SizedBox(height: 16),
         _DisclaimerBanner(kredit: kredit),
@@ -685,6 +704,93 @@ class _PaymentResult {
     required this.monthsToPayoff,
     this.newAvailable,
   });
+}
+
+/// Tabla compacta de comparación entre los últimos montos de abono
+/// simulados en esta sesión (Tarea 2 del roadmap: "comparativas"). Muestra
+/// una fila por escenario, con el más reciente (el que está en pantalla en
+/// `_PaymentResultCard`) resaltado con el color de acento.
+class _ScenarioComparisonTable extends StatelessWidget {
+  final List<_PaymentResult> scenarios;
+  final KreditColors kredit;
+  const _ScenarioComparisonTable({required this.scenarios, required this.kredit});
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Comparar escenarios de esta sesión',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: KreditTextSize.caption,
+            color: kredit.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: kredit.borderCard.withValues(alpha: 0.78)),
+            borderRadius: BorderRadius.circular(KreditRadius.card),
+          ),
+          child: Column(
+            children: [
+              for (var i = 0; i < scenarios.length; i++)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    border: i == scenarios.length - 1
+                        ? null
+                        : Border(bottom: BorderSide(color: kredit.borderCard.withValues(alpha: 0.5))),
+                    color: i == 0 ? accent.withValues(alpha: 0.08) : null,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Text(
+                          _fmtCOP(scenarios[i].extraPayment),
+                          style: TextStyle(
+                            fontSize: KreditTextSize.caption,
+                            fontWeight: i == 0 ? FontWeight.w700 : FontWeight.w500,
+                            color: kredit.textPrimary,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 4,
+                        child: Text(
+                          scenarios[i].isCard
+                              ? '${scenarios[i].monthsToPayoff} mes(es) para saldar'
+                              : '${scenarios[i].quotasSkipped} cuota(s) adelantadas',
+                          style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary),
+                        ),
+                      ),
+                      Expanded(
+                        flex: 4,
+                        child: Text(
+                          scenarios[i].isCard
+                              ? '${_fmtCOP(scenarios[i].newBalance)} restante'
+                              : '${_fmtCOP(scenarios[i].interestSaving)} ahorrados',
+                          textAlign: TextAlign.right,
+                          style: TextStyle(
+                            fontSize: KreditTextSize.caption,
+                            fontWeight: FontWeight.w600,
+                            color: kredit.success,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _PaymentResultCard extends ConsumerStatefulWidget {

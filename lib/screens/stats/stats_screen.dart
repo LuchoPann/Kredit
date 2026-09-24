@@ -134,6 +134,7 @@ class StatsScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   _PayoffProjectionList(credits: credits),
+                  _InsightLine(text: buildBestPrepaymentRecommendation(credits)?.description),
                 ],
               ),
               const SizedBox(height: 16),

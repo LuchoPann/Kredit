@@ -7,8 +7,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../data/models/credit.dart';
+import '../../domain/date_utils.dart';
 import '../../domain/export_import.dart';
 import '../../providers/credits_provider.dart';
+import '../../providers/last_backup_provider.dart';
 import '../../theme/app_theme.dart';
 
 /// Exportar/Importar datos card. Restructured (visual-only, same
@@ -62,6 +64,7 @@ class DataToolsCard extends ConsumerWidget {
       final file = File('${dir.path}/kredit_backup_${DateTime.now().millisecondsSinceEpoch}.json');
       await file.writeAsString(json);
       await Share.shareXFiles([XFile(file.path)], text: 'Respaldo de Kredit');
+      await ref.read(lastBackupProvider.notifier).markBackedUpNow();
     } catch (e) {
       debugPrint('exportData failed: $e');
       if (context.mounted) {
@@ -149,6 +152,7 @@ class DataToolsCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
+    final lastBackup = ref.watch(lastBackupProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -156,6 +160,17 @@ class DataToolsCard extends ConsumerWidget {
           'Tus datos viven solo en este dispositivo. Puedes respaldarlos '
           'o restaurarlos en cualquier momento.',
           style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          lastBackup == null
+              ? 'Aun no has hecho un respaldo.'
+              : 'Ultimo respaldo: ${formatDate(toDateStr(lastBackup))}.',
+          style: TextStyle(
+            fontSize: KreditTextSize.caption,
+            fontWeight: FontWeight.w600,
+            color: lastBackup == null ? kredit.textTertiary : kredit.success,
+          ),
         ),
         const SizedBox(height: 12),
         _DataToolOption(

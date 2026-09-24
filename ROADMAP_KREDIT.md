@@ -213,6 +213,18 @@ Criterios de aceptacion:
 - Las formulas deben estar testeadas.
 - `flutter analyze` y `flutter test` deben pasar.
 
+- [x] 2026-09-23: parcialmente completada por Cloud. Se agrego
+  `_ScenarioComparisonTable` en `simulator_sheet.dart`: cada vez que el
+  usuario simula un abono, el resultado se guarda en una lista de sesion
+  (tope 5, no persistida) y se muestra una tabla comparando monto abonado
+  vs. cuotas adelantadas/meses para saldar vs. interes ahorrado — permite
+  comparar "¿que pasa si abono 100k vs 300k?" sin tener que recordar el
+  resultado anterior. Pendiente real: los "tres escenarios" que pide la
+  tarea (seguir igual / reducir cuota / reducir plazo) y los botones
+  rapidos de monto ($50k/$100k/$200k) no se implementaron — la comparacion
+  actual es entre montos que el usuario ya eligio simular, no una
+  comparacion automatica de las 3 estrategias.
+
 ### Tarea 3 para Cloud: Estadisticas explicativas
 
 Objetivo: que Estadisticas responda preguntas, no que solo muestre graficos.
@@ -249,8 +261,14 @@ Criterios de aceptacion:
   de "Distribucion por entidad" (% concentrado en el acreedor principal).
   Tambien se agrego una seccion nueva "RIESGOS DETECTADOS" que muestra los
   resultados de `buildRiskRecommendations()` (ver Tarea 5) cuando aplican.
-  Pendiente: insight especifico de "donde conviene abonar primero" (requiere
-  comparar tasas de interes entre creditos, no solo montos).
+
+- [x] 2026-09-23 (2): se cerro el pendiente de "donde conviene abonar
+  primero" — nueva `buildBestPrepaymentRecommendation()` en
+  `recommendations.dart` compara la tasa efectiva anual normalizada
+  (`effectiveAnnualRate()`, reutiliza `dailyRateFrom()` de
+  interest_rate.dart) entre los prestamos activos y recomienda abonar
+  primero el de tasa mas alta. Se muestra como insight bajo "Proyeccion de
+  fin de pago" en stats_screen.dart. 5 tests nuevos.
 
 ### Tarea 4 para Cloud: Cuenta, seguridad y respaldo
 
@@ -294,6 +312,12 @@ Criterios de aceptacion:
   persistir un timestamp en `SharedPreferences` tras cada export exitoso) —
   cambio pequeno, no urgente.
 
+- [x] 2026-09-23 (2): cerrado el pendiente. Nuevo
+  `lib/providers/last_backup_provider.dart` (`SharedPreferences`, mismo
+  patron que `notification_settings_provider.dart`) persiste la fecha del
+  ultimo export exitoso; `DataToolsCard` la muestra ("Ultimo respaldo: ...")
+  y se actualiza justo despues de `Share.shareXFiles` en `_exportData`.
+
 ### Tarea 5 para Cloud: Motor avanzado de recomendaciones
 
 Objetivo: fortalecer `lib/domain/recommendations.dart` para que alimente
@@ -302,10 +326,13 @@ dashboard, detalle y estadisticas.
 Reglas pendientes:
 
 - [x] Tarjeta con uso alto. — `buildRiskRecommendations()`, umbral 85% del cupo.
-- [ ] Deuda mas costosa. (concentracion por acreedor ya cubierta, ver nota;
-  falta comparar por tasa de interes real, no solo monto)
-- [ ] Credito ideal para abonar.
-- [ ] Riesgo por mora acumulada.
+- [x] Deuda mas costosa. — `buildRiskRecommendations()`, compara
+  `effectiveAnnualRate()` entre creditos activos; alerta si el mas caro
+  supera 1.5x el promedio de los demas y su tasa es >=30% E.A.
+- [x] Credito ideal para abonar. — `buildBestPrepaymentRecommendation()`,
+  mismo mecanismo de tasa efectiva anual, aplicado solo a prestamos activos.
+- [ ] Riesgo por mora acumulada. (requiere historial de dias en mora, no solo
+  estado actual — no implementado)
 - [ ] Alerta de cupo menor al saldo al crear/editar tarjeta.
 
 Requisitos:

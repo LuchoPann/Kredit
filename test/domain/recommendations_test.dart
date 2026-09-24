@@ -114,6 +114,63 @@ void main() {
 
       expect(buildRiskRecommendations([loan]), isEmpty);
     });
+
+    test('flags the costliest loan when its rate dwarfs the others', () {
+      final expensive = _loan(id: 'exp', name: 'Gota a gota', interestRate: 90);
+      final cheap1 = _loan(id: 'c1', name: 'Banco A', interestRate: 15);
+      final cheap2 = _loan(id: 'c2', name: 'Banco B', interestRate: 18);
+
+      final risks = buildRiskRecommendations([expensive, cheap1, cheap2]);
+
+      expect(risks.any((r) => r.title == 'Deuda mas costosa'), isTrue);
+    });
+
+    test('does not flag costliest when rates are similar', () {
+      final a = _loan(id: 'a', interestRate: 20);
+      final b = _loan(id: 'b', interestRate: 22);
+
+      expect(
+        buildRiskRecommendations([a, b]).any((r) => r.title == 'Deuda mas costosa'),
+        isFalse,
+      );
+    });
+  });
+
+  group('effectiveAnnualRate', () {
+    test('returns 0 for a credit without an interest rate', () {
+      expect(effectiveAnnualRate(_loan(id: 'a', interestRate: 0)), 0);
+    });
+
+    test('returns a positive annualized rate for a loan with E.A. rate', () {
+      final rate = effectiveAnnualRate(_loan(id: 'a', interestRate: 24));
+      expect(rate, closeTo(24, 0.5));
+    });
+  });
+
+  group('buildBestPrepaymentRecommendation', () {
+    test('returns null with fewer than two active loans', () {
+      expect(buildBestPrepaymentRecommendation([_loan(id: 'a', interestRate: 20)]), isNull);
+    });
+
+    test('picks the loan with the highest effective annual rate', () {
+      final expensive = _loan(id: 'exp', name: 'Gota a gota', interestRate: 90);
+      final cheap = _loan(id: 'cheap', name: 'Banco A', interestRate: 15);
+
+      final rec = buildBestPrepaymentRecommendation([expensive, cheap]);
+
+      expect(rec, isNotNull);
+      expect(rec!.description, contains('Gota a gota'));
+    });
+
+    test('ignores fully paid loans', () {
+      final expensive = _loan(id: 'exp', name: 'Gota a gota', interestRate: 90);
+      expensive.installments.first.paid = true;
+      final cheap = _loan(id: 'cheap', name: 'Banco A', interestRate: 15);
+
+      final rec = buildBestPrepaymentRecommendation([expensive, cheap]);
+
+      expect(rec, isNull);
+    });
   });
 }
 
@@ -122,6 +179,7 @@ LoanCredit _loan({
   String name = 'Credito',
   String dueDate = '2026-01-10',
   double amount = 100000,
+  double interestRate = 0,
 }) {
   return LoanCredit(
     id: id,
@@ -132,6 +190,7 @@ LoanCredit _loan({
     totalInstallments: 1,
     frequency: CreditFrequency.monthly,
     startDate: dueDate,
+    interestRate: interestRate,
     installments: buildLoanInstallments(
       totalAmount: amount,
       totalInstallments: 1,
