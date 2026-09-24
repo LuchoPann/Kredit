@@ -189,7 +189,10 @@ FinancialRecommendation buildPrimaryRecommendation(
 /// reglas que comparan créditos entre sí en vez de mirar uno a la vez —
 /// complementa a `buildPrimaryRecommendation` (que solo mira el pago más
 /// urgente) con riesgos que solo se ven al comparar el conjunto completo.
-List<FinancialRecommendation> buildRiskRecommendations(List<Credit> credits) {
+List<FinancialRecommendation> buildRiskRecommendations(
+  List<Credit> credits, {
+  DateTime? now,
+}) {
   final risks = <FinancialRecommendation>[];
 
   // Riesgo 1: concentración — un solo acreedor representa la mayoría de tu
@@ -259,7 +262,46 @@ List<FinancialRecommendation> buildRiskRecommendations(List<Credit> credits) {
     }
   }
 
+  // Riesgo 4: mora acumulada — no requiere guardar historial nuevo (no hay
+  // que migrar la base de datos): se calcula sobre los pagos vencidos AHORA
+  // mismo, vistos en conjunto. Un solo pago vencido es una alerta normal
+  // (ya la cubre buildPrimaryRecommendation); esto dispara cuando el
+  // problema ya es sistemico: varios creditos vencidos a la vez, o uno solo
+  // muy atrasado, que es la senal real de mora que se esta acumulando.
+  final payments = buildPendingPayments(credits, now: now);
+  final overdue = payments.where((p) => p.daysUntilDue(now) < 0).toList();
+  if (overdue.isNotEmpty) {
+    final worstDays = overdue.map((p) => -p.daysUntilDue(now)).reduce(math.max);
+    final overdueTotal = overdue.fold<double>(0, (s, p) => s + p.amount);
+    if (overdue.length >= 2 || worstDays >= 30) {
+      final plural = overdue.length == 1 ? '' : 's';
+      risks.add(
+        FinancialRecommendation(
+          title: 'Mora acumulada',
+          description: overdue.length >= 2
+              ? 'Tienes ${overdue.length} pago$plural vencidos a la vez '
+                  '(${_fmtCOP(overdueTotal)} en total) — el atraso se esta '
+                  'acumulando en varios frentes, no solo en uno.'
+              : '${overdue.first.credit.name} lleva $worstDays dias vencido '
+                  '— entre mas tiempo pase, mas dificil es ponerse al dia.',
+          severity: RecommendationSeverity.danger,
+        ),
+      );
+    }
+  }
+
   return risks;
+}
+
+String _fmtCOP(double v) {
+  final n = v.round().abs();
+  final s = n.toString();
+  final buf = StringBuffer();
+  for (var i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 == 0) buf.write('.');
+    buf.write(s[i]);
+  }
+  return '\$${buf.toString()}';
 }
 
 /// Normaliza la tasa de un credito (loan o card, cualquier periodicidad

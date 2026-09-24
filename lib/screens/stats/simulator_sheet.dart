@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/models/card_movement.dart';
 import '../../data/models/credit.dart';
@@ -489,10 +491,11 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
   Credit? _selectedCredit;
   _PaymentResult? _result;
 
-  // Tarea 2 del roadmap ("comparativas"): guarda los últimos escenarios
-  // simulados en esta sesión (no persistido — cambiar de crédito o cerrar
-  // el simulador limpia la lista) para poder comparar distintos montos de
-  // abono lado a lado, sin tener que recordarlos de memoria. Más reciente
+  // Tarea 2 del roadmap ("comparativas" + "guardar escenarios"): guarda los
+  // últimos escenarios simulados por crédito en SharedPreferences (clave
+  // `sim_scenarios_<creditId>`), así sobreviven a cerrar el simulador o la
+  // app — a diferencia de un abono real, esto es solo una previsualización,
+  // así que no necesita vivir en la base de datos de créditos. Más reciente
   // primero, tope de 5 para que la tabla no crezca sin límite.
   final List<_PaymentResult> _scenarios = [];
   static const _maxScenarios = 5;
@@ -506,6 +509,31 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
           .toList();
       if (match.isNotEmpty) _selectedCredit = match.first;
     }
+    if (_selectedCredit != null) _loadScenarios(_selectedCredit!);
+  }
+
+  String _scenariosKey(Credit credit) => 'sim_scenarios_${credit.id}';
+
+  Future<void> _loadScenarios(Credit credit) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_scenariosKey(credit));
+    if (raw == null || !mounted) return;
+    final decoded = jsonDecode(raw) as List<dynamic>;
+    setState(() {
+      _scenarios
+        ..clear()
+        ..addAll(
+          decoded.map((e) => _PaymentResult.fromJson(e as Map<String, dynamic>, credit)),
+        );
+    });
+  }
+
+  Future<void> _persistScenarios(Credit credit) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _scenariosKey(credit),
+      jsonEncode(_scenarios.map((s) => s.toJson()).toList()),
+    );
   }
 
   @override
@@ -596,6 +624,7 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
         _scenarios.removeRange(_maxScenarios, _scenarios.length);
       }
     });
+    _persistScenarios(result.credit);
   }
 
   @override
@@ -636,11 +665,14 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
                     ),
                   ))
               .toList(),
-          onChanged: (v) => setState(() {
-            _selectedCredit = v;
-            _result = null;
-            _scenarios.clear();
-          }),
+          onChanged: (v) {
+            setState(() {
+              _selectedCredit = v;
+              _result = null;
+              _scenarios.clear();
+            });
+            if (v != null) _loadScenarios(v);
+          },
         ),
         const SizedBox(height: 16),
         Text('¿Cuánto abonarías?',
@@ -658,6 +690,14 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
             prefixText: '\$ ',
           ),
           onChanged: (_) => setState(() => _result = null),
+        ),
+        const SizedBox(height: 10),
+        _QuickAmountRow(
+          kredit: kredit,
+          onPick: (amount) => setState(() {
+            _paymentCtrl.text = CurrencyInputFormatter.format(amount);
+            _result = null;
+          }),
         ),
         const SizedBox(height: 20),
         FilledButton.icon(
@@ -704,6 +744,64 @@ class _PaymentResult {
     required this.monthsToPayoff,
     this.newAvailable,
   });
+
+  // Serializa solo los campos primitivos — `credit` se re-adjunta al leer
+  // (no tiene sentido serializar el crédito completo cuando ya lo tenemos
+  // en memoria; solo cambia su `id`, que ya es la clave de SharedPreferences
+  // bajo la que se guarda esta lista).
+  Map<String, dynamic> toJson() => {
+        'creditName': creditName,
+        'extraPayment': extraPayment,
+        'currentBalance': currentBalance,
+        'newBalance': newBalance,
+        'quotasSkipped': quotasSkipped,
+        'interestSaving': interestSaving,
+        'isCard': isCard,
+        'monthsToPayoff': monthsToPayoff,
+        'newAvailable': newAvailable,
+      };
+
+  factory _PaymentResult.fromJson(Map<String, dynamic> json, Credit credit) {
+    return _PaymentResult(
+      credit: credit,
+      creditName: json['creditName'] as String,
+      extraPayment: (json['extraPayment'] as num).toDouble(),
+      currentBalance: (json['currentBalance'] as num).toDouble(),
+      newBalance: (json['newBalance'] as num).toDouble(),
+      quotasSkipped: json['quotasSkipped'] as int,
+      interestSaving: (json['interestSaving'] as num).toDouble(),
+      isCard: json['isCard'] as bool,
+      monthsToPayoff: json['monthsToPayoff'] as int,
+      newAvailable: (json['newAvailable'] as num?)?.toDouble(),
+    );
+  }
+}
+
+/// Fila de chips con montos típicos ($50k/$100k/$200k) para no tener que
+/// escribir el número a mano cada vez — pedido explícito de la Tarea 2 del
+/// roadmap ("Simulador fuerte").
+class _QuickAmountRow extends StatelessWidget {
+  final KreditColors kredit;
+  final ValueChanged<double> onPick;
+  const _QuickAmountRow({required this.kredit, required this.onPick});
+
+  static const _amounts = [50000.0, 100000.0, 200000.0];
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      children: [
+        for (final amount in _amounts)
+          ActionChip(
+            label: Text('\$${CurrencyInputFormatter.format(amount)}'),
+            onPressed: () => onPick(amount),
+            backgroundColor: kredit.bgCard,
+            side: BorderSide(color: kredit.borderCard.withValues(alpha: 0.78)),
+          ),
+      ],
+    );
+  }
 }
 
 /// Tabla compacta de comparación entre los últimos montos de abono

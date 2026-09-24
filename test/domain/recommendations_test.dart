@@ -110,9 +110,37 @@ void main() {
     });
 
     test('returns no risks for a single healthy loan', () {
-      final loan = _loan(id: 'only', amount: 100000);
+      final loan = _loan(id: 'only', amount: 100000, dueDate: '2026-01-10');
 
-      expect(buildRiskRecommendations([loan]), isEmpty);
+      expect(
+        buildRiskRecommendations([loan], now: DateTime(2026, 1, 5)),
+        isEmpty,
+      );
+    });
+
+    test('flags a single loan overdue by 30+ days', () {
+      final loan = _loan(id: 'stale', name: 'Cupo viejo', dueDate: '2026-01-01');
+
+      final risks = buildRiskRecommendations([loan], now: DateTime(2026, 2, 5));
+
+      expect(risks.any((r) => r.title == 'Mora acumulada'), isTrue);
+    });
+
+    test('flags accumulated mora when two credits are overdue at once', () {
+      final a = _loan(id: 'a', dueDate: '2026-01-05');
+      final b = _loan(id: 'b', dueDate: '2026-01-06');
+
+      final risks = buildRiskRecommendations([a, b], now: DateTime(2026, 1, 10));
+
+      expect(risks.any((r) => r.title == 'Mora acumulada'), isTrue);
+    });
+
+    test('does not flag mora for a single recently overdue payment', () {
+      final loan = _loan(id: 'a', dueDate: '2026-01-08');
+
+      final risks = buildRiskRecommendations([loan], now: DateTime(2026, 1, 10));
+
+      expect(risks.any((r) => r.title == 'Mora acumulada'), isFalse);
     });
 
     test('flags the costliest loan when its rate dwarfs the others', () {

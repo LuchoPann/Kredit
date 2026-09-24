@@ -185,6 +185,22 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
     return rateInconsistencyWarning(rate, _interestRateType);
   }
 
+  // Fase 9 del roadmap ("alerta de cupo menor al saldo al editar tarjeta"):
+  // non-blocking — a user lowering their limit below what they already owe
+  // is a valid real-world case (the bank cut it), so this only informs,
+  // it never prevents saving (unlike `_quotaTooLowWarning` below, which
+  // does block because that case is never legitimate).
+  String? get _insufficientLimitWarning {
+    final credit = widget.credit;
+    if (credit is! CardCredit) return null;
+    final newLimit = double.tryParse(CurrencyInputFormatter.unformat(_limitCtrl.text));
+    if (newLimit == null || newLimit <= 0) return null;
+    if (newLimit >= credit.currentBalance) return null;
+    return 'El nuevo límite (${CurrencyInputFormatter.format(newLimit)}) es menor que tu saldo '
+        'actual (${CurrencyInputFormatter.format(credit.currentBalance)}). Puedes guardarlo así '
+        '— por ejemplo si el banco te bajó el cupo — pero tu cupo disponible quedará en \$0.';
+  }
+
   // Real bug fix: if the entered quota doesn't even cover the current
   // period's interest on the outstanding balance, the loan would never
   // amortize principal (interest-only forever, balance stuck or growing).
@@ -704,6 +720,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                               decoration: const InputDecoration(
                                 labelText: 'Límite Total (\$)',
                               ),
+                              onChanged: (_) => setState(() {}),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -723,6 +740,8 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                           ),
                         ],
                       ),
+                      if (_insufficientLimitWarning != null)
+                        _EditInterestRateWarningHint(text: _insufficientLimitWarning!),
                       const SizedBox(height: 12),
                       InterestRateTypeField(
                         value: _interestRateType,
