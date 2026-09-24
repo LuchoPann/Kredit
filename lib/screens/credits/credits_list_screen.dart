@@ -649,13 +649,9 @@ class _CreditComparisonStrip extends StatelessWidget {
           right: BorderSide(color: kredit.borderCard.withValues(alpha: 0.78)),
           bottom: BorderSide(color: kredit.borderCard.withValues(alpha: 0.78)),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.045),
-            blurRadius: 10,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        // Sin boxShadow: el resto de la app (KreditSectionCard, WalletCard,
+        // dashboard) usa solo borde tenue, nunca sombra — mantiene esta
+        // bandeja consistente con el lenguaje visual "sin cajas pesadas".
       ),
       child: Column(
         children: [
