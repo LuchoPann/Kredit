@@ -216,7 +216,16 @@ class _ScheduleTabState extends ConsumerState<ScheduleTab> {
                   onToggle: () =>
                       setState(() => _abonosExpanded = !_abonosExpanded),
                   children: credit.abonos.reversed
-                      .map((a) => _AbonoTile(creditId: credit.id, abono: a))
+                      .map((a) => _AbonoTile(
+                            creditId: credit.id,
+                            abono: a,
+                            // Solo el ÚLTIMO abono (primero en esta lista
+                            // invertida) tiene una comparación antes/ahora
+                            // exacta contra el estado actual del crédito.
+                            impact: identical(a, credit.abonos.last)
+                                ? computeLastAbonoImpact(credit)
+                                : null,
+                          ))
                       .toList(),
                 ),
             ],
@@ -230,8 +239,13 @@ class _ScheduleTabState extends ConsumerState<ScheduleTab> {
 class _AbonoTile extends ConsumerWidget {
   final String creditId;
   final LoanAbono abono;
+  final LastAbonoImpact? impact;
 
-  const _AbonoTile({required this.creditId, required this.abono});
+  const _AbonoTile({
+    required this.creditId,
+    required this.abono,
+    this.impact,
+  });
 
   Future<void> _confirmAndDelete(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
@@ -304,6 +318,40 @@ class _AbonoTile extends ConsumerWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+                if (impact != null && impact!.hasAnyImpact) ...[
+                  const SizedBox(height: 4),
+                  if (impact!.hasQuotaChange)
+                    Text(
+                      'Cuota bajó de ${formatCOP(impact!.quotaBefore!)} a '
+                      '${formatCOP(impact!.quotaAfter!)}',
+                      style: TextStyle(
+                        fontSize: KreditTextSize.caption,
+                        fontWeight: FontWeight.w600,
+                        color: kredit.success,
+                      ),
+                    ),
+                  if (impact!.installmentsSaved > 0)
+                    Text(
+                      'Terminas ${impact!.installmentsSaved} cuota'
+                      '${impact!.installmentsSaved == 1 ? '' : 's'} antes',
+                      style: TextStyle(
+                        fontSize: KreditTextSize.caption,
+                        fontWeight: FontWeight.w600,
+                        color: kredit.success,
+                      ),
+                    ),
+                  if (impact!.estimatedInterestSaving > 0)
+                    Text(
+                      'Ahorras aproximadamente '
+                      '${formatCOP(impact!.estimatedInterestSaving)} en '
+                      'intereses estimados',
+                      style: TextStyle(
+                        fontSize: KreditTextSize.caption,
+                        fontWeight: FontWeight.w600,
+                        color: kredit.success,
+                      ),
+                    ),
+                ],
               ],
             ),
           ),

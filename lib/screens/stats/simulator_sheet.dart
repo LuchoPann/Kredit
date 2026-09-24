@@ -28,7 +28,7 @@ String _fmtCOP(double v) {
 // Entry point: abre el sheet
 // ─────────────────────────────────────────────────────────────────────────────
 
-void openSimulatorSheet(BuildContext context) {
+void openSimulatorSheet(BuildContext context, {String? initialCreditId}) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -36,7 +36,7 @@ void openSimulatorSheet(BuildContext context) {
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
-    builder: (_) => const SimulatorSheet(),
+    builder: (_) => SimulatorSheet(initialCreditId: initialCreditId),
   );
 }
 
@@ -45,7 +45,8 @@ void openSimulatorSheet(BuildContext context) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class SimulatorSheet extends ConsumerStatefulWidget {
-  const SimulatorSheet({super.key});
+  final String? initialCreditId;
+  const SimulatorSheet({super.key, this.initialCreditId});
 
   @override
   ConsumerState<SimulatorSheet> createState() => _SimulatorSheetState();
@@ -58,7 +59,21 @@ class _SimulatorSheetState extends ConsumerState<SimulatorSheet>
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 2, vsync: this);
+    // La pestaña "Simular compra" solo aplica a tarjetas (CardCredit); si el
+    // crédito inicial es un préstamo (LoanCredit), abrimos directamente en
+    // "Abonar extra", que sí aplica a ambos tipos.
+    final initialIndex = widget.initialCreditId != null
+        ? () {
+            final credits =
+                ref.read(creditsProvider).valueOrNull ?? const <Credit>[];
+            final match = credits
+                .where((c) => c.id == widget.initialCreditId)
+                .toList();
+            if (match.isNotEmpty && match.first is LoanCredit) return 1;
+            return 0;
+          }()
+        : 0;
+    _tabCtrl = TabController(length: 2, vsync: this, initialIndex: initialIndex);
   }
 
   @override
@@ -134,7 +149,11 @@ class _SimulatorSheetState extends ConsumerState<SimulatorSheet>
               controller: _tabCtrl,
               children: [
                 _PurchaseTab(credits: credits, scrollController: scrollController),
-                _ExtraPaymentTab(credits: credits, scrollController: scrollController),
+                _ExtraPaymentTab(
+                  credits: credits,
+                  scrollController: scrollController,
+                  initialCreditId: widget.initialCreditId,
+                ),
               ],
             ),
           ),
@@ -455,8 +474,11 @@ class _UtilizationBar extends StatelessWidget {
 class _ExtraPaymentTab extends StatefulWidget {
   final List<Credit> credits;
   final ScrollController scrollController;
+  final String? initialCreditId;
   const _ExtraPaymentTab(
-      {required this.credits, required this.scrollController});
+      {required this.credits,
+      required this.scrollController,
+      this.initialCreditId});
 
   @override
   State<_ExtraPaymentTab> createState() => _ExtraPaymentTabState();
@@ -466,6 +488,17 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
   final _paymentCtrl = TextEditingController();
   Credit? _selectedCredit;
   _PaymentResult? _result;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialCreditId != null) {
+      final match = widget.credits
+          .where((c) => c.id == widget.initialCreditId)
+          .toList();
+      if (match.isNotEmpty) _selectedCredit = match.first;
+    }
+  }
 
   @override
   void dispose() {

@@ -776,3 +776,81 @@ double estimateMoraInterest(
 
   return inst.amount * moraDaily * daysLate;
 }
+
+/// The measurable "before vs after" effect of the most recent abono
+/// registered on [loan] (i.e. `loan.abonos.last`), when that data is
+/// available.
+///
+/// This comparison is only exact/safe for the LAST abono in the list: its
+/// `previousQuotaAmount`/`previousInstallmentsSnapshot` capture the loan's
+/// state immediately before THAT abono, and nothing has touched the loan
+/// since. For any earlier abono, later abonos may have reamortized the
+/// schedule again, so comparing its "previous" snapshot against the loan's
+/// current state would be misleading — callers should not attempt that.
+class LastAbonoImpact {
+  /// Null if the quota didn't change (or there's nothing to compare).
+  final double? quotaBefore;
+  final double? quotaAfter;
+
+  /// How many fewer installments remain unpaid now vs. before this abono.
+  /// 0 if the term didn't shorten (or there's nothing to compare).
+  final int installmentsSaved;
+
+  /// Estimated interest saved, in COP. Only positive values are meaningful;
+  /// callers should treat 0 as "nothing to show".
+  final double estimatedInterestSaving;
+
+  const LastAbonoImpact({
+    this.quotaBefore,
+    this.quotaAfter,
+    this.installmentsSaved = 0,
+    this.estimatedInterestSaving = 0,
+  });
+
+  bool get hasQuotaChange =>
+      quotaBefore != null && quotaAfter != null && quotaBefore != quotaAfter;
+
+  bool get hasAnyImpact =>
+      hasQuotaChange || installmentsSaved > 0 || estimatedInterestSaving > 0;
+}
+
+/// Computes [LastAbonoImpact] for `loan.abonos.last`, or returns `null` when
+/// the loan has no abonos, or when that last abono predates the
+/// `previousQuotaAmount`/`previousInstallmentsSnapshot` fields (both null —
+/// old abono, or a "settled the whole loan" abono where the comparison
+/// doesn't apply).
+LastAbonoImpact? computeLastAbonoImpact(LoanCredit loan) {
+  if (loan.abonos.isEmpty) return null;
+  final last = loan.abonos.last;
+  final prevQuota = last.previousQuotaAmount;
+  final prevSnapshot = last.previousInstallmentsSnapshot;
+  if (prevQuota == null && prevSnapshot == null) return null;
+
+  double? quotaBefore;
+  double? quotaAfter;
+  if (prevQuota != null && prevQuota != loan.quotaAmount) {
+    quotaBefore = prevQuota;
+    quotaAfter = loan.quotaAmount;
+  }
+
+  var installmentsSaved = 0;
+  var estimatedInterestSaving = 0.0;
+  if (prevSnapshot != null) {
+    final currentUnpaid = loan.installments.where((i) => !i.paid).toList();
+    if (prevSnapshot.length > currentUnpaid.length) {
+      installmentsSaved = prevSnapshot.length - currentUnpaid.length;
+    }
+    final prevInterest = prevSnapshot.fold(0.0, (s, i) => s + i.interest);
+    final currentInterest =
+        currentUnpaid.fold(0.0, (s, i) => s + i.interest);
+    final saving = prevInterest - currentInterest;
+    if (saving > 0) estimatedInterestSaving = saving;
+  }
+
+  return LastAbonoImpact(
+    quotaBefore: quotaBefore,
+    quotaAfter: quotaAfter,
+    installmentsSaved: installmentsSaved,
+    estimatedInterestSaving: estimatedInterestSaving,
+  );
+}

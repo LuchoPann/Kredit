@@ -10,6 +10,7 @@ import '../../domain/date_utils.dart';
 import '../../domain/loan_calculator.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../screens/stats/simulator_sheet.dart';
 import '../card_movement_sheet.dart';
 import '../../utils/credit_display_utils.dart';
 import '../wallet_card.dart';
@@ -273,6 +274,19 @@ class _NextInstallmentCard extends ConsumerWidget {
                 ),
               ),
             ],
+          ),
+        ),
+        const SizedBox(width: 10),
+        Tooltip(
+          message: 'Simular abono extra sobre este crédito',
+          child: OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              minimumSize: const Size(0, 0),
+            ),
+            onPressed: () =>
+                openSimulatorSheet(context, initialCreditId: credit.id),
+            child: const Icon(Icons.calculate_outlined, size: KreditIconSize.small),
           ),
         ),
         const SizedBox(width: 10),

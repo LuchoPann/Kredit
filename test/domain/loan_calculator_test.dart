@@ -884,4 +884,120 @@ void main() {
       expect(mora, closeTo(cappedExpected, 1e-6));
     });
   });
+
+  group('computeLastAbonoImpact', () {
+    LoanCredit buildLoan({required List<LoanAbono> abonos}) {
+      return LoanCredit(
+        id: 'c1',
+        name: 'Test',
+        lender: 'Lender',
+        totalAmount: 1000,
+        quotaAmount: 250,
+        totalInstallments: 4,
+        frequency: CreditFrequency.monthly,
+        startDate: '2026-01-01',
+        installments: [
+          Installment(
+              number: 1,
+              dueDate: '2026-02-01',
+              amount: 250,
+              principal: 200,
+              interest: 50,
+              paid: true),
+          Installment(
+              number: 2,
+              dueDate: '2026-03-01',
+              amount: 250,
+              principal: 210,
+              interest: 40),
+          Installment(
+              number: 3,
+              dueDate: '2026-04-01',
+              amount: 250,
+              principal: 220,
+              interest: 30),
+        ],
+        abonos: abonos,
+      );
+    }
+
+    test('returns null when there are no abonos', () {
+      final credit = buildLoan(abonos: []);
+      expect(computeLastAbonoImpact(credit), isNull);
+    });
+
+    test('returns null for an old abono with no previous-state fields', () {
+      final credit = buildLoan(abonos: [
+        const LoanAbono(date: '2026-01-15', amount: 100),
+      ]);
+      expect(computeLastAbonoImpact(credit), isNull);
+    });
+
+    test('reports quota drop, shortened term and interest saving for the '
+        'last abono', () {
+      final previousSnapshot = [
+        Installment(
+            number: 2,
+            dueDate: '2026-03-01',
+            amount: 300,
+            principal: 250,
+            interest: 50),
+        Installment(
+            number: 3,
+            dueDate: '2026-04-01',
+            amount: 300,
+            principal: 260,
+            interest: 40),
+        Installment(
+            number: 4,
+            dueDate: '2026-05-01',
+            amount: 300,
+            principal: 270,
+            interest: 30),
+      ];
+      final credit = buildLoan(abonos: [
+        LoanAbono(
+          date: '2026-01-20',
+          amount: 200,
+          previousQuotaAmount: 300,
+          previousInstallmentsSnapshot: previousSnapshot,
+        ),
+      ]);
+
+      final impact = computeLastAbonoImpact(credit);
+
+      expect(impact, isNotNull);
+      expect(impact!.hasQuotaChange, isTrue);
+      expect(impact.quotaBefore, 300);
+      expect(impact.quotaAfter, 250);
+      // 3 unpaid before vs 2 unpaid now (installment #1 is paid).
+      expect(impact.installmentsSaved, 1);
+      // previous interest: 50+40+30=120; current unpaid interest: 40+30=70.
+      expect(impact.estimatedInterestSaving, closeTo(50, 1e-9));
+      expect(impact.hasAnyImpact, isTrue);
+    });
+
+    test('omits interest saving when it would be negative', () {
+      final previousSnapshot = [
+        Installment(
+            number: 2,
+            dueDate: '2026-03-01',
+            amount: 250,
+            principal: 240,
+            interest: 10),
+      ];
+      final credit = buildLoan(abonos: [
+        LoanAbono(
+          date: '2026-01-20',
+          amount: 50,
+          previousQuotaAmount: 250,
+          previousInstallmentsSnapshot: previousSnapshot,
+        ),
+      ]);
+
+      final impact = computeLastAbonoImpact(credit)!;
+
+      expect(impact.estimatedInterestSaving, 0);
+    });
+  });
 }
