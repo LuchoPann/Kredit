@@ -118,21 +118,43 @@ void main() {
       );
     });
 
-    test('flags a single loan overdue by 30+ days', () {
+    test('flags a single loan overdue 30-59 days as warning', () {
       final loan = _loan(id: 'stale', name: 'Cupo viejo', dueDate: '2026-01-01');
 
       final risks = buildRiskRecommendations([loan], now: DateTime(2026, 2, 5));
+      final mora = risks.firstWhere((r) => r.title == 'Mora acumulada');
 
-      expect(risks.any((r) => r.title == 'Mora acumulada'), isTrue);
+      expect(mora.severity, RecommendationSeverity.warning);
     });
 
-    test('flags accumulated mora when two credits are overdue at once', () {
+    test('flags a single loan overdue 60+ days as danger', () {
+      final loan = _loan(id: 'stale', name: 'Cupo muy viejo', dueDate: '2026-01-01');
+
+      final risks = buildRiskRecommendations([loan], now: DateTime(2026, 3, 15));
+      final mora = risks.firstWhere((r) => r.title == 'Mora acumulada');
+
+      expect(mora.severity, RecommendationSeverity.danger);
+    });
+
+    test('flags 2 credits overdue at once as warning', () {
       final a = _loan(id: 'a', dueDate: '2026-01-05');
       final b = _loan(id: 'b', dueDate: '2026-01-06');
 
       final risks = buildRiskRecommendations([a, b], now: DateTime(2026, 1, 10));
+      final mora = risks.firstWhere((r) => r.title == 'Mora acumulada');
 
-      expect(risks.any((r) => r.title == 'Mora acumulada'), isTrue);
+      expect(mora.severity, RecommendationSeverity.warning);
+    });
+
+    test('flags 3+ credits overdue at once as danger', () {
+      final a = _loan(id: 'a', dueDate: '2026-01-05');
+      final b = _loan(id: 'b', dueDate: '2026-01-06');
+      final c = _loan(id: 'c', dueDate: '2026-01-07');
+
+      final risks = buildRiskRecommendations([a, b, c], now: DateTime(2026, 1, 10));
+      final mora = risks.firstWhere((r) => r.title == 'Mora acumulada');
+
+      expect(mora.severity, RecommendationSeverity.danger);
     });
 
     test('does not flag mora for a single recently overdue payment', () {

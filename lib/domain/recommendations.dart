@@ -264,16 +264,21 @@ List<FinancialRecommendation> buildRiskRecommendations(
 
   // Riesgo 4: mora acumulada — no requiere guardar historial nuevo (no hay
   // que migrar la base de datos): se calcula sobre los pagos vencidos AHORA
-  // mismo, vistos en conjunto. Un solo pago vencido es una alerta normal
-  // (ya la cubre buildPrimaryRecommendation); esto dispara cuando el
+  // mismo, vistos en conjunto. Un solo pago vencido reciente es una alerta
+  // normal (ya la cubre buildPrimaryRecommendation); esto dispara cuando el
   // problema ya es sistemico: varios creditos vencidos a la vez, o uno solo
-  // muy atrasado, que es la senal real de mora que se esta acumulando.
+  // muy atrasado. Severidad progresiva SOLO con datos de hoy (dias vencidos
+  // actuales), sin necesitar un historial persistido de mora:
+  //   - warning: 1 credito vencido entre 30 y 59 dias, o 2+ vencidos a la vez.
+  //   - danger:  1 credito vencido 60+ dias, o 3+ vencidos a la vez.
   final payments = buildPendingPayments(credits, now: now);
   final overdue = payments.where((p) => p.daysUntilDue(now) < 0).toList();
   if (overdue.isNotEmpty) {
     final worstDays = overdue.map((p) => -p.daysUntilDue(now)).reduce(math.max);
     final overdueTotal = overdue.fold<double>(0, (s, p) => s + p.amount);
-    if (overdue.length >= 2 || worstDays >= 30) {
+    final isSevere = overdue.length >= 3 || worstDays >= 60;
+    final isModerate = overdue.length >= 2 || worstDays >= 30;
+    if (isSevere || isModerate) {
       final plural = overdue.length == 1 ? '' : 's';
       risks.add(
         FinancialRecommendation(
@@ -284,7 +289,7 @@ List<FinancialRecommendation> buildRiskRecommendations(
                   'acumulando en varios frentes, no solo en uno.'
               : '${overdue.first.credit.name} lleva $worstDays dias vencido '
                   '— entre mas tiempo pase, mas dificil es ponerse al dia.',
-          severity: RecommendationSeverity.danger,
+          severity: isSevere ? RecommendationSeverity.danger : RecommendationSeverity.warning,
         ),
       );
     }

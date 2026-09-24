@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/models/card_movement.dart';
 import '../../data/models/credit.dart';
+import '../../domain/date_utils.dart';
+import '../../domain/loan_calculator.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/currency_input_formatter.dart';
@@ -500,6 +502,14 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
   final List<_PaymentResult> _scenarios = [];
   static const _maxScenarios = 5;
 
+  // Fase 6 del roadmap: comparacion automatica de los 3 escenarios fijos
+  // (seguir igual / reducir cuota / reducir plazo) para el monto que se
+  // acaba de simular — a diferencia de `_scenarios` (que compara distintos
+  // MONTOS elegidos por el usuario), esto compara distintas ESTRATEGIAS
+  // para el mismo monto. Solo aplica a prestamos (una tarjeta no tiene
+  // "estrategia de abono", solo reduce saldo).
+  List<AbonoScenarioResult> _threeScenarios = [];
+
   @override
   void initState() {
     super.initState();
@@ -557,6 +567,10 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
   void _simulateLoan(LoanCredit loan, double extraPayment) {
     final unpaid = loan.installments.where((i) => !i.paid).toList();
     if (unpaid.isEmpty) return;
+
+    setState(() {
+      _threeScenarios = simulateAbonoScenarios(loan, extraPayment);
+    });
 
     final currentBalance = unpaid.fold(0.0, (s, i) => s + i.amount);
     final newBalance = math.max(0.0, currentBalance - extraPayment);
@@ -670,6 +684,7 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
               _selectedCredit = v;
               _result = null;
               _scenarios.clear();
+              _threeScenarios = [];
             });
             if (v != null) _loadScenarios(v);
           },
@@ -689,7 +704,10 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
             labelText: 'Monto del abono (\$)',
             prefixText: '\$ ',
           ),
-          onChanged: (_) => setState(() => _result = null),
+          onChanged: (_) => setState(() {
+            _result = null;
+            _threeScenarios = [];
+          }),
         ),
         const SizedBox(height: 10),
         _QuickAmountRow(
@@ -697,6 +715,7 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
           onPick: (amount) => setState(() {
             _paymentCtrl.text = CurrencyInputFormatter.format(amount);
             _result = null;
+            _threeScenarios = [];
           }),
         ),
         const SizedBox(height: 20),
@@ -708,6 +727,10 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
         if (_result != null) ...[
           const SizedBox(height: 24),
           _PaymentResultCard(result: _result!, kredit: kredit, accent: accent),
+        ],
+        if (_threeScenarios.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          _ThreeScenariosCard(scenarios: _threeScenarios, kredit: kredit, accent: accent),
         ],
         if (_scenarios.length > 1) ...[
           const SizedBox(height: 20),
@@ -800,6 +823,144 @@ class _QuickAmountRow extends StatelessWidget {
             side: BorderSide(color: kredit.borderCard.withValues(alpha: 0.78)),
           ),
       ],
+    );
+  }
+}
+
+/// Fase 6 del roadmap: compara automáticamente los 3 escenarios fijos para
+/// el monto recién simulado — "seguir igual" (baseline), "reducir cuota" y
+/// "reducir plazo" — en el mismo lenguaje humano que pide el roadmap
+/// ("Terminas X meses antes", "Tu cuota baja de $X a $Y"). A diferencia de
+/// `_ScenarioComparisonTable` (que compara MONTOS distintos elegidos por el
+/// usuario), esta tarjeta compara ESTRATEGIAS para el mismo monto.
+class _ThreeScenariosCard extends StatelessWidget {
+  final List<AbonoScenarioResult> scenarios;
+  final KreditColors kredit;
+  final Color accent;
+  const _ThreeScenariosCard({
+    required this.scenarios,
+    required this.kredit,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final baseline = scenarios.firstWhere((s) => s.strategy == null);
+    final others = scenarios.where((s) => s.strategy != null).toList();
+    if (others.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Compara tus 3 opciones',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: KreditTextSize.caption,
+            color: kredit.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: kredit.borderCard.withValues(alpha: 0.78)),
+            borderRadius: BorderRadius.circular(KreditRadius.card),
+          ),
+          child: Column(
+            children: [
+              _ScenarioTile(
+                title: 'Seguir igual',
+                description: 'Sin abonar, terminas en '
+                    '${formatDate(baseline.payoffDate)} — '
+                    '${_fmtCOP(baseline.totalInterestRemaining)} en interés '
+                    'restante por pagar.',
+                highlight: false,
+                isFirst: true,
+                isLast: false,
+              ),
+              for (var i = 0; i < others.length; i++)
+                _ScenarioTile(
+                  title: others[i].strategy == AbonoStrategy.reducirCuota
+                      ? 'Reducir cuota'
+                      : 'Reducir plazo',
+                  description: others[i].strategy == AbonoStrategy.reducirCuota
+                      ? 'Tu cuota baja de ${_fmtCOP(baseline.quota)} a '
+                          '${_fmtCOP(others[i].quota)} — sigues pagando '
+                          '${others[i].remainingInstallments} cuota(s), pero '
+                          'cada una más liviana. Ahorras aprox. '
+                          '${_fmtCOP(others[i].interestSaved)} en intereses.'
+                      : 'Terminas ${others[i].installmentsSaved} cuota(s) antes '
+                          '(${formatDate(others[i].payoffDate)} en vez de '
+                          '${formatDate(baseline.payoffDate)}) — misma cuota de '
+                          '${_fmtCOP(others[i].quota)}. Ahorras aprox. '
+                          '${_fmtCOP(others[i].interestSaved)} en intereses.',
+                  highlight: true,
+                  isFirst: false,
+                  isLast: i == others.length - 1,
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ScenarioTile extends StatelessWidget {
+  final String title;
+  final String description;
+  final bool highlight;
+  final bool isFirst;
+  final bool isLast;
+  const _ScenarioTile({
+    required this.title,
+    required this.description,
+    required this.highlight,
+    required this.isFirst,
+    required this.isLast,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: isLast
+            ? null
+            : Border(bottom: BorderSide(color: kredit.borderCard.withValues(alpha: 0.5))),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            highlight ? Icons.trending_down_outlined : Icons.remove_circle_outline,
+            size: KreditIconSize.small,
+            color: highlight ? kredit.success : kredit.textTertiary,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: KreditTextSize.body,
+                    color: kredit.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  description,
+                  style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary, height: 1.4),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

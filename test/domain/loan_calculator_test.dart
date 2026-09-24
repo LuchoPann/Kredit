@@ -1000,4 +1000,105 @@ void main() {
       expect(impact.estimatedInterestSaving, 0);
     });
   });
+
+  group('simulateAbonoScenarios', () {
+    LoanCredit buildLoan() {
+      const rate = 24.0;
+      final periodRate = periodicRateFrom(rate, InterestRateType.effectiveAnnual, CreditFrequency.monthly);
+      final quota = _pmt(1000000, periodRate, 12);
+      return LoanCredit(
+        id: 'c1',
+        name: 'Test',
+        lender: 'Lender',
+        totalAmount: 1000000,
+        quotaAmount: quota,
+        totalInstallments: 12,
+        frequency: CreditFrequency.monthly,
+        startDate: '2026-01-15',
+        interestRate: rate,
+        installments: buildLoanInstallments(
+          totalAmount: 1000000,
+          totalInstallments: 12,
+          quotaAmount: quota,
+          frequency: CreditFrequency.monthly,
+          startDate: '2026-01-15',
+          interestRate: rate,
+          interestRateType: InterestRateType.effectiveAnnual,
+        ),
+      );
+    }
+
+    test('returns baseline + reducirPlazo + reducirCuota for a valid abono', () {
+      final loan = buildLoan();
+
+      final results = simulateAbonoScenarios(loan, 100000);
+
+      expect(results, hasLength(3));
+      expect(results[0].strategy, isNull);
+      expect(results.map((r) => r.strategy).toSet(), {
+        null,
+        AbonoStrategy.reducirPlazo,
+        AbonoStrategy.reducirCuota,
+      });
+    });
+
+    test('does not mutate the original loan', () {
+      final loan = buildLoan();
+      final originalQuota = loan.quotaAmount;
+      final originalInstallmentCount = loan.installments.length;
+
+      simulateAbonoScenarios(loan, 100000);
+
+      expect(loan.quotaAmount, originalQuota);
+      expect(loan.installments, hasLength(originalInstallmentCount));
+      expect(loan.installments.every((i) => !i.paid), isTrue);
+    });
+
+    test('reducirPlazo keeps the same quota but fewer installments', () {
+      final loan = buildLoan();
+
+      final results = simulateAbonoScenarios(loan, 100000);
+      final plazo = results.firstWhere((r) => r.strategy == AbonoStrategy.reducirPlazo);
+
+      expect(plazo.quota, closeTo(loan.quotaAmount, 0.01));
+      expect(plazo.remainingInstallments, lessThan(12));
+      expect(plazo.installmentsSaved, greaterThan(0));
+    });
+
+    test('reducirCuota keeps the same term but a lower quota', () {
+      final loan = buildLoan();
+
+      final results = simulateAbonoScenarios(loan, 100000);
+      final cuota = results.firstWhere((r) => r.strategy == AbonoStrategy.reducirCuota);
+
+      expect(cuota.remainingInstallments, 12);
+      expect(cuota.quota, lessThan(loan.quotaAmount));
+    });
+
+    test('both strategies save interest vs. the baseline', () {
+      final loan = buildLoan();
+
+      final results = simulateAbonoScenarios(loan, 100000);
+      final baseline = results.first;
+
+      for (final r in results.skip(1)) {
+        expect(r.interestSaved, greaterThan(0));
+        expect(r.totalInterestRemaining, lessThan(baseline.totalInterestRemaining));
+      }
+    });
+
+    test('returns empty when there are no unpaid installments', () {
+      final loan = buildLoan();
+      for (final i in loan.installments) {
+        i.paid = true;
+      }
+
+      expect(simulateAbonoScenarios(loan, 100000), isEmpty);
+    });
+
+    test('returns empty for a non-positive amount', () {
+      final loan = buildLoan();
+      expect(simulateAbonoScenarios(loan, 0), isEmpty);
+    });
+  });
 }

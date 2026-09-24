@@ -14,6 +14,7 @@ import '../../widgets/credit_card_tile.dart';
 import '../../widgets/kredit_logo.dart';
 import '../../widgets/kredit_section_card.dart';
 import '../../widgets/progress_ring.dart';
+import '../stats/simulator_sheet.dart';
 
 /// Dashboard ("Inicio") screen — answers "¿Qué tengo que pagar pronto?":
 /// a greeting header, 3 compact metrics (por pagar / créditos activos /
@@ -342,6 +343,34 @@ class _DashboardBody extends ConsumerWidget {
                 onTap: (c) => Navigator.of(
                   context,
                 ).pushNamed('/credit-detail', arguments: c.id),
+              ),
+            ],
+          ),
+        ],
+
+        // Fase 6 del roadmap: el simulador tambien accesible desde el
+        // dashboard, no solo desde detalle del credito y Estadisticas —
+        // mismo patron visual que `_SimulatorEntryRow` en stats_screen.dart
+        // (no se pudo reutilizar directamente por ser una clase privada de
+        // ese archivo, asi que se replica aqui en vez de exportarla, para
+        // no acoplar dos pantallas por un widget tan chico).
+        if (activeCredits.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          KreditSectionCard(
+            children: [
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                onTap: () => openSimulatorSheet(context),
+                leading: Icon(Icons.calculate_outlined, color: Theme.of(context).colorScheme.primary),
+                title: const Text(
+                  '¿Qué pasa si…?',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.body),
+                ),
+                subtitle: Text(
+                  'Simula una compra en cuotas o un abono extra a capital',
+                  style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary),
+                ),
+                trailing: Icon(Icons.chevron_right, color: kredit.textTertiary),
               ),
             ],
           ),

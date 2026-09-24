@@ -854,3 +854,83 @@ LastAbonoImpact? computeLastAbonoImpact(LoanCredit loan) {
     estimatedInterestSaving: estimatedInterestSaving,
   );
 }
+
+/// One of the 3 scenarios Fase 6 del roadmap pide comparar automaticamente
+/// para un abono extra: "seguir igual" (baseline, sin abonar), "reducir
+/// cuota" y "reducir plazo". Cada escenario resume, en los mismos terminos
+/// que usa el resto de la app, que pasaria si el usuario abona ese monto.
+class AbonoScenarioResult {
+  /// null solo para el baseline "seguir igual" (no hay estrategia).
+  final AbonoStrategy? strategy;
+  final double quota;
+  final int remainingInstallments;
+  final String? payoffDate;
+  final double totalInterestRemaining;
+
+  /// Cuotas que se ahorran vs. seguir igual (siempre 0 para el baseline).
+  final int installmentsSaved;
+
+  /// Interes que se ahorra vs. seguir igual (siempre 0 para el baseline).
+  final double interestSaved;
+
+  const AbonoScenarioResult({
+    required this.strategy,
+    required this.quota,
+    required this.remainingInstallments,
+    required this.payoffDate,
+    required this.totalInterestRemaining,
+    required this.installmentsSaved,
+    required this.interestSaved,
+  });
+}
+
+/// Simula, SIN mutar [loan], los 3 escenarios que pide la Fase 6 del roadmap
+/// para un abono extra de [amount]: seguir igual, reducir cuota y reducir
+/// plazo. Reutiliza exactamente la misma logica que un abono real
+/// (`applyLoanAbono`) clonando el credito via `toJson`/`fromJson` — asi la
+/// simulacion nunca puede desincronizarse del comportamiento real: si algun
+/// dia cambia `applyLoanAbono`, esta funcion cambia con el automaticamente
+/// en vez de mantener una segunda formula en paralelo que se puede
+/// desactualizar.
+///
+/// Devuelve una lista vacia si no hay cuotas pendientes o si [amount] no es
+/// positivo (nada que simular).
+List<AbonoScenarioResult> simulateAbonoScenarios(LoanCredit loan, double amount) {
+  final unpaid = loan.installments.where((i) => !i.paid).toList();
+  if (unpaid.isEmpty || amount <= 0) return [];
+
+  final baselineInterest = unpaid.fold(0.0, (s, i) => s + i.interest);
+  final baseline = AbonoScenarioResult(
+    strategy: null,
+    quota: loan.quotaAmount,
+    remainingInstallments: unpaid.length,
+    payoffDate: unpaid.last.dueDate,
+    totalInterestRemaining: baselineInterest,
+    installmentsSaved: 0,
+    interestSaved: 0,
+  );
+
+  final results = [baseline];
+  for (final strategy in AbonoStrategy.values) {
+    final clone = LoanCredit.fromJson(loan.toJson());
+    try {
+      applyLoanAbono(clone, amount, strategy: strategy);
+    } on ArgumentError {
+      continue; // amount >= remaining balance ya se maneja fuera de este flujo
+    }
+    final remaining = clone.installments.where((i) => !i.paid).toList();
+    final remainingInterest = remaining.fold(0.0, (s, i) => s + i.interest);
+    results.add(
+      AbonoScenarioResult(
+        strategy: strategy,
+        quota: clone.quotaAmount,
+        remainingInstallments: remaining.length,
+        payoffDate: remaining.isEmpty ? null : remaining.last.dueDate,
+        totalInterestRemaining: remainingInterest,
+        installmentsSaved: unpaid.length - remaining.length,
+        interestSaved: math.max(0.0, baselineInterest - remainingInterest),
+      ),
+    );
+  }
+  return results;
+}
