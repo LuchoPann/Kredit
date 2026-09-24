@@ -75,6 +75,46 @@ void main() {
       expect(recommendation.payment?.credit.name, 'Cupo personal');
     });
   });
+
+  group('buildRiskRecommendations', () {
+    test('flags debt concentration when one lender dominates', () {
+      final big = _loan(id: 'big', name: 'Prestamo grande', amount: 900000);
+      final small = _loan(id: 'small', name: 'Prestamo chico', amount: 100000);
+
+      final risks = buildRiskRecommendations([big, small]);
+
+      expect(risks.any((r) => r.title == 'Deuda concentrada'), isTrue);
+    });
+
+    test('does not flag concentration when debt is balanced', () {
+      final a = _loan(id: 'a', amount: 500000);
+      final b = _loan(id: 'b', amount: 500000);
+
+      final risks = buildRiskRecommendations([a, b]);
+
+      expect(risks.any((r) => r.title == 'Deuda concentrada'), isFalse);
+    });
+
+    test('flags a card near its limit', () {
+      final card = CardCredit(
+        id: 'card',
+        name: 'Tarjeta',
+        lender: 'Banco',
+        creditLimit: 1000000,
+        currentBalance: 900000,
+      );
+
+      final risks = buildRiskRecommendations([card]);
+
+      expect(risks.any((r) => r.title == 'Cupo casi agotado'), isTrue);
+    });
+
+    test('returns no risks for a single healthy loan', () {
+      final loan = _loan(id: 'only', amount: 100000);
+
+      expect(buildRiskRecommendations([loan]), isEmpty);
+    });
+  });
 }
 
 LoanCredit _loan({

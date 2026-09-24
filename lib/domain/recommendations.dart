@@ -182,6 +182,58 @@ FinancialRecommendation buildPrimaryRecommendation(
   );
 }
 
+/// Fase 9 / Tarea 5 del roadmap ("Motor avanzado de recomendaciones"):
+/// reglas que comparan créditos entre sí en vez de mirar uno a la vez —
+/// complementa a `buildPrimaryRecommendation` (que solo mira el pago más
+/// urgente) con riesgos que solo se ven al comparar el conjunto completo.
+List<FinancialRecommendation> buildRiskRecommendations(List<Credit> credits) {
+  final risks = <FinancialRecommendation>[];
+
+  // Riesgo 1: concentración — un solo acreedor representa la mayoría de tu
+  // deuda pendiente, así que un problema con esa entidad te afecta entero.
+  final balances = <Credit, double>{
+    for (final c in credits)
+      c: getCreditRemainingBalance(c),
+  }..removeWhere((_, v) => v <= 0);
+  final totalDebt = balances.values.fold<double>(0, (s, v) => s + v);
+  if (totalDebt > 0 && balances.length > 1) {
+    final topEntry = balances.entries.reduce((a, b) => b.value > a.value ? b : a);
+    final share = topEntry.value / totalDebt;
+    if (share >= 0.6) {
+      risks.add(
+        FinancialRecommendation(
+          title: 'Deuda concentrada',
+          description:
+              '${(share * 100).round()}% de tu deuda pendiente esta en '
+              '${topEntry.key.name} — si ese pago se complica, arrastra el '
+              'resto de tu presupuesto.',
+          severity: RecommendationSeverity.warning,
+        ),
+      );
+    }
+  }
+
+  // Riesgo 2: tarjetas cerca del cupo — utilización alta sube el costo
+  // financiero y reduce el margen para imprevistos.
+  for (final c in credits) {
+    if (c is! CardCredit || c.creditLimit <= 0) continue;
+    final utilization = c.currentBalance / c.creditLimit;
+    if (utilization >= 0.85) {
+      risks.add(
+        FinancialRecommendation(
+          title: 'Cupo casi agotado',
+          description:
+              '${c.name} esta al ${(utilization * 100).round()}% de su cupo '
+              '— te queda poco margen para un gasto imprevisto.',
+          severity: RecommendationSeverity.warning,
+        ),
+      );
+    }
+  }
+
+  return risks;
+}
+
 String buildFinancialHealthLine(
   List<Credit> credits,
   PaymentWeekSummary summary,

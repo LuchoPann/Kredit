@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/card_movement.dart';
 import '../../data/models/credit.dart';
+import '../../data/models/installment.dart';
 import '../../domain/bank_detector.dart';
 import '../../utils/currency_input_formatter.dart';
 import '../../domain/card_calculator.dart';
@@ -71,6 +72,11 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   final _amountCtrl = TextEditingController();
   final _installmentsCtrl = TextEditingController();
   final _quotaCtrl = TextEditingController();
+  // Fase 5 / pedido directo: permite registrar un crédito que ya llevaba
+  // cuotas pagadas antes de existir en la app (ej. un préstamo que empezó
+  // hace 2 meses). Marca las primeras N cuotas generadas como pagadas al
+  // guardar — ver `_markAdvancedInstallments`.
+  final _paidInstallmentsCtrl = TextEditingController();
   final _interestCtrl = TextEditingController();
   String _interestRateType = InterestRateType.effectiveAnnual;
   String _frequency = CreditFrequency.monthly;
@@ -139,6 +145,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       _amountCtrl,
       _installmentsCtrl,
       _quotaCtrl,
+      _paidInstallmentsCtrl,
       _interestCtrl,
       _limitCtrl,
       _balanceCtrl,
@@ -380,6 +387,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         interestRate: interestRate,
         interestRateType: _interestRateType,
       );
+      _markAdvancedInstallments(installments);
 
       credit = LoanCredit(
         id: id,
@@ -415,6 +423,21 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           const SnackBar(content: Text('No se pudo guardar el crédito. Intenta de nuevo.')),
         );
       }
+    }
+  }
+
+  // Marks the first N installments (whatever the user typed in "Cuotas ya
+  // pagadas") as paid, with paymentDate set to each one's own dueDate — a
+  // reasonable historical stand-in since we don't know the real payment
+  // dates for a credit that pre-dates its registration in the app. Clamped
+  // to totalInstallments so a typo can't skip past the schedule's end.
+  void _markAdvancedInstallments(List<Installment> installments) {
+    final paidCount = int.tryParse(_paidInstallmentsCtrl.text.trim()) ?? 0;
+    if (paidCount <= 0) return;
+    final n = math.min(paidCount, installments.length);
+    for (var i = 0; i < n; i++) {
+      installments[i].paid = true;
+      installments[i].paymentDate = installments[i].dueDate;
     }
   }
 
@@ -749,6 +772,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         interestRate: interestRate,
         interestRateType: _interestRateType,
       );
+      _markAdvancedInstallments(installments);
       return LoanCredit(
         id: 'preview',
         name: name,
@@ -799,6 +823,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     final installments = _installmentsCtrl.text.trim().isEmpty ? '—' : _installmentsCtrl.text.trim();
     final quota = _quotaCtrl.text.trim().isEmpty ? '0' : _quotaCtrl.text.trim();
     final startDate = _startDate == null ? '(sin definir)' : formatDate(toDateStr(_startDate!));
+    final paidCount = int.tryParse(_paidInstallmentsCtrl.text.trim()) ?? 0;
     return [
       _SummaryRow(label: 'Nombre', value: name),
       _SummaryRow(label: 'Tipo', value: typeLabel),
@@ -807,6 +832,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       _SummaryRow(label: 'Cuotas', value: installments),
       _SummaryRow(label: 'Valor cuota', value: '\$$quota'),
       _SummaryRow(label: 'Primer pago', value: startDate),
+      if (paidCount > 0) _SummaryRow(label: 'Cuotas ya pagadas', value: '$paidCount'),
     ];
   }
 
@@ -913,6 +939,31 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           const SizedBox(height: 6),
           Text(
             'Valor aproximado, calculado con base en el monto, las cuotas y el interés ingresados.',
+            style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _paidInstallmentsCtrl,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'Cuotas ya pagadas (opcional)',
+              hintText: 'Ej. 2, si ya llevas 2 cuotas pagadas',
+            ),
+            onChanged: (_) => setState(() {}),
+            validator: (v) {
+              final text = v?.trim() ?? '';
+              if (text.isEmpty) return null;
+              final n = int.tryParse(text);
+              if (n == null || n < 0) return 'Debe ser un número válido';
+              final total = int.tryParse(_installmentsCtrl.text);
+              if (total != null && n > total) return 'No puede superar el total de cuotas';
+              return null;
+            },
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Si este crédito ya llevaba cuotas pagadas antes de registrarlo aquí, indica '
+            'cuántas — se marcarán como pagadas desde la primera.',
             style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
           ),
         ],

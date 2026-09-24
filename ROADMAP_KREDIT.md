@@ -116,45 +116,67 @@ pasando y que accion conviene tomar.
 
 ### Tarea 1 para Cloud: Detalle del credito
 
+- [x] 2026-09-23: completada. Ya estaba resuelta en su mayoria de rondas
+  anteriores (antes de este roadmap); esta sesion confirmo lo existente por
+  revision de codigo/dispositivo y cerro los 2 vacios reales que quedaban.
+
 Objetivo: convertir la pantalla de detalle en el lugar donde el usuario entiende
 el estado real de un credito y decide que hacer.
 
-Archivos probables:
+Nota: los archivos reales NO tienen una carpeta `tabs/` (ese path no existe en
+el proyecto) - la estructura real es:
 
 - `lib/screens/credit_detail/credit_detail_screen.dart`
-- `lib/screens/credit_detail/tabs/summary_tab.dart`
-- `lib/screens/credit_detail/tabs/installments_tab.dart`
-- `lib/screens/credit_detail/tabs/movements_tab.dart`
-- `lib/domain/credit_calculator.dart`
-- `lib/domain/loan_calculator.dart`
-- `lib/domain/card_calculator.dart`
+- `lib/widgets/credit_detail/summary_tab.dart`
+- `lib/widgets/credit_detail/schedule_tab.dart` (cronograma de cuotas)
+- `lib/widgets/credit_detail/movements_tab.dart`
+- `lib/domain/credit_calculator.dart`, `loan_calculator.dart`, `card_calculator.dart`
 
 Requisitos:
 
 - Para prestamos/cupos:
-  - mostrar saldo pendiente como dato principal;
-  - mostrar proxima cuota, fecha y estado;
-  - mostrar progreso de cuotas con una pieza visual clara;
-  - destacar si hay cuotas vencidas;
-  - mantener acciones principales visibles: registrar pago, abonar, simular.
+  - [x] mostrar saldo pendiente como dato principal (WalletCard "DEUDA
+    RESTANTE" + `summary_tab.dart`).
+  - [x] mostrar proxima cuota, fecha y estado (`_NextInstallmentCard`).
+  - [x] mostrar progreso de cuotas con una pieza visual clara
+    (`_LoanProgress`, barra + "$X pagado de $Y").
+  - [x] destacar si hay cuotas vencidas (`schedule_tab.dart` agrupa
+    VENCIDAS/PROXIMAS/FUTURAS/PAGADAS, con mora estimada visible).
+  - [x] mantener acciones principales visibles: registrar pago (boton
+    "Pagar"), abonar (Abono Extra / Pago total en Cronograma), simular
+    (nuevo boton "Simular abono extra" en `_NextInstallmentCard`, abre
+    `simulator_sheet.dart` con `initialCreditId` preseleccionado).
 - Para tarjetas:
-  - mostrar saldo actual, cupo disponible, uso de cupo y fecha limite;
-  - destacar uso alto de cupo;
-  - mostrar corte y proximo pago en lenguaje simple;
-  - mantener acciones principales visibles: registrar movimiento/pago,
-    simular impacto si aplica.
-- Evitar saturar:
-  - una tarjeta principal arriba;
-  - acciones claras;
-  - informacion secundaria en secciones compactas.
-- Si se agrega logica nueva de estado, moverla a `lib/domain/` y testearla.
+  - [x] mostrar saldo actual, cupo disponible, uso de cupo y fecha limite
+    (`_CardUtilization`, `_CardCycleInfo`).
+  - [x] destacar uso alto de cupo (acento de color cuando `pct >= 0.8`).
+  - [x] mostrar corte y proximo pago en lenguaje simple.
+  - [x] mantener acciones principales visibles: registrar movimiento/pago
+    (`_CardQuickActions`). Simular impacto para tarjetas queda pendiente
+    (el simulador de "Simular compra" ya existe para tarjetas mas general,
+    pero no hay boton directo desde el detalle de tarjeta - ver pendiente
+    abajo).
+- [x] Evitar saturar: una tarjeta principal arriba, acciones claras,
+  informacion secundaria en secciones compactas - ya cumplido.
+- [x] Historial de abonos con impacto (redujo cuota / redujo plazo / ahorro
+  de intereses estimado): `computeLastAbonoImpact` en `loan_calculator.dart`
+  compara el ultimo abono contra su snapshot previo
+  (`previousQuotaAmount`/`previousInstallmentsSnapshot`) y se muestra en
+  `_AbonoTile` del Cronograma, solo para el abono mas reciente (los
+  anteriores no tienen un "antes/ahora" confiable una vez el credito volvio
+  a cambiar).
 
-Criterios de aceptacion:
+Pendiente/riesgo:
 
-- El usuario puede responder en menos de 5 segundos cuanto debe, cuando vence
-  lo proximo y que accion puede hacer ahora.
-- `flutter analyze` sin issues.
-- `flutter test` pasando.
+- [ ] Boton directo de "simular impacto" desde el detalle de TARJETA (hoy
+  solo existe para prestamos). Bajo impacto: el simulador general sigue
+  siendo accesible desde Estadisticas.
+- [ ] `credit_detail_screen.dart` en si (el contenedor de tabs/badge) no se
+  toco en esta ronda - solo sus tabs. Revisar si el badge de tipo y el
+  AppBar necesitan algo mas al continuar con Fase 6/7.
+
+Validacion: `flutter analyze` sin issues, `flutter test` 105/105 (4 tests
+nuevos para `computeLastAbonoImpact`).
 
 ### Tarea 2 para Cloud: Simulador fuerte
 
@@ -221,6 +243,15 @@ Criterios de aceptacion:
 - La pantalla no debe sentirse mas cargada que Inicio.
 - `flutter analyze` y `flutter test` deben pasar.
 
+- [x] 2026-09-23: parcialmente completada por Cloud. Se agrego una linea de
+  insight en espanol (`_InsightLine`, `stats_screen.dart`) debajo de "Deuda
+  proyectada por mes" (mes mas cargado y su % del total proyectado) y debajo
+  de "Distribucion por entidad" (% concentrado en el acreedor principal).
+  Tambien se agrego una seccion nueva "RIESGOS DETECTADOS" que muestra los
+  resultados de `buildRiskRecommendations()` (ver Tarea 5) cuando aplican.
+  Pendiente: insight especifico de "donde conviene abonar primero" (requiere
+  comparar tasas de interes entre creditos, no solo montos).
+
 ### Tarea 4 para Cloud: Cuenta, seguridad y respaldo
 
 Objetivo: aumentar confianza en el manejo de datos.
@@ -253,6 +284,16 @@ Criterios de aceptacion:
 - El usuario entiende donde estan sus datos.
 - `flutter analyze` y `flutter test` deben pasar.
 
+- [x] 2026-09-23: revisado por Cloud — esta tarea ya estaba casi completa
+  desde antes del roadmap (no era trabajo pendiente real): `account_screen.dart`
+  ya esta agrupado por Personalizacion / Notificaciones / Seguridad / Datos /
+  Ayuda / Zona de riesgo; `SecuritySettingsTile` ya tiene bloqueo biometrico/PIN
+  (`SetupLockScreen`) y el toggle de privacidad del widget; `DataToolsCard` ya
+  exporta/importa un respaldo JSON completo via `share_plus` + file picker.
+  Pendiente real: no se muestra fecha del ultimo respaldo hecho (requeriria
+  persistir un timestamp en `SharedPreferences` tras cada export exitoso) —
+  cambio pequeno, no urgente.
+
 ### Tarea 5 para Cloud: Motor avanzado de recomendaciones
 
 Objetivo: fortalecer `lib/domain/recommendations.dart` para que alimente
@@ -260,8 +301,9 @@ dashboard, detalle y estadisticas.
 
 Reglas pendientes:
 
-- [ ] Deuda mas costosa.
-- [ ] Tarjeta con uso alto.
+- [x] Tarjeta con uso alto. — `buildRiskRecommendations()`, umbral 85% del cupo.
+- [ ] Deuda mas costosa. (concentracion por acreedor ya cubierta, ver nota;
+  falta comparar por tasa de interes real, no solo monto)
 - [ ] Credito ideal para abonar.
 - [ ] Riesgo por mora acumulada.
 - [ ] Alerta de cupo menor al saldo al crear/editar tarjeta.
@@ -282,6 +324,16 @@ Criterios de aceptacion:
 - Las reglas pueden probarse sin renderizar widgets.
 - Las recomendaciones se pueden reutilizar en varias pantallas.
 - `flutter analyze` y `flutter test` deben pasar.
+
+- [x] 2026-09-23: parcialmente completada por Cloud. Se agrego
+  `buildRiskRecommendations()` en `lib/domain/recommendations.dart`: detecta (1)
+  concentracion de deuda cuando un solo acreedor representa >=60% de la deuda
+  pendiente, y (2) tarjetas con >=85% de su cupo usado. Se reutiliza desde
+  `stats_screen.dart` (seccion "RIESGOS DETECTADOS"). 4 tests nuevos en
+  `test/domain/recommendations_test.dart`. Pendiente: comparar por tasa de
+  interes real (no solo monto) para "deuda mas costosa", "credito ideal para
+  abonar" y "riesgo por mora acumulada" (necesita historial de dias en mora,
+  no solo el estado actual).
 
 ### Que debe evitar Cloud por ahora
 

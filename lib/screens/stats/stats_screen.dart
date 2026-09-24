@@ -7,6 +7,7 @@ import '../../domain/bank_detector.dart';
 import '../../domain/card_calculator.dart';
 import '../../domain/credit_calculator.dart';
 import '../../domain/date_utils.dart';
+import '../../domain/recommendations.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/credit_display_utils.dart';
@@ -71,6 +72,7 @@ class StatsScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   _MonthlyDebtChart(credits: credits),
+                  _InsightLine(text: _monthlyDebtInsight(credits)),
                 ],
               ),
               const SizedBox(height: 16),
@@ -85,6 +87,7 @@ class StatsScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   _LenderDistributionChart(credits: credits, compact: true),
+                  _InsightLine(text: _lenderDistributionInsight(credits)),
                 ],
               ),
               const SizedBox(height: 30),
@@ -94,6 +97,17 @@ class StatsScreen extends ConsumerWidget {
               // simulador — este último no es un panel de datos, es una
               // acción de navegación, así que va como fila simple con
               // chevron en vez de otra tarjeta idéntica a las anteriores.
+              if (buildRiskRecommendations(credits).isNotEmpty) ...[
+                _GroupLabel(text: 'RIESGOS DETECTADOS'),
+                const SizedBox(height: 12),
+                KreditSectionCard(
+                  children: [
+                    for (final risk in buildRiskRecommendations(credits))
+                      _RiskRow(risk: risk),
+                  ],
+                ),
+                const SizedBox(height: 30),
+              ],
               _GroupLabel(text: 'HISTORIAL Y HERRAMIENTAS'),
               const SizedBox(height: 12),
               KreditSectionCard(
@@ -613,6 +627,100 @@ class _MonthlyDebtChart extends StatelessWidget {
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Fase 7 / Tarea 3 del roadmap ("Estadísticas explicativas"): una línea de
+/// texto en español plano bajo cada gráfica que responde "¿qué significa
+/// esto para mí?", en vez de dejar que el lector interprete los números
+/// solo. Reutiliza los mismos datos que ya calcula cada chart — no agrega
+/// nuevas fuentes de verdad.
+String? _monthlyDebtInsight(List<Credit> credits) {
+  final data = _projectMonthlyDebt(credits);
+  if (data.isEmpty) return null;
+  final entries = data.entries.toList();
+  final total = entries.fold<double>(0, (s, e) => s + e.value);
+  if (total <= 0) return null;
+  final peak = entries.reduce((a, b) => b.value > a.value ? b : a);
+  final currency = NumberFormatLike();
+  final monthLabel = peak.key.label.replaceAll('\n', ' ');
+  final share = (peak.value / total * 100).round();
+  return 'Tu mes más cargado es $monthLabel, con ${currency.format(peak.value)} '
+      '($share% de lo proyectado en los próximos 6 meses).';
+}
+
+String? _lenderDistributionInsight(List<Credit> credits) {
+  final slices = _distributionByLender(credits);
+  if (slices.isEmpty) return null;
+  final total = slices.fold<double>(0, (s, e) => s + e.amount);
+  if (total <= 0) return null;
+  final top = slices.first;
+  final share = (top.amount / total * 100).round();
+  if (slices.length == 1) {
+    return 'Toda tu deuda pendiente está concentrada en ${top.label}.';
+  }
+  return 'El $share% de tu deuda pendiente está concentrada en ${top.label}.';
+}
+
+class _RiskRow extends StatelessWidget {
+  final FinancialRecommendation risk;
+  const _RiskRow({required this.risk});
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.warning_amber_rounded, size: KreditIconSize.small, color: kredit.warning),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  risk.title,
+                  style: TextStyle(
+                    fontSize: KreditTextSize.body,
+                    fontWeight: FontWeight.w700,
+                    color: kredit.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  risk.description,
+                  style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary, height: 1.4),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InsightLine extends StatelessWidget {
+  final String? text;
+  const _InsightLine({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    if (text == null) return const SizedBox.shrink();
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Text(
+        text!,
+        style: TextStyle(
+          fontSize: KreditTextSize.caption,
+          color: kredit.textSecondary,
+          height: 1.4,
         ),
       ),
     );
