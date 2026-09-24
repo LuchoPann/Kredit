@@ -19,6 +19,145 @@ Principios:
   fechas de corte, fechas limite, cuotas de manejo y abonos a capital.
 - Privacidad local y confianza en el manejo de datos.
 
+## Estado consolidado para GPT (leer esto primero, ahorra tener que revisar el proyecto)
+
+Esta seccion es el canal de comunicacion directo entre Cloud y GPT sobre este
+proyecto: resume TODO lo necesario para entender donde esta Kredit hoy sin
+tener que abrir el codigo. Cloud la actualiza cada vez que cierra trabajo
+nuevo. Si GPT menciona un punto (UX, layout, logica, copy, objetivo) que no
+aparece aqui abajo explicitamente, es porque Cloud no lo ha cubierto — decirlo
+asi de claro en vez de asumir que ya esta resuelto.
+
+**Objetivo del producto (por que existe cada decision):** Kredit no es un
+libro de contabilidad, es un asistente que le dice al usuario que hacer con
+su dinero. Toda decision de UI/logica se juzga contra una pregunta: "¿esto
+ayuda a decidir, o solo muestra un dato mas?". Si la respuesta es "solo
+muestra un dato", se recorta o se convierte en una conclusion accionable.
+
+**Como se dirige la experiencia de usuario (UX):**
+
+- Tono de copy: espanol coloquial colombiano, informal ("tu abonarias", "tu
+  cuota baja de..."), nunca "usted", nunca jerga tecnica en pantalla (el
+  usuario ve "cuotas ya pagadas", nunca "installments paid: true"). Los
+  numeros siempre en pesos con separador de miles (`$1.234.567`), nunca
+  notacion cientifica ni decimales sueltos.
+- Cada pantalla lidera con LA conclusion, no con el dato crudo: el dashboard
+  muestra "DEUDA TOTAL" como cifra protagonista antes que cualquier lista;
+  el simulador muestra "Tu cuota baja de $X a $Y" antes que la tabla de
+  numeros; las estadisticas llevan una frase en espanol plano debajo de
+  cada grafico ("Tu mes mas cargado es..."), nunca dejan que el usuario
+  interprete un grafico solo.
+- Ningun flujo bloquea al usuario con advertencias que el mismo no pidio:
+  las alertas (tasa rara, cupo insuficiente, cuota que no cubre interes)
+  son informativas por defecto y solo bloquean cuando la accion es
+  matematicamente imposible de deshacer (ej. una cuota que nunca amortiza).
+- Los datos de prueba NUNCA se mezclan con los datos reales del usuario —
+  Cloud crea y borra creditos de prueba explicitamente marcados
+  (`PRUEBA_BORRAR_*`) cuando necesita verificar algo en el dispositivo.
+
+**Distribucion de layout / UI (convenciones visuales que TODA pantalla
+nueva debe seguir):**
+
+- Cero `boxShadow` en toda la app — regla dura, sin excepcion. Separacion
+  visual entre superficies se logra con `border` tenue
+  (`kredit.borderCard.withValues(alpha: ~0.5-0.78)`), nunca con sombra. Si
+  un agente agrega una sombra en algun widget nuevo, es un bug de
+  consistencia, no un estilo alternativo valido.
+- Sistema de tokens obligatorio, definido en `lib/theme/app_theme.dart` —
+  nunca hardcodear numeros de espaciado/tamano:
+  - `KreditRadius`: `card` = 16 (tarjetas/sheets de nivel superior), `tile`
+    = 12 (filas/tiles anidados), `chip` = 8 (badges/pills).
+  - `KreditSpacing`: `card` = 16 (padding interno de tarjeta), `tile` = 12
+    (padding de filas compactas), `section` = 20 (separacion vertical entre
+    secciones de una pantalla).
+  - `KreditTextSize`: `caption` = 12 (labels en mayuscula, hints, metadata),
+    `body` = 14 (texto normal, valores de formulario), `heading` = 18
+    (titulos de seccion a nivel pantalla).
+  - `KreditIconSize`: `small` = 18 (la inmensa mayoria de iconos), `large`
+    = 48 (icono unico de un estado vacio/error a pantalla completa).
+  - `KreditColors` (theme extension): `textPrimary`/`textSecondary`/
+    `textTertiary` para jerarquia tipografica, `borderCard` para bordes,
+    `success`/`warning`/`danger` para semantica de estado — nunca un color
+    hex suelto en un widget de pantalla.
+- Patron de "tarjeta con header + subtitulo + contenido": casi toda seccion
+  nueva se construye con `KreditSectionCard` (icono + titulo + subtitulo
+  opcional) envolviendo el contenido — ver `_statsSectionHeader` en
+  `stats_screen.dart` como ejemplo canonico.
+- Patron de "insight en texto plano bajo un grafico o lista": un widget
+  chico (`_InsightLine` en `stats_screen.dart`) que muestra una frase
+  calculada en espanol, o se oculta por completo (`SizedBox.shrink()`) si
+  no hay nada que decir — nunca un placeholder vacio ni "N/A".
+- Patron de "fila de alerta/riesgo": icono de advertencia ambar + titulo en
+  negrita + descripcion en `textSecondary` (`_RiskRow` en
+  `stats_screen.dart`), reutilizado para toda alerta no bloqueante en el
+  proyecto (ver tambien `_EditInterestRateWarningHint` en
+  `edit_credit_sheet.dart`).
+- Navegacion principal: `BottomNavigationBar` de 4 pestanas (Inicio /
+  Creditos / Estadisticas / Cuenta) en `lib/main.dart`, con TODAS las
+  pantallas montadas simultaneamente en un `Stack` (nunca destruidas al
+  cambiar de pestana — preserva scroll/estado) y una transicion de
+  desvanecimiento cruzado entre la activa y la anterior. Ver la nota de
+  bug fix en la Fase de navegacion mas abajo si se toca este archivo.
+
+**Logica de dominio (donde vive el "cerebro" de la app, para no
+duplicarlo):**
+
+- TODA la logica financiera vive en `lib/domain/*.dart`, sin ninguna
+  dependencia de Flutter — se puede testear sin levantar widgets. Archivos
+  clave: `loan_calculator.dart` (amortizacion francesa, abonos, mora),
+  `card_calculator.dart` (interes de tarjetas, ciclos de corte),
+  `interest_rate.dart` (normalizacion de tasas E.A./E.M./nominal a diaria),
+  `recommendations.dart` (motor de recomendaciones, dos capas: un pago a
+  la vez vs. comparar el conjunto de creditos).
+  `credit_calculator.dart` (saldo restante, type-dispatch loan/card).
+- Regla de oro: si una funcion nueva de dominio puede reusar una ya
+  existente (`applyLoanAbono`, `dailyRateFrom`, `getCreditRemainingBalance`,
+  `urgencyScore`) en vez de reimplementar la formula, SIEMPRE reusarla —
+  ver `simulateAbonoScenarios` (clona el credito y llama a `applyLoanAbono`
+  real en vez de escribir una segunda formula de amortizacion) y
+  `effectiveAnnualRate` (reusa `dailyRateFrom`) como los dos ejemplos mas
+  recientes de este patron.
+- Toda funcion de dominio nueva debe tener tests en `test/domain/`
+  ANTES de darse por terminada — no hay excepcion documentada en este
+  proyecto para logica financiera sin tests.
+
+**Estado de las 9 fases (ver detalle completo de cada una mas abajo en este
+mismo archivo, bajo su encabezado `## Fase N`):**
+
+| Fase | Estado | Quien |
+|---|---|---|
+| 1. Base de datos y modelos | Hecho | Pre-roadmap |
+| 2. Dashboard inteligente | Hecho | GPT + Cloud (fix de bug) |
+| 3. Lista de creditos | Hecho | GPT + Cloud (fix de estilo) |
+| 4. Crear credito | Hecho | GPT + Cloud (feature nueva: cuotas ya avanzadas) |
+| 5. Detalle del credito | Hecho | Cloud |
+| 6. Simulador fuerte | **Completo** | Cloud |
+| 7. Estadisticas explicativas | Hecho | Cloud |
+| 8. Cuenta/seguridad/respaldo | Hecho | Pre-roadmap + Cloud (fecha de respaldo) |
+| 9. Motor de recomendaciones | Hecho | GPT + Cloud |
+
+**Bug critico resuelto (por si GPT lo ve mencionado en otro lado y no sabe
+si sigue vigente — YA NO):** navegacion entre pestanas se congelaba (no se
+podia volver de Creditos/Estadisticas a Inicio). Causa: en `_TabFadeLayer`
+(`lib/main.dart`), `TickerMode` envolvia a `AnimatedOpacity` en vez de al
+reves, apagando el ticker de la animacion de fade de la pestana saliente.
+Corregido invirtiendo el anidado. Commit `60c36ec`.
+
+**Lo unico que queda pendiente en todo el proyecto (2026-09-23):**
+
+- [ ] Mora acumulada con severidad basada en HISTORIAL real de dias en mora
+  (hoy usa solo el estado actual, sin persistir historial — funciona pero
+  es una aproximacion, no un registro real dia a dia). Requeriria una
+  migracion Drift nueva. Sin urgencia.
+- [ ] Alerta de cupo menor al saldo al CREAR una tarjeta (hoy solo existe
+  al EDITAR una tarjeta existente, en `edit_credit_sheet.dart`) — es
+  logicamente imposible que pase al crear (no hay saldo previo), asi que
+  esto solo aplicaria si en el futuro se permite crear una tarjeta con
+  saldo inicial mayor al limite, que hoy el formulario no permite.
+
+Todo lo demas del roadmap original esta implementado y verificado en
+dispositivo fisico.
+
 ## Brief operativo para Cloud
 
 Esta seccion es para que Cloud pueda continuar el desarrollo sin perder la
@@ -768,15 +907,58 @@ previsualizacion, no un abono real, asi que vivir fuera de la base de datos
 de creditos es la decision correcta). Tope de 5 escenarios por credito
 (`_maxScenarios`), mas antiguo se descarta.
 
-Que falta para el criterio de exito completo:
+- [x] 2026-09-23 (2): cerrado el resto del criterio de exito.
 
-- [ ] Comparar automaticamente **3 escenarios fijos** ("seguir igual" /
-  "abonar reduciendo cuota" / "abonar reduciendo plazo") en vez de comparar
-  solo los montos que el usuario ya eligio simular. Hoy la comparacion es
-  reactiva (el usuario simula N montos y los ve lado a lado), no proactiva
-  (la app no propone los 3 escenarios por su cuenta).
-- [ ] Acceso directo desde el dashboard (hoy solo esta en detalle del
-  credito y en Estadisticas via `_SimulatorEntryRow`).
+**Comparacion automatica de los 3 escenarios fijos** — lo mas importante de
+esta ronda. Nueva funcion `simulateAbonoScenarios(LoanCredit loan, double
+amount)` en `lib/domain/loan_calculator.dart` (dominio puro, sin Flutter,
+testeable sin widgets). Decision de diseno clave: en vez de escribir una
+SEGUNDA formula matematica "de mentiras" solo para previsualizar, esta
+funcion CLONA el credito completo con `LoanCredit.fromJson(loan.toJson())`
+(round-trip, deep copy real) y le aplica `applyLoanAbono()` — la misma
+funcion que ya usa un abono REAL — sobre el clon, una vez por cada
+`AbonoStrategy` (`reducirCuota`, `reducirPlazo`). El original nunca se toca.
+Esto garantiza que la simulacion SIEMPRE coincide exactamente con lo que
+pasaria si el usuario abonara de verdad — no hay dos formulas que mantener
+sincronizadas a mano.
+
+Devuelve `List<AbonoScenarioResult>` (3 elementos: index 0 es el baseline
+"seguir igual" con `strategy: null`, luego uno por cada `AbonoStrategy`).
+Cada resultado trae: `quota`, `remainingInstallments`, `payoffDate`,
+`totalInterestRemaining`, y — comparado contra el baseline —
+`installmentsSaved` / `interestSaved`.
+
+**Como se ve:** en `lib/screens/stats/simulator_sheet.dart`, cada vez que el
+usuario toca "Simular abono" (para un prestamo — las tarjetas no tienen
+"estrategia" de abono, solo reducen saldo), aparece una tarjeta nueva
+"Compara tus 3 opciones" (`_ThreeScenariosCard`) ENTRE el resultado del
+abono y la tabla de comparacion por monto que ya existia. Es una tarjeta
+con 3 filas (`_ScenarioTile`), cada una con un icono (circulo tenue para
+"Seguir igual", flecha hacia abajo verde `kredit.success` para las otras
+dos) + titulo en negrita + descripcion en lenguaje humano exacto al que
+pide el roadmap:
+- "Seguir igual": "Sin abonar, terminas en 7 Mar, 2027 — $450.000 en
+  interes restante por pagar."
+- "Reducir cuota": "Tu cuota baja de $370.433 a $310.200 — sigues pagando 6
+  cuota(s), pero cada una mas liviana. Ahorras aprox. $85.000 en intereses."
+- "Reducir plazo": "Terminas 2 cuota(s) antes (7 Ene, 2027 en vez de 7 Mar,
+  2027) — misma cuota de $370.433. Ahorras aprox. $92.000 en intereses."
+
+**Acceso desde el dashboard:** `lib/screens/dashboard/dashboard_screen.dart`
+ahora tiene una fila "¿Que pasa si...?" (icono `calculate_outlined`) debajo
+de la tarjeta "Tus creditos", visible solo si hay creditos activos — mismo
+patron visual (`ListTile` dentro de `KreditSectionCard`) que
+`_SimulatorEntryRow` en `stats_screen.dart`. No se pudo importar esa clase
+directamente porque es privada de ese archivo; se replico en vez de
+exportarla, para no acoplar dos pantallas por un widget tan chico.
+
+7 tests nuevos en `test/domain/loan_calculator_test.dart` (grupo
+`simulateAbonoScenarios`): valida que no muta el original, que
+`reducirPlazo` mantiene la cuota y reduce cuotas, que `reducirCuota`
+mantiene el plazo y reduce la cuota, que ambas estrategias ahorran interes
+vs. el baseline, y los casos borde (sin cuotas pendientes, monto <= 0).
+
+Criterio de exito de la Fase 6: **completo**.
 
 ## Fase 7: Estadisticas que expliquen
 
