@@ -265,7 +265,12 @@ class _CreditsListBodyState extends ConsumerState<_CreditsListBody>
           child: TabBarView(
             controller: _tabController,
             children: [
-              _FilteredList(credits: active, filter: filter, emptyText: 'No tienes créditos activos.'),
+              _FilteredList(
+                credits: active,
+                filter: filter,
+                emptyText: 'No tienes créditos activos.',
+                showCommercialQuotas: true,
+              ),
               _FilteredList(credits: completed, filter: filter, emptyText: 'No tienes créditos finalizados.'),
             ],
           ),
@@ -372,11 +377,17 @@ class _FilteredList extends ConsumerWidget {
   final List<Credit> credits;
   final CreditsFilterState filter;
   final String emptyText;
+  // Cupo comercial cards only belong to the Activos tab — a paid-off
+  // purchase can still be linked to its quota (unlinking only happens when
+  // the quota itself is deleted), so without this the same card would
+  // duplicate into Finalizados too.
+  final bool showCommercialQuotas;
 
   const _FilteredList({
     required this.credits,
     required this.filter,
     required this.emptyText,
+    this.showCommercialQuotas = false,
   });
 
   List<Credit> _apply() {
@@ -524,7 +535,15 @@ class _FilteredList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
     final list = _apply();
-    if (list.isEmpty) {
+    final quotas = showCommercialQuotas
+        ? ref.watch(commercialQuotasProvider).valueOrNull ??
+            const <CommercialQuota>[]
+        : const <CommercialQuota>[];
+    // A cupo (even an empty one, just created or left orphaned) must stay
+    // visible and manageable from the Activos tab even when every other
+    // credit is filtered out or there are none at all — the tab's own
+    // "no credits" empty state would otherwise hide it completely.
+    if (list.isEmpty && quotas.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -562,17 +581,34 @@ class _FilteredList extends ConsumerWidget {
     // Purchases tagged with a CommercialQuota (Totto, Lili Pink, Éxito...)
     // are grouped under one CommercialQuotaCard instead of listed loose —
     // the user sees the brand + disponible/límite, never a flat list of
-    // unrelated-looking purchases. Every credit without a quotaId renders
-    // exactly as before.
-    final quotas =
-        ref.watch(commercialQuotasProvider).valueOrNull ?? const <CommercialQuota>[];
+    // unrelated-looking purchases. Every credit without a quotaId, or whose
+    // quotaId doesn't match any quota Kredit actually knows about (data
+    // corruption / a quota load error), renders exactly as before instead
+    // of silently vanishing.
+    final quotaIds = quotas.map((q) => q.id).toSet();
     final purchasesByQuota = <String, List<LoanCredit>>{};
     final ungrouped = <Credit>[];
     for (final credit in list) {
-      if (credit is LoanCredit && credit.quotaId != null) {
+      if (credit is LoanCredit &&
+          credit.quotaId != null &&
+          quotaIds.contains(credit.quotaId)) {
         purchasesByQuota.putIfAbsent(credit.quotaId!, () => []).add(credit);
       } else {
         ungrouped.add(credit);
+      }
+    }
+    // A cupo's disponible/límite must reflect every purchase it has, not
+    // just the ones surviving this tab's search/quick-filter — otherwise
+    // searching, or the Vencidos/Próximos filters, would show a heavily
+    // used cupo as nearly full. Computed from the unfiltered credits list,
+    // independent of `list`/`_apply()` above.
+    final allCredits = ref.watch(creditsProvider).valueOrNull ?? const [];
+    final allPurchasesByQuota = <String, List<LoanCredit>>{};
+    for (final credit in allCredits) {
+      if (credit is LoanCredit &&
+          credit.quotaId != null &&
+          quotaIds.contains(credit.quotaId)) {
+        allPurchasesByQuota.putIfAbsent(credit.quotaId!, () => []).add(credit);
       }
     }
     // Every quota renders, even with zero purchases in this tab — an empty
@@ -594,6 +630,7 @@ class _FilteredList extends ConsumerWidget {
               child: CommercialQuotaCard(
                 quota: quota,
                 purchases: purchasesByQuota[quota.id] ?? const [],
+                allPurchases: allPurchasesByQuota[quota.id] ?? const [],
                 onPurchaseTap: (purchase) => Navigator.of(context).pushNamed(
                   '/credit-detail',
                   arguments: purchase.id,

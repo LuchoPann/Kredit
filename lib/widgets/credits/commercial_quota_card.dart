@@ -12,6 +12,11 @@ import '../../utils/credit_display_utils.dart';
 class CommercialQuotaCard extends StatelessWidget {
   final CommercialQuota quota;
   final List<LoanCredit> purchases;
+  // Purchases to compute disponible/límite from — always the quota's FULL
+  // purchase list, regardless of any tab/search/quick-filter narrowing
+  // `purchases` (the rows actually displayed) may have applied. Defaults to
+  // `purchases` for callers with nothing to filter.
+  final List<LoanCredit>? allPurchases;
   final ValueChanged<LoanCredit>? onPurchaseTap;
   final VoidCallback? onDeleteQuota;
 
@@ -19,13 +24,14 @@ class CommercialQuotaCard extends StatelessWidget {
     super.key,
     required this.quota,
     required this.purchases,
+    this.allPurchases,
     this.onPurchaseTap,
     this.onDeleteQuota,
   });
 
   @override
   Widget build(BuildContext context) {
-    final available = quotaAvailable(quota, purchases);
+    final available = quotaAvailable(quota, allPurchases ?? purchases);
     final ratio = quota.limit <= 0
         ? 0.0
         : (available / quota.limit).clamp(0.0, 1.0);
