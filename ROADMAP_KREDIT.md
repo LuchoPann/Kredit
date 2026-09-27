@@ -986,11 +986,49 @@ no estaban en el plan original y se corrigieron en el momento:
 5. Un cupo sin compras en la pestana activa dejaba de renderizarse por
    completo — corregido para que todo cupo se muestre siempre.
 
-**Pendiente / idea registrada, no implementada:** el usuario sugirio que
-los cupos comerciales podrian usar el formato visual "voucher" (como el
-que ya tiene Nequi en `WalletCard`) en vez de una `Card` generica, pero
-con un estilo predeterminado/generico — nunca la marca visual especifica
-de Nequi. No implementado todavia.
+## Revision final del plan + voucher generico para cupos — 2026-09-27 (tarde)
+
+Tras completar el plan de cupo comercial (8 tareas + push a `origin/master`),
+se hizo la revision final de rama con un revisor fresco (Opus, sin contexto
+previo) sobre el diff completo + spec + plan. Encontro 1 hallazgo critico y
+varios importantes, todos corregidos antes de seguir:
+
+- **Critico:** el respaldo/restauracion (exportar/importar JSON) no incluia
+  `CommercialQuotas`, y con las FK ya activas (`PRAGMA foreign_keys=ON`) una
+  restauracion con creditos de cupo podia fallar a mitad de camino, dejando
+  los datos del usuario parcialmente borrados e irrecuperables. Corregido:
+  el formato de respaldo subio a version 3 (incluye cupos), y
+  `replaceAllData` reemplaza creditos + cupos en una sola transaccion.
+- Eliminar un cupo se bloqueaba incluso si todas sus compras ya estaban
+  pagadas, con un mensaje generico y enganoso — ahora solo bloquea si hay
+  compras activas de verdad (con el conteo real en el mensaje), y las
+  pagadas se desvinculan sin perder su historial.
+- Una compra con `quotaId` apuntando a un cupo borrado/no cargado
+  desaparecia de la lista en vez de volver a mostrarse suelta; el
+  disponible de un cupo se calculaba sobre la lista YA filtrada (busqueda/
+  tabs), mostrando cifras erroneas al buscar o en la pestana Finalizados.
+- Bugs de estado en el wizard: cambiar a Tarjeta con el cupo activo dejaba
+  el campo Banco/Emisora oculto sin forma de corregirlo; apagar el toggle
+  dejaba el campo de banco con la marca del cupo en vez de restaurarlo;
+  controladores nuevos sin `dispose()`.
+- Aviso de sobre-cupo (requisito del spec que no tenia tarea propia):
+  agregado como banner no bloqueante en el wizard.
+
+**Cupo comercial con diseno de voucher generico:** pedido nuevo del usuario
+tras el cierre del plan — los cupos comerciales (Totto, Lili Pink, Exito
+CrediCompras) no tienen tarjeta fisica, asi que sus compras ahora usan el
+mismo formato "voucher" (recorte con muescas, borde punteado) que ya
+existia para los adelantos tipo Nequi en `WalletCard`, pero con colores
+genericos/neutros — nunca el morado/magenta especifico de Nequi. Decision
+del usuario: siempre voucher para cupo comercial, sin excepcion por marca
+(no se agrego un campo "tiene tarjeta fisica" en `CommercialQuota`). El
+detalle de la compra muestra "Compra (marca)" en vez de "Adelanto (marca)".
+Alcance acordado con el usuario: el voucher aplica solo al detalle de la
+compra (`WalletCard`), no a las filas dentro de `CommercialQuotaCard` en la
+lista de Creditos (esas siguen como filas simples).
+
+Todo verificado en dispositivo real (motorola edge 50 fusion) con datos
+`PRUEBA_BORRAR_*`, eliminados al terminar cada prueba. 158/158 tests verdes.
 
 ## Auditoria de codigo Cloud — 2026-09-25 (madrugada)
 
