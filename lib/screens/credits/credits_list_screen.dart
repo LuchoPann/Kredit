@@ -480,6 +480,43 @@ class _FilteredList extends ConsumerWidget {
     return due.difference(today).inDays;
   }
 
+  /// Deleting a quota with active (unpaid) purchases referencing it fails
+  /// at the DB layer (onDelete: restrict — see tables.dart). This surfaces
+  /// that as a clear message instead of letting the raw exception reach
+  /// the user.
+  Future<void> _confirmDeleteQuota(
+      BuildContext context, WidgetRef ref, CommercialQuota quota) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('¿Eliminar "${quota.brand}"?'),
+        content: const Text('Esta acción no se puede deshacer.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await ref.read(commercialQuotasProvider.notifier).delete(quota.id);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              'Tiene compras activas registradas en este cupo — ciérralas o muévelas primero.'),
+        ));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
@@ -535,8 +572,11 @@ class _FilteredList extends ConsumerWidget {
         ungrouped.add(credit);
       }
     }
-    final quotaCards =
-        quotas.where((q) => purchasesByQuota.containsKey(q.id)).toList();
+    // Every quota renders, even with zero purchases in this tab — an empty
+    // cupo (just created, or left orphaned after its only purchase was
+    // deleted) must stay visible and manageable (delete button), not
+    // disappear silently.
+    final quotaCards = quotas;
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
@@ -550,7 +590,12 @@ class _FilteredList extends ConsumerWidget {
               padding: const EdgeInsets.only(bottom: 18),
               child: CommercialQuotaCard(
                 quota: quota,
-                purchases: purchasesByQuota[quota.id]!,
+                purchases: purchasesByQuota[quota.id] ?? const [],
+                onPurchaseTap: (purchase) => Navigator.of(context).pushNamed(
+                  '/credit-detail',
+                  arguments: purchase.id,
+                ),
+                onDeleteQuota: () => _confirmDeleteQuota(context, ref, quota),
               ),
             ),
           );

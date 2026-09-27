@@ -12,11 +12,15 @@ import '../../utils/credit_display_utils.dart';
 class CommercialQuotaCard extends StatelessWidget {
   final CommercialQuota quota;
   final List<LoanCredit> purchases;
+  final ValueChanged<LoanCredit>? onPurchaseTap;
+  final VoidCallback? onDeleteQuota;
 
   const CommercialQuotaCard({
     super.key,
     required this.quota,
     required this.purchases,
+    this.onPurchaseTap,
+    this.onDeleteQuota,
   });
 
   @override
@@ -32,7 +36,20 @@ class CommercialQuotaCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(quota.brand, style: Theme.of(context).textTheme.titleMedium),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(quota.brand,
+                      style: Theme.of(context).textTheme.titleMedium),
+                ),
+                if (onDeleteQuota != null)
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    tooltip: 'Eliminar cupo',
+                    onPressed: onDeleteQuota,
+                  ),
+              ],
+            ),
             const SizedBox(height: 8),
             LinearProgressIndicator(value: ratio),
             const SizedBox(height: 4),
@@ -46,6 +63,9 @@ class CommercialQuotaCard extends StatelessWidget {
                   title: Text(purchase.name),
                   trailing:
                       Text(formatCOP(getCreditRemainingBalance(purchase))),
+                  onTap: onPurchaseTap == null
+                      ? null
+                      : () => onPurchaseTap!(purchase),
                 ),
               ),
           ],

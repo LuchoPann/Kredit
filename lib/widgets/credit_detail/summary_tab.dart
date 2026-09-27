@@ -37,6 +37,10 @@ class SummaryTab extends ConsumerWidget {
     late final String totalLabel;
     late final String totalValue;
     late final double interestRate;
+    // Nunca sintetiza una tasa falsa: si el usuario marcó que no la conoce
+    // (cupo comercial), se muestra un aviso en vez de un "0.0%" engañoso.
+    final interestUnknown =
+        credit is LoanCredit && (credit as LoanCredit).interestUnknown;
 
     if (credit is LoanCredit) {
       final loan = credit as LoanCredit;
@@ -95,11 +99,17 @@ class SummaryTab extends ConsumerWidget {
               color: kredit.borderCard,
             ),
             Expanded(
-              child: StatBox(
-                label: 'Interés E.A.',
-                value: '${interestRate.toStringAsFixed(1)}%',
-                icon: Icons.percent,
-              ),
+              child: interestUnknown
+                  ? const StatBox(
+                      label: 'Interés',
+                      value: 'Cuenta sin intereses registrados',
+                      icon: Icons.percent,
+                    )
+                  : StatBox(
+                      label: 'Interés E.A.',
+                      value: '${interestRate.toStringAsFixed(1)}%',
+                      icon: Icons.percent,
+                    ),
             ),
           ],
         ),
