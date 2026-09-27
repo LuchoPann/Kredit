@@ -104,12 +104,12 @@ double quotaAvailable(CommercialQuota quota, List<LoanCredit> allLoans) {
   final purchases = allLoans.where((l) => l.quotaId == quota.id);
   final usedByUnpaid = purchases
       .where(creditHasUnpaid)
-      .fold(0.0, (sum, p) => sum + creditRemainingBalance(p));
+      .fold(0.0, (sum, p) => sum + getCreditRemainingBalance(p));
   return quota.limit - usedByUnpaid;
 }
 ```
 
-Reutiliza `creditHasUnpaid`/`creditRemainingBalance` de `credit_calculator.dart` sin duplicar
+Reutiliza `creditHasUnpaid`/`getCreditRemainingBalance` de `credit_calculator.dart` sin duplicar
 lógica de saldo pendiente. No oculta ni redondea un resultado negativo — la UI decide cómo
 advertir, el cálculo siempre es el número real.
 
