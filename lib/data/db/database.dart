@@ -325,22 +325,44 @@ class AppDatabase extends _$AppDatabase {
   Future<void> deleteCredit(String creditId) =>
       (delete(credits)..where((c) => c.id.equals(creditId))).go();
 
-  /// Deletes everything (clearAllData, app.js ~L1660-1669).
+  /// Deletes everything (clearAllData, app.js ~L1660-1669), including
+  /// commercial quotas — a wipe must not leave orphaned cupo cards behind.
   Future<void> clearAllData() async {
     await transaction(() async {
       await delete(installments).go();
       await delete(cardMovements).go();
       await delete(loanAbonos).go();
       await delete(credits).go();
+      await delete(commercialQuotas).go();
     });
   }
 
-  /// Replaces the entire credits table with [newCredits] (importData,
-  /// app.js ~L1630-1658).
-  Future<void> replaceAllCredits(List<Credit> newCredits) async {
-    await clearAllData();
-    for (final c in newCredits) {
-      await upsertCredit(c);
-    }
+  /// Replaces both the credits and commercial-quotas tables with
+  /// [newCredits]/[newQuotas] in a single transaction — a backup restore
+  /// must never leave the database with some rows cleared and others not
+  /// inserted (e.g. on a mid-restore FK failure). A credit whose `quotaId`
+  /// doesn't match any of [newQuotas] has it nulled out instead of failing
+  /// the whole restore (defends against a backup file edited by hand, or a
+  /// future backup format that dropped a quota some credit still points
+  /// to).
+  Future<void> replaceAllData(
+      List<Credit> newCredits, List<CommercialQuota> newQuotas) async {
+    final quotaIds = newQuotas.map((q) => q.id).toSet();
+    await transaction(() async {
+      await delete(installments).go();
+      await delete(cardMovements).go();
+      await delete(loanAbonos).go();
+      await delete(credits).go();
+      await delete(commercialQuotas).go();
+      for (final q in newQuotas) {
+        await upsertCommercialQuota(q);
+      }
+      for (final c in newCredits) {
+        if (c is LoanCredit && c.quotaId != null && !quotaIds.contains(c.quotaId)) {
+          c.quotaId = null;
+        }
+        await upsertCredit(c);
+      }
+    });
   }
 }

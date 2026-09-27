@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../data/models/commercial_quota.dart';
 import '../data/models/credit.dart';
 
 /// Port of exportData/importData's JSON shape (app.js ~L1615-1658).
@@ -21,7 +22,7 @@ import '../data/models/credit.dart';
 ///
 /// Bump this whenever the backup shape changes, and extend [_migrateBackup]
 /// with a case that upgrades the *previous* version into the new one.
-const int kBackupFormatVersion = 2;
+const int kBackupFormatVersion = 3;
 
 /// The `format` marker identifying versioned (v2+) backups. Legacy (v1)
 /// backups predate this field entirely — they are just `{"credits": [...]}`
@@ -32,7 +33,8 @@ const String kBackupFormatMarker = 'kredit-backup';
 /// (pretty-printed with 2-space indent):
 /// `{"format": "kredit-backup", "version": 2, "exportedAt": ISO8601 UTC,
 /// "credits": [...] }`.
-String exportStateToJson(List<Credit> credits) {
+String exportStateToJson(List<Credit> credits,
+    [List<CommercialQuota> quotas = const []]) {
   final map = {
     'format': kBackupFormatMarker,
     'version': kBackupFormatVersion,
@@ -42,6 +44,7 @@ String exportStateToJson(List<Credit> credits) {
       if (c is LoanCredit) return c.toJson();
       throw ArgumentError('Unknown credit subtype: ${c.runtimeType}');
     }).toList(),
+    'commercialQuotas': quotas.map((q) => q.toJson()).toList(),
   };
   const encoder = JsonEncoder.withIndent('  ');
   return encoder.convert(map);
@@ -90,6 +93,14 @@ Map<String, dynamic> _migrateBackup(Map<String, dynamic> decoded) {
       version = 2;
       continue;
     }
+    if (version == 2) {
+      // v2 -> v3 added `commercialQuotas` — absent entirely in v2 backups,
+      // treated as an empty list (a pre-cupo-comercial backup never had
+      // any quota-linked credits to begin with).
+      decoded['commercialQuotas'] ??= <dynamic>[];
+      version = 3;
+      continue;
+    }
     // Should be unreachable given the version check above, but avoid an
     // infinite loop if a future version is added to kBackupFormatVersion
     // without a matching branch here.
@@ -99,11 +110,19 @@ Map<String, dynamic> _migrateBackup(Map<String, dynamic> decoded) {
   return decoded;
 }
 
-/// Parses a backup JSON string into a list of [Credit]. Throws
-/// [InvalidBackupFormatException] on malformed input, or a [FormatException]
-/// if the JSON itself doesn't parse — same failure split as importData's
-/// try/catch + validation (app.js ~L1630-1658).
-List<Credit> importStateFromJson(String jsonStr) {
+/// A parsed backup: credits plus the commercial quotas they may reference
+/// (empty for a pre-cupo-comercial backup — see the v2->v3 migration).
+class ImportedBackup {
+  final List<Credit> credits;
+  final List<CommercialQuota> quotas;
+  const ImportedBackup(this.credits, this.quotas);
+}
+
+/// Parses a backup JSON string into its credits and commercial quotas.
+/// Throws [InvalidBackupFormatException] on malformed input, or a
+/// [FormatException] if the JSON itself doesn't parse — same failure split
+/// as importData's try/catch + validation (app.js ~L1630-1658).
+ImportedBackup importStateFromJson(String jsonStr) {
   final decoded = jsonDecode(jsonStr);
   if (decoded is! Map<String, dynamic> || decoded['credits'] is! List) {
     throw const InvalidBackupFormatException();
@@ -115,7 +134,11 @@ List<Credit> importStateFromJson(String jsonStr) {
   }
 
   final creditsJson = migrated['credits'] as List;
-  return creditsJson
-      .map((e) => creditFromJson(e as Map<String, dynamic>))
-      .toList();
+  final quotasJson = migrated['commercialQuotas'] as List? ?? const [];
+  return ImportedBackup(
+    creditsJson.map((e) => creditFromJson(e as Map<String, dynamic>)).toList(),
+    quotasJson
+        .map((e) => CommercialQuota.fromJson(e as Map<String, dynamic>))
+        .toList(),
+  );
 }

@@ -3,12 +3,14 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/db/database.dart';
+import '../data/models/commercial_quota.dart';
 import '../data/models/credit.dart';
 import '../data/models/loan_abono.dart';
 import '../domain/card_calculator.dart';
 import '../domain/credit_calculator.dart';
 import '../domain/date_utils.dart';
 import '../domain/loan_calculator.dart';
+import 'commercial_quotas_provider.dart';
 import 'database_provider.dart';
 
 /// True for the two seeded first-run demo credits (app.js ~L950/~L1177:
@@ -203,14 +205,23 @@ class CreditsNotifier extends AsyncNotifier<List<Credit>> {
     await _reload();
   }
 
-  Future<void> replaceAll(List<Credit> newCredits) async {
-    await _db.replaceAllCredits(newCredits);
+  /// Replaces both credits and commercial quotas atomically (backup
+  /// restore) — [newQuotas] defaults to empty for callers restoring a
+  /// pre-cupo-comercial backup. Also refreshes commercialQuotasProvider,
+  /// since its own state would otherwise go stale after this DB-level swap.
+  Future<void> replaceAll(
+    List<Credit> newCredits, {
+    List<CommercialQuota> newQuotas = const [],
+  }) async {
+    await _db.replaceAllData(newCredits, newQuotas);
     await _reload();
+    ref.invalidate(commercialQuotasProvider);
   }
 
   Future<void> clearAll() async {
     await _db.clearAllData();
     await _reload();
+    ref.invalidate(commercialQuotasProvider);
   }
 }
 

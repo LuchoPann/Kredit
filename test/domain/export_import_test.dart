@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kredit/data/models/commercial_quota.dart';
 import 'package:kredit/data/models/credit.dart';
 import 'package:kredit/domain/export_import.dart';
 
@@ -35,9 +36,9 @@ void main() {
       final json = exportStateToJson([buildLoan()]);
       final imported = importStateFromJson(json);
 
-      expect(imported, hasLength(1));
-      expect(imported.single, isA<LoanCredit>());
-      expect(imported.single.id, 'l1');
+      expect(imported.credits, hasLength(1));
+      expect(imported.credits.single, isA<LoanCredit>());
+      expect(imported.credits.single.id, 'l1');
     });
 
     test('imports legacy (unversioned) backups exactly as before', () {
@@ -47,9 +48,9 @@ void main() {
 
       final imported = importStateFromJson(legacyJson);
 
-      expect(imported, hasLength(1));
-      expect(imported.single, isA<LoanCredit>());
-      expect(imported.single.id, 'l1');
+      expect(imported.credits, hasLength(1));
+      expect(imported.credits.single, isA<LoanCredit>());
+      expect(imported.credits.single.id, 'l1');
     });
 
     test('imports a backup from a newer, unknown version best-effort', () {
@@ -62,8 +63,8 @@ void main() {
 
       final imported = importStateFromJson(futureJson);
 
-      expect(imported, hasLength(1));
-      expect(imported.single.id, 'l1');
+      expect(imported.credits, hasLength(1));
+      expect(imported.credits.single.id, 'l1');
     });
 
     test('throws InvalidBackupFormatException on malformed JSON shape', () {
@@ -78,6 +79,42 @@ void main() {
         () => importStateFromJson(jsonEncode({'credits': 'not-a-list'})),
         throwsA(isA<InvalidBackupFormatException>()),
       );
+    });
+
+    test('round-trips commercial quotas through export/import', () {
+      final quota = CommercialQuota(id: 'q1', brand: 'Totto', limit: 700000);
+      final purchase = LoanCredit(
+        id: 'l1',
+        name: 'Compra',
+        lender: 'Totto',
+        totalAmount: 250000,
+        quotaAmount: 41667,
+        totalInstallments: 6,
+        frequency: CreditFrequency.monthly,
+        startDate: '2026-09-01',
+        quotaId: 'q1',
+      );
+
+      final json = exportStateToJson([purchase], [quota]);
+      final imported = importStateFromJson(json);
+
+      expect(imported.quotas, hasLength(1));
+      expect(imported.quotas.single.brand, 'Totto');
+      expect(imported.credits.single.id, 'l1');
+    });
+
+    test('a v2 backup (no commercialQuotas key) migrates to an empty quota list', () {
+      final v2Json = jsonEncode({
+        'format': 'kredit-backup',
+        'version': 2,
+        'exportedAt': DateTime.now().toUtc().toIso8601String(),
+        'credits': [buildLoan().toJson()],
+      });
+
+      final imported = importStateFromJson(v2Json);
+
+      expect(imported.quotas, isEmpty);
+      expect(imported.credits, hasLength(1));
     });
   });
 }

@@ -6,9 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../../data/models/credit.dart';
 import '../../domain/date_utils.dart';
 import '../../domain/export_import.dart';
+import '../../providers/commercial_quotas_provider.dart';
 import '../../providers/credits_provider.dart';
 import '../../providers/last_backup_provider.dart';
 import '../../theme/app_theme.dart';
@@ -59,7 +59,8 @@ class DataToolsCard extends ConsumerWidget {
     if (!context.mounted) return;
     try {
       final credits = ref.read(creditsProvider).value ?? [];
-      final json = exportStateToJson(credits);
+      final quotas = ref.read(commercialQuotasProvider).value ?? [];
+      final json = exportStateToJson(credits, quotas);
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/kredit_backup_${DateTime.now().millisecondsSinceEpoch}.json');
       await file.writeAsString(json);
@@ -95,7 +96,7 @@ class DataToolsCard extends ConsumerWidget {
       return;
     }
 
-    List<Credit> imported;
+    ImportedBackup imported;
     try {
       imported = importStateFromJson(content);
     } catch (e) {
@@ -114,8 +115,8 @@ class DataToolsCard extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         title: const Text('Importar datos'),
         content: Text(
-          'Se encontraron ${imported.length} créditos en el archivo. Esto '
-          'reemplazará TODOS tus datos actuales. ¿Deseas continuar?',
+          'Se encontraron ${imported.credits.length} créditos en el archivo. '
+          'Esto reemplazará TODOS tus datos actuales. ¿Deseas continuar?',
         ),
         actions: [
           TextButton(
@@ -132,7 +133,10 @@ class DataToolsCard extends ConsumerWidget {
     );
     if (confirmed == true) {
       try {
-        await ref.read(creditsProvider.notifier).replaceAll(imported);
+        await ref.read(creditsProvider.notifier).replaceAll(
+              imported.credits,
+              newQuotas: imported.quotas,
+            );
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Datos importados correctamente')),
