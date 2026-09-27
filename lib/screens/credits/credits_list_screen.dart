@@ -5,10 +5,13 @@ import '../../data/models/credit.dart';
 import '../../domain/bank_detector.dart';
 import '../../domain/credit_calculator.dart';
 import '../../domain/urgency_score.dart';
+import '../../data/models/commercial_quota.dart';
+import '../../providers/commercial_quotas_provider.dart';
 import '../../providers/credits_filter_provider.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/credit_display_utils.dart';
+import '../../widgets/credits/commercial_quota_card.dart';
 import '../../widgets/wallet_card.dart';
 
 /// Full credits list ("Créditos") screen — ported from `#view-credits` in
@@ -364,7 +367,7 @@ class _QuickFilterChip extends StatelessWidget {
   }
 }
 
-class _FilteredList extends StatelessWidget {
+class _FilteredList extends ConsumerWidget {
   final List<Credit> credits;
   final CreditsFilterState filter;
   final String emptyText;
@@ -478,7 +481,7 @@ class _FilteredList extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
     final list = _apply();
     if (list.isEmpty) {
@@ -516,11 +519,43 @@ class _FilteredList extends StatelessWidget {
         ),
       );
     }
+    // Purchases tagged with a CommercialQuota (Totto, Lili Pink, Éxito...)
+    // are grouped under one CommercialQuotaCard instead of listed loose —
+    // the user sees the brand + disponible/límite, never a flat list of
+    // unrelated-looking purchases. Every credit without a quotaId renders
+    // exactly as before.
+    final quotas =
+        ref.watch(commercialQuotasProvider).valueOrNull ?? const <CommercialQuota>[];
+    final purchasesByQuota = <String, List<LoanCredit>>{};
+    final ungrouped = <Credit>[];
+    for (final credit in list) {
+      if (credit is LoanCredit && credit.quotaId != null) {
+        purchasesByQuota.putIfAbsent(credit.quotaId!, () => []).add(credit);
+      } else {
+        ungrouped.add(credit);
+      }
+    }
+    final quotaCards =
+        quotas.where((q) => purchasesByQuota.containsKey(q.id)).toList();
+
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
-      itemCount: list.length,
+      itemCount: quotaCards.length + ungrouped.length,
       itemBuilder: (context, i) {
-        final credit = list[i];
+        if (i < quotaCards.length) {
+          final quota = quotaCards[i];
+          return _StaggeredEntry(
+            index: i,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 18),
+              child: CommercialQuotaCard(
+                quota: quota,
+                purchases: purchasesByQuota[quota.id]!,
+              ),
+            ),
+          );
+        }
+        final credit = ungrouped[i - quotaCards.length];
         return _StaggeredEntry(
           index: i,
           child: _CreditWalletListItem(
