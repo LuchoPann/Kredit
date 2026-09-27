@@ -19,6 +19,266 @@ Principios:
   fechas de corte, fechas limite, cuotas de manejo y abonos a capital.
 - Privacidad local y confianza en el manejo de datos.
 
+## Como funciona Kredit hoy (guia funcional completa, pantalla por pantalla)
+
+**Regla de mantenimiento de esta seccion (para Cloud, en toda sesion
+futura):** esta seccion describe el comportamiento REAL y ACTUAL de la app,
+no el historico de cambios (eso vive en las secciones fechadas mas abajo).
+Cada vez que un cambio de codigo altere lo que una pantalla hace, que
+campos pide, que valida o que guarda, ESTA seccion se actualiza en el mismo
+commit/sesion — no se deja para despues. Si un cambio es puramente visual
+(colores, espaciado, animaciones) sin alterar comportamiento/flujo, no hace
+falta tocar esta seccion, solo la bitacora fechada. La idea es que alguien
+sin acceso al codigo (GPT, o Cloud en una sesion nueva) pueda leer
+UNICAMENTE esta seccion y entender exactamente que hace la app hoy, sin
+tener que abrir un solo archivo.
+
+Kredit es 100% local — no hay backend, no hay red, todo vive en SQLite
+(Drift) en el dispositivo. La navegacion principal es una barra inferior de
+4 pestanas (Inicio / Creditos / Estadisticas / Cuenta) que mantiene las 4
+pantallas montadas a la vez (nunca se destruyen al cambiar de pestana) con
+un fade cruzado entre la activa y la anterior.
+
+### Modelo de datos: que es un "credito" en Kredit
+
+Todo objeto financiero del usuario es un `Credit`, que en la practica es
+uno de dos subtipos, discriminados por el campo `type` en una unica tabla
+(`Credits`, columnas nullable segun el tipo):
+
+- **`LoanCredit`** ("Prestamo / Cupo en cuotas"): monto financiado, numero
+  de cuotas, tasa de interes (y su tipo: E.A./E.M./nominal mensual), fecha
+  de la primera cuota, frecuencia (mensual/quincenal/semanal), y la lista
+  de cuotas (`installments`) generadas por amortizacion francesa. Tiene un
+  flag interno `scheduleManuallyAdjusted`: una vez que un abono extra
+  reamortiza el cronograma, este flag se prende y el cronograma YA NUNCA se
+  vuelve a recalcular desde cero automaticamente (evita perder el ajuste
+  manual).
+- **`CardCredit`** ("Tarjeta de credito"): limite, saldo actual, tasa de
+  interes, dia de corte, dias entre corte y fecha limite de pago, cuota de
+  manejo (y su frecuencia), y una lista de `movements` (cargos/pagos/
+  intereses/cuotas de manejo acumulados por ciclo).
+
+Ambos comparten: nombre (el que el usuario le puso, visible ahora en la
+tarjeta visual como chip de alto contraste), banco/entidad (texto libre,
+sin tabla de entidades — ver seccion "Una entidad, un registro" mas abajo
+para el trabajo en curso sobre esto), color, notas.
+
+### Pantalla 1 — Bienvenida (solo primera vez)
+
+Se muestra una unica vez (controlado por `onboardingProvider`). Explica que
+la app viene con 2 creditos de ejemplo marcados "EJEMPLO" (editables o
+borrables como cualquier otro). Ofrece, sin obligar: activar PIN/biometria
+(lleva a la pantalla de configurar bloqueo) y activar notificaciones de
+vencimiento (recomendado, default apagado — al activarlo se despliega ahi
+mismo la configuracion completa de dias de anticipacion/hora/frecuencia).
+Boton "Empezar" marca el onboarding como visto y entra a la app.
+
+### Pantalla 2 — Inicio (Dashboard)
+
+Responde "¿que tengo que pagar pronto?". De arriba a abajo:
+- Saludo segun la hora + "DEUDA TOTAL" como cifra protagonista, con un
+  anillo de progreso (% del total de cuotas de prestamos ya pagadas — las
+  tarjetas no cuentan para este %, son saldo rotativo, no amortizacion).
+- Dos cifras secundarias: cuanto vence en los proximos 7 dias, y cuantos
+  creditos activos hay.
+- "Prioridad de hoy": el pago mas urgente (calculado por el motor de
+  recomendaciones), con boton "Ver detalle", boton "Marcar como pagada"
+  (solo si es una cuota de prestamo) y, debajo, hasta 3 pagos siguientes
+  ("Despues") con un boton para ver todos los pendientes en un sheet.
+- "Tus creditos": lista compacta de tarjetas visuales, tap abre el
+  detalle.
+- "¿Que pasa si...?": fila que abre el simulador.
+- Boton flotante (+) para registrar un credito nuevo.
+
+### Pantalla 3 — Creditos (lista completa)
+
+Buscador + boton de orden (urgencia, proximo pago, mayor/menor deuda,
+entidad, nombre) + chips de filtro rapido (Todos/Vencidos/Proximos/
+Tarjetas/Prestamos) + tabs Activos/Finalizados. Cada fila es la tarjeta
+visual completa (`WalletCard`) con una franja debajo mostrando uso de cupo
+(tarjetas) o progreso pagado (prestamos). Tap abre el detalle. Boton
+flotante (+) para registrar un credito nuevo. Vacio muestra un aviso de
+privacidad ("tus datos permanecen en tu dispositivo").
+
+Las compras que pertenecen a un **cupo comercial** (Totto, Lili Pink,
+Exito CrediCompras...) no aparecen sueltas en esta lista — se agrupan bajo
+una tarjeta separada que muestra la marca (nunca la entidad financiera
+real detras) y una barra de disponible/limite, con cada compra como fila
+tocable debajo (abre su detalle igual que cualquier otro credito). Un
+cupo sin compras todavia se muestra igual (con 0), y tiene su propio
+boton eliminar (con confirmacion; falla con mensaje claro si aun tiene
+compras activas). Ver seccion "Cupo comercial — 2026-09-27" mas abajo.
+
+### Pantalla 4 — Registrar Nuevo Credito (asistente de 4 pasos)
+
+- **Paso 1 — Tipo de credito:** elegir Prestamo/Cupo o Tarjeta de credito
+  (cada uno con su propio icono en avatar circular), nombre del
+  credito/tarjeta, banco/entidad (lista desplegable + opcion "Otro..." con
+  texto libre; si el banco tiene sub-marcas conocidas como CMR Falabella
+  aparece un segundo desplegable). Avisos automaticos, no bloqueantes: si
+  se elige Nequi o DaviPlata como Tarjeta, sugiere cambiar a Prestamo (esos
+  productos no son tarjeta rotativa); y si ya existe un credito ACTIVO del
+  mismo tipo con el mismo banco detectado, avisa "Ya tienes [un cupo/una
+  tarjeta] activo con esta entidad: [nombre]" con boton para abrir ese en
+  vez de crear otro — nunca bloquea seguir (hay casos reales de tener dos
+  productos legitimos del mismo banco, o usar el credito de otra persona).
+  Para prestamo, un toggle opcional "Es una compra de un cupo comercial"
+  (Totto, Lili Pink, Exito CrediCompras...) justo debajo del tipo elegido:
+  al activarlo, el campo Banco/Prestamista (y sus avisos de banco/
+  duplicado) desaparecen por completo — la marca del cupo ES la entidad,
+  nunca hay un banco aparte. Permite elegir un cupo ya creado o "Crear
+  cupo nuevo" (pide marca + limite ahi mismo, sin salir del asistente).
+- **Paso 2 — Monto y cuotas (prestamo) / Cupo de la tarjeta (tarjeta):**
+  panel grande en vivo mostrando la cuota calculada (amortizacion
+  francesa) o el cupo disponible segun se va escribiendo; campos: monto a
+  financiar, numero de cuotas, interes anual y su tipo de expresion (E.A./
+  E.M./nominal mensual) para prestamo; limite y saldo actual para tarjeta.
+  Para prestamo, un toggle "No conozco la tasa" reemplaza el campo de
+  interes por el aviso "Cuenta sin intereses registrados" — Kredit nunca
+  obliga a conocer ni sintetiza una tasa que el usuario no dio. Si la
+  compra pertenece a un cupo comercial, aparece ademas "Si pago antes de
+  la fecha de pago, no cobran interes" (siempre manual, nunca asumido).
+- **Paso 3 — Fecha de pago (prestamo) / Interes y costos (tarjeta):**
+  frecuencia de cuotas + fecha de la primera cuota, y un campo siempre
+  visible (no oculto tras un desplegable) "¿Ya venias pagando este
+  credito?" para marcar cuantas cuotas ya estaban pagadas ANTES de
+  registrarlo (asi el cronograma arranca en la cuota correcta, no desde
+  cero). Para tarjeta: interes, cuota de manejo, dia de corte y dias hasta
+  la fecha limite de pago (autocompletados por una plantilla por banco si
+  el usuario no los toca a mano).
+- **Paso 4 — Confirmacion:** vista previa de la tarjeta visual tal como
+  quedaria, mas una tabla de 2 columnas con todos los datos ingresados.
+  Boton "Registrar Credito" guarda todo.
+
+Salir del asistente con datos sin guardar pide confirmar el descarte.
+
+### Pantalla 5 — Detalle de un Credito
+
+AppBar con nombre + badge de tipo. Dos tabs segun el tipo:
+
+- **Prestamo → Resumen + Cronograma.** Resumen: tarjeta visual, monto/
+  tasa (o "Cuenta sin intereses registrados" si la compra se registro sin
+  tasa conocida — nunca un "0.0%" enganoso), progreso de amortizacion,
+  proxima cuota con boton "Pagar" (permite
+  ingresar un monto distinto al esperado — la diferencia se aplica como
+  abono o cargo a la siguiente cuota) y acceso directo al simulador de
+  abono. Cronograma: cuotas agrupadas en Vencidas → Proximas → Futuras →
+  Pagadas (colapsable), seccion de Abonos Registrados (colapsable, muestra
+  el impacto real del ultimo abono: cuanto bajo la cuota o cuantas cuotas
+  se adelantaron, e interes ahorrado), y botones "Abono Extra" / "Pago
+  total" (se resaltan en rojo si hay mora). Eliminar una cuota pagada o un
+  abono pide confirmacion y recalcula el saldo.
+- **Tarjeta → Resumen + Movimientos.** Resumen: cupo disponible
+  destacado, fechas de corte/limite del ciclo actual, botones rapidos
+  Cargo/Compra y Registrar Pago. Movimientos: historial agrupado por mes
+  (cargo/pago/interes/cuota de manejo), cada uno se puede eliminar
+  (recalcula el saldo) con `Dismissible` (deslizar).
+
+Notas del credito visibles al final. Bottom bar: Editar Credito / Eliminar
+(con confirmacion doble, mencionando el nombre exacto del credito).
+
+### Pantalla 6 — Editar Credito
+
+Sheet arrastrable con vista previa en vivo de la tarjeta. No se puede
+cambiar el tipo (prestamo ↔ tarjeta) desde aca — es un dato fijo desde la
+creacion. Permite editar: comercio/ubicacion y notas (prestamo); monto y
+cuota (con aviso BLOQUEANTE — pide confirmar explicitamente — si la nueva
+cuota no alcanza a cubrir ni el interes del periodo, porque esa
+configuracion nunca terminaria de pagarse); limite, interes, corte, fecha
+limite y mantenimiento (tarjeta, con aviso no bloqueante si el nuevo limite
+queda por debajo del saldo actual). Un cambio de tasa en tarjeta cierra los
+intereses ya acumulados con la tasa vieja antes de aplicar la nueva.
+
+### Pantalla 7 — Simulador ("¿Que pasa si...?")
+
+Sheet con 2 tabs (cual se abre primero depende de si viniste desde un
+prestamo o una tarjeta): "Simular compra" (solo tiene sentido en tarjetas —
+monto + cuotas → cuota mensual resultante, nuevo saldo, cupo que quedaria
+disponible, costo estimado en intereses, con alerta si el uso de cupo
+supera 80%) y "Abonar extra" (disponible para ambos tipos — monto libre o
+chips rapidos $50.000/$100.000/$200.000). Para prestamo calcula cuantas
+cuotas se adelantan y cuanto interes se ahorra, y muestra 3 escenarios
+comparativos lado a lado: seguir igual, reducir cuota, reducir plazo. Para
+tarjeta calcula en cuantos meses quedaria saldada pagando el minimo.
+
+Todo lo que se ve aca es una SIMULACION — no toca los datos reales del
+credito, salvo que el usuario pulse explicitamente "Registrar este abono
+ahora", que ahi si aplica el abono/pago real (mismos metodos que usar el
+boton de pago desde el detalle). Los escenarios calculados se guardan en
+`SharedPreferences` (hasta 5 por credito) para que la comparativa persista
+entre sesiones. Aviso fijo en pantalla: "resultados aproximados, consulta
+con tu entidad".
+
+### Pantalla 8 — Estadisticas avanzadas
+
+Panel superior: "DEUDA ACTIVA TOTAL" con anillo de progreso, un pill de
+"N riesgos" si el motor de riesgos detecto algo, y 3 cifras (creditos
+activos / cupo disponible / total pagado historico — antes eran 6, se
+redujo por feedback de que sobraba informacion). Grupo "Proyecciones":
+grafico de barras (deuda proyectada proximos 6 meses) + grafico de torta
+(distribucion de deuda por entidad), cada uno con una frase en espanol
+plano debajo explicando el dato ("Tu mes mas cargado es..."). Si hay
+riesgos detectados, seccion "RIESGOS DETECTADOS" (deuda concentrada en una
+entidad, cupo casi agotado, la deuda mas costosa por tasa, mora
+acumulada). Grupo "Historial y Herramientas": resumen de abonos extra ya
+realizados + proyeccion de cuando terminarias de pagar cada prestamo
+activo. Ya NO tiene acceso al simulador (se quito de aca — vive solo en
+Inicio).
+
+### Pantalla 9 — Cuenta
+
+Perfil (foto/nombre editables) + resumen rapido ("N creditos activos · $X
+pendiente"). Personalizacion: color de acento (7 opciones), modo oscuro,
+variante de tono (Oscuro Puro/Frio-Azul/Grafito). Notificaciones: mismo
+bloque de 3 pasos que en la Bienvenida (dias de anticipacion, hora,
+frecuencia unico/diario). Seguridad: activar/gestionar PIN o biometria, y
+el switch "Mostrar montos en el widget" (default apagado — el widget de
+pantalla de inicio de Android es visible SIN desbloquear el telefono, asi
+que mostrar cifras reales ahi es opt-in explicito). Datos: exportar
+respaldo (JSON plano sin cifrar, se comparte por donde el usuario elija con
+`share_plus`, con aviso de que no esta cifrado; actualiza la fecha del
+"ultimo respaldo") e importar respaldo (reemplaza TODOS los datos actuales,
+pide confirmacion). Ayuda: guia rapida de la app. Zona de riesgo: borrar
+toda la base de datos (doble confirmacion + reautenticacion con PIN/
+biometria si hay bloqueo configurado).
+
+### Bloqueo de la app (PIN/biometria)
+
+Opcional, configurable desde Bienvenida o Cuenta. El PIN se guarda como
+hash salado (nunca en texto plano) en almacenamiento seguro del sistema
+operativo (`flutter_secure_storage`). Bloqueo progresivo tras varios
+intentos fallidos. La biometria usa el sistema del propio telefono (huella/
+rostro) con fallback a PIN/patron del SO si falla. La app se re-bloquea
+automaticamente al volver de segundo plano.
+
+### Widget de pantalla de inicio (Android)
+
+Widget nativo opcional que el usuario agrega manualmente al home screen del
+telefono (Kredit no lo agrega solo). Se actualiza cada vez que cambian los
+creditos, el tema (acento/tono) o el switch de privacidad. Muestra: deuda
+total, % pagado (con barra, oculto si no aplica), y la proxima cuota
+(nombre + monto + fecha relativa) — o, si el switch "Mostrar montos" esta
+apagado, solo texto generico sin cifras ("N creditos activos", "Tienes
+pagos pendientes"). Tap en el widget abre la app. Aparece en el selector de
+widgets de Android como "Resumen" (con una descripcion corta), no solo
+como "Kredit". Se adapta al color de acento y al tono de fondo elegidos en
+Cuenta.
+
+### Como se conecta todo (motor de dominio → pantallas)
+
+Toda la logica financiera vive en `lib/domain/*.dart`, sin ninguna
+dependencia de Flutter (testeable sin UI). Los archivos clave y que
+pantalla alimentan, en resumen: `loan_calculator.dart` (amortizacion
+francesa, abonos, mora) alimenta Dashboard/Detalle/Simulador;
+`card_calculator.dart` (ciclos de corte, acumulacion de intereses)
+alimenta Detalle de tarjeta/Simulador; `interest_rate.dart` (normalizar
+E.A./E.M./nominal a tasa diaria) alimenta el asistente de creacion y el
+simulador; `recommendations.dart` (que pago priorizar, que riesgos existen
+entre el conjunto de creditos, que credito conviene abonar primero)
+alimenta Dashboard y Estadisticas; `credit_calculator.dart` (saldo
+restante, si un credito tiene cuotas pendientes) se usa en casi todas las
+pantallas.
+
 ## Estado consolidado para GPT (leer esto primero, ahorra tener que revisar el proyecto)
 
 Esta seccion es el canal de comunicacion directo entre Cloud y GPT sobre este
@@ -157,6 +417,799 @@ Corregido invirtiendo el anidado. Commit `60c36ec`.
 
 Todo lo demas del roadmap original esta implementado y verificado en
 dispositivo fisico.
+
+## Revision GPT / Codex — 2026-09-24
+
+Esta revision se hizo despues del trabajo fuerte de Cloud sobre las fases del
+roadmap. Estado tecnico validado por GPT:
+
+- `flutter analyze`: sin issues.
+- `flutter test`: 128 tests pasando.
+- El repositorio esta 30 commits por delante de `origin/master`.
+- No hay cambios de codigo sin commit en archivos trackeados al momento de la
+  revision.
+- Archivos sueltos sin trackear:
+  - `UltimoChatConClaude.txt`
+  - `owasp_m1_secrets_scan.json`
+  - `owasp_m5_network_scan.json`
+  - `owasp_m9_storage_scan.json`
+
+### Evaluacion general
+
+El avance de Cloud va en buena direccion. La app ya no se siente como un
+registro pasivo: Inicio, Creditos, Detalle, Simulador y Estadisticas empiezan a
+empujar decisiones concretas. La separacion entre UI y dominio tambien mejoro:
+`recommendations.dart`, `loan_calculator.dart` e `interest_rate.dart` concentran
+la mayor parte del "cerebro" financiero y tienen tests.
+
+La prioridad ahora NO debe ser agregar mas features grandes. La prioridad debe
+ser cerrar inconsistencias, revisar exactitud financiera del simulador de
+tarjetas y hacer una pasada real de QA visual/UX en dispositivo.
+
+### Hallazgo prioritario para Cloud
+
+- [ ] Corregir calculo de tasas de tarjeta dentro del simulador.
+  - Problema detectado por GPT: `lib/screens/stats/simulator_sheet.dart` aun
+    calcula intereses de tarjeta con `card.interestRate / 100 / 365` en:
+    - `_PurchaseTabState._simulate()`
+    - `_ExtraPaymentTabState._simulateCard()`
+  - Esto asume que toda tasa de tarjeta es efectiva anual, pero Kredit ya
+    soporta `InterestRateType.effectiveAnnual`,
+    `InterestRateType.effectiveMonthly` y `InterestRateType.nominalMonthly`.
+  - Instruccion: reemplazar esa conversion manual por
+    `dailyRateFrom(card.interestRate, card.interestRateType)` desde
+    `lib/domain/interest_rate.dart`.
+  - Idealmente extraer la logica de simulacion de tarjetas a una funcion pura
+    testeable en `lib/domain/` para no dejar calculo financiero importante
+    dentro de un widget privado.
+  - Agregar tests que cubran al menos:
+    - tarjeta con tasa E.A.;
+    - tarjeta con tasa efectiva mensual;
+    - tarjeta con tasa nominal mensual;
+    - tasa 0.
+  - Validacion requerida: `flutter analyze` y `flutter test`.
+
+### Limpieza necesaria del roadmap
+
+- [ ] Consolidar el roadmap para que diga una sola verdad.
+  - Ahora mismo hay secciones nuevas arriba que dicen "completo" y secciones
+    historicas mas abajo que aun dicen "parcial" o mantienen `[ ]`.
+  - Ejemplos:
+    - Fase 6 aparece como completa en el estado consolidado, pero mas abajo
+      conserva texto de "Estado: parcial, avanzado" antes de documentar el
+      cierre.
+    - Fase 9 dice que casi todo esta cerrado, pero conserva una lista antigua
+      de pendientes que ya fue parcialmente resuelta.
+    - "Boton directo de simular impacto desde detalle de tarjeta" aparece como
+      pendiente en Tarea 1, pero no aparece en "Lo unico que queda pendiente".
+  - Instruccion: NO borrar historial util, pero si reorganizarlo:
+    - arriba: "Estado actual verdadero";
+    - luego: "Pendientes reales";
+    - luego: "Historial de implementacion";
+    - marcar como "reemplazado/cerrado" lo viejo que ya no aplique.
+
+### QA visual/UX requerido antes de seguir
+
+- [ ] Hacer una pasada en dispositivo fisico o emulador por estas pantallas:
+  - Inicio.
+  - Creditos.
+  - Detalle de prestamo.
+  - Detalle de tarjeta.
+  - Simulador.
+  - Estadisticas.
+  - Cuenta.
+- Criterios de revision:
+  - Que ninguna pantalla vuelva a sentirse cargada.
+  - Que cada pantalla tenga una conclusion o accion dominante.
+  - Que los textos largos no empujen controles importantes fuera de vista.
+  - Que la transicion entre pestanas no bloquee taps ni deje pantallas
+    superpuestas.
+  - Que no haya `boxShadow` nuevo salvo que se decida cambiar explicitamente el
+    lenguaje visual de toda la app.
+  - Que los estados vacios, con datos, con deuda vencida y con tarjeta sin cupo
+    definido se vean bien.
+
+### Archivos sin trackear
+
+- [ ] Decidir que hacer con los archivos sueltos.
+  - `UltimoChatConClaude.txt`: si sirve como memoria historica, moverlo a
+    `docs/` o resumirlo en este roadmap. Si no aporta, dejarlo fuera del commit.
+  - `owasp_*.json`: si son reportes de seguridad utiles, moverlos a una carpeta
+    clara como `reports/security/` o documentar que son artefactos locales. No
+    mezclarlos con codigo de producto sin contexto.
+
+### Como debe continuar Cloud
+
+Orden recomendado:
+
+1. Corregir el calculo de tasas de tarjeta en simulador y testearlo.
+2. Limpiar contradicciones del roadmap.
+3. Hacer QA visual/UX en dispositivo.
+4. Solo despues de eso, proponer nuevas mejoras.
+
+Importante: cualquier nueva mejora debe preservar la direccion actual de Kredit:
+menos bloques, mas decision; menos datos crudos, mas conclusion accionable; mas
+logica testeable en dominio y menos formulas dentro de widgets.
+
+## Sesion Cloud — 2026-09-24/25 (noche): rediseno visual, animaciones,
+## rename de paquete, widget de inicio, y Estadisticas
+
+Bitacora completa de esta sesion, a pedido explicito del usuario ("todo debe
+ir registrado alli, sin excepcion, usalo como bitacora e historial"). Incluye
+tanto lo implementado como lo discutido/propuesto y NO implementado todavia.
+
+**IMPORTANTE — pendiente de la revision GPT anterior AUN NO RESUELTO:** el
+hallazgo prioritario de la seccion "Revision GPT / Codex — 2026-09-24" (fix de
+`card.interestRate / 100 / 365` en `simulator_sheet.dart`, lineas ~213 y ~600)
+sigue sin corregir. Esta sesion se enfoco en otras cosas a pedido del usuario;
+sigue siendo la correccion tecnica mas importante pendiente.
+
+### 1. Bug real corregido: crash al crear tarjeta
+
+`add_credit_sheet.dart` — el `DropdownButtonFormField<int>` de "Dias para
+pagar despues del corte" tenia una lista fija `[10,15,20,25,30,35,40]`. Las
+plantillas de banco en `entity_templates.dart` usan valores fuera de esa
+lista (Bancolombia = 21, otras = 22) — al autocompletar esa entidad, Flutter
+lanzaba `'there should be exactly one item with value X'` y la app crasheaba
+por completo. Corregido generando la lista de items como union dinamica entre
+el set fijo y el valor actual de la plantilla. Verificado en dispositivo
+fisico con credito de prueba `PRUEBA_BORRAR_card1` (Bancolombia, offset 21)
+sin crash.
+
+### 2. Rediseno del asistente "Nuevo Credito" (3 pasos -> 4 pasos)
+
+Motivado por feedback repetido de que el paso 2 se sentia "muy cargado" y con
+lenguaje muy tecnico.
+
+- Paso 2 ("Datos Financieros") se partio en dos pasos: **Paso 2 "Monto y
+  cuotas"/"Cupo de la tarjeta"** (solo lo minimo indispensable) y **Paso 3
+  "Fecha de pago"/"Interes y costos"** (calendario + casos opcionales).
+- Nuevo panel **`_LiveFinancialHero`**: reacciona en vivo a lo que el usuario
+  teclea, mostrando "VALOR DE LA CUOTA" (prestamo) o "CUPO DISPONIBLE"
+  (tarjeta, con barra de uso de cupo) en tipografia grande tipo dashboard —
+  antes esos numeros aparecian chiquitos y duplicados (una vez arriba, una
+  vez en un campo deshabilitado mas abajo). Se elimino el campo deshabilitado
+  duplicado; su logica de validacion se movio a `_nextStep()`.
+- Encabezados de seccion internos renombrados para no repetir literalmente el
+  titulo del paso (ej. "Monto y cuotas" como titulo de paso y "DATOS DEL
+  CREDITO" como header interno, en vez de repetir "Monto y cuotas" dos veces).
+- Lenguaje de campos simplificado: "Monto Financiado" -> "Monto a
+  financiar", "Cantidad de Cuotas" -> "Numero de cuotas", etc. Pendiente:
+  extender esta revision de lenguaje "neutro, no tecnico" al resto del
+  proyecto si el usuario lo pide explicitamente (por ahora solo se aplico al
+  wizard de creacion, a peticion puntual).
+- "¿Ya llevas cuotas pagadas?" dejo de ser un desplegable colapsado — ahora
+  es un campo siempre visible, marcado como opcional, ubicado despues de
+  "Fecha y Frecuencia" (antes) dentro del Paso 3.
+- Seccion "Detalles adicionales" (comercio/notas) eliminada del asistente de
+  creacion (tanto prestamo como tarjeta) — esos campos se pueden seguir
+  editando despues desde `edit_credit_sheet.dart`, que si los conserva.
+- Paso 4 (Confirmacion): se quito el titulo "Confirmacion" repetido (ya lo
+  dice el indicador de pasos arriba). El resumen de datos paso de una lista
+  vertical "label izquierda / valor derecha" a una tarjeta de **2 columnas**
+  con una linea divisoria interna sutil, todo el texto alineado a la
+  izquierda dentro de cada columna (`_SummaryGrid` + `_SummaryTile`).
+- Texto "Paso X de 4: <titulo>" debajo de los circulos del stepper:
+  **eliminado por completo** (duplicaba el titulo grande de cada paso; el
+  usuario pidio quitarlo por no encontrarle utilidad).
+- Animacion entre pasos: slide de pantalla completa (el paso saliente se
+  esconde del todo hacia un lado, el entrante aparece del todo desde el
+  otro), 420ms, `AnimatedSwitcher` + `SlideTransition` con direccion segun
+  se avance o retroceda (`_stepDirection`). Iteracion previa (offset sutil
+  del 6% del ancho) se descarto por sentirse "muy discreta".
+
+### 3. Animaciones de navegacion general
+
+- Fade entre pestanas (`_TabFadeLayer`, `lib/main.dart`): duracion subida de
+  220ms a **340ms** (termino medio, ni muy rapido ni muy lento).
+- Apertura/cierre de "Nuevo Credito" (`/add-credit` en `onGenerateRoute`):
+  antes usaba el slide-desde-la-derecha por defecto de `MaterialPageRoute`;
+  ahora usa un `PageRouteBuilder` con **fade puro** (340ms, `easeOutCubic`),
+  igual en ambas direcciones (abrir/cerrar), para que se sienta como el
+  mismo lenguaje de transicion que el resto de la app.
+
+### 4. Rename de paquete: `com.kredit.kredit` -> `com.luchopan.kredit`
+
+Cambiado en: `android/app/build.gradle.kts` (namespace + applicationId),
+carpetas Kotlin movidas a `android/app/src/main/kotlin/com/luchopan/kredit/`
+(`MainActivity.kt`, `KreditHomeWidgetProvider.kt`, con su `package` interno
+actualizado), `ios/Runner.xcodeproj/project.pbxproj` y
+`macos/Runner.xcodeproj/project.pbxproj` (`PRODUCT_BUNDLE_IDENTIFIER`).
+`AndroidManifest.xml` no necesito cambios (usa nombres relativos `.MainActivity`
+/ `.KreditHomeWidgetProvider`).
+
+**Consecuencia importante or ambos agentes deben tener presente:** Android
+trata esto como una app DISTINTA. La app vieja instalada
+(`com.kredit.kredit`) y la nueva (`com.luchopan.kredit`) coexisten como dos
+apps separadas — los datos NO se migran solos. Flujo seguido: exportar
+respaldo desde Cuenta > Datos en la app vieja, reinstalar con
+`flutter run` desde cero (esto no aplica con hot reload/restart), importar el
+respaldo en la app nueva. Confirmado funcionando en dispositivo fisico.
+
+### 5. Pantalla de bienvenida (`welcome_screen.dart`)
+
+- Icono superior cambiado de un `Icons.account_balance_wallet_rounded`
+  generico al **logo real de Kredit** (`KreditLogo`, el mismo SVG que usa el
+  dashboard).
+- Copy de "Protege tu informacion" simplificado (se quito "desbloqueo
+  biometrico", "bloqueo temporal tras varios intentos fallidos" y la mencion
+  al widget — informacion tecnica/tangencial que no aportaba en el contexto
+  de bienvenida).
+- Copy de "No te pierdas un vencimiento" simplificado.
+- El switch de notificaciones ahora dice **"Notificaciones de vencimiento
+  (Recomendado)"** y por defecto viene **desactivado** (antes el default
+  global de `NotificationSettings.defaults.enabled` era `true`; se cambio a
+  `false` en `notification_settings_provider.dart` — este es un cambio de
+  default para TODA la app, no solo la bienvenida).
+- Al activar el switch, aparece debajo (con `AnimatedSize`, 260ms) la
+  configuracion completa de dias/hora/frecuencia — la misma que ya existia
+  en Cuenta > Notificaciones — sin tener que salir de la bienvenida ni ir a
+  Cuenta despues.
+
+### 6. Rediseno de `NotificationSettingsTile` (compartido por Cuenta y Bienvenida)
+
+Motivo: el usuario senalo que el layout no era simetrico ni prolijo (el paso
+1 no tenia caja mientras los pasos 2 y 3 si).
+
+- Se agrego `showHeader` (bool, default `true`) para poder insertar el mismo
+  widget en la bienvenida sin duplicar el switch maestro (la bienvenida trae
+  el suyo propio).
+- Los 3 pasos (dias de anticipacion / hora / frecuencia) reemplazaron sus
+  encabezados de circulo numerado (1-2-3) por el patron de icono + texto en
+  mayusculas ya usado en el resto de la app (`_StepHeader`, mismo lenguaje
+  que `_SectionCard` en `add_credit_sheet.dart`).
+- El selector de "dias de anticipacion" ahora vive dentro de una caja con
+  borde igual a los otros dos pasos (antes era el unico "flotando" sin caja
+  — causa raiz de la asimetria reportada).
+- Las tarjetas de "Un solo aviso" / "Recordatorio diario" perdieron su
+  icono decorativo (dejaba espacio vacio debajo cuando el subtitulo
+  ocupaba 2 lineas) — ahora solo llevan el radio de seleccion + texto, con
+  todo el ancho disponible.
+
+### 7. Widget de pantalla de inicio (Android) — rediseno completo
+
+El usuario no sabia que este widget existia (`widget_privacy_provider.dart` +
+`home_widget_service.dart`, preexistente); al mostrarselo senalo que el
+diseno "no estaba muy bien trabajado" y pidio aprovecharlo a fondo.
+
+- **Layout nuevo** (`android/app/src/main/res/layout/kredit_widget_layout.xml`):
+  tarjeta con fondo redondeado (`kredit_widget_background_pure.xml`, mismo
+  lenguaje visual bgCard/borderCard de la app en vez del negro plano
+  anterior), icono de marca pequeno y NO invasivo (14dp, `@mipmap/ic_launcher`)
+  en vez de un titulo de texto "Kredit" grande.
+- **Datos nuevos mostrados:** ademas de deuda total, ahora se ve el **%
+  pagado** (barra de progreso + etiqueta, oculta automaticamente cuando no
+  aplica — solo tarjetas, sin prestamos) y la **proxima cuota** (nombre +
+  monto + fecha relativa, antes era un solo string concatenado).
+- **Tap para abrir la app:** antes el widget no reaccionaba a ningun toque.
+  Ahora tiene un `PendingIntent` que abre `MainActivity` (bug reportado por
+  el usuario, corregido en `KreditHomeWidgetProvider.kt`).
+- **Nombre e identificacion en el selector de widgets de Android:** antes
+  aparecia solo como "Kredit" (el nombre de la app, no describia la
+  funcion). Ahora tiene `android:label="Resumen"` en el `<receiver>` del
+  manifest y una `android:description="Deuda total, progreso y proxima
+  cuota"` en `kredit_widget_info.xml`.
+- **Se adapta al tema elegido por el usuario:**
+  - Color de acento (las 7 opciones de Cuenta > Personalizacion) tine la
+    cifra de deuda total y el monto de la proxima cuota
+    (`setTextColor` en Kotlin, leyendo `accent_color` como hex).
+  - Tono de fondo (Oscuro Puro / Frio-Azul / Grafito) selecciona entre 3
+    drawables de fondo (`kredit_widget_background_pure/cool/warm.xml`) via
+    `setBackgroundResource`, en vez de un color fijo — se eligio este
+    metodo (en vez de tintar un solo drawable) porque `RemoteViews` no
+    soporta tintar backgrounds arbitrarios sin API 31+, pero si soporta
+    cambiar de recurso a cualquier nivel de API.
+  - Pendiente/limitacion conocida: la barra de progreso (`ProgressBar`) NO
+    se tine con el color de acento (RemoteViews no expone un metodo
+    compatible con todas las APIs para tintar `ProgressBar` dinamicamente
+    sin subir el `minSdk` a 31). Queda blanca. Se documenta para que GPT no
+    lo reporte como "olvidado" — fue una decision consciente de alcance.
+  - `home_widget_service.dart` ahora escribe `progress_percent`,
+    `next_payment_name/amount/date`, `accent_color` y `bg_tone` (antes solo
+    escribia `total_debt` y un `next_payment` concatenado). `main.dart`
+    ahora tambien escucha `themePreferencesProvider` para resincronizar el
+    widget cuando el usuario cambia de acento/tono (antes solo reaccionaba a
+    cambios de creditos y del switch de privacidad).
+- Este cambio es codigo nativo (Kotlin + recursos XML de Android) — **no
+  aplica con hot reload/restart**, requiere detener y volver a correr
+  `flutter run`.
+
+### 8. Estadisticas avanzadas (`stats_screen.dart`) — reduccion de densidad
+
+- El panel superior tenia **6 cifras** apiladas en dos filas: fila 1
+  (Creditos activos / Cupo disponible / Limite total) del
+  `_DebtOverviewPanel`, fila 2 (Finalizados / Total pagado / Total prestado)
+  del widget separado `StatsGrid`. Feedback del usuario: "tanto cuadro no es
+  util". Se redujo a **una sola fila de 3**: Creditos activos, Cupo
+  disponible, Total pagado. Se descartaron "Limite total" (redundante con
+  Cupo disponible) y "Finalizados"/"Total prestado" (poco accionables).
+- `lib/widgets/account/stats_grid.dart` **se elimino por completo** (ya no
+  se usaba en ningun lado tras la fusion de arriba). Su helper de formato
+  `NumberFormatLike` tambien se elimino de `stats_screen.dart`; los 4 usos
+  que quedaban ahi se migraron a `formatCOP()` (`credit_display_utils.dart`,
+  el formateador estandar del resto de la app).
+- Se elimino el punto de entrada al simulador ("¿Que pasa si...?") que vivia
+  al final de Estadisticas (`_SimulatorEntryRow`) — el usuario senalo que
+  el simulador ya tiene su propia entrada, mas visible, en el Dashboard, y
+  que duplicarlo en Estadisticas "no encaja del todo bien". El simulador
+  ahora se accede SOLO desde Inicio.
+- **Pendiente, senalado por el usuario pero NO resuelto todavia:** las
+  secciones "RIESGOS DETECTADOS" e "HISTORIAL Y HERRAMIENTAS" muestran
+  informacion que el usuario considera util pero cree que "no la estamos
+  mostrando como deberiamos" — sin una propuesta concreta todavia de que
+  cambiar ahi. Queda abierto para la proxima sesion.
+
+### 9. IDEAS DISCUTIDAS — NO IMPLEMENTADAS (para que GPT las tenga en cuenta)
+
+Estas tres ideas se hablaron en profundidad con el usuario pero **no se
+escribio ninguna linea de codigo todavia** — son cambios de arquitectura de
+datos/dominio, no ajustes de UI, y requieren pasar por diseno antes de
+implementarse (ver regla de "brainstorming" del propio Cloud: cambios
+arquitectonicos necesitan spec escrita antes de tocar codigo).
+
+**A. Catalogo de entidades como base de tarjetas/cupos (en vez de "crear un
+credito especifico por banco").**
+
+Idea del usuario: hoy, registrar un credito significa llenar un formulario
+generico eligiendo un banco de una lista (`_presetLenders` en
+`add_credit_sheet.dart`) y llenando montos a mano. El usuario propone invertir
+el flujo: que existan **entidades registradas en base de datos**, clasificadas
+por como opera su producto —
+
+- **"Cupo"**: linea de credito de uso general (no maneja necesariamente
+  ciclo de corte/fecha limite tipo tarjeta).
+- **"Tarjeta de credito"**: opera con ciclo de facturacion (fecha de corte +
+  fecha limite de pago), igual que una tarjeta bancaria tradicional.
+
+El usuario cayo en cuenta de que **RappiCard funciona como tarjeta de
+credito real** (corte + fecha limite), no como un cupo generico — esto
+implica reclasificar las plantillas existentes de `entity_templates.dart`
+por tipo de producto, no solo por banco.
+
+Requisito explicito: al elegir tipo "Cupo" en el asistente, solo deben
+listarse las entidades que operan como cupo; al elegir "Tarjeta de credito",
+solo las que operan como tarjeta. Las dos fechas (corte y limite de pago)
+deben ser **configurables por el usuario al registrar cada tarjeta** — hoy
+`CardCredit` YA tiene `cutoffDay`/`paymentDueOffsetDays` configurables por
+formulario, pero la reclasificacion "que entidades aparecen segun el tipo
+elegido" no existe todavia.
+
+Impacto tecnico a evaluar (no resuelto, para que GPT lo piense tambien):
+cambios en `entity_templates.dart` (agregar campo de "tipo de producto" por
+plantilla), en `add_credit_sheet.dart` (filtrar `_presetLenders`/plantillas
+segun `_type` elegido), y potencialmente en el modelo de datos si se quiere
+separar "entidad" de "instancia de credito del usuario" (hoy `CardCredit`/
+`LoanCredit` no referencian una tabla de entidades, guardan `lender` como
+string libre).
+
+**B. Extracto propio de Kredit (estilo estado de cuenta bancario).**
+
+Idea del usuario: que Kredit muestre algo equivalente al extracto que emite
+un banco — un resumen por CICLO de facturacion, no solo un saldo corriente.
+Logica que el usuario describio (y que YA esta implementada correctamente en
+`card_calculator.dart` / `getCardCycleDates`, verificado en esta sesion con
+un credito de prueba Bancolombia: ciclo cierra el 15, fecha limite de pago
+cae 21 dias despues, el 6 del mes siguiente): del dia de corte de un mes al
+dia de corte del mes siguiente es la "ventana de compra"; todo lo comprado
+en esa ventana se factura y su fecha limite de pago es N dias despues del
+cierre de esa ventana.
+
+Lo que falta (no implementado): una VISTA dedicada tipo "extracto" por ciclo
+— hoy la app calcula las fechas correctamente pero no las presenta como un
+documento/resumen de ciclo cerrado (tipo "extracto de Septiembre: compraste
+$X, tu pago vence el Y"). Seria una pantalla o seccion nueva dentro del
+detalle de tarjeta.
+
+**C. Capa de "asistente de gestion" mas fuerte (guias, no solo datos).**
+
+El usuario recordo que el roadmap original de GPT mencionaba que Kredit
+deberia comportarse como un asistente que da PAUTAS de como manejarse con
+los creditos/cupos (no solo mostrar cifras) — confirmar si el usuario va
+bien encaminado, sugerir la siguiente mejor accion, etc. Esto ya existe de
+forma parcial en `lib/domain/recommendations.dart`
+(`buildPrimaryRecommendation`, `buildRiskRecommendations`,
+`buildBestPrepaymentRecommendation`), pero el usuario quiere que esta idea
+se profundice — mas alla de alertas puntuales, hacia algo mas parecido a un
+"coach" persistente. Sin propuesta concreta todavia; queda para discutir
+enfoque (¿una pantalla dedicada? ¿mas reglas en el motor existente? ¿un
+resumen semanal/mensual tipo "como te fue"?).
+
+## "Una entidad, un registro" — 2026-09-27
+
+Nueva conversacion sobre un problema real que el usuario detecto: hoy Kredit
+no distingue entre "ya tengo esta entidad registrada" y "crear un producto
+nuevo" — cada vez que terminas el asistente de "Registrar Nuevo Credito" se
+crea una fila 100% independiente, sin revisar si ya existia algo con esa
+misma entidad.
+
+### Investigacion (confirmada leyendo el codigo real, antes de proponer nada)
+
+- `Credits` table (`lib/data/db/tables.dart`): `lender` es texto libre, sin
+  tabla de entidades, sin ID unico, sin ninguna restriccion que impida
+  duplicar. Confirmado: hoy SI se duplica.
+- `entity_templates.dart` (16 plantillas): ya distingue implicitamente por
+  comentario que Nequi y DaviPlata NO tienen producto de tarjeta rotativa
+  (son cupo/cuotas fijas) — pero no hay un campo formal de "tipo de
+  producto", y la lista de bancos del paso 1 del asistente es identica sin
+  importar si eliges "Cupo" o "Tarjeta de credito".
+- `bank_detector.dart`: Falabella YA esta modelado como dos sub-entidades
+  separadas ("Banco Falabella" = cupo/libre inversion, "CMR Falabella" =
+  tarjeta) — es el precedente exacto de como tratar una entidad que ofrece
+  ambos productos.
+- `wallet_card.dart`: `credit.name` (el nombre que el usuario le pone al
+  crear el credito) nunca se pintaba en ningun lado de la tarjeta visual —
+  dos tarjetas del mismo banco eran indistinguibles a simple vista pese a
+  que el dato ya existia en el modelo.
+
+Diseno completo (2 enfoques con tradeoffs, mockups) publicado como Artifact:
+https://claude.ai/artifact/DUZRw4yULcXtnsapupFK5i
+
+### Decision del usuario
+
+- Aprobo la **Opcion A** (aviso de posible duplicado, no bloqueo — nunca
+  impedir crear un segundo producto de la misma entidad, porque hay casos
+  reales como usar el cupo/tarjeta de otra persona).
+- Pidio ademas, como parte de la misma solucion: el nombre del
+  credito/tarjeta debe verse en la tarjeta visual, en alto contraste (no
+  discreto), para poder diferenciar "mi RappiCard" de "el RappiCard de mi
+  novia" de un vistazo.
+- La clasificacion "cupo vs tarjeta vs ambos" por entidad queda para una
+  siguiente ronda — el usuario pidio investigar entidad por entidad antes
+  de decidir (ver preguntas abiertas mas abajo).
+
+### Implementado en esta sesion
+
+- [x] **Nombre visible en `WalletCard`** (`lib/widgets/wallet_card.dart`):
+  chip de alto contraste en la esquina superior derecha (fondo blanco/negro
+  segun el tono de la tarjeta, invertido respecto al color de tinta) que
+  muestra `credit.name`. Antes ese campo nunca se pintaba en la tarjeta.
+  Verificado en dispositivo fisico con los 2 creditos reales — se ve en
+  ambas tarjetas ("Totto (Bolso y Lonchera...)" y "Varias cosas con mi
+  b...").
+- [x] **Aviso de posible duplicado** (`add_credit_sheet.dart`): nuevo
+  getter `_duplicateActiveCredit` — compara el banco detectado
+  (`detectBank`) del lender que se esta escribiendo contra los creditos
+  ACTIVOS existentes del mismo tipo (prestamo/cupo vs tarjeta). Si
+  coincide, aparece un aviso amarillo (mismo lenguaje visual que el aviso
+  de "Nequi no opera con tarjeta rotativa" ya existente) con el nombre del
+  credito existente y un boton "Abrir el que ya tengo" (navega directo a
+  su detalle). Nunca bloquea `Siguiente` — el usuario puede seguir y crear
+  el segundo de todos modos. Se excluye expresamente 'bank-generic' (el
+  fallback de lenders no reconocidos) para no disparar falsos positivos
+  entre dos entidades "Otro..." distintas.
+  - Verificado en dispositivo fisico: crear un prestamo de prueba
+    (`PRUEBA_BORRAR_rappi2`) eligiendo "RappiCard" mostro correctamente el
+    aviso mencionando el credito real ya activo con esa entidad, con el
+    boton funcionando y sin bloquear el avance al paso 2. Descartado sin
+    guardar al terminar la prueba.
+- `flutter analyze`: 0 issues. Requirio agregar el import de
+  `creditHasUnpaid` (`credit_calculator.dart`) que faltaba — atrapado por
+  el propio `flutter analyze` antes de llegar al dispositivo.
+
+### Preguntas abiertas para la proxima ronda (clasificacion por tipo de producto)
+
+Confirmado por el propio codigo (alta confianza):
+- Nequi, DaviPlata → solo Cupo.
+- RappiCard → solo Tarjeta de credito (confirmado por el usuario esta
+  sesion: opera con corte + fecha limite, no como cupo generico).
+- Banco Falabella (cupo) / CMR Falabella (tarjeta) → ya modeladas como 2
+  entidades separadas, patron a replicar.
+
+Probable "ambos", pendiente de confirmar con el usuario (bancos completos
+que probablemente ofrecen libre inversion + tarjeta, pero no verificado
+oficialmente): Bancolombia, Davivienda, BBVA, Banco de Bogota, Scotiabank
+Colpatria, Banco Popular, Banco AV Villas, Banco de Occidente, Itau.
+
+Genuinamente incierto, el usuario dijo que lo confirmaria:
+- Nu (Nubank): ¿solo tarjeta, o ya tiene tambien cupo/prestamo en Colombia?
+- Lulo Bank: ¿su "Cupo Lulo" y una tarjeta son productos separados?
+- Tarjeta Tuya / Exito: ¿solo tarjeta de marca propia, o tambien cupo?
+
+No implementar la clasificacion todavia — falta la confirmacion del usuario
+sobre estos 3 casos y su visto bueno a tratar los "probable ambos" como
+entidades separadas (replicando el patron Falabella).
+
+## Cupo comercial — 2026-09-27
+
+El usuario hablo con ChatGPT sobre como funcionan productos de credito
+comercial colombianos (Totto/Keypago, Lili Pink-Yoi/CrediPink, Exito
+Tarjeta Tuya/CrediCompras) y trajo esa conversacion (`UltimoChatConGPT.md`)
+para ver que le sirve a Kredit, con la prioridad explicita de que la app
+siga siendo simple para un usuario promedio: nada de jerga tecnica ni
+datos obligatorios que no necesita.
+
+**Investigacion (con fuentes, antes de disenar nada):**
+- Totto/Keypago, Lili Pink/Yoi (CrediPink) y Exito (Tarjeta Tuya /
+  CrediCompras): las tres funcionan igual — el usuario tiene un **cupo**
+  con un limite, y dentro de el hace **compras independientes**, cada una
+  con su propio numero de cuotas. El cupo se libera a medida que se paga.
+- Pronto-pago sin interes: confirmado **solo en Lili Pink** (CrediPink) —
+  si pagas antes de la fecha de pago, no cobran interes y el abono va a
+  capital. **No confirmado** en Totto/Keypago ni en Exito — no se puede
+  generalizar como comportamiento automatico de Kredit.
+
+**Decision de diseno (idea central del usuario, no de GPT):** el usuario
+nunca debe ver ni configurar la entidad financiera real detras de una
+marca (Keypago, Tuya, Credifactory) — solo ve la marca ("tengo un cupo en
+Totto", nunca "tengo un producto de Credifactory via Keypago en Totto").
+Los bancos existentes (Bancolombia, Nu, etc.) no se tocan; "cupo
+comercial" es una capa agrupadora ligera sobre `LoanCredit`, no un tipo de
+`Credit` nuevo — cada compra sigue siendo un prestamo normal.
+
+**Que se construyo** (spec completo en
+`docs/superpowers/specs/2026-09-27-cupo-comercial-design.md`, plan de
+implementacion en `docs/superpowers/plans/2026-09-27-cupo-comercial.md`):
+- `CommercialQuota` (modelo) + tabla `CommercialQuotas` (marca, limite),
+  con 3 columnas nuevas en `Credits`: `quotaId` (FK, `onDelete: restrict`
+  para que borrar un cupo con compras activas falle en vez de perder
+  datos), `interestUnknown` y `earlyPaymentWaivesInterest`.
+- `quotaAvailable()` (`lib/domain/commercial_quota_calculator.dart`):
+  reutiliza 100% la logica existente de saldo pendiente
+  (`getCreditRemainingBalance`/`creditHasUnpaid`), cero calculo financiero
+  nuevo.
+- `commercialQuotasProvider`: CRUD de cupos, mismo patron manual
+  (`AsyncNotifierProvider`) que ya usa `creditsProvider` en este proyecto.
+- Regla: si el usuario llena una tasa real (`interestRate > 0`), el flag
+  `interestUnknown` se limpia automaticamente al guardar — nunca puede
+  quedar "no se la tasa" y "tasa: 2.3%" visibles a la vez.
+- Pantalla Creditos: las compras con `quotaId` se agrupan bajo una
+  `CommercialQuotaCard` (marca + barra de disponible/limite), en vez de
+  aparecer sueltas. Todo cupo se muestra siempre, incluso con 0 compras
+  (recien creado, o huerfano tras borrar su unica compra) — invisibilidad
+  silenciosa de un cupo vacio era un bug real encontrado en pruebas.
+- Wizard "Nuevo Credito": nuevo toggle "Es una compra de un cupo
+  comercial" justo despues de elegir el tipo (preferencia explicita del
+  usuario tras ver el primer orden, que le parecio "enredado" con el
+  campo Banco/Prestamista todavia visible). Al activarlo, el campo
+  Banco/Prestamista se oculta por completo — la marca del cupo ES la
+  entidad, nunca hay un banco aparte.
+- Detalle de compra: si `interestUnknown`, se muestra "Cuenta sin
+  intereses registrados" en vez de una tasa/E.A. (nunca se sintetiza un
+  0% como si fuera un dato real).
+
+**Hallazgos reales encontrados en la prueba en dispositivo** (motorola
+edge 50 fusion, con datos `PRUEBA_BORRAR_*`, eliminados al terminar) que
+no estaban en el plan original y se corrigieron en el momento:
+1. La vista previa (paso 4 del wizard) seguia mostrando "Bancolombia"
+   como entidad aunque el usuario hubiera elegido un cupo comercial —
+   corregido sincronizando el campo de entidad con la marca del cupo en
+   todos los casos (cupo nuevo o existente).
+2. Las compras dentro de una `CommercialQuotaCard` no eran tocables (sin
+   navegacion al detalle) — agregado.
+3. El detalle de credito mostraba "0.0%" en vez de "Cuenta sin intereses
+   registrados" para compras con `interestUnknown` — el spec lo pedia
+   pero no tenia tarea propia en el plan; corregido con su propio test.
+4. No existia forma de eliminar un cupo desde la UI (el manejo de error
+   "borrar cupo con compras activas" presuponia un boton que no estaba
+   implementado) — se agrego boton eliminar + confirmacion + mensaje
+   claro si el cupo aun tiene compras activas.
+5. Un cupo sin compras en la pestana activa dejaba de renderizarse por
+   completo — corregido para que todo cupo se muestre siempre.
+
+**Pendiente / idea registrada, no implementada:** el usuario sugirio que
+los cupos comerciales podrian usar el formato visual "voucher" (como el
+que ya tiene Nequi en `WalletCard`) en vez de una `Card` generica, pero
+con un estilo predeterminado/generico — nunca la marca visual especifica
+de Nequi. No implementado todavia.
+
+## Auditoria de codigo Cloud — 2026-09-25 (madrugada)
+
+Mientras el usuario dormia, pidio explicitamente 3 auditorias de codigo de
+solo lectura (arquitectura/modularizacion, rendimiento/codigo muerto,
+calidad/seguridad de datos), ejecutadas via 3 subagentes en paralelo. Cero
+archivos modificados durante la auditoria. `flutter analyze` (0 issues) y
+`flutter test` (128/128) corridos antes, ambos limpios. Resultado completo,
+con contexto y sugerencia de arreglo por hallazgo, publicado como Artifact:
+https://claude.ai/artifact/Jts8sQnuDMhZbCtSE55ybt — esta seccion es el
+resumen para que quede tambien como bitacora en texto plano.
+
+### Auditoria 1 — Arquitectura y modularizacion
+
+**Alto impacto**
+- [ ] `_calcSuggestedQuota()` en `add_credit_sheet.dart:180` reimplementa a
+  mano la misma formula PMT que ya existe (privada) como `_pmt()` en
+  `loan_calculator.dart:459`. Riesgo: si se corrige un redondeo o cambia la
+  convencion de tasa en un lado, el otro queda desincronizado en silencio.
+  Arreglo: exportar `_pmt` (o un wrapper publico `calculateLoanQuota()`) y
+  que la UI la reuse.
+- [ ] **Reincidencia de un hallazgo YA reportado por GPT y aun sin
+  corregir:** `simulator_sheet.dart:213` y `:600` calculan interes de
+  tarjeta a mano (`card.interestRate / 100 / 365`, asumiendo siempre E.A.)
+  en vez de `dailyRateFrom()`. Ver seccion "Revision GPT / Codex —
+  2026-09-24" mas arriba para el detalle original.
+- [ ] `add_credit_sheet.dart` tiene 1765 lineas, con una sola clase State de
+  ~1250 lineas mezclando formulario + calculo financiero + mapeo banco→color
+  (switch de ~15 casos) + los 4 pasos del wizard. Arreglo sugerido: separar
+  en `add_credit_form_state.dart`, `add_credit_steps.dart`, y mover el mapeo
+  de color a `bank_detector.dart`.
+
+**Impacto medio**
+- [ ] Patron "columna de estadistica con divisor" triplicado:
+  `_SecondaryStat` (dashboard_screen.dart), `_StatColumn` (stats_screen.dart),
+  `_CardStatColumn` (wallet_card.dart:749) — unificar en un
+  `KreditStatColumn` compartido.
+- [ ] Tres sistemas paralelos de "tarjeta con header+icono":
+  `KreditSectionCard` (con caja), `_SectionCard` privado en
+  add_credit_sheet.dart (sin caja), `_statsSectionHeader` (funcion suelta en
+  stats_screen.dart) — decidir una sola API con un flag `boxed: bool`.
+- [ ] Logica financiera real en `lib/utils/credit_display_utils.dart`
+  (`getLoansProgressPercent()` linea 62, `getDueSoonTotal()` linea 105) en
+  vez de `lib/domain/` — viola la regla propia del proyecto y por eso no
+  tiene tests. Mover a `credit_calculator.dart`.
+
+**Bajo impacto**
+- [ ] `lib/screens/credit_detail/schedule_tab.dart` (789 lineas) casi
+  duplica a sus hermanos `summary_tab.dart` (487) y `movements_tab.dart`
+  (412) — revision puntual, no urgente.
+- Providers (`lib/providers/*.dart`): consistentes, sin hallazgos.
+
+### Auditoria 2 — Rendimiento y codigo muerto
+
+**Alto impacto**
+- [ ] `updateHomeWidget(...)` se llama desde `ref.listen` en `main.dart:211`
+  sin `await` ni manejo de errores, y `home_widget_service.dart` no tiene
+  ningun `try/catch` alrededor de las llamadas al plugin nativo — una falla
+  de canal de plataforma queda como excepcion async no capturada. Arreglo:
+  try/catch en `updateHomeWidget` o `.catchError` en los 3 listeners.
+- [ ] `home_widget_service.dart:38-73` hace hasta 6 `await` secuenciales a
+  SharedPreferences por cada sync (independientes entre si) — se dispara en
+  cada cambio de creditos, tema o privacidad. Arreglo: agrupar con
+  `Future.wait([...])`.
+
+**Impacto medio**
+- [ ] 3 funciones confirmadas SIN NINGUN llamador (verificado con grep en
+  todo `lib/` y `test/`):
+  - `getTotalBorrowed()` — `credit_calculator.dart:25` (huerfana desde que
+    se borro `stats_grid.dart` en la sesion de rediseno de Estadisticas de
+    hoy mismo).
+  - `getDueSoonTotal()` — `credit_display_utils.dart:105`.
+  - `buildFinancialHealthLine()` — `recommendations.dart:362`.
+  - Accion: eliminar las 3, o dejar comentario explicito si son API para
+    uso inmediato.
+- [ ] `buildRiskRecommendations(credits)` se ejecuta 3 veces en el mismo
+  build de Estadisticas (`stats_screen.dart:96`, `:101`, `:351` dentro de
+  `_RiskCountPill`) — calcularla una vez y pasarla como parametro.
+- [ ] `buildPrimaryRecommendation` (`recommendations.dart:144`) vuelve a
+  llamar `buildPendingPayments` internamente aunque
+  `dashboard_screen.dart:168-170` ya la habia calculado — doble escaneo de
+  todos los creditos por build. Agregar parametro opcional `payments`.
+- [ ] `dashboard_screen.dart:164` — `ref.watch(themePreferencesProvider)
+  .profileName` reconstruye TODO el dashboard ante cualquier cambio de tema
+  (mas frecuente ahora que ese provider sincroniza el widget de inicio).
+  Usar `.select((p) => p.profileName)`.
+
+**Bajo impacto / notas verificadas sin hallazgo**
+- Sin archivos huerfanos. `ListView` sin `.builder` solo en listas cortas y
+  fijas (correcto); la lista que puede crecer ya usa `.builder`.
+
+### Auditoria 3 — Calidad, consistencia y privacidad de datos
+
+**Alto impacto**
+- [ ] `pubspec.yaml`: `animations: ^2.2.0` y `uuid: ^4.5.1` declaradas sin
+  ninguna referencia en `lib/` (verificado con grep) — quitarlas o
+  confirmar uso futuro inmediato.
+- [ ] `lib/domain/upcoming_payment.dart` (`findNextUpcomingPayment`)
+  duplica lo que `buildPendingPayments()` (recommendations.dart) ya
+  resuelve de forma mas general. Su docstring (linea 7-8) referencia
+  `_buildUpcomingItems` de `dashboard_screen.dart`, funcion que **ya no
+  existe** (comentario huerfano de un refactor anterior). Arreglo:
+  eliminar `findNextUpcomingPayment`, usar
+  `buildPendingPayments(credits).firstOrNull` en `home_widget_service.dart`.
+- [ ] Sin tests: `lib/domain/credit_calculator.dart`
+  (`getCreditRemainingBalance`, `creditHasUnpaid`, `getTotalBorrowed`) y
+  `lib/domain/upcoming_payment.dart`, pese a alimentar dashboard,
+  estadisticas y el widget de inicio. Agregar
+  `test/domain/credit_calculator_test.dart` como minimo.
+
+**Impacto medio**
+- [ ] `getNextDueDate` vive en `credit_display_utils.dart` (utils) pero lo
+  consume tambien `upcoming_payment.dart` (dominio) — una capa de dominio
+  importando de utils es la senal de que esta mal ubicada. Mover a
+  `credit_calculator.dart`.
+- 13 usos de `debugPrint('...failed: $e')` en catches de guardado
+  (export/import, borrar todo, eliminar movimiento/abono, notificaciones).
+  No filtran montos/nombres (sin fuga de privacidad), pero el usuario no se
+  entera si un guardado fallo mas alla de un log invisible — impacto de UX
+  de confiabilidad, no de privacidad.
+
+**Verificado SIN hallazgo (para que quede constancia, no solo lo malo):**
+- Cero `boxShadow` en todo el proyecto — la regla se cumple sin excepcion.
+- `catch (_) {}` en `notification_service.dart:53` y
+  `app_lock_provider.dart:199,215` son fail-safe intencionales
+  (timezone/biometria), no un problema.
+- Colores hex en `wallet_card.dart` son paletas de marca por banco — uso
+  legitimo, no viola la regla de `KreditColors`.
+
+### Como priorizar esto (sugerencia de Cloud, no una decision tomada)
+
+1. El fix de tasas de tarjeta en el simulador sigue siendo lo mas urgente
+  (es el unico hallazgo que es un bug de calculo financiero real afectando
+  al usuario, no solo estructura de codigo).
+2. Los 2 hallazgos de "alto impacto" de rendimiento (manejo de errores del
+  widget + escrituras secuenciales) son faciles de corregir y bajan riesgo
+  real de crashes silenciosos.
+3. Los 3 hallazgos de codigo muerto se pueden borrar en un commit chico sin
+  riesgo.
+4. El refactor de `add_credit_sheet.dart` (separar en 3 archivos) es el mas
+  grande de todos — dejar para una sesion dedicada, no mezclarlo con otros
+  cambios.
+
+### Testeo en dispositivo fisico — 2026-09-25 (manana, ventana de 10 min)
+
+El usuario dio acceso al dispositivo por 10 minutos antes de una reunion.
+Durante esta ventana se encontro y corrigio un BUG REAL DE BUILD:
+
+- [x] **Corregido:** `android/app/src/main/res/xml/kredit_widget_info.xml:9`
+  — `android:description="Deuda total, progreso y proxima cuota"` como texto
+  literal hacia fallar el build de Android por completo
+  (`AAPT: error: ... incompatible with attribute description (attr)
+  reference` — ese atributo exige una referencia `@string/`, no un literal).
+  Se creo `android/app/src/main/res/values/strings.xml` con
+  `widget_description` y se referencio como `@string/widget_description`.
+  Build reintentado, exitoso.
+- Contexto: el usuario no habia podido correr `flutter run` manualmente
+  desde el cambio del widget de inicio; todas las verificaciones visuales
+  anteriores de esa sesion (incluida la que reporto "Estadisticas sigue
+  mostrando 6 cuadros") corrieron sobre un APK instalado VIEJO, sin los
+  ultimos cambios. Cloud corrio `flutter run -d ZY22LBQ8XS` el mismo
+  (autorizado explicitamente por el usuario, "no puedo hacerlo manualmente
+  por la reunion"), encontro el error de build de arriba, lo corrigio, y
+  volvio a correr — exitoso.
+
+**Verificado funcionando en dispositivo real (build nuevo):**
+- [x] Asistente "Nuevo Credito" de punta a punta, los 4 pasos: paso 1
+  (iconos en avatar circular, sin "Paso X de 4"), paso 2 (hero "VALOR DE LA
+  CUOTA" reaccionando en vivo al escribir monto/cuotas, sin duplicar "Monto
+  y cuotas"), paso 3 ("¿Ya venias pagando?" siempre visible, sin
+  colapsable, sin "Detalles adicionales"), paso 4 ("¡Ya casi esta!" sin
+  "Confirmacion" duplicada, grid de 2 columnas con divisor interno,
+  alineado a la izquierda). Probado con credito de prueba
+  `PRUEBA_BORRAR_test1`, registrado y luego eliminado sin dejar rastro.
+- [x] Estadisticas: confirmado que ahora muestra 3 stats (Creditos activos
+  / Cupo disponible / Total pagado), no 6 — la version anterior que parecia
+  mostrar el bug era el APK viejo, no un error de codigo.
+- [x] Dashboard: confirmado que la fila de accesos rapidos ya no aparece
+  (se habia revertido a pedido del usuario en la sesion anterior); "¿Que
+  pasa si...?" sigue presente al final.
+
+**NO alcanzado a verificar por limite de tiempo (queda para la proxima
+sesion con el usuario presente):**
+- [ ] Animacion de slide completo entre pasos del asistente (420ms) — se
+  ve el cambio de contenido correctamente, pero no se confirmo visualmente
+  el movimiento de la animacion en si.
+- [ ] Fade de apertura/cierre de "Nuevo Credito" (340ms).
+- [ ] Widget de pantalla de inicio — requiere agregarlo manualmente al home
+  screen del telefono, no se hizo en esta ventana.
+- [ ] Rediseno de `NotificationSettingsTile` en Cuenta y en la Bienvenida.
+
+Reporte completo (con este mismo contenido) tambien publicado como seccion
+nueva en el Artifact de auditoria:
+https://claude.ai/artifact/Jts8sQnuDMhZbCtSE55ybt
+
+### Bug real encontrado tras perder conexion con el dispositivo — corregido
+
+Despues de la ventana de 10 minutos, `flutter run` perdio la conexion con
+el telefono ("Lost connection to device" — no fue un crash de la app, la
+sesion de debug se corto, probablemente por bloqueo de pantalla/USB durante
+la reunion). Revisando el log de esa corrida aparecio una excepcion real de
+Flutter, no fatal pero real:
+
+- [x] **Corregido:** `ListTile background color or ink splashes may be
+  invisible` — dos ListTile (el "¿Que pasa si...?" en
+  `dashboard_screen.dart` y "Como funciona Kredit" en `account_screen.dart`)
+  viven dentro de `KreditSectionCard`, que pinta su fondo con un
+  `DecoratedBox` en vez de un `Material`. El ink splash del `ListTile` pinta
+  sobre el `Material` ancestro mas cercano (mucho mas arriba en el arbol,
+  detras de esa caja), asi que el splash del tap quedaba invisible. Arreglo
+  aplicado en ambos: envolver el `ListTile` en un `Material(color:
+  Colors.transparent, child: ...)` justo antes de el, para que el splash
+  pinte encima del `DecoratedBox` como corresponde. `flutter analyze` (0
+  issues) y `flutter test` (128/128) verificados despues del fix.
+- Nota para GPT: si aparece este mismo warning en OTRO ListTile dentro de
+  un `KreditSectionCard` en el futuro (o en cualquier widget que use
+  `DecoratedBox`/`Container` con color en vez de `Material`), es el mismo
+  patron — envolver ese `ListTile` (o el widget con `InkWell`/splash) en un
+  `Material(color: Colors.transparent, ...)`.
 
 ## Brief operativo para Cloud
 
