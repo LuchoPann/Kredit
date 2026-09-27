@@ -1182,6 +1182,14 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         interestRate: interestRate,
         interestRateType: _interestRateType,
         installments: installments,
+        // Sin esto, la vista previa nunca mostraba el voucher genérico
+        // para una compra de cupo comercial — quotaId solo se resolvía
+        // realmente en _save(). Cualquier valor no nulo basta aquí: el
+        // preview solo necesita saber que ES una compra de cupo, el id
+        // real (nuevo o existente) se resuelve al guardar.
+        quotaId: _isCommercialQuotaPurchase ? 'preview-quota' : null,
+        interestUnknown: _interestUnknown,
+        earlyPaymentWaivesInterest: _earlyPaymentWaivesInterest,
       );
     } catch (_) {
       return null;

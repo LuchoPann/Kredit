@@ -407,6 +407,14 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                             // and empty unless explicitly passed).
                             installments: loan.installments,
                             abonos: loan.abonos,
+                            // Sin esto, editar una compra de cupo comercial
+                            // mostraba la vista previa como tarjeta plastica
+                            // en vez de voucher (quotaId/interestUnknown se
+                            // perdian al reconstruir el LoanCredit aqui).
+                            quotaId: loan.quotaId,
+                            interestUnknown: loan.interestUnknown,
+                            earlyPaymentWaivesInterest:
+                                loan.earlyPaymentWaivesInterest,
                           )
                         : CardCredit(
                             id: widget.credit.id,
