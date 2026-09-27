@@ -72,6 +72,21 @@ class LoanCredit extends Credit {
   /// again.
   bool scheduleManuallyAdjusted;
 
+  /// Links this purchase to its parent CommercialQuota, or null if this is
+  /// a normal bank loan unrelated to any commercial quota (Totto, Lili
+  /// Pink, Éxito CrediCompras, etc.).
+  String? quotaId;
+
+  /// True when the user chose not to provide/know this purchase's interest
+  /// rate — Kredit must only show a "sin intereses registrados" notice,
+  /// never synthesize or display a fake rate.
+  bool interestUnknown;
+
+  /// True when this purchase's brand waives interest if paid before the
+  /// due date (e.g. Lili Pink's CrediPink pronto-pago benefit). Always a
+  /// manual per-purchase flag, never assumed by default.
+  bool earlyPaymentWaivesInterest;
+
   LoanCredit({
     required super.id,
     required super.name,
@@ -90,6 +105,9 @@ class LoanCredit extends Credit {
     List<Installment>? installments,
     List<LoanAbono>? abonos,
     this.scheduleManuallyAdjusted = false,
+    this.quotaId,
+    this.interestUnknown = false,
+    this.earlyPaymentWaivesInterest = false,
   })  : installments = installments ?? [],
         abonos = abonos ?? [],
         super(type: CreditType.loan);
@@ -113,6 +131,9 @@ class LoanCredit extends Credit {
         'installments': installments.map((i) => i.toJson()).toList(),
         'abonos': abonos.map((a) => a.toJson()).toList(),
         'scheduleManuallyAdjusted': scheduleManuallyAdjusted,
+        'quotaId': quotaId,
+        'interestUnknown': interestUnknown,
+        'earlyPaymentWaivesInterest': earlyPaymentWaivesInterest,
       };
 
   factory LoanCredit.fromJson(Map<String, dynamic> json) => LoanCredit(
@@ -139,6 +160,10 @@ class LoanCredit extends Credit {
             .toList(),
         scheduleManuallyAdjusted:
             json['scheduleManuallyAdjusted'] as bool? ?? false,
+        quotaId: json['quotaId'] as String?,
+        interestUnknown: json['interestUnknown'] as bool? ?? false,
+        earlyPaymentWaivesInterest:
+            json['earlyPaymentWaivesInterest'] as bool? ?? false,
       );
 }
 
