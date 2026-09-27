@@ -78,16 +78,26 @@ class CreditsNotifier extends AsyncNotifier<List<Credit>> {
     return credits;
   }
 
+  /// A purchase can't stay marked "no sé la tasa" once a real rate is
+  /// entered — this must never leave both signals visible at once.
+  void _clearInterestUnknownIfRateKnown(Credit credit) {
+    if (credit is LoanCredit && credit.interestRate > 0) {
+      credit.interestUnknown = false;
+    }
+  }
+
   Future<void> _reload() async {
     state = AsyncData(await _db.loadAllCredits());
   }
 
   Future<void> addCredit(Credit credit) async {
+    _clearInterestUnknownIfRateKnown(credit);
     await _db.upsertCredit(credit);
     await _reload();
   }
 
   Future<void> updateCredit(Credit credit) async {
+    _clearInterestUnknownIfRateKnown(credit);
     await _db.upsertCredit(credit);
     await _reload();
   }
