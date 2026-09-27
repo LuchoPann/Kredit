@@ -215,11 +215,11 @@ class _EmvChipLinesPainter extends CustomPainter {
 /// paper, not a plastic card) with a tall OVAL notch (noticeably taller than
 /// wide — curved top-to-bottom, not side-to-side) cut into the middle of the
 /// left and right edges. Takes an explicit [rect] rather than always the
-/// full bounds so [_VoucherBorderPainter] can trace an INSET copy (border
-/// drawn slightly inside the true edge) while [_VoucherClipper] clips the
+/// full bounds so [VoucherBorderPainter] can trace an INSET copy (border
+/// drawn slightly inside the true edge) while [VoucherClipper] clips the
 /// card face to the full-size version — both built by this one function so
 /// their curvature/notch shape never drifts apart.
-Path _voucherOutline(
+Path voucherOutline(
   Rect rect, {
   double radius = 0,
   double notchWidth = 14,
@@ -241,39 +241,39 @@ Path _voucherOutline(
   return Path.combine(PathOperation.difference, base, notches);
 }
 
-/// Clips [WalletCard]'s voucher variant to [_voucherOutline] (full bounds) —
+/// Clips [WalletCard]'s voucher variant to [voucherOutline] (full bounds) —
 /// the side notches only read as "cut into the shape" if the card face
 /// itself (its gradient, glints, etc.) is actually clipped there, not just
 /// outlined.
-class _VoucherClipper extends CustomClipper<Path> {
-  const _VoucherClipper();
+class VoucherClipper extends CustomClipper<Path> {
+  const VoucherClipper();
 
   @override
-  Path getClip(Size size) => _voucherOutline(Offset.zero & size);
+  Path getClip(Size size) => voucherOutline(Offset.zero & size);
 
   // Always true: the outline is cheap to recompute, and returning false
   // let a stale cached clip shape survive a hot reload that changed
-  // _voucherOutline's geometry (radius/notch size) — the card face would
+  // voucherOutline's geometry (radius/notch size) — the card face would
   // keep the OLD silhouette while the dashed border painter (repainted
   // unconditionally on reassemble) already showed the new one.
   @override
   bool shouldReclip(covariant CustomClipper<Path> oldClipper) => true;
 }
 
-/// Dashed stroke traced along [_voucherOutline], INSET a few pixels from the
+/// Dashed stroke traced along [voucherOutline], INSET a few pixels from the
 /// true edge (rather than sitting exactly on it) — reads as a stitched
 /// comprobante line just inside the paper's edge rather than the edge
 /// itself. Walks the path via [Path.computeMetrics] so the dash pattern
 /// follows the oval notches correctly instead of just the bounding rect.
-class _VoucherBorderPainter extends CustomPainter {
+class VoucherBorderPainter extends CustomPainter {
   final Color color;
-  const _VoucherBorderPainter({required this.color});
+  const VoucherBorderPainter({required this.color});
 
   static const _inset = 6.0;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final path = _voucherOutline((Offset.zero & size).deflate(_inset));
+    final path = voucherOutline((Offset.zero & size).deflate(_inset));
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
@@ -294,7 +294,7 @@ class _VoucherBorderPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _VoucherBorderPainter oldDelegate) =>
+  bool shouldRepaint(covariant VoucherBorderPainter oldDelegate) =>
       color != oldDelegate.color;
 }
 
@@ -337,10 +337,10 @@ Path _roundedPolygon(List<Offset> points, List<double> radii) {
 /// actual visual identity instead of a generic flat rectangle. Confined to
 /// the top-left area behind the bank logo chip; the rest of the voucher
 /// stays plain white paper.
-class _VoucherWaveCornerPainter extends CustomPainter {
+class VoucherWaveCornerPainter extends CustomPainter {
   final Color purple;
   final Color pink;
-  const _VoucherWaveCornerPainter({required this.purple, required this.pink});
+  const VoucherWaveCornerPainter({required this.purple, required this.pink});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -381,7 +381,7 @@ class _VoucherWaveCornerPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _VoucherWaveCornerPainter oldDelegate) =>
+  bool shouldRepaint(covariant VoucherWaveCornerPainter oldDelegate) =>
       purple != oldDelegate.purple || pink != oldDelegate.pink;
 }
 
@@ -426,11 +426,16 @@ class WalletCard extends StatelessWidget {
     // is a gradient, not a single flat color.
     final avgLuminance =
         gradient.fold<double>(0, (sum, c) => sum + c.computeLuminance()) / gradient.length;
-    // Voucher variant is white paper with black ink unconditionally (styled
-    // after Nequi's own app), regardless of the bank's brand gradient
-    // luminance — only a real plastic card derives ink color from its face.
-    final isLightFace = isVoucher || avgLuminance > 0.5;
-    final ink = isLightFace ? Colors.black : Colors.white;
+    // A cupo comercial purchase's voucher is a flat fill of the app's own
+    // accent color (whatever the user picked in Ajustes) — never Nequi's
+    // wave-corner artwork recolored, and never assumed white. A real bank
+    // cash-advance voucher (Nequi/DaviPlata) keeps its own white-paper +
+    // brand-wave look untouched; anything else is a normal plastic card.
+    final accent = Theme.of(context).colorScheme.primary;
+    final isLightFace = isBankVoucher || (!isVoucher && avgLuminance > 0.5);
+    final ink = isQuotaVoucher
+        ? legibleForegroundOn(accent)
+        : (isLightFace ? Colors.black : Colors.white);
     final inkStrong = ink;
     final inkMid = ink.withValues(alpha: isLightFace ? 0.72 : 0.78);
     final inkFaint = ink.withValues(alpha: isLightFace ? 0.55 : 0.6);
@@ -444,12 +449,12 @@ class WalletCard extends StatelessWidget {
       // data that used to live in a separate CreditStatsRow underneath.
       aspectRatio: 1.9,
       child: ClipPath(
-        // Voucher variant clips to the notched _voucherOutline (a "torn
+        // Voucher variant clips to the notched voucherOutline (a "torn
         // ticket stub" shape); a real card keeps a plain, more-rounded rect
         // — CustomClipper defaults to a full-rect path when not overridden,
         // so a plain ClipRect-equivalent isn't needed here.
         clipper: isVoucher
-            ? const _VoucherClipper()
+            ? const VoucherClipper()
             : ShapeBorderClipper(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
         child: Stack(
           children: [
@@ -462,7 +467,9 @@ class WalletCard extends StatelessWidget {
             Positioned.fill(
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: isVoucher ? Colors.white : null,
+                  color: isQuotaVoucher
+                      ? accent
+                      : (isBankVoucher ? Colors.white : null),
                   gradient: isVoucher
                       ? null
                       : LinearGradient(
@@ -474,34 +481,18 @@ class WalletCard extends StatelessWidget {
                 ),
               ),
             ),
-            // Voucher variant: Nequi-styled wave cut in the top-left corner
-            // (dark purple + magenta sliver, echoing Nequi's own app) behind
-            // where the bank logo chip sits — the rest of the voucher stays
-            // white paper.
-            if (isVoucher)
-              Positioned.fill(
+            // Real bank cash-advance voucher only (Nequi/DaviPlata): the
+            // brand's own wave-corner cut, echoing that bank's own app —
+            // never used for a cupo comercial purchase, which is a flat
+            // accent-colored fill instead (see the DecoratedBox above).
+            if (isBankVoucher)
+              const Positioned.fill(
                 child: IgnorePointer(
                   child: CustomPaint(
-                    painter: isBankVoucher
-                        ? const _VoucherWaveCornerPainter(
-                            // Real Nequi brand tones, not the generic
-                            // dark-navy gradient this bank uses elsewhere as
-                            // a card face — deep violet + Nequi's actual
-                            // magenta (#DA0081, already used as its
-                            // auto-picked accent color elsewhere in the
-                            // app).
-                            purple: Color(0xFF2A0944),
-                            pink: Color(0xFFDA0081),
-                          )
-                        : const _VoucherWaveCornerPainter(
-                            // Generic, brand-neutral tones for a commercial
-                            // quota purchase (Totto, Lili Pink, Éxito...) —
-                            // deliberately NOT any specific brand's colors,
-                            // since Kredit never assumes what a cupo's real
-                            // visual identity looks like.
-                            purple: Color(0xFF3A3A42),
-                            pink: Color(0xFF9C9CA6),
-                          ),
+                    painter: VoucherWaveCornerPainter(
+                      purple: Color(0xFF2A0944),
+                      pink: Color(0xFFDA0081),
+                    ),
                   ),
                 ),
               ),
@@ -569,7 +560,7 @@ class WalletCard extends StatelessWidget {
               Positioned.fill(
                 child: IgnorePointer(
                   child: CustomPaint(
-                    painter: _VoucherBorderPainter(color: ink.withValues(alpha: 0.35)),
+                    painter: VoucherBorderPainter(color: ink.withValues(alpha: 0.35)),
                   ),
                 ),
               ),

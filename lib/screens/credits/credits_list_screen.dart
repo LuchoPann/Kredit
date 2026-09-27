@@ -631,11 +631,22 @@ class _FilteredList extends ConsumerWidget {
                 quota: quota,
                 purchases: purchasesByQuota[quota.id] ?? const [],
                 allPurchases: allPurchasesByQuota[quota.id] ?? const [],
-                onPurchaseTap: (purchase) => Navigator.of(context).pushNamed(
-                  '/credit-detail',
-                  arguments: purchase.id,
-                ),
-                onDeleteQuota: () => _confirmDeleteQuota(context, ref, quota),
+                onTap: () {
+                  final all = allPurchasesByQuota[quota.id] ?? const [];
+                  if (all.isEmpty) {
+                    // Nada que abrir todavía — un cupo vacío (recién
+                    // creado, o huérfano tras borrar su única compra)
+                    // sigue necesitando una forma de eliminarse.
+                    _confirmDeleteQuota(context, ref, quota);
+                    return;
+                  }
+                  final mostRecent = [...all]
+                    ..sort((a, b) => b.id.compareTo(a.id));
+                  Navigator.of(context).pushNamed(
+                    '/credit-detail',
+                    arguments: mostRecent.first.id,
+                  );
+                },
               ),
             ),
           );

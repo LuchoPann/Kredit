@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/db/database.dart' show QuotaHasActivePurchasesException;
+import '../../data/models/commercial_quota.dart';
 import '../../data/models/credit.dart';
+import '../../providers/commercial_quotas_provider.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/credit_detail/movements_tab.dart';
+import '../../widgets/credit_detail/quota_group_tabs.dart';
 import '../../widgets/credit_detail/schedule_tab.dart';
 import '../../widgets/credit_detail/summary_tab.dart';
 import '../../widgets/demo_badge.dart';
@@ -82,6 +86,55 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
     }
   }
 
+  Future<void> _confirmDeleteQuota(
+      BuildContext context, WidgetRef ref, CommercialQuota quota) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('¿Eliminar "${quota.brand}"?'),
+        content: const Text('Esta acción no se puede deshacer.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await ref.read(commercialQuotasProvider.notifier).delete(quota.id);
+      if (context.mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('"${quota.brand}" eliminado')),
+        );
+      }
+    } on QuotaHasActivePurchasesException catch (e) {
+      if (context.mounted) {
+        final n = e.activeCount;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(n == 1
+              ? 'Tiene 1 compra activa registrada en este cupo — ciérrala o muévela primero.'
+              : 'Tiene $n compras activas registradas en este cupo — ciérralas o muévelas primero.'),
+        ));
+      }
+    }
+  }
+
+  /// Extracts the millisecond timestamp `_save()` encodes into every
+  /// credit's id (`credit_<millis>`), for sorting purchases most-recent
+  /// first. Falls back to 0 for ids that don't match (seeded demo credits).
+  int _idTimestamp(String id) {
+    final match = RegExp(r'credit_(\d+)').firstMatch(id);
+    return match == null ? 0 : int.parse(match.group(1)!);
+  }
+
   @override
   Widget build(BuildContext context) {
     final creditsAsync = ref.watch(creditsProvider);
@@ -101,17 +154,54 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
         }
         final isLoan = credit is LoanCredit;
 
+        // A LoanCredit tagged with a CommercialQuota (Totto, Lili Pink,
+        // Éxito CrediCompras...) opens grouped with every other purchase
+        // under that same cupo — the user came in through one purchase,
+        // but sees the whole cupo from here, entering purchase first.
+        final quotaId = credit is LoanCredit ? credit.quotaId : null;
+        List<LoanCredit>? groupPurchases;
+        CommercialQuota? quota;
+        if (quotaId != null) {
+          groupPurchases = credits
+              .whereType<LoanCredit>()
+              .where((c) => c.quotaId == quotaId)
+              .toList()
+            ..sort((a, b) => _idTimestamp(b.id).compareTo(_idTimestamp(a.id)));
+          groupPurchases
+              .removeWhere((c) => c.id == credit.id);
+          groupPurchases.insert(0, credit as LoanCredit);
+          final quotas = ref.watch(commercialQuotasProvider).valueOrNull ?? const [];
+          for (final q in quotas) {
+            if (q.id == quotaId) {
+              quota = q;
+              break;
+            }
+          }
+        }
+        final isGrouped = groupPurchases != null;
+
         return Scaffold(
           appBar: AppBar(
             title: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Flexible(
-                  child: Text(credit.name, overflow: TextOverflow.ellipsis),
+                  child: Text(
+                    isGrouped ? (quota?.brand ?? credit.lender) : credit.name,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 if (isDemoCredit(credit.id)) const DemoBadge(),
               ],
             ),
+            actions: [
+              if (isGrouped && quota != null)
+                IconButton(
+                  onPressed: () => _confirmDeleteQuota(context, ref, quota!),
+                  icon: const Icon(Icons.delete_outline),
+                  tooltip: 'Eliminar cupo',
+                ),
+            ],
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(kToolbarHeight + 34),
               child: Column(
@@ -132,7 +222,15 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
               ),
             ),
           ),
-          body: TabBarView(
+          body: isGrouped
+              ? TabBarView(
+                  controller: _tabController,
+                  children: [
+                    QuotaGroupSummaryTab(quota: quota, purchases: groupPurchases),
+                    QuotaGroupScheduleTab(purchases: groupPurchases),
+                  ],
+                )
+              : TabBarView(
             controller: _tabController,
             children: [
               SummaryTab(credit: credit),
@@ -142,32 +240,37 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
                 MovementsTab(credit: credit as CardCredit),
             ],
           ),
-          bottomNavigationBar: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => EditCreditSheet.show(context, credit),
-                    icon: const Icon(Icons.edit_outlined),
-                    label: const Text('Editar Crédito'),
+          // Cuando está agrupado, editar/eliminar viven junto a cada
+          // voucher dentro del Resumen (ambiguo cuál compra afectaría un
+          // botón global aquí) — "Eliminar cupo" ya está en el AppBar.
+          bottomNavigationBar: isGrouped
+              ? null
+              : Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => EditCreditSheet.show(context, credit),
+                          icon: const Icon(Icons.edit_outlined),
+                          label: const Text('Editar Crédito'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.danger,
+                            side: const BorderSide(color: AppColors.danger),
+                          ),
+                          onPressed: () => _confirmDelete(context, credit),
+                          icon: const Icon(Icons.delete_outline),
+                          label: const Text('Eliminar'),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.danger,
-                      side: const BorderSide(color: AppColors.danger),
-                    ),
-                    onPressed: () => _confirmDelete(context, credit),
-                    icon: const Icon(Icons.delete_outline),
-                    label: const Text('Eliminar'),
-                  ),
-                ),
-              ],
-            ),
-          ),
         );
       },
     );
