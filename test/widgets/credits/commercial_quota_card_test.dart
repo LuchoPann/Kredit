@@ -84,11 +84,11 @@ void main() {
       home: Scaffold(body: CommercialQuotaCard(quota: quota, purchases: [purchase])),
     ));
 
-    await tester.tap(find.text('Ver 1 compra'));
+    await tester.tap(find.text('COMPRAS DE ESTE CUPO'));
     await tester.pump();
     expect(find.text('Compra tenis'), findsOneWidget);
 
-    await tester.tap(find.text('Ocultar compras'));
+    await tester.tap(find.text('COMPRAS DE ESTE CUPO'));
     await tester.pump();
     expect(find.text('Compra tenis'), findsNothing);
   });

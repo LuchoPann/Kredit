@@ -60,58 +60,89 @@ class _CommercialQuotaCardState extends State<CommercialQuotaCard> {
             count: count,
           ),
         ),
+        // Misma caja gris de bordes inferiores curvos que "PROGRESO PAGADO"
+        // bajo un WalletCard normal (_CreditComparisonStrip) — nunca un
+        // chevron suelto flotando bajo el voucher.
         InkWell(
           onTap: () => setState(() => _expanded = !_expanded),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(14, 0, 14, 0),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 11),
+            decoration: BoxDecoration(
+              color: kredit.bgCard,
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(KreditRadius.card),
+              ),
+              border: Border(
+                left: BorderSide(color: kredit.borderCard.withValues(alpha: 0.78)),
+                right: BorderSide(color: kredit.borderCard.withValues(alpha: 0.78)),
+                bottom: BorderSide(color: kredit.borderCard.withValues(alpha: 0.78)),
+              ),
+            ),
+            child: Column(
               children: [
-                Text(
-                  _expanded ? 'Ocultar compras' : 'Ver $count compra${count == 1 ? '' : 's'}',
-                  style: TextStyle(
-                    fontSize: KreditTextSize.caption,
-                    fontWeight: FontWeight.w700,
-                    color: kredit.textSecondary,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'COMPRAS DE ESTE CUPO',
+                        style: TextStyle(
+                          fontSize: KreditTextSize.caption,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.5,
+                          color: kredit.textTertiary,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      _expanded ? Icons.expand_less : Icons.expand_more,
+                      size: KreditIconSize.small,
+                      color: kredit.textSecondary,
+                    ),
+                  ],
+                ),
+                if (_expanded) ...[
+                  const SizedBox(height: 8),
+                  for (final purchase in widget.purchases)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              purchase.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: KreditTextSize.caption,
+                                color: kredit.textPrimary,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            formatCOP(getCreditRemainingBalance(purchase)),
+                            style: TextStyle(
+                              fontSize: KreditTextSize.caption,
+                              fontWeight: FontWeight.w800,
+                              color: kredit.textPrimary,
+                              fontFeatures: const [FontFeature.tabularFigures()],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ] else
+                  Text(
+                    '$count compra${count == 1 ? '' : 's'}',
+                    style: TextStyle(
+                      fontSize: KreditTextSize.caption,
+                      color: kredit.textSecondary,
+                    ),
                   ),
-                ),
-                Icon(
-                  _expanded ? Icons.expand_less : Icons.expand_more,
-                  size: KreditIconSize.small,
-                  color: kredit.textSecondary,
-                ),
               ],
             ),
           ),
         ),
-        if (_expanded)
-          for (final purchase in widget.purchases)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      purchase.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: KreditTextSize.body,
-                        color: kredit.textPrimary,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    formatCOP(getCreditRemainingBalance(purchase)),
-                    style: TextStyle(
-                      fontSize: KreditTextSize.body,
-                      fontWeight: FontWeight.w700,
-                      color: kredit.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
       ],
     );
   }

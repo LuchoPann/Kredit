@@ -27,8 +27,19 @@ import 'stat_box.dart';
 /// living in their own tab, since the app only has Resumen + Cronograma now.
 class SummaryTab extends ConsumerWidget {
   final Credit credit;
+  // Cuando un credito de cupo comercial agrupa varias compras, el detalle
+  // apila un SummaryTab completo por compra dentro de un ListView externo
+  // — este debe encogerse a su contenido (nunca competir por el scroll)
+  // en vez de asumir que es el unico widget de la pantalla.
+  final bool shrinkWrap;
+  final EdgeInsets? padding;
 
-  const SummaryTab({super.key, required this.credit});
+  const SummaryTab({
+    super.key,
+    required this.credit,
+    this.shrinkWrap = false,
+    this.padding,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -59,7 +70,9 @@ class SummaryTab extends ConsumerWidget {
     final kredit = Theme.of(context).extension<KreditColors>()!;
 
     return ListView(
-      padding: const EdgeInsets.all(KreditSpacing.card),
+      padding: padding ?? const EdgeInsets.all(KreditSpacing.card),
+      shrinkWrap: shrinkWrap,
+      physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
       children: [
         WalletCard(credit: credit),
         // El monto pendiente ya se muestra como "DEUDA RESTANTE" dentro del
@@ -196,7 +209,10 @@ class _LoanProgress extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           '${formatCOP(paidAmount)} pagado de ${formatCOP(totalAmount)}',
-          style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+          style: TextStyle(
+            fontSize: KreditTextSize.caption,
+            color: kredit.textTertiary,
+          ),
         ),
       ],
     );
@@ -296,7 +312,10 @@ class _NextInstallmentCard extends ConsumerWidget {
             ),
             onPressed: () =>
                 openSimulatorSheet(context, initialCreditId: credit.id),
-            child: const Icon(Icons.calculate_outlined, size: KreditIconSize.small),
+            child: const Icon(
+              Icons.calculate_outlined,
+              size: KreditIconSize.small,
+            ),
           ),
         ),
         const SizedBox(width: 10),
@@ -361,7 +380,10 @@ class _CardUtilization extends StatelessWidget {
             used > 0
                 ? '${formatCOP(used)} en saldo · límite no definido'
                 : 'Límite no definido para esta tarjeta.',
-            style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+            style: TextStyle(
+              fontSize: KreditTextSize.caption,
+              color: kredit.textTertiary,
+            ),
           ),
         ],
       );
@@ -412,7 +434,10 @@ class _CardUtilization extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           '${formatCOP(used)} usado de ${formatCOP(limit)} · ${formatCOP(available)} disponible',
-          style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+          style: TextStyle(
+            fontSize: KreditTextSize.caption,
+            color: kredit.textTertiary,
+          ),
         ),
       ],
     );

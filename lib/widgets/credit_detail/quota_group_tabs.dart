@@ -4,21 +4,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/commercial_quota.dart';
 import '../../data/models/credit.dart';
 import '../../domain/commercial_quota_calculator.dart';
-import '../../domain/credit_calculator.dart';
-import '../../domain/date_utils.dart';
 import '../../providers/credits_provider.dart';
 import '../../screens/credit_detail/edit_credit_sheet.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/credit_display_utils.dart';
-import '../wallet_card.dart';
+import 'schedule_tab.dart';
 import 'stat_box.dart';
+import 'summary_tab.dart';
 
-/// Resumen tab for a credit that belongs to a CommercialQuota: instead of
-/// showing just the one purchase the user tapped into, it shows every
-/// purchase ("voucher") registered under that same cupo — the entering
-/// purchase first, the rest ordered most-recent-first — so the user
-/// understands the whole cupo from one screen instead of hunting through
-/// the credits list purchase by purchase.
+/// Resumen tab for a credit that belongs to a CommercialQuota: the exact
+/// same [SummaryTab] the app already uses for a single credit — same
+/// WalletCard, same stats, same progreso de amortización, same "próxima
+/// cuota" card — stacked once per purchase in the cupo (entering purchase
+/// first, the rest ordered most-recent-first), never a custom layout. A
+/// compact cupo-level header (disponible/límite, same [StatBox] used
+/// everywhere else) sits above the list, and each purchase gets its own
+/// Editar/Eliminar row — the single-credit bottom bar doesn't apply once
+/// there's more than one credit on screen.
 class QuotaGroupSummaryTab extends ConsumerWidget {
   final CommercialQuota? quota;
   final List<LoanCredit> purchases;
@@ -68,130 +70,125 @@ class QuotaGroupSummaryTab extends ConsumerWidget {
     final kredit = Theme.of(context).extension<KreditColors>()!;
     final q = quota;
 
-    return ListView(
-      padding: const EdgeInsets.all(KreditSpacing.card),
-      children: [
-        if (q != null) ...[
-          Row(
-            children: [
-              Expanded(
-                child: StatBox(
-                  label: 'Disponible',
-                  value: formatCOP(quotaAvailable(q, purchases)),
-                  icon: Icons.account_balance_wallet_outlined,
-                  emphasized: true,
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 16),
+      itemCount: purchases.length + (q != null ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (q != null && index == 0) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(
+                KreditSpacing.card, KreditSpacing.card, KreditSpacing.card, 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: StatBox(
+                    label: 'Disponible',
+                    value: formatCOP(quotaAvailable(q, purchases)),
+                    icon: Icons.account_balance_wallet_outlined,
+                    emphasized: true,
+                  ),
                 ),
-              ),
-              Container(
-                width: 1,
-                height: 34,
-                margin: const EdgeInsets.symmetric(horizontal: 18),
-                color: kredit.borderCard,
-              ),
-              Expanded(
-                child: StatBox(
-                  label: 'Límite',
-                  value: formatCOP(q.limit),
-                  icon: Icons.credit_score_outlined,
+                Container(
+                  width: 1,
+                  height: 34,
+                  margin: const EdgeInsets.symmetric(horizontal: 18),
+                  color: kredit.borderCard,
+                ),
+                Expanded(
+                  child: StatBox(
+                    label: 'Límite',
+                    value: formatCOP(q.limit),
+                    icon: Icons.credit_score_outlined,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        final purchase = purchases[index - (q != null ? 1 : 0)];
+        final isFirstPurchase = purchase == purchases.first;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (!isFirstPurchase || q != null) ...[
+              Divider(height: 1, color: kredit.borderCard),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+                child: Text(
+                  purchase.name.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: KreditTextSize.caption,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
+                    color: kredit.textTertiary,
+                  ),
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 18),
-          Divider(height: 1, color: kredit.borderCard),
-          const SizedBox(height: 20),
-        ],
-        Text(
-          '${purchases.length} COMPRA${purchases.length == 1 ? '' : 'S'}',
-          style: TextStyle(
-            fontSize: KreditTextSize.caption,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.8,
-            color: kredit.textTertiary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        for (final purchase in purchases) ...[
-          WalletCard(credit: purchase),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: StatBox(
-                  label: 'Deuda restante',
-                  value: formatCOP(getCreditRemainingBalance(purchase)),
-                ),
+            SummaryTab(
+              credit: purchase,
+              shrinkWrap: true,
+              padding: const EdgeInsets.fromLTRB(
+                  KreditSpacing.card, 8, KreditSpacing.card, 0),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => EditCreditSheet.show(context, purchase),
+                      icon: const Icon(Icons.edit_outlined, size: KreditIconSize.small),
+                      label: const Text('Editar'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.danger,
+                        side: const BorderSide(color: AppColors.danger),
+                      ),
+                      onPressed: () => _confirmDeletePurchase(context, ref, purchase),
+                      icon: const Icon(Icons.delete_outline, size: KreditIconSize.small),
+                      label: const Text('Eliminar'),
+                    ),
+                  ),
+                ],
               ),
-              IconButton(
-                onPressed: () => EditCreditSheet.show(context, purchase),
-                icon: const Icon(Icons.edit_outlined),
-                tooltip: 'Editar compra',
-              ),
-              IconButton(
-                onPressed: () => _confirmDeletePurchase(context, ref, purchase),
-                icon: const Icon(Icons.delete_outline, color: AppColors.danger),
-                tooltip: 'Eliminar compra',
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-        ],
-      ],
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
-/// Cronograma tab for a quota-grouped credit: one collapsible section per
-/// purchase (most recent expanded by default) instead of a single flat
-/// schedule — each purchase keeps its own cuotas legible instead of being
-/// merged into one confusing combined list.
-class QuotaGroupScheduleTab extends ConsumerWidget {
+/// Cronograma tab for a quota-grouped credit: the exact same [ScheduleTab]
+/// used for a single credit, one full instance per purchase (most recent
+/// first) instead of a custom combined list — each purchase keeps its own
+/// Vencidas/Próximas/Futuras/Pagadas grouping and its own Abono Extra/Pago
+/// total actions, unchanged.
+class QuotaGroupScheduleTab extends StatelessWidget {
   final List<LoanCredit> purchases;
 
   const QuotaGroupScheduleTab({super.key, required this.purchases});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
 
     return ListView.builder(
-      padding: const EdgeInsets.all(KreditSpacing.card),
+      padding: const EdgeInsets.only(bottom: 16),
       itemCount: purchases.length,
       itemBuilder: (context, index) {
         final purchase = purchases[index];
-        return Theme(
-          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-          child: ExpansionTile(
-            initiallyExpanded: index == 0,
-            title: Text(
-              purchase.name,
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.body),
-            ),
-            subtitle: Text(
-              '${formatCOP(getCreditRemainingBalance(purchase))} pendiente',
-              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary),
-            ),
-            children: [
-              for (final inst in purchase.installments)
-                ListTile(
-                  dense: true,
-                  leading: Icon(
-                    inst.paid ? Icons.check_circle : Icons.radio_button_unchecked,
-                    color: inst.paid ? kredit.textSecondary : Theme.of(context).colorScheme.primary,
-                    size: KreditIconSize.small,
-                  ),
-                  title: Text('Cuota #${inst.number}'),
-                  subtitle: Text(formatDate(inst.dueDate)),
-                  trailing: Text(
-                    formatCOP(inst.amount),
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  onTap: () => ref
-                      .read(creditsProvider.notifier)
-                      .toggleInstallmentPaid(purchase.id, inst.number),
-                ),
-            ],
-          ),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (index > 0) Divider(height: 1, color: kredit.borderCard),
+            ScheduleTab(credit: purchase, shrinkWrap: true),
+          ],
         );
       },
     );
