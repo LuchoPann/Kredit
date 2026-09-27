@@ -1030,6 +1030,54 @@ lista de Creditos (esas siguen como filas simples).
 Todo verificado en dispositivo real (motorola edge 50 fusion) con datos
 `PRUEBA_BORRAR_*`, eliminados al terminar cada prueba. 158/158 tests verdes.
 
+## Rediseno del cupo comercial: voucher unico + detalle agrupado — 2026-09-27 (noche)
+
+Tras usar la funcion en la practica, el usuario pidio un rediseno completo
+de como se ve y navega un cupo comercial (varias iteraciones de feedback
+en vivo, cada una implementada de inmediato):
+
+- **Pantalla Creditos:** el cuadro "marca + barra + vouchers sueltos
+  adentro + boton eliminar" desaparecio. Ahora cada cupo es **un solo
+  voucher**, con la misma forma recortada que cualquier otro voucher, y
+  una franja inferior (como "PROGRESO PAGADO" en un credito normal) que
+  muestra DISPONIBLE / COMPRAS. Un chevron "Ver N compras" despliega el
+  detalle de cada compra sin salir de la lista ni abrir otra pantalla.
+- **Diseno del voucher:** dejo de reciclar el motivo de olas de Nequi en
+  otro color (lo que el usuario ya habia rechazado explicitamente antes).
+  Ahora es un relleno plano **minimalista con el color de acento que el
+  usuario eligio en Ajustes** (no un color fijo), con el color de texto
+  calculado automaticamente para contraste (`legibleForegroundOn`). El
+  adelanto real de Nequi/DaviPlata conserva su propio diseno de olas sin
+  tocar — esto solo aplicaba a cupos comerciales.
+  Tambien se ajusto el sello generico "K REDIT" (usado cuando no hay
+  logo real de banco): la K es el icono real de la app, "REDIT" ahora en
+  el mismo tamano visual que la K (antes se veia desproporcionadamente
+  chico) y ambos en negro.
+- **Detalle agrupado por cupo:** tocar el voucher abre el detalle de
+  **todas las compras de ese cupo juntas** (la tocada primero, el resto
+  por fecha mas reciente) — no solo la compra individual. Tab Resumen:
+  cada compra con su propio voucher + boton editar/eliminar. Tab
+  Cronograma: una seccion desplegable por compra (la mas reciente
+  expandida por defecto), en vez de mezclar las cuotas de varias compras
+  en una sola lista confusa. "Eliminar cupo" se movio al AppBar de este
+  detalle (antes vivia en la tarjeta de la lista, lo cual ya no aplica
+  con un solo voucher).
+- Un cupo sin compras (recien creado o huerfano) sigue siendo eliminable:
+  tocar su voucher sin compras abre directamente el dialogo de confirmar
+  borrado, en vez de navegar a una pantalla vacia.
+
+Implementacion: `voucherOutline`/`VoucherClipper`/`VoucherBorderPainter`/
+`VoucherWaveCornerPainter` se sacaron de privados a publicos en
+`wallet_card.dart` para reutilizarse en el nuevo voucher agregado
+(`CommercialQuotaCard`). Nuevo archivo
+`lib/widgets/credit_detail/quota_group_tabs.dart` con
+`QuotaGroupSummaryTab`/`QuotaGroupScheduleTab`. `CreditDetailScreen`
+detecta si el credito tocado tiene `quotaId` y arma el grupo completo de
+compras de ese cupo antes de decidir que tabs mostrar.
+
+Verificado en dispositivo real con datos reales del usuario (cupo "Joy" /
+"Regalos para mi nina"), sin necesidad de datos de prueba. 158/158 tests.
+
 ## Auditoria de codigo Cloud — 2026-09-25 (madrugada)
 
 Mientras el usuario dormia, pidio explicitamente 3 auditorias de codigo de
