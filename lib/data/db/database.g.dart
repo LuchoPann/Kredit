@@ -3,6 +3,312 @@
 part of 'database.dart';
 
 // ignore_for_file: type=lint
+class $CommercialQuotasTable extends CommercialQuotas
+    with TableInfo<$CommercialQuotasTable, CommercialQuotaRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CommercialQuotasTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _brandMeta = const VerificationMeta('brand');
+  @override
+  late final GeneratedColumn<String> brand = GeneratedColumn<String>(
+    'brand',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _limitMeta = const VerificationMeta('limit');
+  @override
+  late final GeneratedColumn<double> limit = GeneratedColumn<double>(
+    'limit',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, brand, limit, notes];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'commercial_quotas';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CommercialQuotaRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('brand')) {
+      context.handle(
+        _brandMeta,
+        brand.isAcceptableOrUnknown(data['brand']!, _brandMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_brandMeta);
+    }
+    if (data.containsKey('limit')) {
+      context.handle(
+        _limitMeta,
+        limit.isAcceptableOrUnknown(data['limit']!, _limitMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_limitMeta);
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CommercialQuotaRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CommercialQuotaRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      brand: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}brand'],
+      )!,
+      limit: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}limit'],
+      )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      ),
+    );
+  }
+
+  @override
+  $CommercialQuotasTable createAlias(String alias) {
+    return $CommercialQuotasTable(attachedDatabase, alias);
+  }
+}
+
+class CommercialQuotaRow extends DataClass
+    implements Insertable<CommercialQuotaRow> {
+  final String id;
+  final String brand;
+  final double limit;
+  final String? notes;
+  const CommercialQuotaRow({
+    required this.id,
+    required this.brand,
+    required this.limit,
+    this.notes,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['brand'] = Variable<String>(brand);
+    map['limit'] = Variable<double>(limit);
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
+    return map;
+  }
+
+  CommercialQuotasCompanion toCompanion(bool nullToAbsent) {
+    return CommercialQuotasCompanion(
+      id: Value(id),
+      brand: Value(brand),
+      limit: Value(limit),
+      notes: notes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notes),
+    );
+  }
+
+  factory CommercialQuotaRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CommercialQuotaRow(
+      id: serializer.fromJson<String>(json['id']),
+      brand: serializer.fromJson<String>(json['brand']),
+      limit: serializer.fromJson<double>(json['limit']),
+      notes: serializer.fromJson<String?>(json['notes']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'brand': serializer.toJson<String>(brand),
+      'limit': serializer.toJson<double>(limit),
+      'notes': serializer.toJson<String?>(notes),
+    };
+  }
+
+  CommercialQuotaRow copyWith({
+    String? id,
+    String? brand,
+    double? limit,
+    Value<String?> notes = const Value.absent(),
+  }) => CommercialQuotaRow(
+    id: id ?? this.id,
+    brand: brand ?? this.brand,
+    limit: limit ?? this.limit,
+    notes: notes.present ? notes.value : this.notes,
+  );
+  CommercialQuotaRow copyWithCompanion(CommercialQuotasCompanion data) {
+    return CommercialQuotaRow(
+      id: data.id.present ? data.id.value : this.id,
+      brand: data.brand.present ? data.brand.value : this.brand,
+      limit: data.limit.present ? data.limit.value : this.limit,
+      notes: data.notes.present ? data.notes.value : this.notes,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CommercialQuotaRow(')
+          ..write('id: $id, ')
+          ..write('brand: $brand, ')
+          ..write('limit: $limit, ')
+          ..write('notes: $notes')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, brand, limit, notes);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CommercialQuotaRow &&
+          other.id == this.id &&
+          other.brand == this.brand &&
+          other.limit == this.limit &&
+          other.notes == this.notes);
+}
+
+class CommercialQuotasCompanion extends UpdateCompanion<CommercialQuotaRow> {
+  final Value<String> id;
+  final Value<String> brand;
+  final Value<double> limit;
+  final Value<String?> notes;
+  final Value<int> rowid;
+  const CommercialQuotasCompanion({
+    this.id = const Value.absent(),
+    this.brand = const Value.absent(),
+    this.limit = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CommercialQuotasCompanion.insert({
+    required String id,
+    required String brand,
+    required double limit,
+    this.notes = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       brand = Value(brand),
+       limit = Value(limit);
+  static Insertable<CommercialQuotaRow> custom({
+    Expression<String>? id,
+    Expression<String>? brand,
+    Expression<double>? limit,
+    Expression<String>? notes,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (brand != null) 'brand': brand,
+      if (limit != null) 'limit': limit,
+      if (notes != null) 'notes': notes,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CommercialQuotasCompanion copyWith({
+    Value<String>? id,
+    Value<String>? brand,
+    Value<double>? limit,
+    Value<String?>? notes,
+    Value<int>? rowid,
+  }) {
+    return CommercialQuotasCompanion(
+      id: id ?? this.id,
+      brand: brand ?? this.brand,
+      limit: limit ?? this.limit,
+      notes: notes ?? this.notes,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (brand.present) {
+      map['brand'] = Variable<String>(brand.value);
+    }
+    if (limit.present) {
+      map['limit'] = Variable<double>(limit.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CommercialQuotasCompanion(')
+          ..write('id: $id, ')
+          ..write('brand: $brand, ')
+          ..write('limit: $limit, ')
+          ..write('notes: $notes, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $CreditsTable extends Credits with TableInfo<$CreditsTable, CreditRow> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -262,6 +568,50 @@ class $CreditsTable extends Credits with TableInfo<$CreditsTable, CreditRow> {
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _quotaIdMeta = const VerificationMeta(
+    'quotaId',
+  );
+  @override
+  late final GeneratedColumn<String> quotaId = GeneratedColumn<String>(
+    'quota_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES commercial_quotas (id) ON DELETE RESTRICT',
+    ),
+  );
+  static const VerificationMeta _interestUnknownMeta = const VerificationMeta(
+    'interestUnknown',
+  );
+  @override
+  late final GeneratedColumn<bool> interestUnknown = GeneratedColumn<bool>(
+    'interest_unknown',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("interest_unknown" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _earlyPaymentWaivesInterestMeta =
+      const VerificationMeta('earlyPaymentWaivesInterest');
+  @override
+  late final GeneratedColumn<bool> earlyPaymentWaivesInterest =
+      GeneratedColumn<bool>(
+        'early_payment_waives_interest',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("early_payment_waives_interest" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -288,6 +638,9 @@ class $CreditsTable extends Credits with TableInfo<$CreditsTable, CreditRow> {
     managementFeeFrequency,
     cycleCount,
     lastAccrualCutoff,
+    quotaId,
+    interestUnknown,
+    earlyPaymentWaivesInterest,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -486,6 +839,30 @@ class $CreditsTable extends Credits with TableInfo<$CreditsTable, CreditRow> {
         ),
       );
     }
+    if (data.containsKey('quota_id')) {
+      context.handle(
+        _quotaIdMeta,
+        quotaId.isAcceptableOrUnknown(data['quota_id']!, _quotaIdMeta),
+      );
+    }
+    if (data.containsKey('interest_unknown')) {
+      context.handle(
+        _interestUnknownMeta,
+        interestUnknown.isAcceptableOrUnknown(
+          data['interest_unknown']!,
+          _interestUnknownMeta,
+        ),
+      );
+    }
+    if (data.containsKey('early_payment_waives_interest')) {
+      context.handle(
+        _earlyPaymentWaivesInterestMeta,
+        earlyPaymentWaivesInterest.isAcceptableOrUnknown(
+          data['early_payment_waives_interest']!,
+          _earlyPaymentWaivesInterestMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -591,6 +968,18 @@ class $CreditsTable extends Credits with TableInfo<$CreditsTable, CreditRow> {
         DriftSqlType.string,
         data['${effectivePrefix}last_accrual_cutoff'],
       ),
+      quotaId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}quota_id'],
+      ),
+      interestUnknown: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}interest_unknown'],
+      )!,
+      earlyPaymentWaivesInterest: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}early_payment_waives_interest'],
+      )!,
     );
   }
 
@@ -634,6 +1023,21 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
   final String? managementFeeFrequency;
   final int? cycleCount;
   final String? lastAccrualCutoff;
+
+  /// Links this loan/cupo purchase to its parent CommercialQuota, or null
+  /// for a normal bank loan/card unrelated to any commercial quota.
+  /// onDelete: restrict — deleting a quota with active purchases must fail
+  /// loudly rather than silently orphan or cascade-delete real credit data.
+  final String? quotaId;
+
+  /// True when the user chose not to provide/know the interest rate for
+  /// this purchase — suppresses rate display, never synthesizes a fake 0%.
+  final bool interestUnknown;
+
+  /// True when this purchase's brand waives interest if paid before the
+  /// due date (e.g. Lili Pink's CrediPink) — always a manual per-purchase
+  /// flag, never assumed by default.
+  final bool earlyPaymentWaivesInterest;
   const CreditRow({
     required this.id,
     required this.type,
@@ -659,6 +1063,9 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
     this.managementFeeFrequency,
     this.cycleCount,
     this.lastAccrualCutoff,
+    this.quotaId,
+    required this.interestUnknown,
+    required this.earlyPaymentWaivesInterest,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -729,6 +1136,13 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
     if (!nullToAbsent || lastAccrualCutoff != null) {
       map['last_accrual_cutoff'] = Variable<String>(lastAccrualCutoff);
     }
+    if (!nullToAbsent || quotaId != null) {
+      map['quota_id'] = Variable<String>(quotaId);
+    }
+    map['interest_unknown'] = Variable<bool>(interestUnknown);
+    map['early_payment_waives_interest'] = Variable<bool>(
+      earlyPaymentWaivesInterest,
+    );
     return map;
   }
 
@@ -794,6 +1208,11 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
       lastAccrualCutoff: lastAccrualCutoff == null && nullToAbsent
           ? const Value.absent()
           : Value(lastAccrualCutoff),
+      quotaId: quotaId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(quotaId),
+      interestUnknown: Value(interestUnknown),
+      earlyPaymentWaivesInterest: Value(earlyPaymentWaivesInterest),
     );
   }
 
@@ -835,6 +1254,11 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
       lastAccrualCutoff: serializer.fromJson<String?>(
         json['lastAccrualCutoff'],
       ),
+      quotaId: serializer.fromJson<String?>(json['quotaId']),
+      interestUnknown: serializer.fromJson<bool>(json['interestUnknown']),
+      earlyPaymentWaivesInterest: serializer.fromJson<bool>(
+        json['earlyPaymentWaivesInterest'],
+      ),
     );
   }
   @override
@@ -869,6 +1293,11 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
       ),
       'cycleCount': serializer.toJson<int?>(cycleCount),
       'lastAccrualCutoff': serializer.toJson<String?>(lastAccrualCutoff),
+      'quotaId': serializer.toJson<String?>(quotaId),
+      'interestUnknown': serializer.toJson<bool>(interestUnknown),
+      'earlyPaymentWaivesInterest': serializer.toJson<bool>(
+        earlyPaymentWaivesInterest,
+      ),
     };
   }
 
@@ -897,6 +1326,9 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
     Value<String?> managementFeeFrequency = const Value.absent(),
     Value<int?> cycleCount = const Value.absent(),
     Value<String?> lastAccrualCutoff = const Value.absent(),
+    Value<String?> quotaId = const Value.absent(),
+    bool? interestUnknown,
+    bool? earlyPaymentWaivesInterest,
   }) => CreditRow(
     id: id ?? this.id,
     type: type ?? this.type,
@@ -937,6 +1369,10 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
     lastAccrualCutoff: lastAccrualCutoff.present
         ? lastAccrualCutoff.value
         : this.lastAccrualCutoff,
+    quotaId: quotaId.present ? quotaId.value : this.quotaId,
+    interestUnknown: interestUnknown ?? this.interestUnknown,
+    earlyPaymentWaivesInterest:
+        earlyPaymentWaivesInterest ?? this.earlyPaymentWaivesInterest,
   );
   CreditRow copyWithCompanion(CreditsCompanion data) {
     return CreditRow(
@@ -990,6 +1426,13 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
       lastAccrualCutoff: data.lastAccrualCutoff.present
           ? data.lastAccrualCutoff.value
           : this.lastAccrualCutoff,
+      quotaId: data.quotaId.present ? data.quotaId.value : this.quotaId,
+      interestUnknown: data.interestUnknown.present
+          ? data.interestUnknown.value
+          : this.interestUnknown,
+      earlyPaymentWaivesInterest: data.earlyPaymentWaivesInterest.present
+          ? data.earlyPaymentWaivesInterest.value
+          : this.earlyPaymentWaivesInterest,
     );
   }
 
@@ -1019,7 +1462,10 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
           ..write('managementFee: $managementFee, ')
           ..write('managementFeeFrequency: $managementFeeFrequency, ')
           ..write('cycleCount: $cycleCount, ')
-          ..write('lastAccrualCutoff: $lastAccrualCutoff')
+          ..write('lastAccrualCutoff: $lastAccrualCutoff, ')
+          ..write('quotaId: $quotaId, ')
+          ..write('interestUnknown: $interestUnknown, ')
+          ..write('earlyPaymentWaivesInterest: $earlyPaymentWaivesInterest')
           ..write(')'))
         .toString();
   }
@@ -1050,6 +1496,9 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
     managementFeeFrequency,
     cycleCount,
     lastAccrualCutoff,
+    quotaId,
+    interestUnknown,
+    earlyPaymentWaivesInterest,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -1078,7 +1527,10 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
           other.managementFee == this.managementFee &&
           other.managementFeeFrequency == this.managementFeeFrequency &&
           other.cycleCount == this.cycleCount &&
-          other.lastAccrualCutoff == this.lastAccrualCutoff);
+          other.lastAccrualCutoff == this.lastAccrualCutoff &&
+          other.quotaId == this.quotaId &&
+          other.interestUnknown == this.interestUnknown &&
+          other.earlyPaymentWaivesInterest == this.earlyPaymentWaivesInterest);
 }
 
 class CreditsCompanion extends UpdateCompanion<CreditRow> {
@@ -1106,6 +1558,9 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
   final Value<String?> managementFeeFrequency;
   final Value<int?> cycleCount;
   final Value<String?> lastAccrualCutoff;
+  final Value<String?> quotaId;
+  final Value<bool> interestUnknown;
+  final Value<bool> earlyPaymentWaivesInterest;
   final Value<int> rowid;
   const CreditsCompanion({
     this.id = const Value.absent(),
@@ -1132,6 +1587,9 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
     this.managementFeeFrequency = const Value.absent(),
     this.cycleCount = const Value.absent(),
     this.lastAccrualCutoff = const Value.absent(),
+    this.quotaId = const Value.absent(),
+    this.interestUnknown = const Value.absent(),
+    this.earlyPaymentWaivesInterest = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CreditsCompanion.insert({
@@ -1159,6 +1617,9 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
     this.managementFeeFrequency = const Value.absent(),
     this.cycleCount = const Value.absent(),
     this.lastAccrualCutoff = const Value.absent(),
+    this.quotaId = const Value.absent(),
+    this.interestUnknown = const Value.absent(),
+    this.earlyPaymentWaivesInterest = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        type = Value(type),
@@ -1189,6 +1650,9 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
     Expression<String>? managementFeeFrequency,
     Expression<int>? cycleCount,
     Expression<String>? lastAccrualCutoff,
+    Expression<String>? quotaId,
+    Expression<bool>? interestUnknown,
+    Expression<bool>? earlyPaymentWaivesInterest,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1219,6 +1683,10 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
         'management_fee_frequency': managementFeeFrequency,
       if (cycleCount != null) 'cycle_count': cycleCount,
       if (lastAccrualCutoff != null) 'last_accrual_cutoff': lastAccrualCutoff,
+      if (quotaId != null) 'quota_id': quotaId,
+      if (interestUnknown != null) 'interest_unknown': interestUnknown,
+      if (earlyPaymentWaivesInterest != null)
+        'early_payment_waives_interest': earlyPaymentWaivesInterest,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1248,6 +1716,9 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
     Value<String?>? managementFeeFrequency,
     Value<int?>? cycleCount,
     Value<String?>? lastAccrualCutoff,
+    Value<String?>? quotaId,
+    Value<bool>? interestUnknown,
+    Value<bool>? earlyPaymentWaivesInterest,
     Value<int>? rowid,
   }) {
     return CreditsCompanion(
@@ -1277,6 +1748,10 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
           managementFeeFrequency ?? this.managementFeeFrequency,
       cycleCount: cycleCount ?? this.cycleCount,
       lastAccrualCutoff: lastAccrualCutoff ?? this.lastAccrualCutoff,
+      quotaId: quotaId ?? this.quotaId,
+      interestUnknown: interestUnknown ?? this.interestUnknown,
+      earlyPaymentWaivesInterest:
+          earlyPaymentWaivesInterest ?? this.earlyPaymentWaivesInterest,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1362,6 +1837,17 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
     if (lastAccrualCutoff.present) {
       map['last_accrual_cutoff'] = Variable<String>(lastAccrualCutoff.value);
     }
+    if (quotaId.present) {
+      map['quota_id'] = Variable<String>(quotaId.value);
+    }
+    if (interestUnknown.present) {
+      map['interest_unknown'] = Variable<bool>(interestUnknown.value);
+    }
+    if (earlyPaymentWaivesInterest.present) {
+      map['early_payment_waives_interest'] = Variable<bool>(
+        earlyPaymentWaivesInterest.value,
+      );
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1395,6 +1881,9 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
           ..write('managementFeeFrequency: $managementFeeFrequency, ')
           ..write('cycleCount: $cycleCount, ')
           ..write('lastAccrualCutoff: $lastAccrualCutoff, ')
+          ..write('quotaId: $quotaId, ')
+          ..write('interestUnknown: $interestUnknown, ')
+          ..write('earlyPaymentWaivesInterest: $earlyPaymentWaivesInterest, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2956,6 +3445,9 @@ class LoanAbonosCompanion extends UpdateCompanion<LoanAbonoRow> {
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
+  late final $CommercialQuotasTable commercialQuotas = $CommercialQuotasTable(
+    this,
+  );
   late final $CreditsTable credits = $CreditsTable(this);
   late final $InstallmentsTable installments = $InstallmentsTable(this);
   late final $CardMovementsTable cardMovements = $CardMovementsTable(this);
@@ -2965,6 +3457,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
+    commercialQuotas,
     credits,
     installments,
     cardMovements,
@@ -2996,6 +3489,300 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   ]);
 }
 
+typedef $$CommercialQuotasTableCreateCompanionBuilder =
+    CommercialQuotasCompanion Function({
+      required String id,
+      required String brand,
+      required double limit,
+      Value<String?> notes,
+      Value<int> rowid,
+    });
+typedef $$CommercialQuotasTableUpdateCompanionBuilder =
+    CommercialQuotasCompanion Function({
+      Value<String> id,
+      Value<String> brand,
+      Value<double> limit,
+      Value<String?> notes,
+      Value<int> rowid,
+    });
+
+final class $$CommercialQuotasTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $CommercialQuotasTable,
+          CommercialQuotaRow
+        > {
+  $$CommercialQuotasTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<$CreditsTable, List<CreditRow>> _creditsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.credits,
+    aliasName: 'commercial_quotas__id__credits__quota_id',
+  );
+
+  $$CreditsTableProcessedTableManager get creditsRefs {
+    final manager = $$CreditsTableTableManager(
+      $_db,
+      $_db.credits,
+    ).filter((f) => f.quotaId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_creditsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$CommercialQuotasTableFilterComposer
+    extends Composer<_$AppDatabase, $CommercialQuotasTable> {
+  $$CommercialQuotasTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get brand => $composableBuilder(
+    column: $table.brand,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get limit => $composableBuilder(
+    column: $table.limit,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> creditsRefs(
+    Expression<bool> Function($$CreditsTableFilterComposer f) f,
+  ) {
+    final $$CreditsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.credits,
+      getReferencedColumn: (t) => t.quotaId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CreditsTableFilterComposer(
+            $db: $db,
+            $table: $db.credits,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$CommercialQuotasTableOrderingComposer
+    extends Composer<_$AppDatabase, $CommercialQuotasTable> {
+  $$CommercialQuotasTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get brand => $composableBuilder(
+    column: $table.brand,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get limit => $composableBuilder(
+    column: $table.limit,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CommercialQuotasTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CommercialQuotasTable> {
+  $$CommercialQuotasTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get brand =>
+      $composableBuilder(column: $table.brand, builder: (column) => column);
+
+  GeneratedColumn<double> get limit =>
+      $composableBuilder(column: $table.limit, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  Expression<T> creditsRefs<T extends Object>(
+    Expression<T> Function($$CreditsTableAnnotationComposer a) f,
+  ) {
+    final $$CreditsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.credits,
+      getReferencedColumn: (t) => t.quotaId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CreditsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.credits,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$CommercialQuotasTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CommercialQuotasTable,
+          CommercialQuotaRow,
+          $$CommercialQuotasTableFilterComposer,
+          $$CommercialQuotasTableOrderingComposer,
+          $$CommercialQuotasTableAnnotationComposer,
+          $$CommercialQuotasTableCreateCompanionBuilder,
+          $$CommercialQuotasTableUpdateCompanionBuilder,
+          (CommercialQuotaRow, $$CommercialQuotasTableReferences),
+          CommercialQuotaRow,
+          PrefetchHooks Function({bool creditsRefs})
+        > {
+  $$CommercialQuotasTableTableManager(
+    _$AppDatabase db,
+    $CommercialQuotasTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CommercialQuotasTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CommercialQuotasTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CommercialQuotasTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> brand = const Value.absent(),
+                Value<double> limit = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CommercialQuotasCompanion(
+                id: id,
+                brand: brand,
+                limit: limit,
+                notes: notes,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String brand,
+                required double limit,
+                Value<String?> notes = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CommercialQuotasCompanion.insert(
+                id: id,
+                brand: brand,
+                limit: limit,
+                notes: notes,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$CommercialQuotasTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({creditsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (creditsRefs) db.credits],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (creditsRefs)
+                    await $_getPrefetchedData<
+                      CommercialQuotaRow,
+                      $CommercialQuotasTable,
+                      CreditRow
+                    >(
+                      currentTable: table,
+                      referencedTable: $$CommercialQuotasTableReferences
+                          ._creditsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$CommercialQuotasTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).creditsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.quotaId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$CommercialQuotasTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CommercialQuotasTable,
+      CommercialQuotaRow,
+      $$CommercialQuotasTableFilterComposer,
+      $$CommercialQuotasTableOrderingComposer,
+      $$CommercialQuotasTableAnnotationComposer,
+      $$CommercialQuotasTableCreateCompanionBuilder,
+      $$CommercialQuotasTableUpdateCompanionBuilder,
+      (CommercialQuotaRow, $$CommercialQuotasTableReferences),
+      CommercialQuotaRow,
+      PrefetchHooks Function({bool creditsRefs})
+    >;
 typedef $$CreditsTableCreateCompanionBuilder =
     CreditsCompanion Function({
       required String id,
@@ -3022,6 +3809,9 @@ typedef $$CreditsTableCreateCompanionBuilder =
       Value<String?> managementFeeFrequency,
       Value<int?> cycleCount,
       Value<String?> lastAccrualCutoff,
+      Value<String?> quotaId,
+      Value<bool> interestUnknown,
+      Value<bool> earlyPaymentWaivesInterest,
       Value<int> rowid,
     });
 typedef $$CreditsTableUpdateCompanionBuilder =
@@ -3050,12 +3840,33 @@ typedef $$CreditsTableUpdateCompanionBuilder =
       Value<String?> managementFeeFrequency,
       Value<int?> cycleCount,
       Value<String?> lastAccrualCutoff,
+      Value<String?> quotaId,
+      Value<bool> interestUnknown,
+      Value<bool> earlyPaymentWaivesInterest,
       Value<int> rowid,
     });
 
 final class $$CreditsTableReferences
     extends BaseReferences<_$AppDatabase, $CreditsTable, CreditRow> {
   $$CreditsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $CommercialQuotasTable _quotaIdTable(_$AppDatabase db) => db
+      .commercialQuotas
+      .createAlias('credits__quota_id__commercial_quotas__id');
+
+  $$CommercialQuotasTableProcessedTableManager? get quotaId {
+    final $_column = $_itemColumn<String>('quota_id');
+    if ($_column == null) return null;
+    final manager = $$CommercialQuotasTableTableManager(
+      $_db,
+      $_db.commercialQuotas,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_quotaIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
 
   static MultiTypedResultKey<$InstallmentsTable, List<InstallmentRow>>
   _installmentsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
@@ -3240,6 +4051,39 @@ class $$CreditsTableFilterComposer
     column: $table.lastAccrualCutoff,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<bool> get interestUnknown => $composableBuilder(
+    column: $table.interestUnknown,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get earlyPaymentWaivesInterest => $composableBuilder(
+    column: $table.earlyPaymentWaivesInterest,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$CommercialQuotasTableFilterComposer get quotaId {
+    final $$CommercialQuotasTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.quotaId,
+      referencedTable: $db.commercialQuotas,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CommercialQuotasTableFilterComposer(
+            $db: $db,
+            $table: $db.commercialQuotas,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   Expression<bool> installmentsRefs(
     Expression<bool> Function($$InstallmentsTableFilterComposer f) f,
@@ -3445,6 +4289,39 @@ class $$CreditsTableOrderingComposer
     column: $table.lastAccrualCutoff,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get interestUnknown => $composableBuilder(
+    column: $table.interestUnknown,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get earlyPaymentWaivesInterest => $composableBuilder(
+    column: $table.earlyPaymentWaivesInterest,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$CommercialQuotasTableOrderingComposer get quotaId {
+    final $$CommercialQuotasTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.quotaId,
+      referencedTable: $db.commercialQuotas,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CommercialQuotasTableOrderingComposer(
+            $db: $db,
+            $table: $db.commercialQuotas,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$CreditsTableAnnotationComposer
@@ -3554,6 +4431,39 @@ class $$CreditsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get interestUnknown => $composableBuilder(
+    column: $table.interestUnknown,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get earlyPaymentWaivesInterest => $composableBuilder(
+    column: $table.earlyPaymentWaivesInterest,
+    builder: (column) => column,
+  );
+
+  $$CommercialQuotasTableAnnotationComposer get quotaId {
+    final $$CommercialQuotasTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.quotaId,
+      referencedTable: $db.commercialQuotas,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CommercialQuotasTableAnnotationComposer(
+            $db: $db,
+            $table: $db.commercialQuotas,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
   Expression<T> installmentsRefs<T extends Object>(
     Expression<T> Function($$InstallmentsTableAnnotationComposer a) f,
   ) {
@@ -3644,6 +4554,7 @@ class $$CreditsTableTableManager
           (CreditRow, $$CreditsTableReferences),
           CreditRow,
           PrefetchHooks Function({
+            bool quotaId,
             bool installmentsRefs,
             bool cardMovementsRefs,
             bool loanAbonosRefs,
@@ -3686,6 +4597,9 @@ class $$CreditsTableTableManager
                 Value<String?> managementFeeFrequency = const Value.absent(),
                 Value<int?> cycleCount = const Value.absent(),
                 Value<String?> lastAccrualCutoff = const Value.absent(),
+                Value<String?> quotaId = const Value.absent(),
+                Value<bool> interestUnknown = const Value.absent(),
+                Value<bool> earlyPaymentWaivesInterest = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CreditsCompanion(
                 id: id,
@@ -3712,6 +4626,9 @@ class $$CreditsTableTableManager
                 managementFeeFrequency: managementFeeFrequency,
                 cycleCount: cycleCount,
                 lastAccrualCutoff: lastAccrualCutoff,
+                quotaId: quotaId,
+                interestUnknown: interestUnknown,
+                earlyPaymentWaivesInterest: earlyPaymentWaivesInterest,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -3740,6 +4657,9 @@ class $$CreditsTableTableManager
                 Value<String?> managementFeeFrequency = const Value.absent(),
                 Value<int?> cycleCount = const Value.absent(),
                 Value<String?> lastAccrualCutoff = const Value.absent(),
+                Value<String?> quotaId = const Value.absent(),
+                Value<bool> interestUnknown = const Value.absent(),
+                Value<bool> earlyPaymentWaivesInterest = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CreditsCompanion.insert(
                 id: id,
@@ -3766,6 +4686,9 @@ class $$CreditsTableTableManager
                 managementFeeFrequency: managementFeeFrequency,
                 cycleCount: cycleCount,
                 lastAccrualCutoff: lastAccrualCutoff,
+                quotaId: quotaId,
+                interestUnknown: interestUnknown,
+                earlyPaymentWaivesInterest: earlyPaymentWaivesInterest,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -3778,6 +4701,7 @@ class $$CreditsTableTableManager
               .toList(),
           prefetchHooksCallback:
               ({
+                quotaId = false,
                 installmentsRefs = false,
                 cardMovementsRefs = false,
                 loanAbonosRefs = false,
@@ -3789,7 +4713,38 @@ class $$CreditsTableTableManager
                     if (cardMovementsRefs) db.cardMovements,
                     if (loanAbonosRefs) db.loanAbonos,
                   ],
-                  addJoins: null,
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (quotaId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.quotaId,
+                                    referencedTable: $$CreditsTableReferences
+                                        ._quotaIdTable(db),
+                                    referencedColumn: $$CreditsTableReferences
+                                        ._quotaIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
                   getPrefetchedDataCallback: (items) async {
                     return [
                       if (installmentsRefs)
@@ -3876,6 +4831,7 @@ typedef $$CreditsTableProcessedTableManager =
       (CreditRow, $$CreditsTableReferences),
       CreditRow,
       PrefetchHooks Function({
+        bool quotaId,
         bool installmentsRefs,
         bool cardMovementsRefs,
         bool loanAbonosRefs,
@@ -5008,6 +5964,8 @@ typedef $$LoanAbonosTableProcessedTableManager =
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
+  $$CommercialQuotasTableTableManager get commercialQuotas =>
+      $$CommercialQuotasTableTableManager(_db, _db.commercialQuotas);
   $$CreditsTableTableManager get credits =>
       $$CreditsTableTableManager(_db, _db.credits);
   $$InstallmentsTableTableManager get installments =>

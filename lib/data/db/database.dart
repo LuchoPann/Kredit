@@ -15,7 +15,8 @@ part 'database.g.dart';
 /// App-wide Drift database. Replaces app.js's single Dexie `kv` table (which
 /// just stashed the whole `state` object as one JSON blob) with a proper
 /// relational schema — see lib/data/db/tables.dart for the mapping notes.
-@DriftDatabase(tables: [Credits, Installments, CardMovements, LoanAbonos])
+@DriftDatabase(
+    tables: [Credits, Installments, CardMovements, LoanAbonos, CommercialQuotas])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(openConnection());
 
@@ -23,7 +24,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -44,6 +45,12 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(loanAbonos, loanAbonos.previousQuotaAmount);
             await m.addColumn(
                 loanAbonos, loanAbonos.previousInstallmentsSnapshot);
+          }
+          if (from < 6) {
+            await m.createTable(commercialQuotas);
+            await m.addColumn(credits, credits.quotaId);
+            await m.addColumn(credits, credits.interestUnknown);
+            await m.addColumn(credits, credits.earlyPaymentWaivesInterest);
           }
         },
       );

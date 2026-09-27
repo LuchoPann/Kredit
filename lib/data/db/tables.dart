@@ -51,6 +51,40 @@ class Credits extends Table {
   IntColumn get cycleCount => integer().nullable()();
   TextColumn get lastAccrualCutoff => text().nullable()(); // YYYY-MM-DD
 
+  // --- commercial quota fields ---
+  /// Links this loan/cupo purchase to its parent CommercialQuota, or null
+  /// for a normal bank loan/card unrelated to any commercial quota.
+  /// onDelete: restrict — deleting a quota with active purchases must fail
+  /// loudly rather than silently orphan or cascade-delete real credit data.
+  TextColumn get quotaId => text()
+      .nullable()
+      .references(CommercialQuotas, #id, onDelete: KeyAction.restrict)();
+
+  /// True when the user chose not to provide/know the interest rate for
+  /// this purchase — suppresses rate display, never synthesizes a fake 0%.
+  BoolColumn get interestUnknown =>
+      boolean().withDefault(const Constant(false))();
+
+  /// True when this purchase's brand waives interest if paid before the
+  /// due date (e.g. Lili Pink's CrediPink) — always a manual per-purchase
+  /// flag, never assumed by default.
+  BoolColumn get earlyPaymentWaivesInterest =>
+      boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// A commercial credit line with a brand (Totto, Lili Pink, Éxito...).
+/// Purchases inside it are Credits rows with quotaId pointing here — see
+/// Credits.quotaId above.
+@DataClassName('CommercialQuotaRow')
+class CommercialQuotas extends Table {
+  TextColumn get id => text()();
+  TextColumn get brand => text()();
+  RealColumn get limit => real()();
+  TextColumn get notes => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
