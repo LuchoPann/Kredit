@@ -10,6 +10,7 @@ import '../../data/models/installment.dart';
 import '../../domain/bank_detector.dart';
 import '../../utils/currency_input_formatter.dart';
 import '../../domain/card_calculator.dart';
+import '../../domain/commercial_quota_calculator.dart';
 import '../../domain/credit_calculator.dart' show creditHasUnpaid;
 import '../../domain/date_utils.dart';
 import '../../domain/entity_templates.dart';
@@ -286,6 +287,53 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     if (rate > 60) {
       return 'Esa tasa parece alta para una E.A. — ¿la ingresaste como mensual por error? '
           'Una E.A. típica en Colombia ronda 15%-45%.';
+    }
+    return null;
+  }
+
+  // Aviso no bloqueante (spec "cupo comercial"): si esta compra dejaría el
+  // cupo en negativo, se lo decimos al usuario pero nunca le impedimos
+  // continuar — puede tener condiciones (aumento de cupo, fianza especial)
+  // que Kredit no conoce.
+  String? get _overLimitWarning {
+    if (!_isCommercialQuotaPurchase) return null;
+    final amount = double.tryParse(CurrencyInputFormatter.unformat(_amountCtrl.text));
+    if (amount == null || amount <= 0) return null;
+
+    double limit;
+    List<LoanCredit> existingPurchases;
+    if (_creatingNewCommercialQuota) {
+      final parsedLimit = double.tryParse(
+          CurrencyInputFormatter.unformat(_newQuotaLimitCtrl.text));
+      if (parsedLimit == null) return null;
+      limit = parsedLimit;
+      existingPurchases = const [];
+    } else {
+      final quotaId = _selectedCommercialQuotaId;
+      if (quotaId == null) return null;
+      final quotas = ref.read(commercialQuotasProvider).valueOrNull ?? const [];
+      CommercialQuota? quota;
+      for (final q in quotas) {
+        if (q.id == quotaId) {
+          quota = q;
+          break;
+        }
+      }
+      if (quota == null) return null;
+      limit = quota.limit;
+      existingPurchases = (ref.read(creditsProvider).valueOrNull ?? const [])
+          .whereType<LoanCredit>()
+          .where((c) => c.quotaId == quotaId)
+          .toList();
+    }
+
+    final available = quotaAvailable(
+      CommercialQuota(id: '', brand: '', limit: limit),
+      existingPurchases,
+    );
+    if (available - amount < 0) {
+      return 'Esta compra deja tu cupo en negativo '
+          '(disponible: ${formatCOP(available)}).';
     }
     return null;
   }
@@ -1216,6 +1264,11 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               ),
             ],
           ),
+          if (_overLimitWarning != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: _InterestRateWarningHint(text: _overLimitWarning!),
+            ),
           const SizedBox(height: 12),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
