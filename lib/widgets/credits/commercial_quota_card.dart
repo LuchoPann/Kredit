@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../data/models/commercial_quota.dart';
 import '../../data/models/credit.dart';
 import '../../domain/commercial_quota_calculator.dart';
-import '../../domain/credit_calculator.dart';
 import '../../utils/credit_display_utils.dart';
+import '../wallet_card.dart';
 
 /// Groups every purchase (LoanCredit) tagged with a CommercialQuota under
 /// one card showing the brand and available/limit — the user sees "Totto",
@@ -62,18 +62,19 @@ class CommercialQuotaCard extends StatelessWidget {
             Text(
                 '${formatCOP(available)} disponible de ${formatCOP(quota.limit)}'),
             const SizedBox(height: 12),
-            for (final purchase in purchases)
-              Material(
-                color: Colors.transparent,
-                child: ListTile(
-                  title: Text(purchase.name),
-                  trailing:
-                      Text(formatCOP(getCreditRemainingBalance(purchase))),
-                  onTap: onPurchaseTap == null
-                      ? null
-                      : () => onPurchaseTap!(purchase),
-                ),
+            // Cada compra es su propio voucher (misma forma recortada que
+            // el detalle) — nunca una fila de lista plana: son préstamos
+            // sin tarjeta física, igual que el cupo que los agrupa.
+            for (final purchase in purchases) ...[
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onPurchaseTap == null
+                    ? null
+                    : () => onPurchaseTap!(purchase),
+                child: WalletCard(credit: purchase),
               ),
+              const SizedBox(height: 12),
+            ],
           ],
         ),
       ),
