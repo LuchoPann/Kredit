@@ -720,6 +720,8 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               _isCommercialQuotaPurchase = false;
               _selectedCommercialQuotaId = null;
               _creatingNewCommercialQuota = false;
+              _newQuotaBrandCtrl.clear();
+              _newQuotaLimitCtrl.clear();
               if (_selectedLenderPreset != null &&
                   _selectedLenderPreset != 'Otro...') {
                 _lenderCtrl.text = _selectedLenderPreset!;
@@ -940,6 +942,10 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           if (!v) {
             _selectedCommercialQuotaId = null;
             _creatingNewCommercialQuota = false;
+            // Sin esto, reactivar el toggle después mostraba la marca y
+            // el límite de la vez anterior en vez de un formulario limpio.
+            _newQuotaBrandCtrl.clear();
+            _newQuotaLimitCtrl.clear();
             // El campo Banco/Prestamista vuelve a mostrarse — su
             // controlador quedó con la marca del cupo (o vacío), no con
             // lo que el dropdown de banco realmente muestra.
