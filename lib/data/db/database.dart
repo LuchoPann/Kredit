@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 
 import '../../domain/interest_rate.dart';
 import '../models/card_movement.dart';
+import '../models/commercial_quota.dart';
 import '../models/credit.dart';
 import '../models/installment.dart';
 import '../models/loan_abono.dart';
@@ -53,6 +54,12 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(credits, credits.earlyPaymentWaivesInterest);
           }
         },
+        // SQLite ignores FK constraints (like Credits.quotaId's
+        // onDelete: restrict) unless this pragma is set per-connection —
+        // it does not persist in the schema itself.
+        beforeOpen: (details) async {
+          await customStatement('PRAGMA foreign_keys = ON');
+        },
       );
 
   // --- Domain <-> row mapping -------------------------------------------
@@ -78,6 +85,9 @@ class AppDatabase extends _$AppDatabase {
       installments: installments,
       abonos: abonos,
       scheduleManuallyAdjusted: row.scheduleManuallyAdjusted,
+      quotaId: row.quotaId,
+      interestUnknown: row.interestUnknown,
+      earlyPaymentWaivesInterest: row.earlyPaymentWaivesInterest,
     );
   }
 
@@ -124,6 +134,9 @@ class AppDatabase extends _$AppDatabase {
         interestRate: Value(credit.interestRate),
         interestRateType: Value(credit.interestRateType),
         scheduleManuallyAdjusted: Value(credit.scheduleManuallyAdjusted),
+        quotaId: Value(credit.quotaId),
+        interestUnknown: Value(credit.interestUnknown),
+        earlyPaymentWaivesInterest: Value(credit.earlyPaymentWaivesInterest),
       );
     } else if (credit is CardCredit) {
       return CreditsCompanion.insert(
@@ -221,6 +234,37 @@ class AppDatabase extends _$AppDatabase {
   /// Inserts or fully replaces [credit] and its children (installments or
   /// movements), matching app.js's pattern of always writing the whole
   /// credit object back on save.
+  Future<List<CommercialQuota>> loadAllCommercialQuotas() async {
+    final rows = await select(commercialQuotas).get();
+    return rows
+        .map((r) => CommercialQuota(
+              id: r.id,
+              brand: r.brand,
+              limit: r.limit,
+              notes: r.notes,
+            ))
+        .toList();
+  }
+
+  Future<void> upsertCommercialQuota(CommercialQuota quota) async {
+    await into(commercialQuotas).insertOnConflictUpdate(
+      CommercialQuotasCompanion.insert(
+        id: quota.id,
+        brand: quota.brand,
+        limit: quota.limit,
+        notes: Value(quota.notes),
+      ),
+    );
+  }
+
+  /// Throws a Drift/SQLite foreign-key-violation exception if any Credits
+  /// row still references this quota (onDelete: restrict on Credits.quotaId
+  /// — see tables.dart). Callers must catch and show a clear message
+  /// instead of letting the raw exception reach the user.
+  Future<void> deleteCommercialQuota(String id) async {
+    await (delete(commercialQuotas)..where((q) => q.id.equals(id))).go();
+  }
+
   Future<void> upsertCredit(Credit credit) async {
     await transaction(() async {
       await into(credits).insertOnConflictUpdate(_creditToCompanion(credit));
