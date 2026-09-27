@@ -13,6 +13,19 @@ import 'tables.dart';
 
 part 'database.g.dart';
 
+/// Thrown by [AppDatabase.deleteCommercialQuota] when [activeCount]
+/// purchases still reference the quota and aren't fully paid off — the UI
+/// surfaces this as a specific, accurate message instead of a raw
+/// exception or a generic "still has purchases" that's wrong once every
+/// purchase has actually been paid.
+class QuotaHasActivePurchasesException implements Exception {
+  final int activeCount;
+  const QuotaHasActivePurchasesException(this.activeCount);
+  @override
+  String toString() =>
+      'QuotaHasActivePurchasesException: $activeCount active purchase(s)';
+}
+
 /// App-wide Drift database. Replaces app.js's single Dexie `kv` table (which
 /// just stashed the whole `state` object as one JSON blob) with a proper
 /// relational schema — see lib/data/db/tables.dart for the mapping notes.
@@ -261,8 +274,50 @@ class AppDatabase extends _$AppDatabase {
   /// row still references this quota (onDelete: restrict on Credits.quotaId
   /// — see tables.dart). Callers must catch and show a clear message
   /// instead of letting the raw exception reach the user.
+  /// A purchase counts as "active" (blocks deletion) unless it has at
+  /// least one installment and every one of them is paid — a purchase
+  /// with zero installments is never treated as safely paid off.
+  Future<bool> _isPurchaseFullyPaid(String creditId) async {
+    final rows = await (select(installments)
+          ..where((i) => i.creditId.equals(creditId)))
+        .get();
+    if (rows.isEmpty) return false;
+    return rows.every((i) => i.paid);
+  }
+
+  /// Deletes [id] if none of its referencing purchases are still active.
+  /// Purchases that are fully paid off are unlinked (their `quotaId` set to
+  /// null) instead of blocking the delete, so paying off every purchase in
+  /// a cupo never traps the user with an undeletable, permanently "active"
+  /// quota — but their payment history is kept, just no longer grouped.
+  /// Throws [QuotaHasActivePurchasesException] if any purchase is still
+  /// active.
   Future<void> deleteCommercialQuota(String id) async {
-    await (delete(commercialQuotas)..where((q) => q.id.equals(id))).go();
+    await transaction(() async {
+      final purchases = await (select(credits)
+            ..where((c) => c.quotaId.equals(id)))
+          .get();
+
+      var activeCount = 0;
+      final paidIds = <String>[];
+      for (final row in purchases) {
+        if (await _isPurchaseFullyPaid(row.id)) {
+          paidIds.add(row.id);
+        } else {
+          activeCount++;
+        }
+      }
+
+      if (activeCount > 0) {
+        throw QuotaHasActivePurchasesException(activeCount);
+      }
+
+      for (final purchaseId in paidIds) {
+        await (update(credits)..where((c) => c.id.equals(purchaseId)))
+            .write(const CreditsCompanion(quotaId: Value(null)));
+      }
+      await (delete(commercialQuotas)..where((q) => q.id.equals(id))).go();
+    });
   }
 
   Future<void> upsertCredit(Credit credit) async {

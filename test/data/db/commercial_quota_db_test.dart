@@ -3,6 +3,7 @@ import 'package:drift/native.dart';
 import 'package:kredit/data/db/database.dart';
 import 'package:kredit/data/models/commercial_quota.dart';
 import 'package:kredit/data/models/credit.dart';
+import 'package:kredit/data/models/installment.dart';
 
 void main() {
   late AppDatabase db;
@@ -68,6 +69,52 @@ void main() {
       quotaId: 'q1',
     ));
 
-    expect(() => db.deleteCommercialQuota('q1'), throwsA(anything));
+    expect(() => db.deleteCommercialQuota('q1'),
+        throwsA(isA<QuotaHasActivePurchasesException>()));
+  });
+
+  test(
+      'deleting a quota whose only purchase is fully paid succeeds and '
+      'unlinks that purchase instead of losing its history', () async {
+    await db.upsertCommercialQuota(
+      CommercialQuota(id: 'q1', brand: 'Totto', limit: 700000),
+    );
+    await db.upsertCredit(LoanCredit(
+      id: 'l1',
+      name: 'Compra pagada',
+      lender: 'Totto',
+      totalAmount: 100000,
+      quotaAmount: 100000,
+      totalInstallments: 1,
+      frequency: CreditFrequency.monthly,
+      startDate: '2026-09-01',
+      quotaId: 'q1',
+      installments: [
+        Installment(
+          number: 1,
+          dueDate: '2026-09-01',
+          amount: 100000,
+          principal: 100000,
+          interest: 0,
+          paid: true,
+        ),
+      ],
+    ));
+
+    await db.deleteCommercialQuota('q1');
+
+    expect(await db.loadAllCommercialQuotas(), isEmpty);
+    final credits = await db.loadAllCredits();
+    expect((credits.single as LoanCredit).quotaId, isNull);
+  });
+
+  test('deleting a quota with no purchases at all succeeds', () async {
+    await db.upsertCommercialQuota(
+      CommercialQuota(id: 'q1', brand: 'Totto', limit: 700000),
+    );
+
+    await db.deleteCommercialQuota('q1');
+
+    expect(await db.loadAllCommercialQuotas(), isEmpty);
   });
 }

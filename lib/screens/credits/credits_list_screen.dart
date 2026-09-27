@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/db/database.dart' show QuotaHasActivePurchasesException;
 import '../../data/models/credit.dart';
 import '../../domain/bank_detector.dart';
 import '../../domain/credit_calculator.dart';
@@ -507,11 +508,13 @@ class _FilteredList extends ConsumerWidget {
 
     try {
       await ref.read(commercialQuotasProvider.notifier).delete(quota.id);
-    } catch (_) {
+    } on QuotaHasActivePurchasesException catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text(
-              'Tiene compras activas registradas en este cupo — ciérralas o muévelas primero.'),
+        final n = e.activeCount;
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(n == 1
+              ? 'Tiene 1 compra activa registrada en este cupo — ciérrala o muévela primero.'
+              : 'Tiene $n compras activas registradas en este cupo — ciérralas o muévelas primero.'),
         ));
       }
     }
