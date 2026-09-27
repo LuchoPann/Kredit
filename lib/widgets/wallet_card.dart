@@ -337,10 +337,10 @@ Path _roundedPolygon(List<Offset> points, List<double> radii) {
 /// actual visual identity instead of a generic flat rectangle. Confined to
 /// the top-left area behind the bank logo chip; the rest of the voucher
 /// stays plain white paper.
-class _NequiWaveCornerPainter extends CustomPainter {
+class _VoucherWaveCornerPainter extends CustomPainter {
   final Color purple;
   final Color pink;
-  const _NequiWaveCornerPainter({required this.purple, required this.pink});
+  const _VoucherWaveCornerPainter({required this.purple, required this.pink});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -381,7 +381,7 @@ class _NequiWaveCornerPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _NequiWaveCornerPainter oldDelegate) =>
+  bool shouldRepaint(covariant _VoucherWaveCornerPainter oldDelegate) =>
       purple != oldDelegate.purple || pink != oldDelegate.pink;
 }
 
@@ -408,7 +408,16 @@ class WalletCard extends StatelessWidget {
     // CardCredit is, by definition, always a real card, so it NEVER uses
     // this variant even if its lender were ever flagged hasPhysicalCard:
     // false — the `is LoanCredit` check always comes first.
-    final isVoucher = credit is LoanCredit && !bank.hasPhysicalCard;
+    final isBankVoucher = credit is LoanCredit && !bank.hasPhysicalCard;
+    // Every commercial-quota purchase (Totto, Lili Pink, Éxito
+    // CrediCompras...) is a voucher too — always, regardless of brand
+    // (explicit product decision: never guess per-brand whether it has a
+    // real physical card). Kept as its own flag (rather than folded into
+    // isBankVoucher) so the wave-corner color below can stay generic
+    // instead of Nequi's specific brand tones.
+    final isQuotaVoucher =
+        credit is LoanCredit && (credit as LoanCredit).quotaId != null;
+    final isVoucher = isBankVoucher || isQuotaVoucher;
 
     // The card face can be any accent color the user picks (light or dark),
     // so text color is derived from the actual gradient rather than assumed
@@ -473,15 +482,26 @@ class WalletCard extends StatelessWidget {
               Positioned.fill(
                 child: IgnorePointer(
                   child: CustomPaint(
-                    painter: const _NequiWaveCornerPainter(
-                      // Real Nequi brand tones, not the generic dark-navy
-                      // gradient this bank uses elsewhere as a card face —
-                      // deep violet + Nequi's actual magenta (#DA0081,
-                      // already used as its auto-picked accent color
-                      // elsewhere in the app).
-                      purple: Color(0xFF2A0944),
-                      pink: Color(0xFFDA0081),
-                    ),
+                    painter: isBankVoucher
+                        ? const _VoucherWaveCornerPainter(
+                            // Real Nequi brand tones, not the generic
+                            // dark-navy gradient this bank uses elsewhere as
+                            // a card face — deep violet + Nequi's actual
+                            // magenta (#DA0081, already used as its
+                            // auto-picked accent color elsewhere in the
+                            // app).
+                            purple: Color(0xFF2A0944),
+                            pink: Color(0xFFDA0081),
+                          )
+                        : const _VoucherWaveCornerPainter(
+                            // Generic, brand-neutral tones for a commercial
+                            // quota purchase (Totto, Lili Pink, Éxito...) —
+                            // deliberately NOT any specific brand's colors,
+                            // since Kredit never assumes what a cupo's real
+                            // visual identity looks like.
+                            purple: Color(0xFF3A3A42),
+                            pink: Color(0xFF9C9CA6),
+                          ),
                   ),
                 ),
               ),
@@ -595,6 +615,37 @@ class WalletCard extends StatelessWidget {
                           },
                         ),
                       ),
+                      // Nombre que el usuario le dio a este crédito/tarjeta
+                      // al crearlo (ej. "Mi RappiCard" vs. "RappiCard de
+                      // Ana") — antes `credit.name` no se pintaba en
+                      // ningún lado de la tarjeta visual, así que dos
+                      // tarjetas del mismo banco eran indistinguibles a
+                      // simple vista. Chip de alto contraste (no un texto
+                      // discreto) para que salte a la vista, no una nota
+                      // al pie.
+                      if (credit.name.trim().isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: Container(
+                            constraints: const BoxConstraints(maxWidth: 130),
+                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isLightFace ? Colors.black : Colors.white,
+                              borderRadius: BorderRadius.circular(KreditRadius.chip),
+                            ),
+                            child: Text(
+                              credit.name.trim(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: isLightFace ? Colors.white : Colors.black,
+                                fontWeight: FontWeight.w800,
+                                fontSize: KreditTextSize.caption,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ),
+                        ),
                       if (isDemoCredit(credit.id)) const DemoBadge(),
                     ],
                   ),
@@ -614,7 +665,11 @@ class WalletCard extends StatelessWidget {
                   Text(
                     credit.isCard
                         ? 'Tarjeta de Crédito'
-                        : (isVoucher ? 'Adelanto (${bank.shortLabel})' : 'Préstamo (${bank.shortLabel})'),
+                        : (isQuotaVoucher
+                            ? 'Compra (${bank.shortLabel})'
+                            : (isBankVoucher
+                                ? 'Adelanto (${bank.shortLabel})'
+                                : 'Préstamo (${bank.shortLabel})')),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
