@@ -175,6 +175,8 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       _cutoffDayCtrl,
       _paymentOffsetCtrl,
       _managementFeeCtrl,
+      _newQuotaBrandCtrl,
+      _newQuotaLimitCtrl,
     ]) {
       c.dispose();
     }
@@ -303,8 +305,11 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       _limitCtrl,
       _cutoffDayCtrl,
       _paymentOffsetCtrl,
+      _newQuotaBrandCtrl,
+      _newQuotaLimitCtrl,
     ];
     if (textControllers.any((c) => c.text.trim().isNotEmpty)) return true;
+    if (_isCommercialQuotaPurchase) return true;
     if (_balanceCtrl.text.trim().isNotEmpty && _balanceCtrl.text.trim() != '0') return true;
     if (_managementFeeCtrl.text.trim().isNotEmpty && _managementFeeCtrl.text.trim() != '0') {
       return true;
@@ -657,7 +662,22 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       _CreditTypePicker(
         selectedType: _type,
         onChanged: (value) {
-          setState(() => _type = value);
+          setState(() {
+            _type = value;
+            // El cupo comercial solo aplica a préstamos — cambiar a
+            // tarjeta con el toggle activo dejaba el campo Banco/Emisora
+            // oculto (y su validador desactivado) sin ninguna forma de
+            // volver a mostrarlo desde la UI.
+            if (value == CreditType.card && _isCommercialQuotaPurchase) {
+              _isCommercialQuotaPurchase = false;
+              _selectedCommercialQuotaId = null;
+              _creatingNewCommercialQuota = false;
+              if (_selectedLenderPreset != null &&
+                  _selectedLenderPreset != 'Otro...') {
+                _lenderCtrl.text = _selectedLenderPreset!;
+              }
+            }
+          });
           _applyEntityTemplate();
         },
       ),
@@ -872,6 +892,13 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           if (!v) {
             _selectedCommercialQuotaId = null;
             _creatingNewCommercialQuota = false;
+            // El campo Banco/Prestamista vuelve a mostrarse — su
+            // controlador quedó con la marca del cupo (o vacío), no con
+            // lo que el dropdown de banco realmente muestra.
+            if (_selectedLenderPreset != null &&
+                _selectedLenderPreset != 'Otro...') {
+              _lenderCtrl.text = _selectedLenderPreset!;
+            }
           }
         }),
       ),
