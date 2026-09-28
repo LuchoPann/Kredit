@@ -105,15 +105,38 @@ class AppLockGate extends ConsumerStatefulWidget {
   ConsumerState<AppLockGate> createState() => _AppLockGateState();
 }
 
-class _AppLockGateState extends ConsumerState<AppLockGate> {
-  // Shown until the reveal animation finishes, covering the frame or two
-  // where appLockProvider/onboardingProvider still hold their synchronous
-  // defaults while their real persisted value loads.
+class _AppLockGateState extends ConsumerState<AppLockGate>
+    with SingleTickerProviderStateMixin {
   bool _splashVisible = true;
+  // Starts at 1.0 (opaque). Reversed to 0.0 when the splash finishes.
+  // FadeTransition uses the GPU compositor layer — no software rasterization.
+  late final AnimationController _fadeOut;
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeOut = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 650),
+      value: 1.0,
+    );
+  }
+
+  @override
+  void dispose() {
+    _fadeOut.dispose();
+    super.dispose();
+  }
+
+  void _onSplashDone() {
+    _fadeOut.reverse().then((_) {
+      if (mounted) setState(() => _splashVisible = false);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Real content always mounts immediately so providers/DB load behind splash.
+    // Real content mounts immediately — loads behind splash.
     final isLocked = ref.watch(appLockProvider).isLocked;
     final onboardingAsync = ref.watch(onboardingProvider);
 
@@ -132,12 +155,12 @@ class _AppLockGateState extends ConsumerState<AppLockGate> {
 
     if (!_splashVisible) return content;
 
-    // Splash sits on top; app content loads underneath.
     return Stack(
       children: [
         content,
-        SplashScreen(
-          onCompleted: () => setState(() => _splashVisible = false),
+        FadeTransition(
+          opacity: _fadeOut,
+          child: SplashScreen(onCompleted: _onSplashDone),
         ),
       ],
     );

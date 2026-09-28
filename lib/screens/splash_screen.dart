@@ -39,7 +39,6 @@ const _kSvgPaths = [
   'M681.65 68.50 c-3.95 -0.40 -7 -3.20 -8.15 -7.55 -0.35 -1.25 -0.50 -10.30 -0.40 -25.30 l0.15 -23.40 1.25 -2.25 c0.70 -1.20 2.25 -2.90 3.40 -3.75 l2.20 -1.50 81.05 -0.15 c60.55 -0.10 81.80 0 83.80 0.45 3.30 0.70 1.70 -0.80 36.20 33.10 24 23.60 24.85 24.50 24.85 26.30 0 1.30 -0.35 2.20 -1.15 2.95 l-1.15 1.10 -109.75 0.10 c-60.30 0.10 -110.85 0.05 -112.30 -0.10z',
 ];
 
-// ─── Reveal direction per path ────────────────────────────────────────────────
 enum _Dir { bottomTop, topBottom, leftRight, diagDownRight, diagUpRight }
 
 const _kDirs = <_Dir>[
@@ -61,7 +60,6 @@ const _kDirs = <_Dir>[
   _Dir.leftRight,     // 15 — E top-left bar
 ];
 
-// ─── Path proxy ───────────────────────────────────────────────────────────────
 class _FlutterPathProxy implements PathProxy {
   _FlutterPathProxy(this.path);
   final Path path;
@@ -73,15 +71,12 @@ class _FlutterPathProxy implements PathProxy {
   @override void close() => path.close();
 }
 
-// ─── Shared parsed data — call initSplashPaths() before runApp() ─────────────
+// ─── Static path cache — initialized once in main() ──────────────────────────
 List<Path>? _sPaths;
 List<Rect>? _sBounds;
 List<int>?  _sSortedIdx;
-Path?       _sCombined;
 
-/// Parse SVG paths once on the UI thread. Call from main() after
-/// WidgetsFlutterBinding.ensureInitialized() so the work happens before
-/// the first animation frame, not during paint().
+/// Call once from main() after WidgetsFlutterBinding.ensureInitialized().
 void initSplashPaths() {
   if (_sPaths != null) return;
   final paths = _kSvgPaths.map((d) {
@@ -92,91 +87,55 @@ void initSplashPaths() {
   final bounds = paths.map((p) => p.getBounds()).toList();
   final idx = List.generate(paths.length, (i) => i)
     ..sort((a, b) => bounds[a].center.dx.compareTo(bounds[b].center.dx));
-  final combined = Path();
-  for (final p in paths) { combined.addPath(p, Offset.zero); }
   _sPaths     = paths;
   _sBounds    = bounds;
   _sSortedIdx = idx;
-  _sCombined  = combined;
 }
 
-// ─── SVG viewport ─────────────────────────────────────────────────────────────
 const _svgW = 1824.0;
 const _svgH  =  309.0;
 
-// ─── Painter — draws everything: bg + letters + sheen ────────────────────────
-// Uses repaint: to avoid ANY widget rebuilds during animation.
-// The widget tree is constant; only the RenderObject repaints.
-class _SplashPainter extends CustomPainter {
-  _SplashPainter({
-    required Animation<double> revealCtrl,
-    required Animation<double> sheenCtrl,
-    required Animation<double> fadeCtrl,
-  })  : _revealCtrl = revealCtrl,
-        _sheenCtrl  = sheenCtrl,
-        _fadeCtrl   = fadeCtrl,
-        super(repaint: Listenable.merge([revealCtrl, sheenCtrl, fadeCtrl]));
-
-  final Animation<double> _revealCtrl;
-  final Animation<double> _sheenCtrl;
-  final Animation<double> _fadeCtrl;
+// ─── Painter — letter reveal only ────────────────────────────────────────────
+class _KreditLogoPainter extends CustomPainter {
+  const _KreditLogoPainter(this.progress);
+  final double progress;
 
   static Path _clipFor(Rect b, _Dir dir, double t) {
-    const p = 2.0;
+    const pad = 2.0;
     final c = Path();
     switch (dir) {
-      case _Dir.bottomTop: {
-        c.addRect(Rect.fromLTRB(b.left - p, b.bottom - b.height * t,
-            b.right + p, b.bottom + p));
-      }
-      case _Dir.topBottom: {
-        c.addRect(Rect.fromLTRB(b.left - p, b.top - p,
-            b.right + p, b.top + b.height * t));
-      }
-      case _Dir.leftRight: {
-        c.addRect(Rect.fromLTRB(b.left - p, b.top - p,
-            b.left + b.width * t, b.bottom + p));
-      }
-      case _Dir.diagDownRight: {
+      case _Dir.bottomTop:
+        c.addRect(Rect.fromLTRB(b.left - pad, b.bottom - b.height * t,
+            b.right + pad, b.bottom + pad));
+      case _Dir.topBottom:
+        c.addRect(Rect.fromLTRB(b.left - pad, b.top - pad,
+            b.right + pad, b.top + b.height * t));
+      case _Dir.leftRight:
+        c.addRect(Rect.fromLTRB(b.left - pad, b.top - pad,
+            b.left + b.width * t, b.bottom + pad));
+      case _Dir.diagDownRight:
         final s = (b.width + b.height) * t;
         c.addPolygon([
-          Offset(b.left - p, b.top - p),
-          Offset(b.left + s - b.height, b.top - p),
-          Offset(b.left + s, b.bottom + p),
-          Offset(b.left - p, b.bottom + p),
+          Offset(b.left - pad, b.top - pad),
+          Offset(b.left + s - b.height, b.top - pad),
+          Offset(b.left + s, b.bottom + pad),
+          Offset(b.left - pad, b.bottom + pad),
         ], true);
-      }
-      case _Dir.diagUpRight: {
+      case _Dir.diagUpRight:
         final s = (b.width + b.height) * t;
         c.addPolygon([
-          Offset(b.left - p, b.bottom + p),
-          Offset(b.left + s - b.height, b.bottom + p),
-          Offset(b.left + s, b.top - p),
-          Offset(b.left - p, b.top - p),
+          Offset(b.left - pad, b.bottom + pad),
+          Offset(b.left + s - b.height, b.bottom + pad),
+          Offset(b.left + s, b.top - pad),
+          Offset(b.left - pad, b.top - pad),
         ], true);
-      }
     }
     return c;
   }
 
   @override
   void paint(Canvas canvas, Size size) {
-    final reveal = _revealCtrl.value;
-    final sheen  = _sheenCtrl.value;
-    final fadeT  = Curves.easeInOutCubic.transform(_fadeCtrl.value);
-
-    // ── 1. Black background — fades out with overlay ──────────────────────────
-    final bgAlpha = 1.0 - fadeT;
-    if (bgAlpha > 0) {
-      canvas.drawRect(
-        Offset.zero & size,
-        Paint()..color = Color.fromRGBO(0, 0, 0, bgAlpha),
-      );
-    }
-
-    // Nothing to draw if paths not ready or fully faded
-    if (_sPaths == null || bgAlpha <= 0) return;
-
+    if (_sPaths == null) return;
     final paths  = _sPaths!;
     final bounds = _sBounds!;
     final sorted = _sSortedIdx!;
@@ -186,23 +145,20 @@ class _SplashPainter extends CustomPainter {
     final tx    = (size.width  - _svgW * scale) / 2;
     final ty    = (size.height - _svgH * scale) / 2;
 
-    final letterAlpha = math.max(0.0, 1.0 - fadeT * 1.6).clamp(0.0, 1.0);
-
     canvas.save();
     canvas.translate(tx, ty);
     canvas.scale(scale, scale);
 
-    // ── 2. Letter reveal ──────────────────────────────────────────────────────
     const stagger = 0.65;
     const dur     = 0.35;
     final paint = Paint()
       ..style = PaintingStyle.fill
-      ..color = const Color(0xFFFAFAFB).withValues(alpha: letterAlpha);
+      ..color = const Color(0xFFFAFAFB);
 
     for (int rank = 0; rank < n; rank++) {
       final idx   = sorted[rank];
       final start = (rank / (n - 1)) * stagger;
-      final local = ((reveal - start) / dur).clamp(0.0, 1.0);
+      final local = ((progress - start) / dur).clamp(0.0, 1.0);
       if (local <= 0) continue;
       final eased = Curves.easeOutCubic.transform(local);
       canvas.save();
@@ -211,41 +167,14 @@ class _SplashPainter extends CustomPainter {
       canvas.restore();
     }
 
-    // ── 3. Sheen sweep ────────────────────────────────────────────────────────
-    final sheenOpacity = math.sin(sheen * math.pi).clamp(0.0, 1.0);
-    if (sheenOpacity > 0 && letterAlpha > 0) {
-      final cx   = Curves.easeInOutCubic.transform(sheen) * _svgW;
-      const half = 110.0;
-      canvas.save();
-      canvas.clipPath(_sCombined!);
-      canvas.drawRect(
-        Rect.fromLTWH(cx - half, -4, half * 2, _svgH + 8),
-        Paint()
-          ..shader = LinearGradient(
-            colors: [
-              Colors.transparent,
-              Colors.white.withValues(alpha: 0.50 * sheenOpacity * letterAlpha),
-              Colors.white.withValues(alpha: 0.90 * sheenOpacity * letterAlpha),
-              Colors.white.withValues(alpha: 0.50 * sheenOpacity * letterAlpha),
-              Colors.transparent,
-            ],
-            stops: const [0.0, 0.35, 0.5, 0.65, 1.0],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-          ).createShader(Rect.fromLTWH(cx - half, 0, half * 2, _svgH)),
-      );
-      canvas.restore();
-    }
-
     canvas.restore();
   }
 
-  // shouldRepaint is never called when using repaint: notifier
   @override
-  bool shouldRepaint(_SplashPainter old) => false;
+  bool shouldRepaint(_KreditLogoPainter old) => old.progress != progress;
 }
 
-// ─── Splash screen ────────────────────────────────────────────────────────────
+// ─── Splash widget ────────────────────────────────────────────────────────────
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key, required this.onCompleted});
   final VoidCallback onCompleted;
@@ -255,68 +184,53 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen>
-    with TickerProviderStateMixin {
-  late final AnimationController _logoCtrl;
-  late final AnimationController _sheenCtrl;
-  late final AnimationController _fadeCtrl;
-  late final _SplashPainter _painter;
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
 
   @override
   void initState() {
     super.initState();
-    // Ensure paths are parsed before animation starts (idempotent)
-    initSplashPaths();
-
-    _logoCtrl = AnimationController(
+    initSplashPaths(); // idempotent — no-op if already done in main()
+    _ctrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 4500),
     );
-    _sheenCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
-    _fadeCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    );
-
-    // Painter listens directly to controllers via repaint: —
-    // the widget itself NEVER rebuilds during the animation.
-    _painter = _SplashPainter(
-      revealCtrl: _logoCtrl,
-      sheenCtrl:  _sheenCtrl,
-      fadeCtrl:   _fadeCtrl,
-    );
-
     _sequence();
   }
 
   Future<void> _sequence() async {
-    await Future.delayed(const Duration(milliseconds: 150));
-    _logoCtrl.forward();
-    await Future.delayed(const Duration(milliseconds: 4700));
-    await Future.delayed(const Duration(milliseconds: 80));
-    _sheenCtrl.forward();
-    await Future.delayed(const Duration(milliseconds: 550));
-    _fadeCtrl.forward();
-    await Future.delayed(const Duration(milliseconds: 950));
+    await Future.delayed(const Duration(milliseconds: 200));
+    await _ctrl.forward().orCancel;
+    await Future.delayed(const Duration(milliseconds: 300)); // gabela
     if (mounted) widget.onCompleted();
   }
 
   @override
   void dispose() {
-    _logoCtrl.dispose();
-    _sheenCtrl.dispose();
-    _fadeCtrl.dispose();
+    _ctrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Static widget tree — CustomPainter's repaint: notifier drives all repaints.
-    // Zero widget rebuilds during the entire animation sequence.
-    return SizedBox.expand(
-      child: CustomPaint(painter: _painter),
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: AspectRatio(
+            aspectRatio: _svgW / _svgH,
+            child: AnimatedBuilder(
+              animation: _ctrl,
+              builder: (_, child) => CustomPaint(
+                painter: _KreditLogoPainter(_ctrl.value),
+                child: child,
+              ),
+              child: const SizedBox.expand(),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
