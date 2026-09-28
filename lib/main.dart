@@ -18,6 +18,7 @@ import 'providers/theme_provider.dart';
 import 'providers/widget_privacy_provider.dart';
 import 'screens/lock/lock_screen.dart';
 import 'screens/onboarding/welcome_screen.dart';
+import 'screens/splash_screen.dart';
 import 'services/home_widget_service.dart';
 import 'services/notification_service.dart';
 import 'theme/app_theme.dart';
@@ -64,9 +65,22 @@ class MyApp extends ConsumerWidget {
               settings: settings,
             );
           case '/add-credit':
-            return MaterialPageRoute(
-              builder: (_) => const AddCreditSheet(),
+            // Fade en vez del slide-desde-la-derecha por defecto de
+            // MaterialPageRoute, para que abrir/cerrar "Nuevo Crédito" se
+            // sienta como el mismo desvanecimiento usado entre pestañas
+            // (_TabFadeLayer) — misma duración/curva, en ambas direcciones
+            // porque PageRouteBuilder reutiliza la animación al hacer pop.
+            return PageRouteBuilder(
               settings: settings,
+              transitionDuration: const Duration(milliseconds: 340),
+              reverseTransitionDuration: const Duration(milliseconds: 340),
+              pageBuilder: (_, _, _) => const AddCreditSheet(),
+              transitionsBuilder: (_, animation, _, child) {
+                return FadeTransition(
+                  opacity: CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+                  child: child,
+                );
+              },
             );
         }
         return null;
@@ -80,20 +94,49 @@ class MyApp extends ConsumerWidget {
 /// first launch with a lock method configured, or after returning from
 /// background — see `AppLockNotifier`'s `WidgetsBindingObserver`). Purely
 /// additive wrapper — does not touch `RootScaffold`'s notification wiring.
-class AppLockGate extends ConsumerWidget {
+class AppLockGate extends ConsumerStatefulWidget {
   const AppLockGate({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AppLockGate> createState() => _AppLockGateState();
+}
+
+class _AppLockGateState extends ConsumerState<AppLockGate> {
+  // Shown until the reveal animation finishes, covering the frame or two
+  // where appLockProvider/onboardingProvider still hold their synchronous
+  // defaults while their real persisted value loads.
+  bool _splashVisible = true;
+
+  @override
+  Widget build(BuildContext context) {
+    // Real content always mounts immediately so providers/DB load behind splash.
     final isLocked = ref.watch(appLockProvider).isLocked;
-    if (isLocked) return const LockScreen();
-    // First-run welcome screen: only shown when there's no active lock to
-    // clear (above) AND the onboarding flag hasn't been persisted yet. Once
-    // `WelcomeScreen` calls `onboardingProvider.markShown()`, this provider
-    // flips to `true` and subsequent launches go straight to RootScaffold.
-    final onboardingShown = ref.watch(onboardingProvider);
-    if (!onboardingShown) return const WelcomeScreen();
-    return const RootScaffold();
+    final onboardingAsync = ref.watch(onboardingProvider);
+
+    Widget content;
+    if (isLocked) {
+      content = const LockScreen();
+    } else if (onboardingAsync.isLoading) {
+      content = const Scaffold(
+        backgroundColor: Colors.black,
+        body: SizedBox.shrink(),
+      );
+    } else {
+      final shown = onboardingAsync.value ?? false;
+      content = shown ? const RootScaffold() : const WelcomeScreen();
+    }
+
+    if (!_splashVisible) return content;
+
+    // Splash sits on top; app content loads underneath.
+    return Stack(
+      children: [
+        content,
+        SplashScreen(
+          onCompleted: () => setState(() => _splashVisible = false),
+        ),
+      ],
+    );
   }
 }
 
@@ -182,17 +225,24 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
     // above. See services/home_widget_service.dart. The widget is visible
     // without unlocking the app, so whether real amounts are shown is
     // gated by `widgetPrivacyProvider` (default: hidden).
-    ref.listen(creditsProvider, (previous, next) {
-      final credits = next.value;
-      if (credits == null) return;
-      final showAmounts = ref.read(widgetPrivacyProvider);
-      updateHomeWidget(credits, showAmounts: showAmounts);
-    });
-    ref.listen(widgetPrivacyProvider, (previous, next) {
+    void syncHomeWidget() {
       final credits = ref.read(creditsProvider).value;
       if (credits == null) return;
-      updateHomeWidget(credits, showAmounts: next);
-    });
+      final showAmounts = ref.read(widgetPrivacyProvider);
+      final themePrefs = ref.read(themePreferencesProvider);
+      updateHomeWidget(
+        credits,
+        showAmounts: showAmounts,
+        accentColor: themePrefs.accentColor,
+        bgTone: themePrefs.bgTone,
+      );
+    }
+
+    ref.listen(creditsProvider, (previous, next) => syncHomeWidget());
+    ref.listen(widgetPrivacyProvider, (previous, next) => syncHomeWidget());
+    // El widget también debe reflejar el acento/tono elegidos en Cuenta >
+    // Personalización, no solo los datos de créditos.
+    ref.listen(themePreferencesProvider, (previous, next) => syncHomeWidget());
     return Scaffold(
       body: Stack(
         children: [
@@ -281,7 +331,7 @@ class _TabFadeLayer extends StatelessWidget {
         excluding: !active,
         child: AnimatedOpacity(
           opacity: active ? 1 : 0,
-          duration: const Duration(milliseconds: 220),
+          duration: const Duration(milliseconds: 340),
           curve: Curves.easeOutCubic,
           child: TickerMode(
             enabled: active,
