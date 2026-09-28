@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/db/database.dart' show QuotaHasActivePurchasesException;
 import '../../data/models/commercial_quota.dart';
 import '../../data/models/credit.dart';
 import '../../providers/commercial_quotas_provider.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/account/voucher_pattern_picker.dart';
+import '../../widgets/voucher_pattern.dart';
 import '../../widgets/credit_detail/movements_tab.dart';
 import '../../widgets/credit_detail/quota_group_tabs.dart';
 import '../../widgets/credit_detail/schedule_tab.dart';
@@ -33,6 +34,10 @@ class CreditDetailScreen extends ConsumerStatefulWidget {
 class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
+  // Qué compra del cupo está abierta en el acordeón — una sola fuente de
+  // verdad compartida por Resumen y Cronograma, para que cambiar de
+  // pestaña nunca "pierda" cuál compra se estaba revisando.
+  String? _expandedPurchaseId;
 
   @override
   void initState() {
@@ -86,45 +91,51 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
     }
   }
 
-  Future<void> _confirmDeleteQuota(
-      BuildContext context, WidgetRef ref, CommercialQuota quota) async {
-    final confirmed = await showDialog<bool>(
+  /// Opens the voucher-design picker for THIS specific cupo — each cupo
+  /// comercial carries its own [CommercialQuota.voucherPattern], separate
+  /// from every other cupo's, so picking a style here only ever changes
+  /// this voucher's own vouchers.
+  void _showVoucherPatternPicker(BuildContext context, CommercialQuota quota) {
+    final accent = Theme.of(context).colorScheme.primary;
+    // StatefulBuilder gives the bottom sheet its own setState so VoucherPatternPicker
+    // rebuilds immediately when the user taps a design (provider update alone is not
+    // enough — the builder closure captures quota.voucherPattern at open time and
+    // never re-evaluates it without local state driving a rebuild).
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('¿Eliminar "${quota.brand}"?'),
-        content: const Text('Esta acción no se puede deshacer.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (ctx) {
+        var current = VoucherPattern.fromName(quota.voucherPattern);
+        return StatefulBuilder(
+          builder: (ctx, setModalState) => Padding(
+            padding: EdgeInsets.only(
+              left: KreditSpacing.card,
+              right: KreditSpacing.card,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + KreditSpacing.card,
+            ),
+            child: SingleChildScrollView(
+              child: VoucherPatternPicker(
+                selected: current,
+                accent: accent,
+                onSelect: (pattern) {
+                  setModalState(() => current = pattern);
+                  ref.read(commercialQuotasProvider.notifier).upsert(
+                    CommercialQuota(
+                      id: quota.id,
+                      brand: quota.brand,
+                      limit: quota.limit,
+                      notes: quota.notes,
+                      voucherPattern: pattern.name,
+                    ),
+                  );
+                },
+              ),
+            ),
           ),
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    try {
-      await ref.read(commercialQuotasProvider.notifier).delete(quota.id);
-      if (context.mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('"${quota.brand}" eliminado')),
         );
-      }
-    } on QuotaHasActivePurchasesException catch (e) {
-      if (context.mounted) {
-        final n = e.activeCount;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(n == 1
-              ? 'Tiene 1 compra activa registrada en este cupo — ciérrala o muévela primero.'
-              : 'Tiene $n compras activas registradas en este cupo — ciérralas o muévelas primero.'),
-        ));
-      }
-    }
+      },
+    );
   }
 
   /// Extracts the millisecond timestamp `_save()` encodes into every
@@ -179,9 +190,19 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
           }
         }
         final isGrouped = groupPurchases != null;
+        // La compra que trajo al usuario a este detalle empieza abierta;
+        // se ejecuta en cada build pero solo asigna una vez (??=).
+        if (isGrouped) {
+          _expandedPurchaseId ??= groupPurchases.first.id;
+        }
 
         return Scaffold(
           appBar: AppBar(
+            // Entidad + etiqueta de tipo (Préstamo/Tarjeta) comparten la
+            // fila superior junto a la flecha de regreso y el botón de
+            // diseño de voucher — antes la etiqueta vivía en su propia
+            // fila sobre las pestañas, robándole alto a Resumen/Cronograma.
+            centerTitle: true,
             title: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -191,43 +212,52 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                const SizedBox(width: 8),
+                _CreditTypeBadge(isLoan: isLoan),
                 if (isDemoCredit(credit.id)) const DemoBadge(),
               ],
             ),
+            // Un solo botón de eliminar visible en toda la pantalla: el
+            // rojo junto a cada compra expandida. Eliminar el cupo entero
+            // ya no vive en un botón separado aquí — se ofrece
+            // automáticamente al vaciarlo (ver credits_list_screen).
             actions: [
               if (isGrouped && quota != null)
                 IconButton(
-                  onPressed: () => _confirmDeleteQuota(context, ref, quota!),
-                  icon: const Icon(Icons.delete_outline),
-                  tooltip: 'Eliminar cupo',
+                  onPressed: () => _showVoucherPatternPicker(context, quota!),
+                  icon: const Icon(Icons.palette_outlined),
+                  tooltip: 'Diseño de voucher',
                 ),
             ],
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(kToolbarHeight + 34),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: _CreditTypeBadge(isLoan: isLoan),
-                  ),
-                  TabBar(
-                    controller: _tabController,
-                    tabs: [
-                      const Tab(text: 'Resumen'),
-                      Tab(text: isLoan ? 'Cronograma' : 'Movimientos'),
-                    ],
-                  ),
-                ],
-              ),
+            bottom: TabBar(
+              controller: _tabController,
+              tabs: [
+                const Tab(text: 'Resumen'),
+                Tab(text: isLoan ? 'Cronograma' : 'Movimientos'),
+              ],
             ),
           ),
           body: isGrouped
               ? TabBarView(
                   controller: _tabController,
                   children: [
-                    QuotaGroupSummaryTab(quota: quota, purchases: groupPurchases),
-                    QuotaGroupScheduleTab(purchases: groupPurchases),
+                    QuotaGroupSummaryTab(
+                      quota: quota,
+                      purchases: groupPurchases,
+                      expandedId: _expandedPurchaseId,
+                      onToggle: (id) => setState(
+                        () => _expandedPurchaseId =
+                            _expandedPurchaseId == id ? null : id,
+                      ),
+                    ),
+                    QuotaGroupScheduleTab(
+                      purchases: groupPurchases,
+                      expandedId: _expandedPurchaseId,
+                      onToggle: (id) => setState(
+                        () => _expandedPurchaseId =
+                            _expandedPurchaseId == id ? null : id,
+                      ),
+                    ),
                   ],
                 )
               : TabBarView(
@@ -295,7 +325,7 @@ class _CreditTypeBadge extends StatelessWidget {
     final label = isLoan ? 'Préstamo' : 'Tarjeta de Crédito';
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(KreditRadius.chip),
@@ -303,12 +333,14 @@ class _CreditTypeBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: KreditIconSize.small, color: color),
-          const SizedBox(width: 5),
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 4),
           Text(
             label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: KreditTextSize.caption,
+              fontSize: 10,
               color: color,
               fontWeight: FontWeight.w700,
             ),
