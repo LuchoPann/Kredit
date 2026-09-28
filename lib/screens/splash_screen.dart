@@ -100,39 +100,6 @@ class _KreditLogoPainter extends CustomPainter {
   const _KreditLogoPainter(this.progress);
   final double progress;
 
-  static Path _clipFor(Rect b, _Dir dir, double t) {
-    const pad = 2.0;
-    final c = Path();
-    switch (dir) {
-      case _Dir.bottomTop:
-        c.addRect(Rect.fromLTRB(b.left - pad, b.bottom - b.height * t,
-            b.right + pad, b.bottom + pad));
-      case _Dir.topBottom:
-        c.addRect(Rect.fromLTRB(b.left - pad, b.top - pad,
-            b.right + pad, b.top + b.height * t));
-      case _Dir.leftRight:
-        c.addRect(Rect.fromLTRB(b.left - pad, b.top - pad,
-            b.left + b.width * t, b.bottom + pad));
-      case _Dir.diagDownRight:
-        final s = (b.width + b.height) * t;
-        c.addPolygon([
-          Offset(b.left - pad, b.top - pad),
-          Offset(b.left + s - b.height, b.top - pad),
-          Offset(b.left + s, b.bottom + pad),
-          Offset(b.left - pad, b.bottom + pad),
-        ], true);
-      case _Dir.diagUpRight:
-        final s = (b.width + b.height) * t;
-        c.addPolygon([
-          Offset(b.left - pad, b.bottom + pad),
-          Offset(b.left + s - b.height, b.bottom + pad),
-          Offset(b.left + s, b.top - pad),
-          Offset(b.left - pad, b.top - pad),
-        ], true);
-    }
-    return c;
-  }
-
   @override
   void paint(Canvas canvas, Size size) {
     if (_sPaths == null) return;
@@ -151,6 +118,7 @@ class _KreditLogoPainter extends CustomPainter {
 
     const stagger = 0.65;
     const dur     = 0.35;
+    const pad     = 2.0;
     final paint = Paint()
       ..style = PaintingStyle.fill
       ..color = const Color(0xFFFAFAFB);
@@ -160,9 +128,40 @@ class _KreditLogoPainter extends CustomPainter {
       final start = (rank / (n - 1)) * stagger;
       final local = ((progress - start) / dur).clamp(0.0, 1.0);
       if (local <= 0) continue;
-      final eased = Curves.easeOutCubic.transform(local);
+      final t   = Curves.easeOutCubic.transform(local);
+      final b   = bounds[idx];
+      final dir = _kDirs[idx];
+
       canvas.save();
-      canvas.clipPath(_clipFor(bounds[idx], _kDirs[idx], eased));
+      // clipRect is GPU-scissor (free); clipPath requires tessellation — use
+      // it only for the two diagonal reveal directions.
+      switch (dir) {
+        case _Dir.bottomTop:
+          canvas.clipRect(Rect.fromLTRB(
+              b.left - pad, b.bottom - b.height * t, b.right + pad, b.bottom + pad));
+        case _Dir.topBottom:
+          canvas.clipRect(Rect.fromLTRB(
+              b.left - pad, b.top - pad, b.right + pad, b.top + b.height * t));
+        case _Dir.leftRight:
+          canvas.clipRect(Rect.fromLTRB(
+              b.left - pad, b.top - pad, b.left + b.width * t, b.bottom + pad));
+        case _Dir.diagDownRight:
+          final s = (b.width + b.height) * t;
+          canvas.clipPath(Path()..addPolygon([
+            Offset(b.left - pad, b.top - pad),
+            Offset(b.left + s - b.height, b.top - pad),
+            Offset(b.left + s, b.bottom + pad),
+            Offset(b.left - pad, b.bottom + pad),
+          ], true));
+        case _Dir.diagUpRight:
+          final s = (b.width + b.height) * t;
+          canvas.clipPath(Path()..addPolygon([
+            Offset(b.left - pad, b.bottom + pad),
+            Offset(b.left + s - b.height, b.bottom + pad),
+            Offset(b.left + s, b.top - pad),
+            Offset(b.left - pad, b.top - pad),
+          ], true));
+      }
       canvas.drawPath(paths[idx], paint);
       canvas.restore();
     }
@@ -213,20 +212,23 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: AspectRatio(
-            aspectRatio: _svgW / _svgH,
-            child: AnimatedBuilder(
-              animation: _ctrl,
-              builder: (_, child) => CustomPaint(
-                painter: _KreditLogoPainter(_ctrl.value),
-                child: child,
+    return SizedBox.expand(
+      child: ColoredBox(
+        color: Colors.black,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: AspectRatio(
+              aspectRatio: _svgW / _svgH,
+              child: AnimatedBuilder(
+                animation: _ctrl,
+                builder: (_, child) => CustomPaint(
+                  painter: _KreditLogoPainter(_ctrl.value),
+                  willChange: true, // animation changes every frame — skip raster cache
+                  child: child,
+                ),
+                child: const SizedBox.expand(),
               ),
-              child: const SizedBox.expand(),
             ),
           ),
         ),
