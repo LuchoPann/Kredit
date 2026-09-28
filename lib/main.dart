@@ -24,6 +24,10 @@ import 'services/notification_service.dart';
 import 'theme/app_theme.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Parse SVG paths synchronously before the first frame so initSplashPaths()
+  // is never called from inside paint() on the UI thread.
+  initSplashPaths();
   runApp(const ProviderScope(child: MyApp()));
 }
 

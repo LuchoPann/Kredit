@@ -73,13 +73,16 @@ class _FlutterPathProxy implements PathProxy {
   @override void close() => path.close();
 }
 
-// ─── Shared parsed data (initialized once, persists for app lifetime) ─────────
+// ─── Shared parsed data — call initSplashPaths() before runApp() ─────────────
 List<Path>? _sPaths;
 List<Rect>? _sBounds;
 List<int>?  _sSortedIdx;
 Path?       _sCombined;
 
-void _ensureInit() {
+/// Parse SVG paths once on the UI thread. Call from main() after
+/// WidgetsFlutterBinding.ensureInitialized() so the work happens before
+/// the first animation frame, not during paint().
+void initSplashPaths() {
   if (_sPaths != null) return;
   final paths = _kSvgPaths.map((d) {
     final p = Path();
@@ -91,29 +94,32 @@ void _ensureInit() {
     ..sort((a, b) => bounds[a].center.dx.compareTo(bounds[b].center.dx));
   final combined = Path();
   for (final p in paths) { combined.addPath(p, Offset.zero); }
-  _sPaths      = paths;
-  _sBounds     = bounds;
-  _sSortedIdx  = idx;
-  _sCombined   = combined;
+  _sPaths     = paths;
+  _sBounds    = bounds;
+  _sSortedIdx = idx;
+  _sCombined  = combined;
 }
 
-// ─── SVG → widget transform ───────────────────────────────────────────────────
+// ─── SVG viewport ─────────────────────────────────────────────────────────────
 const _svgW = 1824.0;
-const _svgH =  309.0;
+const _svgH  =  309.0;
 
-// ─── Single painter: draws letters + sheen in one pass ────────────────────────
+// ─── Painter — draws everything: bg + letters + sheen ────────────────────────
+// Uses repaint: to avoid ANY widget rebuilds during animation.
+// The widget tree is constant; only the RenderObject repaints.
 class _SplashPainter extends CustomPainter {
-  const _SplashPainter({
-    required this.revealProgress,
-    required this.logoOpacity,
-    required this.sheenPosition,
-    required this.sheenOpacity,
-  });
+  _SplashPainter({
+    required Animation<double> revealCtrl,
+    required Animation<double> sheenCtrl,
+    required Animation<double> fadeCtrl,
+  })  : _revealCtrl = revealCtrl,
+        _sheenCtrl  = sheenCtrl,
+        _fadeCtrl   = fadeCtrl,
+        super(repaint: Listenable.merge([revealCtrl, sheenCtrl, fadeCtrl]));
 
-  final double revealProgress; // 0→1 letter reveal
-  final double logoOpacity;    // 1→0 logo fade-out
-  final double sheenPosition;  // 0→1 (left→right across SVG width)
-  final double sheenOpacity;   // 0→1 sheen brightness
+  final Animation<double> _revealCtrl;
+  final Animation<double> _sheenCtrl;
+  final Animation<double> _fadeCtrl;
 
   static Path _clipFor(Rect b, _Dir dir, double t) {
     const p = 2.0;
@@ -155,74 +161,91 @@ class _SplashPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    _ensureInit();
-    final paths   = _sPaths!;
-    final bounds  = _sBounds!;
-    final sorted  = _sSortedIdx!;
-    final n       = sorted.length;
+    final reveal = _revealCtrl.value;
+    final sheen  = _sheenCtrl.value;
+    final fadeT  = Curves.easeInOutCubic.transform(_fadeCtrl.value);
+
+    // ── 1. Black background — fades out with overlay ──────────────────────────
+    final bgAlpha = 1.0 - fadeT;
+    if (bgAlpha > 0) {
+      canvas.drawRect(
+        Offset.zero & size,
+        Paint()..color = Color.fromRGBO(0, 0, 0, bgAlpha),
+      );
+    }
+
+    // Nothing to draw if paths not ready or fully faded
+    if (_sPaths == null || bgAlpha <= 0) return;
+
+    final paths  = _sPaths!;
+    final bounds = _sBounds!;
+    final sorted = _sSortedIdx!;
+    final n      = sorted.length;
 
     final scale = math.min(size.width / _svgW, size.height / _svgH);
     final tx    = (size.width  - _svgW * scale) / 2;
     final ty    = (size.height - _svgH * scale) / 2;
 
+    final letterAlpha = math.max(0.0, 1.0 - fadeT * 1.6).clamp(0.0, 1.0);
+
     canvas.save();
     canvas.translate(tx, ty);
     canvas.scale(scale, scale);
 
-    // ── 1. Letter reveal ──────────────────────────────────────────────────────
+    // ── 2. Letter reveal ──────────────────────────────────────────────────────
     const stagger = 0.65;
     const dur     = 0.35;
-    final letterPaint = Paint()
+    final paint = Paint()
       ..style = PaintingStyle.fill
-      ..color = const Color(0xFFFAFAFB).withValues(alpha: logoOpacity);
+      ..color = const Color(0xFFFAFAFB).withValues(alpha: letterAlpha);
 
     for (int rank = 0; rank < n; rank++) {
       final idx   = sorted[rank];
       final start = (rank / (n - 1)) * stagger;
-      final local = ((revealProgress - start) / dur).clamp(0.0, 1.0);
+      final local = ((reveal - start) / dur).clamp(0.0, 1.0);
       if (local <= 0) continue;
       final eased = Curves.easeOutCubic.transform(local);
       canvas.save();
       canvas.clipPath(_clipFor(bounds[idx], _kDirs[idx], eased));
-      canvas.drawPath(paths[idx], letterPaint);
+      canvas.drawPath(paths[idx], paint);
       canvas.restore();
     }
 
-    // ── 2. Sheen sweep (clipped to letters) ───────────────────────────────────
-    if (sheenOpacity > 0) {
+    // ── 3. Sheen sweep ────────────────────────────────────────────────────────
+    final sheenOpacity = math.sin(sheen * math.pi).clamp(0.0, 1.0);
+    if (sheenOpacity > 0 && letterAlpha > 0) {
+      final cx   = Curves.easeInOutCubic.transform(sheen) * _svgW;
+      const half = 110.0;
       canvas.save();
       canvas.clipPath(_sCombined!);
-      final cx     = sheenPosition * _svgW;
-      const half   = 110.0; // half-width of sheen strip in SVG units
-      final paint  = Paint()
-        ..shader = LinearGradient(
-          colors: [
-            Colors.transparent,
-            Colors.white.withValues(alpha: 0.50 * sheenOpacity * logoOpacity),
-            Colors.white.withValues(alpha: 0.90 * sheenOpacity * logoOpacity),
-            Colors.white.withValues(alpha: 0.50 * sheenOpacity * logoOpacity),
-            Colors.transparent,
-          ],
-          stops: const [0.0, 0.35, 0.5, 0.65, 1.0],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ).createShader(Rect.fromLTWH(cx - half, 0, half * 2, _svgH));
-      canvas.drawRect(Rect.fromLTWH(cx - half, -4, half * 2, _svgH + 8), paint);
+      canvas.drawRect(
+        Rect.fromLTWH(cx - half, -4, half * 2, _svgH + 8),
+        Paint()
+          ..shader = LinearGradient(
+            colors: [
+              Colors.transparent,
+              Colors.white.withValues(alpha: 0.50 * sheenOpacity * letterAlpha),
+              Colors.white.withValues(alpha: 0.90 * sheenOpacity * letterAlpha),
+              Colors.white.withValues(alpha: 0.50 * sheenOpacity * letterAlpha),
+              Colors.transparent,
+            ],
+            stops: const [0.0, 0.35, 0.5, 0.65, 1.0],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ).createShader(Rect.fromLTWH(cx - half, 0, half * 2, _svgH)),
+      );
       canvas.restore();
     }
 
     canvas.restore();
   }
 
+  // shouldRepaint is never called when using repaint: notifier
   @override
-  bool shouldRepaint(_SplashPainter old) =>
-      old.revealProgress != revealProgress ||
-      old.logoOpacity    != logoOpacity    ||
-      old.sheenPosition  != sheenPosition  ||
-      old.sheenOpacity   != sheenOpacity;
+  bool shouldRepaint(_SplashPainter old) => false;
 }
 
-// ─── Splash screen ─────────────────────────────────────────────────────────────
+// ─── Splash screen ────────────────────────────────────────────────────────────
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key, required this.onCompleted});
   final VoidCallback onCompleted;
@@ -233,13 +256,17 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
-  late final AnimationController _logoCtrl;  // letter reveal
-  late final AnimationController _sheenCtrl; // light ray
-  late final AnimationController _fadeCtrl;  // entire overlay fade-out (logo + black bg)
+  late final AnimationController _logoCtrl;
+  late final AnimationController _sheenCtrl;
+  late final AnimationController _fadeCtrl;
+  late final _SplashPainter _painter;
 
   @override
   void initState() {
     super.initState();
+    // Ensure paths are parsed before animation starts (idempotent)
+    initSplashPaths();
+
     _logoCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 4500),
@@ -248,23 +275,31 @@ class _SplashScreenState extends State<SplashScreen>
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
-    // Fades the ENTIRE splash (black bg + letters) to 0 → reveals app underneath
     _fadeCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
     );
+
+    // Painter listens directly to controllers via repaint: —
+    // the widget itself NEVER rebuilds during the animation.
+    _painter = _SplashPainter(
+      revealCtrl: _logoCtrl,
+      sheenCtrl:  _sheenCtrl,
+      fadeCtrl:   _fadeCtrl,
+    );
+
     _sequence();
   }
 
   Future<void> _sequence() async {
-    await Future.delayed(const Duration(milliseconds: 200));
+    await Future.delayed(const Duration(milliseconds: 150));
     _logoCtrl.forward();
-    await Future.delayed(const Duration(milliseconds: 4700)); // reveal done
-    await Future.delayed(const Duration(milliseconds: 80));   // brief beat
+    await Future.delayed(const Duration(milliseconds: 4700));
+    await Future.delayed(const Duration(milliseconds: 80));
     _sheenCtrl.forward();
-    await Future.delayed(const Duration(milliseconds: 550));  // sheen done
+    await Future.delayed(const Duration(milliseconds: 550));
     _fadeCtrl.forward();
-    await Future.delayed(const Duration(milliseconds: 950));  // fade done
+    await Future.delayed(const Duration(milliseconds: 950));
     if (mounted) widget.onCompleted();
   }
 
@@ -278,50 +313,10 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: Listenable.merge([_logoCtrl, _sheenCtrl, _fadeCtrl]),
-      builder: (context, child) {
-        // Overall overlay opacity: starts at 1, fades to 0 at the end.
-        // This fades the BLACK BACKGROUND too, creating a smooth crossfade
-        // to the app content that's already mounted beneath.
-        final overlayOpacity =
-            1.0 - Curves.easeInOutCubic.transform(_fadeCtrl.value);
-
-        final logoOpacity =
-            math.max(0.0, 1.0 - _fadeCtrl.value * 1.4).clamp(0.0, 1.0);
-
-        // Sheen: position sweeps 0→1, brightness peaks at mid-sweep
-        final sheenPos    = Curves.easeInOutCubic.transform(_sheenCtrl.value);
-        final sheenOpacity =
-            math.sin(_sheenCtrl.value * math.pi).clamp(0.0, 1.0);
-
-        return Opacity(
-          opacity: overlayOpacity,
-          child: ColoredBox(
-            color: Colors.black,
-            child: SizedBox.expand(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
-                  // AspectRatio gives the CustomPaint a tight size
-                  child: AspectRatio(
-                    aspectRatio: _svgW / _svgH,
-                    child: CustomPaint(
-                      painter: _SplashPainter(
-                        revealProgress: _logoCtrl.value,
-                        logoOpacity:    logoOpacity,
-                        sheenPosition:  sheenPos,
-                        sheenOpacity:   sheenOpacity,
-                      ),
-                      child: const SizedBox.expand(),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
+    // Static widget tree — CustomPainter's repaint: notifier drives all repaints.
+    // Zero widget rebuilds during the entire animation sequence.
+    return SizedBox.expand(
+      child: CustomPaint(painter: _painter),
     );
   }
 }
