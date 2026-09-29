@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kredit/data/models/commercial_quota.dart';
 import 'package:kredit/data/models/credit.dart';
@@ -42,10 +43,11 @@ void main() {
     final purchase = _purchase(
         id: 'l1', name: 'Compra tenis', quotaId: 'q1', amount: 250000);
 
-    await tester.pumpWidget(MaterialApp(
+    await tester.pumpWidget(ProviderScope(
+      child: MaterialApp(
       theme: buildAppTheme(),
       home: Scaffold(body: CommercialQuotaCard(quota: quota, purchases: [purchase])),
-    ));
+    )));
 
     expect(find.text('Totto'), findsOneWidget);
     expect(find.text(formatCOP(450000)), findsOneWidget);
@@ -58,7 +60,8 @@ void main() {
     final quota = CommercialQuota(id: 'q1', brand: 'Totto', limit: 700000);
     var tapped = false;
 
-    await tester.pumpWidget(MaterialApp(
+    await tester.pumpWidget(ProviderScope(
+      child: MaterialApp(
       theme: buildAppTheme(),
       home: Scaffold(
         body: CommercialQuotaCard(
@@ -67,7 +70,7 @@ void main() {
           onTap: () => tapped = true,
         ),
       ),
-    ));
+    )));
 
     await tester.tap(find.text('Totto'));
     expect(tapped, isTrue);
@@ -79,10 +82,11 @@ void main() {
     final purchase = _purchase(
         id: 'l1', name: 'Compra tenis', quotaId: 'q1', amount: 250000);
 
-    await tester.pumpWidget(MaterialApp(
+    await tester.pumpWidget(ProviderScope(
+      child: MaterialApp(
       theme: buildAppTheme(),
       home: Scaffold(body: CommercialQuotaCard(quota: quota, purchases: [purchase])),
-    ));
+    )));
 
     await tester.tap(find.text('COMPRAS DE ESTE CUPO'));
     await tester.pump();
@@ -100,7 +104,8 @@ void main() {
     final hiddenByFilter = _purchase(
         id: 'l1', name: 'Oculta por el filtro', quotaId: 'q1', amount: 300000);
 
-    await tester.pumpWidget(MaterialApp(
+    await tester.pumpWidget(ProviderScope(
+      child: MaterialApp(
       theme: buildAppTheme(),
       home: Scaffold(
         body: CommercialQuotaCard(
@@ -109,7 +114,7 @@ void main() {
           allPurchases: [hiddenByFilter],
         ),
       ),
-    ));
+    )));
 
     expect(find.text(formatCOP(400000)), findsOneWidget);
     // La compra no se muestra (fuera de este tab/filtro), solo su saldo
@@ -120,10 +125,11 @@ void main() {
   testWidgets('renders with zero purchases without crashing', (tester) async {
     final quota = CommercialQuota(id: 'q1', brand: 'Totto', limit: 700000);
 
-    await tester.pumpWidget(MaterialApp(
+    await tester.pumpWidget(ProviderScope(
+      child: MaterialApp(
       theme: buildAppTheme(),
       home: Scaffold(body: CommercialQuotaCard(quota: quota, purchases: const [])),
-    ));
+    )));
 
     expect(find.text('Totto'), findsOneWidget);
     expect(find.text('0'), findsOneWidget);

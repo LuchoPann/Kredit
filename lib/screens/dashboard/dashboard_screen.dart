@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/credit.dart';
-import '../../domain/credit_calculator.dart';
 import '../../domain/recommendations.dart';
 import '../../providers/credits_provider.dart';
+import '../../providers/dashboard_provider.dart';
 import '../../providers/navigation_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../theme/app_theme.dart';
@@ -161,13 +161,20 @@ class _DashboardBody extends ConsumerWidget {
     }
     final kredit = Theme.of(context).extension<KreditColors>()!;
 
-    final profileName = ref.watch(themePreferencesProvider).profileName;
+    // select() rebuilds only when profileName changes, not on every theme save.
+    final profileName = ref.watch(
+      themePreferencesProvider.select((p) => p.profileName),
+    );
     final totalDebt = ref.watch(totalUnpaidProvider);
-    final activeCredits = credits.where(creditHasUnpaid).toList();
-    final progressPct = getLoansProgressPercent(credits);
-    final upcoming = buildPendingPayments(credits);
-    final weekSummary = buildPaymentWeekSummary(upcoming);
-    final recommendation = buildPrimaryRecommendation(credits);
+    // Pre-computed by dashboardDataProvider; returns null only transiently
+    // before the first credits emission, which never happens here because
+    // _DashboardBody is only rendered from the AsyncData branch.
+    final data = ref.watch(dashboardDataProvider)!;
+    final activeCredits = data.activeCredits;
+    final progressPct = data.progressPct;
+    final upcoming = data.upcoming;
+    final weekSummary = data.weekSummary;
+    final recommendation = data.recommendation;
 
     return ListView(
       // Extra bottom clearance so the last row of content can scroll clear
@@ -251,7 +258,9 @@ class _DashboardBody extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 16),
-            ProgressRing(percent: progressPct, size: 68),
+            RepaintBoundary(
+              child: ProgressRing(percent: progressPct, size: 68),
+            ),
           ],
         ),
         const SizedBox(height: 22),
@@ -278,7 +287,7 @@ class _DashboardBody extends ConsumerWidget {
             ),
           ],
         ),
-        const SizedBox(height: 28),
+        const SizedBox(height: KreditSpacing.section),
 
         // 3. Prioridad de hoy — el dashboard deja de ser solo un reporte y
         // empieza a comportarse como una guía: identifica el pago más urgente
@@ -290,7 +299,7 @@ class _DashboardBody extends ConsumerWidget {
 
         // 5. Lista de créditos activos — misma tarjeta discreta.
         if (activeCredits.isNotEmpty) ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: KreditSpacing.section),
           KreditSectionCard(
             children: [
               Row(
@@ -355,10 +364,20 @@ class _DashboardBody extends ConsumerWidget {
         // ese archivo, asi que se replica aqui en vez de exportarla, para
         // no acoplar dos pantallas por un widget tan chico).
         if (activeCredits.isNotEmpty) ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: KreditSpacing.section),
           KreditSectionCard(
             children: [
-              ListTile(
+              // Material transparente: KreditSectionCard pinta su fondo con
+              // un DecoratedBox (no un Material), así que el ink splash del
+              // ListTile pintaba en el Material ancestro más cercano (mucho
+              // más arriba en el árbol) y quedaba oculto detrás de esa caja
+              // — "ListTile background color or ink splashes may be
+              // invisible" (warning real de Flutter, verificado en
+              // dispositivo). Con este Material de por medio, el splash
+              // pinta encima de la caja como corresponde.
+              Material(
+                color: Colors.transparent,
+                child: ListTile(
                 contentPadding: EdgeInsets.zero,
                 onTap: () => openSimulatorSheet(context),
                 leading: Icon(Icons.calculate_outlined, color: Theme.of(context).colorScheme.primary),
@@ -371,6 +390,7 @@ class _DashboardBody extends ConsumerWidget {
                   style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary),
                 ),
                 trailing: Icon(Icons.chevron_right, color: kredit.textTertiary),
+                ),
               ),
             ],
           ),
@@ -424,6 +444,7 @@ class _SecondaryStat extends StatelessWidget {
     );
   }
 }
+
 
 class _PaymentCoachCard extends ConsumerWidget {
   final FinancialRecommendation recommendation;

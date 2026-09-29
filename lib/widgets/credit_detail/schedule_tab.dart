@@ -24,7 +24,7 @@ import 'status_badge.dart';
 class ScheduleTab extends ConsumerStatefulWidget {
   final LoanCredit credit;
   // Cuando un credito de cupo comercial agrupa varias compras, el
-  // Cronograma apila un ScheduleTab completo por compra dentro de un
+  // Cronograma se muestra dentro de una tarjeta colapsable de un
   // ListView externo — este debe encogerse a su contenido (nunca asumir
   // que tiene toda la pantalla disponible via Expanded) en ese caso.
   final bool shrinkWrap;

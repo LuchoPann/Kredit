@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/db/database.dart';
@@ -39,23 +37,58 @@ class CreditsNotifier extends AsyncNotifier<List<Credit>> {
       credits = await _db.loadAllCredits();
     }
 
-    // accrueAllCards (app.js loadState ~L89): apply pending interest/fee
-    // cycles for every card credit on load, persisting any that changed.
-    //
-    // Loan credits get an analogous always-run treatment: every load
-    // recomputes their installment schedule with the real French
-    // amortization engine (see recomputeLoanInstallments), persisting only
-    // when the numbers actually changed. This is what migrates loans built
-    // by the old linear-interest engine without any stored "migrated" flag
-    // — see recomputeLoanInstallments's doc comment for why that's safe.
+    // Show data immediately — don't block the first frame with CPU-intensive
+    // accrual and amortization recomputation. _accrueAndRecompute runs those
+    // in the background, yielding to the event loop between each credit so
+    // animations keep firing, and updates state only if anything changed.
+    _accrueAndRecompute(credits);
+    return credits;
+  }
+
+  // Fast field-by-field installment comparison — avoids the previous
+  // jsonEncode × 2 pattern that serialized every installment to a string
+  // twice per credit just to detect equality.
+  static bool _installmentsEqual(
+      List<dynamic> before, List<dynamic> after) {
+    if (before.length != after.length) return false;
+    for (var i = 0; i < before.length; i++) {
+      final a = before[i], b = after[i];
+      if (a.number != b.number ||
+          a.principal != b.principal ||
+          a.interest != b.interest ||
+          a.paid != b.paid ||
+          a.paymentDate != b.paymentDate ||
+          a.interestWaived != b.interestWaived) { return false; }
+    }
+    return true;
+  }
+
+  // accrueAllCards (app.js loadState ~L89): apply pending interest/fee
+  // cycles for every card credit on load, persisting any that changed.
+  //
+  // Loan credits get an analogous always-run treatment: every load
+  // recomputes their installment schedule with the real French
+  // amortization engine (see recomputeLoanInstallments), persisting only
+  // when the numbers actually changed. This is what migrates loans built
+  // by the old linear-interest engine without any stored "migrated" flag
+  // — see recomputeLoanInstallments's doc comment for why that's safe.
+  //
+  // Runs after the first frame (called from build() without await) so the
+  // UI thread is never blocked. Yields between each credit so animation
+  // ticks fire throughout. Updates state only if something actually changed.
+  Future<void> _accrueAndRecompute(List<Credit> credits) async {
+    bool anyChanged = false;
     for (final c in credits) {
+      // Yield to the event loop before processing each credit so that
+      // animation callbacks (e.g. the circular indicator) can run between
+      // credits and the UI never appears frozen.
+      await Future<void>.delayed(Duration.zero);
+      bool changed = false;
       if (c is CardCredit) {
         final before = c.currentBalance;
         final beforeMovements = c.movements.length;
         accrueCardCredit(c);
-        if (c.currentBalance != before || c.movements.length != beforeMovements) {
-          await _db.upsertCredit(c);
-        }
+        changed = c.currentBalance != before || c.movements.length != beforeMovements;
       } else if (c is LoanCredit && !c.scheduleManuallyAdjusted) {
         // Skip the recompute once the loan's schedule has diverged from
         // what its base fields alone would reproduce — persisted via the
@@ -69,15 +102,25 @@ class CreditsNotifier extends AsyncNotifier<List<Credit>> {
         // heuristic based on `abonos.isEmpty` or installment count (which
         // was tried first and found insufficient: it missed the
         // registerInstallmentActualPayment case entirely).
-        final before = jsonEncode(c.installments.map((i) => i.toJson()).toList());
-        c.installments = recomputeLoanInstallments(c);
-        final after = jsonEncode(c.installments.map((i) => i.toJson()).toList());
-        if (before != after) {
-          await _db.upsertCredit(c);
-        }
+        final newInstallments = recomputeLoanInstallments(c);
+        changed = !_installmentsEqual(c.installments, newInstallments);
+        if (changed) { c.installments = newInstallments; }
+      }
+      if (changed) {
+        await _db.upsertCredit(c);
+        anyChanged = true;
       }
     }
-    return credits;
+    // Only trigger a re-render when data actually changed (card accrual or
+    // loan schedule migration). Most launches with up-to-date data skip this.
+    if (anyChanged) {
+      // Guard against the provider being disposed while we were processing.
+      try {
+        state = AsyncData(await _db.loadAllCredits());
+      } catch (_) {
+        // Provider disposed; no-op.
+      }
+    }
   }
 
   /// A purchase can't stay marked "no sé la tasa" once a real rate is

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/account/account_screen.dart';
 import 'screens/credit_detail/credit_detail_screen.dart';
@@ -18,17 +19,20 @@ import 'providers/theme_provider.dart';
 import 'providers/widget_privacy_provider.dart';
 import 'screens/lock/lock_screen.dart';
 import 'screens/onboarding/welcome_screen.dart';
-import 'screens/splash_screen.dart';
+import 'providers/shared_preferences_provider.dart';
 import 'services/home_widget_service.dart';
 import 'services/notification_service.dart';
 import 'theme/app_theme.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Parse SVG paths synchronously before the first frame so initSplashPaths()
-  // is never called from inside paint() on the UI thread.
-  initSplashPaths();
-  runApp(const ProviderScope(child: MyApp()));
+  final prefs = await SharedPreferences.getInstance();
+  runApp(
+    ProviderScope(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends ConsumerWidget {
@@ -105,65 +109,14 @@ class AppLockGate extends ConsumerStatefulWidget {
   ConsumerState<AppLockGate> createState() => _AppLockGateState();
 }
 
-class _AppLockGateState extends ConsumerState<AppLockGate>
-    with SingleTickerProviderStateMixin {
-  bool _splashVisible = true;
-  // Starts at 1.0 (opaque). Reversed to 0.0 when the splash finishes.
-  // FadeTransition uses the GPU compositor layer — no software rasterization.
-  late final AnimationController _fadeOut;
-
-  @override
-  void initState() {
-    super.initState();
-    _fadeOut = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 650),
-      value: 1.0,
-    );
-  }
-
-  @override
-  void dispose() {
-    _fadeOut.dispose();
-    super.dispose();
-  }
-
-  void _onSplashDone() {
-    _fadeOut.reverse().then((_) {
-      if (mounted) setState(() => _splashVisible = false);
-    });
-  }
-
+class _AppLockGateState extends ConsumerState<AppLockGate> {
   @override
   Widget build(BuildContext context) {
-    // Real content mounts immediately — loads behind splash.
     final isLocked = ref.watch(appLockProvider).isLocked;
-    final onboardingAsync = ref.watch(onboardingProvider);
+    final shown = ref.watch(onboardingProvider);
 
-    Widget content;
-    if (isLocked) {
-      content = const LockScreen();
-    } else if (onboardingAsync.isLoading) {
-      content = const Scaffold(
-        backgroundColor: Colors.black,
-        body: SizedBox.shrink(),
-      );
-    } else {
-      final shown = onboardingAsync.value ?? false;
-      content = shown ? const RootScaffold() : const WelcomeScreen();
-    }
-
-    if (!_splashVisible) return content;
-
-    return Stack(
-      children: [
-        content,
-        FadeTransition(
-          opacity: _fadeOut,
-          child: SplashScreen(onCompleted: _onSplashDone),
-        ),
-      ],
-    );
+    if (isLocked) return const LockScreen();
+    return shown ? const RootScaffold() : const WelcomeScreen();
   }
 }
 
@@ -187,6 +140,13 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
     StatsScreen(),
     AccountScreen(),
   ];
+
+  // Tracks which tabs have been visited at least once. Only visited tabs are
+  // inserted into the widget tree — unvisited tabs are replaced with an empty
+  // SizedBox so they don't build, query data, or run animations until needed.
+  // Once visited, a tab stays mounted (kept alive via Offstage) to preserve
+  // scroll position, loaded data, and form state across navigation.
+  final Set<int> _visited = {0};
 
   @override
   void initState() {
@@ -215,6 +175,12 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
   @override
   Widget build(BuildContext context) {
     final activeIndex = ref.watch(navigationIndexProvider);
+
+    // Ensure programmatic tab switches (e.g. dashboard "Ver todos" button) also
+    // lazily mount the target screen, just like bottom-nav taps do.
+    ref.listen(navigationIndexProvider, (_, next) {
+      if (!_visited.contains(next)) setState(() => _visited.add(next));
+    });
 
     ref.listen(creditsProvider, (previous, next) {
       final credits = next.value;
@@ -294,10 +260,15 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
             child: Stack(
               children: [
                 for (var i = 0; i < _screens.length; i++)
-                  _TabFadeLayer(
-                    active: i == activeIndex,
-                    child: _screens[i],
-                  ),
+                  // Unvisited tabs are a zero-size placeholder — they don't
+                  // build, query data, or run animations until first visited.
+                  if (_visited.contains(i))
+                    _TabFadeLayer(
+                      active: i == activeIndex,
+                      child: _screens[i],
+                    )
+                  else
+                    const SizedBox.shrink(),
               ],
             ),
           ),
@@ -305,7 +276,10 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: activeIndex,
-        onTap: (i) => ref.read(navigationIndexProvider.notifier).state = i,
+        onTap: (i) {
+          setState(() => _visited.add(i));
+          ref.read(navigationIndexProvider.notifier).state = i;
+        },
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(

@@ -7,6 +7,8 @@ import 'package:local_auth/local_auth.dart';
 import 'package:crypto/crypto.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'shared_preferences_provider.dart';
+
 /// App-lock method chosen by the user. Persisted (the *method*, not the
 /// secret) via `shared_preferences`, following the same pattern as
 /// `theme_provider.dart` / `notification_settings_provider.dart`. The PIN
@@ -76,7 +78,7 @@ const List<Duration> kPinBackoffSteps = [
 const _kPinSalt = 'kredit_app_local_pin_salt_v1';
 
 class AppLockNotifier extends StateNotifier<AppLockState> with WidgetsBindingObserver {
-  AppLockNotifier()
+  AppLockNotifier(this._prefs)
       : _secureStorage = const FlutterSecureStorage(),
         _localAuth = LocalAuthentication(),
         super(AppLockState.initial) {
@@ -84,12 +86,12 @@ class AppLockNotifier extends StateNotifier<AppLockState> with WidgetsBindingObs
     _load();
   }
 
+  final SharedPreferences _prefs;
   final FlutterSecureStorage _secureStorage;
   final LocalAuthentication _localAuth;
 
   Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_kLockMethodKey);
+    final raw = _prefs.getString(_kLockMethodKey);
     final method = LockMethod.values.firstWhere(
       (m) => m.name == raw,
       orElse: () => LockMethod.none,
@@ -137,8 +139,7 @@ class AppLockNotifier extends StateNotifier<AppLockState> with WidgetsBindingObs
   Future<void> setupPin(String pin) async {
     await _secureStorage.write(key: _kPinHashKey, value: _hashPin(pin));
     await _resetPinBackoff();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kLockMethodKey, LockMethod.pin.name);
+    await _prefs.setString(_kLockMethodKey, LockMethod.pin.name);
     state = state.copyWith(
       method: LockMethod.pin,
       isLocked: false,
@@ -220,8 +221,7 @@ class AppLockNotifier extends StateNotifier<AppLockState> with WidgetsBindingObs
   Future<void> enableBiometric() async {
     final available = await canUseBiometrics();
     if (!available) return;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kLockMethodKey, LockMethod.biometric.name);
+    await _prefs.setString(_kLockMethodKey, LockMethod.biometric.name);
     state = state.copyWith(method: LockMethod.biometric, isLocked: false);
   }
 
@@ -231,8 +231,7 @@ class AppLockNotifier extends StateNotifier<AppLockState> with WidgetsBindingObs
   }
 
   Future<void> disableLock() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kLockMethodKey, LockMethod.none.name);
+    await _prefs.setString(_kLockMethodKey, LockMethod.none.name);
     await _secureStorage.delete(key: _kPinHashKey);
     await _resetPinBackoff();
     state = const AppLockState(method: LockMethod.none, isLocked: false);
@@ -267,6 +266,6 @@ class AppLockNotifier extends StateNotifier<AppLockState> with WidgetsBindingObs
 }
 
 final appLockProvider = StateNotifierProvider<AppLockNotifier, AppLockState>(
-  (ref) => AppLockNotifier(),
+  (ref) => AppLockNotifier(ref.read(sharedPreferencesProvider)),
 );
 

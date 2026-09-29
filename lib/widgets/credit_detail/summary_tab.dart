@@ -28,9 +28,10 @@ import 'stat_box.dart';
 class SummaryTab extends ConsumerWidget {
   final Credit credit;
   // Cuando un credito de cupo comercial agrupa varias compras, el detalle
-  // apila un SummaryTab completo por compra dentro de un ListView externo
-  // — este debe encogerse a su contenido (nunca competir por el scroll)
-  // en vez de asumir que es el unico widget de la pantalla.
+  // muestra un SummaryTab completo por compra dentro de una tarjeta
+  // colapsable de un ListView externo — este debe encogerse a su
+  // contenido (nunca competir por el scroll) en vez de asumir que es el
+  // unico widget de la pantalla.
   final bool shrinkWrap;
   final EdgeInsets? padding;
 

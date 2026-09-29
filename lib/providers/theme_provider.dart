@@ -7,6 +7,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../theme/app_theme.dart';
+import '../widgets/voucher_pattern.dart';
+import 'shared_preferences_provider.dart';
 
 /// Background tone options, ported from app.js's `data-bg-theme` values
 /// (applyBgTheme ~L299-322) and the corresponding CSS variants in
@@ -28,6 +30,7 @@ class AppPreferences {
   final String bgTone;
   final bool isDarkMode;
   final String? avatarPath;
+  final VoucherPattern voucherPattern;
 
   const AppPreferences({
     required this.accentColor,
@@ -35,6 +38,7 @@ class AppPreferences {
     required this.bgTone,
     required this.isDarkMode,
     this.avatarPath,
+    this.voucherPattern = VoucherPattern.diagonalLines,
   });
 
   AppPreferences copyWith({
@@ -44,6 +48,7 @@ class AppPreferences {
     bool? isDarkMode,
     String? avatarPath,
     bool clearAvatarPath = false,
+    VoucherPattern? voucherPattern,
   }) {
     return AppPreferences(
       accentColor: accentColor ?? this.accentColor,
@@ -51,6 +56,7 @@ class AppPreferences {
       bgTone: bgTone ?? this.bgTone,
       isDarkMode: isDarkMode ?? this.isDarkMode,
       avatarPath: clearAvatarPath ? null : (avatarPath ?? this.avatarPath),
+      voucherPattern: voucherPattern ?? this.voucherPattern,
     );
   }
 
@@ -60,6 +66,7 @@ class AppPreferences {
     bgTone: BgTone.pure,
     isDarkMode: true,
     avatarPath: null,
+    voucherPattern: VoucherPattern.diagonalLines,
   );
 }
 
@@ -68,6 +75,7 @@ const _kProfileNameKey = 'pref_profile_name';
 const _kBgToneKey = 'pref_bg_tone';
 const _kIsDarkModeKey = 'pref_is_dark_mode';
 const _kAvatarPathKey = 'pref_avatar_path';
+const _kVoucherPatternKey = 'pref_voucher_pattern';
 
 /// Fixed filename for the locally-stored profile picture, kept inside the
 /// app's sandboxed documents directory. Overwritten each time the user picks
@@ -75,21 +83,24 @@ const _kAvatarPathKey = 'pref_avatar_path';
 const String kAvatarFileName = 'profile_avatar.jpg';
 
 class ThemePreferencesNotifier extends StateNotifier<AppPreferences> {
-  ThemePreferencesNotifier() : super(AppPreferences.defaults) {
-    _load();
+  final SharedPreferences _prefs;
+
+  ThemePreferencesNotifier(SharedPreferences prefs)
+      : _prefs = prefs,
+        super(_loadSync(prefs)) {
+    _validateAvatarPath(prefs);
   }
 
-  Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
+  /// Synchronous initial load — SharedPreferences is pre-loaded in main() so
+  /// the first state is already correct on the very first frame (no flash).
+  static AppPreferences _loadSync(SharedPreferences prefs) {
     final accentValue = prefs.getInt(_kAccentColorKey);
     final name = prefs.getString(_kProfileNameKey);
     final bgTone = prefs.getString(_kBgToneKey);
     final isDark = prefs.getBool(_kIsDarkModeKey);
-    var avatarPath = prefs.getString(_kAvatarPathKey);
-    if (avatarPath != null && !await File(avatarPath).exists()) {
-      avatarPath = null;
-    }
-    state = AppPreferences(
+    final avatarPath = prefs.getString(_kAvatarPathKey);
+    final voucherPatternName = prefs.getString(_kVoucherPatternKey);
+    return AppPreferences(
       accentColor: accentValue != null
           ? Color(accentValue)
           : AppPreferences.defaults.accentColor,
@@ -97,34 +108,46 @@ class ThemePreferencesNotifier extends StateNotifier<AppPreferences> {
       bgTone: bgTone ?? AppPreferences.defaults.bgTone,
       isDarkMode: isDark ?? AppPreferences.defaults.isDarkMode,
       avatarPath: avatarPath,
+      voucherPattern: VoucherPattern.fromName(voucherPatternName),
     );
+  }
+
+  /// Secondary async check: if the saved avatar path no longer exists on disk
+  /// (e.g. app reinstall), clear it. Runs after the first frame.
+  Future<void> _validateAvatarPath(SharedPreferences prefs) async {
+    final avatarPath = state.avatarPath;
+    if (avatarPath != null && !await File(avatarPath).exists()) {
+      state = state.copyWith(clearAvatarPath: true);
+      await prefs.remove(_kAvatarPathKey);
+    }
+  }
+
+  Future<void> setVoucherPattern(VoucherPattern pattern) async {
+    state = state.copyWith(voucherPattern: pattern);
+    await _prefs.setString(_kVoucherPatternKey, pattern.name);
   }
 
   Future<void> setAccentColor(Color color) async {
     state = state.copyWith(accentColor: color);
-    final prefs = await SharedPreferences.getInstance();
     // ignore: deprecated_member_use
-    await prefs.setInt(_kAccentColorKey, color.value);
+    await _prefs.setInt(_kAccentColorKey, color.value);
   }
 
   Future<void> setProfileName(String name) async {
     final trimmed = name.trim();
     if (trimmed.isEmpty) return;
     state = state.copyWith(profileName: trimmed);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kProfileNameKey, trimmed);
+    await _prefs.setString(_kProfileNameKey, trimmed);
   }
 
   Future<void> setBgTone(String tone) async {
     state = state.copyWith(bgTone: tone);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kBgToneKey, tone);
+    await _prefs.setString(_kBgToneKey, tone);
   }
 
   Future<void> setIsDarkMode(bool isDark) async {
     state = state.copyWith(isDarkMode: isDark);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_kIsDarkModeKey, isDark);
+    await _prefs.setBool(_kIsDarkModeKey, isDark);
   }
 
   /// Copies [sourceFilePath] (e.g. the path returned by image_picker) into
@@ -139,8 +162,7 @@ class ThemePreferencesNotifier extends StateNotifier<AppPreferences> {
     }
     await File(sourceFilePath).copy(destPath);
     state = state.copyWith(avatarPath: destPath);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kAvatarPathKey, destPath);
+    await _prefs.setString(_kAvatarPathKey, destPath);
   }
 
   /// Deletes the saved avatar file (if any) and clears the preference.
@@ -153,21 +175,14 @@ class ThemePreferencesNotifier extends StateNotifier<AppPreferences> {
       }
     }
     state = state.copyWith(clearAvatarPath: true);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_kAvatarPathKey);
+    await _prefs.remove(_kAvatarPathKey);
   }
 }
 
 /// Global preferences provider. Watch `ref.watch(themePreferencesProvider)`
-/// to react to accent/profile/bg-tone changes; `.accentColor` should be fed
-/// into `buildAppTheme(accent: ...)` at the MaterialApp root (see main.dart
-/// — NOTE: as of this writing main.dart is still the default Flutter
-/// counter template, being restructured by another agent in parallel, so
-/// that one-line wiring is NOT yet done. Once main.dart builds
-/// `MaterialApp(theme: buildAppTheme())`, change it to:
-///   theme: buildAppTheme(accent: ref.watch(themePreferencesProvider).accentColor),
-/// inside a ConsumerWidget/Consumer build method).
+/// to react to accent/profile/bg-tone changes; `.accentColor` is fed
+/// into `buildAppTheme(accent: ...)` at the MaterialApp root in main.dart.
 final themePreferencesProvider =
     StateNotifierProvider<ThemePreferencesNotifier, AppPreferences>(
-  (ref) => ThemePreferencesNotifier(),
+  (ref) => ThemePreferencesNotifier(ref.read(sharedPreferencesProvider)),
 );

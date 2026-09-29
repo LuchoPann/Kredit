@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kredit/data/models/credit.dart';
 import 'package:kredit/widgets/wallet_card.dart';
@@ -18,21 +19,25 @@ void main() {
 
   testWidgets('a cupo comercial purchase renders as a voucher, not a card',
       (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(body: WalletCard(credit: buildLoan(quotaId: 'q1'))),
+    await tester.pumpWidget(ProviderScope(
+      child: MaterialApp(
+        home: Scaffold(body: WalletCard(credit: buildLoan(quotaId: 'q1'))),
+      ),
     ));
 
-    expect(find.textContaining('Compra (Totto)'), findsOneWidget);
+    expect(find.text('Compra tenis'), findsOneWidget);
     expect(find.byIcon(Icons.wifi), findsNothing);
   });
 
   testWidgets('a normal bank loan (no quotaId) keeps the plastic-card look',
       (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(body: WalletCard(credit: buildLoan())),
+    await tester.pumpWidget(ProviderScope(
+      child: MaterialApp(
+        home: Scaffold(body: WalletCard(credit: buildLoan())),
+      ),
     ));
 
-    expect(find.textContaining('Préstamo'), findsOneWidget);
+    expect(find.text('Compra tenis'), findsOneWidget);
     expect(find.byIcon(Icons.wifi), findsOneWidget);
   });
 }

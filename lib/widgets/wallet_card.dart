@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../data/models/credit.dart';
@@ -6,10 +7,13 @@ import '../domain/bank_detector.dart';
 import '../domain/card_calculator.dart';
 import '../domain/credit_calculator.dart';
 import '../domain/date_utils.dart';
+import '../providers/commercial_quotas_provider.dart';
 import '../providers/credits_provider.dart' show isDemoCredit;
 import '../theme/app_theme.dart';
 import '../utils/credit_display_utils.dart';
 import 'demo_badge.dart';
+import 'kredit_wordmark.dart';
+import 'voucher_pattern.dart';
 
 /// Real bank/issuer logo assets, keyed by [BankInfo.cssClass]. Only entities
 /// with a clean official logo we could source (mostly Wikimedia Commons) are
@@ -147,7 +151,11 @@ class _CardPatternPainter extends CustomPainter {
     const gap = 14.0;
     final diag = size.width + size.height;
     for (double x = -size.height; x < diag; x += gap) {
-      canvas.drawLine(Offset(x, 0), Offset(x + size.height, size.height), paint);
+      canvas.drawLine(
+        Offset(x, 0),
+        Offset(x + size.height, size.height),
+        paint,
+      );
     }
   }
 
@@ -185,8 +193,16 @@ class _EmvChipLinesPainter extends CustomPainter {
       ..color = const Color(0xFF7A6528).withValues(alpha: 0.55)
       ..strokeWidth = 1;
     // Horizontal divider lines.
-    canvas.drawLine(Offset(0, size.height * 0.35), Offset(size.width, size.height * 0.35), paint);
-    canvas.drawLine(Offset(0, size.height * 0.65), Offset(size.width, size.height * 0.65), paint);
+    canvas.drawLine(
+      Offset(0, size.height * 0.35),
+      Offset(size.width, size.height * 0.35),
+      paint,
+    );
+    canvas.drawLine(
+      Offset(0, size.height * 0.65),
+      Offset(size.width, size.height * 0.65),
+      paint,
+    );
     // Vertical divider lines within the middle band.
     canvas.drawLine(
       Offset(size.width * 0.35, size.height * 0.35),
@@ -208,94 +224,6 @@ class _EmvChipLinesPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _EmvChipLinesPainter oldDelegate) => false;
-}
-
-/// Outline of the "cash-advance voucher" variant of [WalletCard]: a SQUARE-
-/// cornered rect (no corner rounding at all — a comprobante/talonario is cut
-/// paper, not a plastic card) with a tall OVAL notch (noticeably taller than
-/// wide — curved top-to-bottom, not side-to-side) cut into the middle of the
-/// left and right edges. Takes an explicit [rect] rather than always the
-/// full bounds so [VoucherBorderPainter] can trace an INSET copy (border
-/// drawn slightly inside the true edge) while [VoucherClipper] clips the
-/// card face to the full-size version — both built by this one function so
-/// their curvature/notch shape never drifts apart.
-Path voucherOutline(
-  Rect rect, {
-  double radius = 0,
-  double notchWidth = 14,
-  double notchHeight = 38,
-}) {
-  final base = Path()..addRRect(RRect.fromRectAndRadius(rect, Radius.circular(radius)));
-  final notchCenterY = rect.top + rect.height / 2;
-  final notches = Path()
-    ..addOval(Rect.fromCenter(
-      center: Offset(rect.left, notchCenterY),
-      width: notchWidth,
-      height: notchHeight,
-    ))
-    ..addOval(Rect.fromCenter(
-      center: Offset(rect.right, notchCenterY),
-      width: notchWidth,
-      height: notchHeight,
-    ));
-  return Path.combine(PathOperation.difference, base, notches);
-}
-
-/// Clips [WalletCard]'s voucher variant to [voucherOutline] (full bounds) —
-/// the side notches only read as "cut into the shape" if the card face
-/// itself (its gradient, glints, etc.) is actually clipped there, not just
-/// outlined.
-class VoucherClipper extends CustomClipper<Path> {
-  const VoucherClipper();
-
-  @override
-  Path getClip(Size size) => voucherOutline(Offset.zero & size);
-
-  // Always true: the outline is cheap to recompute, and returning false
-  // let a stale cached clip shape survive a hot reload that changed
-  // voucherOutline's geometry (radius/notch size) — the card face would
-  // keep the OLD silhouette while the dashed border painter (repainted
-  // unconditionally on reassemble) already showed the new one.
-  @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => true;
-}
-
-/// Dashed stroke traced along [voucherOutline], INSET a few pixels from the
-/// true edge (rather than sitting exactly on it) — reads as a stitched
-/// comprobante line just inside the paper's edge rather than the edge
-/// itself. Walks the path via [Path.computeMetrics] so the dash pattern
-/// follows the oval notches correctly instead of just the bounding rect.
-class VoucherBorderPainter extends CustomPainter {
-  final Color color;
-  const VoucherBorderPainter({required this.color});
-
-  static const _inset = 6.0;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final path = voucherOutline((Offset.zero & size).deflate(_inset));
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2;
-    const dashWidth = 5.0;
-    const gap = 4.0;
-    for (final metric in path.computeMetrics()) {
-      var distance = 0.0;
-      while (distance < metric.length) {
-        final next = distance + dashWidth;
-        canvas.drawPath(
-          metric.extractPath(distance, next.clamp(0, metric.length)),
-          paint,
-        );
-        distance = next + gap;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant VoucherBorderPainter oldDelegate) =>
-      color != oldDelegate.color;
 }
 
 /// Builds a closed polygon path, rounding each vertex by the matching entry
@@ -367,7 +295,10 @@ class VoucherWaveCornerPainter extends CustomPainter {
       Offset(w * 0.34, h * 0.5),
       Offset(0, h * 0.66),
     ];
-    canvas.drawPath(_roundedPolygon(pinkPoints, cornerRadii), Paint()..color = pink);
+    canvas.drawPath(
+      _roundedPolygon(pinkPoints, cornerRadii),
+      Paint()..color = pink,
+    );
 
     final purplePoints = [
       const Offset(0, 0),
@@ -377,7 +308,10 @@ class VoucherWaveCornerPainter extends CustomPainter {
       Offset(w * 0.38, h * 0.34),
       Offset(0, h * 0.48),
     ];
-    canvas.drawPath(_roundedPolygon(purplePoints, cornerRadii), Paint()..color = purple);
+    canvas.drawPath(
+      _roundedPolygon(purplePoints, cornerRadii),
+      Paint()..color = purple,
+    );
   }
 
   @override
@@ -387,13 +321,13 @@ class VoucherWaveCornerPainter extends CustomPainter {
 
 /// Big visual wallet-card mockup shown atop the credit detail "Resumen" tab,
 /// mirroring #detail-wallet-card in legacy_pwa/index.html (~L358-379).
-class WalletCard extends StatelessWidget {
+class WalletCard extends ConsumerWidget {
   final Credit credit;
 
   const WalletCard({super.key, required this.credit});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final card = credit is LoanCredit ? (credit as LoanCredit).card : null;
     final bank = detectBank(
       lender: credit.lender,
@@ -425,305 +359,358 @@ class WalletCard extends StatelessWidget {
     // (dashboard_screen.dart) applied per-stop and averaged, since the face
     // is a gradient, not a single flat color.
     final avgLuminance =
-        gradient.fold<double>(0, (sum, c) => sum + c.computeLuminance()) / gradient.length;
-    // A cupo comercial purchase's voucher is a flat fill of the app's own
-    // accent color (whatever the user picked in Ajustes) — never Nequi's
-    // wave-corner artwork recolored, and never assumed white. A real bank
-    // cash-advance voucher (Nequi/DaviPlata) keeps its own white-paper +
-    // brand-wave look untouched; anything else is a normal plastic card.
-    final accent = Theme.of(context).colorScheme.primary;
+        gradient.fold<double>(0, (sum, c) => sum + c.computeLuminance()) /
+        gradient.length;
+    // A cupo comercial purchase's voucher uses the pattern's own fixed palette
+    // — never the app accent color. A real bank cash-advance voucher keeps its
+    // own white-paper + brand-wave look. Anything else is a normal plastic card.
+    final quotaPattern = isQuotaVoucher
+        ? VoucherPattern.fromName(
+            (ref.watch(commercialQuotasProvider).valueOrNull ?? const [])
+                .where((q) => q.id == (credit as LoanCredit).quotaId)
+                .firstOrNull
+                ?.voucherPattern,
+          )
+        : VoucherPattern.diagonalLines;
     final isLightFace = isBankVoucher || (!isVoucher && avgLuminance > 0.5);
     final ink = isQuotaVoucher
-        ? legibleForegroundOn(accent)
+        ? quotaPattern.foregroundColor
         : (isLightFace ? Colors.black : Colors.white);
     final inkStrong = ink;
     final inkMid = ink.withValues(alpha: isLightFace ? 0.72 : 0.78);
     final inkFaint = ink.withValues(alpha: isLightFace ? 0.55 : 0.6);
-    final chipChromeBorder = Colors.white.withValues(alpha: isLightFace ? 0.55 : 0.08);
+    final chipChromeBorder = Colors.white.withValues(
+      alpha: isLightFace ? 0.55 : 0.08,
+    );
 
     final stats = _statsFor(credit);
 
-    return AspectRatio(
-      // Noticeably shorter than the previous 1.65 — same footprint width,
-      // less vertical real-estate, while the stats block below absorbs the
-      // data that used to live in a separate CreditStatsRow underneath.
-      aspectRatio: 1.9,
-      child: ClipPath(
-        // Voucher variant clips to the notched voucherOutline (a "torn
-        // ticket stub" shape); a real card keeps a plain, more-rounded rect
-        // — CustomClipper defaults to a full-rect path when not overridden,
-        // so a plain ClipRect-equivalent isn't needed here.
-        clipper: isVoucher
-            ? const VoucherClipper()
-            : ShapeBorderClipper(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-        child: Stack(
-          children: [
-            // Base surface: a real card gets the bank's brand gradient; the
-            // voucher variant is plain white paper instead (Nequi-styled —
-            // its own color shows only in the wave corner painted below).
-            // The voucher also skips the solid chrome border (a
-            // straight-edged Border.all would poke past the notched clip)
-            // — its edge comes entirely from the dashed outline instead.
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: isQuotaVoucher
-                      ? accent
-                      : (isBankVoucher ? Colors.white : null),
-                  gradient: isVoucher
-                      ? null
-                      : LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: gradient,
-                        ),
-                  border: isVoucher ? null : Border.all(color: chipChromeBorder),
-                ),
-              ),
-            ),
-            // Real bank cash-advance voucher only (Nequi/DaviPlata): the
-            // brand's own wave-corner cut, echoing that bank's own app —
-            // never used for a cupo comercial purchase, which is a flat
-            // accent-colored fill instead (see the DecoratedBox above).
-            if (isBankVoucher)
-              const Positioned.fill(
-                child: IgnorePointer(
-                  child: CustomPaint(
-                    painter: VoucherWaveCornerPainter(
-                      purple: Color(0xFF2A0944),
-                      pink: Color(0xFFDA0081),
-                    ),
+    // RepaintBoundary: this card's face (gradient/pattern painters, dashed
+    // border) is expensive to composite and never changes for reasons
+    // unrelated to its own data — without this, every keystroke in a
+    // parent form (e.g. EditCreditSheet's live preview, which rebuilds on
+    // every character typed) forces the whole surrounding subtree onto the
+    // same compositor layer, repainting this card's face too even though
+    // nothing in it changed.
+    return RepaintBoundary(
+      child: AspectRatio(
+        // Noticeably shorter than the previous 1.65 — same footprint width,
+        // less vertical real-estate, while the stats block below absorbs the
+        // data that used to live in a separate CreditStatsRow underneath.
+        aspectRatio: 1.9,
+        child: ClipPath(
+          // Voucher variant clips to the notched voucherOutline (a "torn
+          // ticket stub" shape); a real card keeps a plain, more-rounded rect
+          // — CustomClipper defaults to a full-rect path when not overridden,
+          // so a plain ClipRect-equivalent isn't needed here.
+          clipper: isVoucher
+              ? const VoucherClipper()
+              : ShapeBorderClipper(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-              ),
-            // Very tenuous diagonal-line texture, characteristic of
-            // physical card mockups — pure decoration, no shadow. Skipped
-            // for the voucher variant, which should read as flatter paper
-            // rather than textured plastic.
-            if (!isVoucher)
+          child: Stack(
+            children: [
+              // Base surface: a real card gets the bank's brand gradient; the
+              // voucher variant is plain white paper instead (Nequi-styled —
+              // its own color shows only in the wave corner painted below).
+              // The voucher also skips the solid chrome border (a
+              // straight-edged Border.all would poke past the notched clip)
+              // — its edge comes entirely from the dashed outline instead.
               Positioned.fill(
-                child: IgnorePointer(
-                  child: CustomPaint(painter: const _CardPatternPainter()),
-                ),
-              ),
-            // Subtle radial highlight/reflection in the top-right corner, to
-            // sell the "physical card" feel — skipped for the voucher
-            // variant, which is meant to read as flat/minimalist paper, not
-            // glossy plastic.
-            if (!isVoucher)
-              Positioned(
-                top: -40,
-                right: -40,
-                child: IgnorePointer(
-                  child: Container(
-                    width: 150,
-                    height: 150,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [
-                          Colors.white.withValues(alpha: 0.12),
-                          Colors.white.withValues(alpha: 0.0),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            // A second, dimmer glint low-left, for a bit of directional
-            // light instead of a single flat highlight — also card-only.
-            if (!isVoucher)
-              Positioned(
-                bottom: -50,
-                left: -30,
-                child: IgnorePointer(
-                  child: Container(
-                    width: 130,
-                    height: 130,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [
-                          Colors.white.withValues(alpha: 0.05),
-                          Colors.white.withValues(alpha: 0.0),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            // Voucher variant: the dashed border traces the full notched
-            // outline (corners + side notches) instead of a solid edge —
-            // this is the "comprobante/talonario" cue, replacing the old
-            // internal-only tear line.
-            if (isVoucher)
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: CustomPaint(
-                    painter: VoucherBorderPainter(color: ink.withValues(alpha: 0.35)),
-                  ),
-                ),
-              ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Bank identity row: real logo (or wordmark fallback) +
-                  // demo badge if applicable.
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Builder(
-                          builder: (context) {
-                            final asset = bankLogoAssets[bank.cssClass];
-                            if (asset != null) {
-                              return Align(
-                                alignment: Alignment.centerLeft,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(KreditRadius.chip),
-                                  ),
-                                  child: FittedBox(
-                                    fit: BoxFit.contain,
-                                    alignment: Alignment.center,
-                                    child: BankLogoChip(assetPath: asset, height: 17),
-                                  ),
+                child: isQuotaVoucher
+                    ? DecoratedBox(
+                        decoration: quotaPattern.backgroundDecoration,
+                      )
+                    : DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: isBankVoucher ? Colors.white : null,
+                          gradient: isVoucher
+                              ? null
+                              : LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: gradient,
                                 ),
-                              );
-                            }
-                            return Text(
-                              bank.fullLabel,
-                              style: TextStyle(
-                                color: inkStrong,
-                                fontWeight: FontWeight.w700,
-                                fontSize: KreditTextSize.caption,
-                                letterSpacing: 0.5,
-                              ),
-                            );
-                          },
+                          border: isVoucher
+                              ? null
+                              : Border.all(color: chipChromeBorder),
                         ),
                       ),
-                      // Nombre que el usuario le dio a este crédito/tarjeta
-                      // al crearlo (ej. "Mi RappiCard" vs. "RappiCard de
-                      // Ana") — antes `credit.name` no se pintaba en
-                      // ningún lado de la tarjeta visual, así que dos
-                      // tarjetas del mismo banco eran indistinguibles a
-                      // simple vista. Chip de alto contraste (no un texto
-                      // discreto) para que salte a la vista, no una nota
-                      // al pie.
-                      if (credit.name.trim().isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 8),
-                          child: Container(
-                            constraints: const BoxConstraints(maxWidth: 130),
-                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: isLightFace ? Colors.black : Colors.white,
-                              borderRadius: BorderRadius.circular(KreditRadius.chip),
-                            ),
-                            child: Text(
-                              credit.name.trim(),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: isLightFace ? Colors.white : Colors.black,
-                                fontWeight: FontWeight.w800,
-                                fontSize: KreditTextSize.caption,
-                                letterSpacing: 0.2,
-                              ),
-                            ),
-                          ),
-                        ),
-                      if (isDemoCredit(credit.id)) const DemoBadge(),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  // EMV chip + contactless icon, standard physical-card row
-                  // — skipped entirely for the cash-advance voucher variant,
-                  // which has no real plastic to simulate.
-                  if (!isVoucher)
-                    Row(
-                      children: [
-                        const _EmvChip(),
-                        const Spacer(),
-                        Icon(Icons.wifi, color: inkMid, size: KreditIconSize.small),
-                      ],
-                    ),
-                  const Spacer(),
-                  Text(
-                    credit.isCard
-                        ? 'Tarjeta de Crédito'
-                        : (isQuotaVoucher
-                            ? 'Compra (${bank.shortLabel})'
-                            : (isBankVoucher
-                                ? 'Adelanto (${bank.shortLabel})'
-                                : 'Préstamo (${bank.shortLabel})')),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: inkMid,
-                      fontWeight: FontWeight.w600,
-                      fontSize: KreditTextSize.caption,
-                      letterSpacing: 0.4,
+              ),
+              // Real bank cash-advance voucher only (Nequi/DaviPlata): the
+              // brand's own wave-corner cut, echoing that bank's own app —
+              // never used for a cupo comercial purchase, which is a flat
+              // accent-colored fill instead (see the DecoratedBox above).
+              if (isBankVoucher)
+                const Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomPaint(
+                      painter: VoucherWaveCornerPainter(
+                        purple: Color(0xFF2A0944),
+                        pink: Color(0xFFDA0081),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 3),
-                  // Bottom block: deuda restante (left) and the next-payment
-                  // fact (right) as two matched columns, same caption/value
-                  // type scale on both sides so neither reads as an
-                  // afterthought — bottom-aligned so a taller side pushes the
-                  // shorter one's baseline down with it instead of the two
-                  // blocks drifting apart.
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'DEUDA RESTANTE',
-                              style: TextStyle(
-                                color: inkFaint,
-                                fontSize: KreditTextSize.caption,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 1,
-                              ),
-                            ),
-                            Text(
-                              formatCOP(remaining),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: inkStrong,
-                                fontWeight: FontWeight.w800,
-                                fontSize: KreditTextSize.emphasis,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
+                ),
+              // Very tenuous diagonal-line texture, characteristic of
+              // physical card mockups — pure decoration, no shadow. Skipped
+              // for the voucher variant, which should read as flatter paper
+              // rather than textured plastic.
+              if (!isVoucher)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomPaint(painter: const _CardPatternPainter()),
+                  ),
+                ),
+              // Subtle radial highlight/reflection in the top-right corner, to
+              // sell the "physical card" feel — skipped for the voucher
+              // variant, which is meant to read as flat/minimalist paper, not
+              // glossy plastic.
+              if (!isVoucher)
+                Positioned(
+                  top: -40,
+                  right: -40,
+                  child: IgnorePointer(
+                    child: Container(
+                      width: 150,
+                      height: 150,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            Colors.white.withValues(alpha: 0.12),
+                            Colors.white.withValues(alpha: 0.0),
                           ],
                         ),
                       ),
-                      if (stats.isNotEmpty) ...[
-                        const SizedBox(width: 12),
-                        _CardStatColumn(
-                          primary: stats[0],
-                          secondary: stats.length > 1 ? stats[1] : null,
-                          captionColor: inkFaint,
-                          valueColor: inkStrong,
-                          secondaryColor: inkMid,
-                        ),
-                      ],
-                    ],
+                    ),
                   ),
-                ],
+                ),
+              // A second, dimmer glint low-left, for a bit of directional
+              // light instead of a single flat highlight — also card-only.
+              if (!isVoucher)
+                Positioned(
+                  bottom: -50,
+                  left: -30,
+                  child: IgnorePointer(
+                    child: Container(
+                      width: 130,
+                      height: 130,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            Colors.white.withValues(alpha: 0.05),
+                            Colors.white.withValues(alpha: 0.0),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              // Cupo comercial voucher only: the user-selected abstract
+              // texture (Ajustes → Personalización → "Diseño de voucher"),
+              // spanning the whole face but faded out before the bottom
+              // disponible/compras figures. Real bank cash-advance vouchers
+              // keep their own Nequi-style wave corner instead.
+              if (isQuotaVoucher)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomPaint(
+                      painter: VoucherPatternPainter(pattern: quotaPattern),
+                    ),
+                  ),
+                ),
+              // Voucher variant: the dashed border traces the full notched
+              // outline (corners + side notches) instead of a solid edge —
+              // this is the "comprobante/talonario" cue, replacing the old
+              // internal-only tear line.
+              if (isVoucher)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomPaint(
+                      painter: VoucherBorderPainter(
+                        color: ink.withValues(alpha: 0.35),
+                      ),
+                    ),
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Bank identity row: real logo (or wordmark fallback) +
+                    // demo badge if applicable.
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Builder(
+                            builder: (context) {
+                              // Cupo comercial voucher: Kredit's own
+                              // wordmark, painted straight in `ink` (no
+                              // white chip box) — this IS the brand's
+                              // voucher, not a third-party bank's.
+                              if (isQuotaVoucher) {
+                                return Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: KreditWordmark(color: ink, height: 18),
+                                );
+                              }
+                              final asset = bankLogoAssets[bank.cssClass];
+                              if (asset != null) {
+                                return Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 5,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(
+                                        KreditRadius.chip,
+                                      ),
+                                    ),
+                                    child: FittedBox(
+                                      fit: BoxFit.contain,
+                                      alignment: Alignment.center,
+                                      child: BankLogoChip(
+                                        assetPath: asset,
+                                        height: 17,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }
+                              return Text(
+                                bank.fullLabel,
+                                style: TextStyle(
+                                  color: inkStrong,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: KreditTextSize.caption,
+                                  letterSpacing: 0.5,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        // Nombre que el usuario le dio a este crédito/tarjeta
+                        // al crearlo (ej. "Mi RappiCard" vs. "RappiCard de
+                        // Ana") — antes `credit.name` no se pintaba en
+                        // ningún lado de la tarjeta visual, así que dos
+                        // tarjetas del mismo banco eran indistinguibles a
+                        // simple vista. Chip de alto contraste (no un texto
+                        // discreto) para que salte a la vista, no una nota
+                        // al pie.
+                        if (credit.name.trim().isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 8),
+                            child: Container(
+                              constraints: const BoxConstraints(maxWidth: 130),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 9,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isLightFace
+                                    ? Colors.black
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(
+                                  KreditRadius.chip,
+                                ),
+                              ),
+                              child: Text(
+                                credit.name.trim(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: isLightFace
+                                      ? Colors.white
+                                      : Colors.black,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: KreditTextSize.caption,
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (isDemoCredit(credit.id)) const DemoBadge(),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    // EMV chip + contactless icon, standard physical-card row
+                    // — skipped entirely for the cash-advance voucher variant,
+                    // which has no real plastic to simulate.
+                    if (!isVoucher)
+                      Row(
+                        children: [
+                          const _EmvChip(),
+                          const Spacer(),
+                          Icon(
+                            Icons.wifi,
+                            color: inkMid,
+                            size: KreditIconSize.small,
+                          ),
+                        ],
+                      ),
+                    const Spacer(),
+                    // Bottom block: deuda restante (left) and the next-payment
+                    // fact (right) as two matched columns, same caption/value
+                    // type scale on both sides so neither reads as an
+                    // afterthought — bottom-aligned so a taller side pushes the
+                    // shorter one's baseline down with it instead of the two
+                    // blocks drifting apart.
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'DEUDA RESTANTE',
+                                style: TextStyle(
+                                  color: inkFaint,
+                                  fontSize: KreditTextSize.caption,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                              Text(
+                                formatCOP(remaining),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: inkStrong,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: KreditTextSize.emphasis,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (stats.isNotEmpty) ...[
+                          const SizedBox(width: 12),
+                          _CardStatColumn(
+                            primary: stats[0],
+                            secondary: stats.length > 1 ? stats[1] : null,
+                            captionColor: inkFaint,
+                            valueColor: inkStrong,
+                            secondaryColor: inkMid,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -743,35 +730,43 @@ List<_StatItem> _statsFor(Credit credit) {
     // as "you have no credit left" instead of "we don't know your limit".
     if (credit.creditLimit > 0) {
       final available = getCardAvailableLimit(credit);
-      items.add(_StatItem(
-        icon: Icons.credit_card_outlined,
-        label: 'Cupo disponible',
-        value: formatCOP(available),
-      ));
+      items.add(
+        _StatItem(
+          icon: Icons.credit_card_outlined,
+          label: 'Cupo disponible',
+          value: formatCOP(available),
+        ),
+      );
     }
     if (credit.currentBalance > 0) {
       final due = getCardCycleDates(credit).dueDate;
-      items.add(_StatItem(
-        icon: Icons.event_outlined,
-        label: 'Próximo pago',
-        value: formatDate(toDateStr(due)),
-      ));
+      items.add(
+        _StatItem(
+          icon: Icons.event_outlined,
+          label: 'Próximo pago',
+          value: formatDate(toDateStr(due)),
+        ),
+      );
     }
   } else if (credit is LoanCredit) {
     final unpaid = credit.installments.where((i) => !i.paid).toList()
       ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
     if (unpaid.isNotEmpty) {
       final next = unpaid.first;
-      items.add(_StatItem(
-        icon: Icons.payments_outlined,
-        label: 'Próxima cuota',
-        value: formatCOP(next.amount),
-      ));
-      items.add(_StatItem(
-        icon: Icons.event_outlined,
-        label: 'Vence',
-        value: formatDate(next.dueDate),
-      ));
+      items.add(
+        _StatItem(
+          icon: Icons.payments_outlined,
+          label: 'Próxima cuota',
+          value: formatCOP(next.amount),
+        ),
+      );
+      items.add(
+        _StatItem(
+          icon: Icons.event_outlined,
+          label: 'Vence',
+          value: formatDate(next.dueDate),
+        ),
+      );
     }
   }
 
@@ -782,7 +777,11 @@ class _StatItem {
   final IconData icon;
   final String label;
   final String value;
-  const _StatItem({required this.icon, required this.label, required this.value});
+  const _StatItem({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 }
 
 /// Right-side key-fact column rendered inside the [WalletCard] face,

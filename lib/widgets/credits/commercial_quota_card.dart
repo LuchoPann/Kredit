@@ -6,6 +6,8 @@ import '../../domain/commercial_quota_calculator.dart';
 import '../../domain/credit_calculator.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/credit_display_utils.dart';
+import '../kredit_wordmark.dart';
+import '../voucher_pattern.dart';
 import '../wallet_card.dart';
 
 /// A single voucher representing a whole CommercialQuota (Totto, Lili Pink,
@@ -43,8 +45,10 @@ class _CommercialQuotaCardState extends State<CommercialQuotaCard> {
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
-    final available =
-        quotaAvailable(widget.quota, widget.allPurchases ?? widget.purchases);
+    final available = quotaAvailable(
+      widget.quota,
+      widget.allPurchases ?? widget.purchases,
+    );
     final count = widget.purchases.length;
 
     return Column(
@@ -58,6 +62,7 @@ class _CommercialQuotaCardState extends State<CommercialQuotaCard> {
             available: available,
             limit: widget.quota.limit,
             count: count,
+            pattern: VoucherPattern.fromName(widget.quota.voucherPattern),
           ),
         ),
         // Misma caja gris de bordes inferiores curvos que "PROGRESO PAGADO"
@@ -74,9 +79,15 @@ class _CommercialQuotaCardState extends State<CommercialQuotaCard> {
                 bottom: Radius.circular(KreditRadius.card),
               ),
               border: Border(
-                left: BorderSide(color: kredit.borderCard.withValues(alpha: 0.78)),
-                right: BorderSide(color: kredit.borderCard.withValues(alpha: 0.78)),
-                bottom: BorderSide(color: kredit.borderCard.withValues(alpha: 0.78)),
+                left: BorderSide(
+                  color: kredit.borderCard.withValues(alpha: 0.78),
+                ),
+                right: BorderSide(
+                  color: kredit.borderCard.withValues(alpha: 0.78),
+                ),
+                bottom: BorderSide(
+                  color: kredit.borderCard.withValues(alpha: 0.78),
+                ),
               ),
             ),
             child: Column(
@@ -125,7 +136,9 @@ class _CommercialQuotaCardState extends State<CommercialQuotaCard> {
                               fontSize: KreditTextSize.caption,
                               fontWeight: FontWeight.w800,
                               color: kredit.textPrimary,
-                              fontFeatures: const [FontFeature.tabularFigures()],
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
                             ),
                           ),
                         ],
@@ -158,84 +171,105 @@ class _QuotaVoucherFace extends StatelessWidget {
   final double available;
   final double limit;
   final int count;
+  final VoucherPattern pattern;
 
   const _QuotaVoucherFace({
     required this.brand,
     required this.available,
     required this.limit,
     required this.count,
+    required this.pattern,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Voucher minimalista: relleno plano con el color de acento que el
-    // usuario eligió en Ajustes, nunca el motivo de olas de Nequi
-    // reciclado en otro color.
-    final accent = Theme.of(context).colorScheme.primary;
-    final ink = legibleForegroundOn(accent);
-    return AspectRatio(
-      aspectRatio: 1.9,
-      child: ClipPath(
-        clipper: const VoucherClipper(),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: DecoratedBox(decoration: BoxDecoration(color: accent)),
-            ),
-            Positioned.fill(
-              child: IgnorePointer(
-                child: CustomPaint(
-                  painter: VoucherBorderPainter(color: ink.withValues(alpha: 0.35)),
+    final ink = pattern.foregroundColor;
+    return RepaintBoundary(
+      child: AspectRatio(
+        aspectRatio: 1.9,
+        child: ClipPath(
+          clipper: const VoucherClipper(),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: DecoratedBox(decoration: pattern.backgroundDecoration),
+              ),
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    painter: VoucherPatternPainter(pattern: pattern),
+                  ),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(KreditRadius.chip),
-                        ),
-                        child: const FittedBox(
-                          fit: BoxFit.contain,
-                          child: BankLogoChip(
-                            assetPath: 'assets/logos/bank-generic.svg',
-                            height: 17,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          brand,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.right,
-                          style: TextStyle(
-                            color: ink,
-                            fontWeight: FontWeight.w700,
-                            fontSize: KreditTextSize.body,
-                          ),
-                        ),
-                      ),
-                    ],
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    painter: VoucherBorderPainter(
+                      color: ink.withValues(alpha: 0.35),
+                    ),
                   ),
-                  const Spacer(),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        // Kredit's own wordmark, painted straight in `ink`
+                        // (no white chip box) — a cupo comercial voucher is
+                        // Kredit's own product, not a third-party bank's.
+                        KreditWordmark(color: ink, height: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            brand,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.right,
+                            style: TextStyle(
+                              color: ink,
+                              fontWeight: FontWeight.w700,
+                              fontSize: KreditTextSize.body,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'DISPONIBLE',
+                                style: TextStyle(
+                                  color: ink.withValues(alpha: 0.7),
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: KreditTextSize.caption,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              Text(
+                                formatCOP(available),
+                                style: TextStyle(
+                                  color: ink,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: KreditTextSize.emphasis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
-                              'DISPONIBLE',
+                              'COMPRAS',
                               style: TextStyle(
                                 color: ink.withValues(alpha: 0.7),
                                 fontWeight: FontWeight.w700,
@@ -244,7 +278,7 @@ class _QuotaVoucherFace extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              formatCOP(available),
+                              '$count',
                               style: TextStyle(
                                 color: ink,
                                 fontWeight: FontWeight.w800,
@@ -253,35 +287,13 @@ class _QuotaVoucherFace extends StatelessWidget {
                             ),
                           ],
                         ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            'COMPRAS',
-                            style: TextStyle(
-                              color: ink.withValues(alpha: 0.7),
-                              fontWeight: FontWeight.w700,
-                              fontSize: KreditTextSize.caption,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          Text(
-                            '$count',
-                            style: TextStyle(
-                              color: ink,
-                              fontWeight: FontWeight.w800,
-                              fontSize: KreditTextSize.emphasis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

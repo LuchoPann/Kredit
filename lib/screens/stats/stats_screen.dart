@@ -2,34 +2,14 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/models/credit.dart';
-import '../../domain/bank_detector.dart';
-import '../../domain/card_calculator.dart';
-import '../../domain/credit_calculator.dart';
 import '../../domain/date_utils.dart';
 import '../../domain/recommendations.dart';
 import '../../providers/credits_provider.dart';
+import '../../providers/stats_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/credit_display_utils.dart';
-import '../../widgets/account/stats_grid.dart';
 import '../../widgets/kredit_section_card.dart';
 import '../../widgets/progress_ring.dart';
-import 'simulator_sheet.dart';
-
-const _monthsEs = [
-  'Ene',
-  'Feb',
-  'Mar',
-  'Abr',
-  'May',
-  'Jun',
-  'Jul',
-  'Ago',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dic',
-];
 
 /// "Estadísticas avanzadas" screen: month-by-month debt projection, debt
 /// distribution by lender, and payoff-date forecasts. Purely derived from
@@ -40,20 +20,25 @@ class StatsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final creditsAsync = ref.watch(creditsProvider);
+    final statsData = ref.watch(statsDataProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Estadísticas avanzadas')),
       body: creditsAsync.when(
         data: (credits) {
-          if (credits.isEmpty) {
-            return const _EmptyState();
-          }
+          if (credits.isEmpty) return const _EmptyState();
+          if (statsData == null) return const _LoadingState();
           return ListView(
             padding: const EdgeInsets.all(KreditSpacing.card),
             children: [
-              _DebtOverviewPanel(credits: credits),
-              const SizedBox(height: 22),
-              StatsGrid(credits: credits),
+              _DebtOverviewPanel(
+                totalOwed: statsData.totalOwed,
+                totalLimit: statsData.totalLimit,
+                activeCount: statsData.activeCount,
+                totalPaidHistorico: statsData.totalPaidHistorico,
+                progressPct: statsData.progressPct,
+                risks: statsData.risks,
+              ),
               const SizedBox(height: 30),
 
               // Grupo 1 · Proyecciones: los dos visuales que responden
@@ -71,8 +56,8 @@ class StatsScreen extends ConsumerWidget {
                     subtitle: 'Próximos 6 meses, según cuotas y saldos vigentes',
                   ),
                   const SizedBox(height: 12),
-                  _MonthlyDebtChart(credits: credits),
-                  _InsightLine(text: _monthlyDebtInsight(credits)),
+                  _MonthlyDebtChart(data: statsData.monthlyProjection),
+                  _InsightLine(text: statsData.monthlyDebtInsight),
                 ],
               ),
               const SizedBox(height: 16),
@@ -86,8 +71,8 @@ class StatsScreen extends ConsumerWidget {
                         'Proporción de tu deuda pendiente por banco o entidad',
                   ),
                   const SizedBox(height: 12),
-                  _LenderDistributionChart(credits: credits, compact: true),
-                  _InsightLine(text: _lenderDistributionInsight(credits)),
+                  _LenderDistributionChart(slices: statsData.distribution, compact: true),
+                  _InsightLine(text: statsData.lenderDistributionInsight),
                 ],
               ),
               const SizedBox(height: 30),
@@ -97,13 +82,12 @@ class StatsScreen extends ConsumerWidget {
               // simulador — este último no es un panel de datos, es una
               // acción de navegación, así que va como fila simple con
               // chevron en vez de otra tarjeta idéntica a las anteriores.
-              if (buildRiskRecommendations(credits).isNotEmpty) ...[
+              if (statsData.risks.isNotEmpty) ...[
                 _GroupLabel(text: 'RIESGOS DETECTADOS'),
                 const SizedBox(height: 12),
                 KreditSectionCard(
                   children: [
-                    for (final risk in buildRiskRecommendations(credits))
-                      _RiskRow(risk: risk),
+                    for (final risk in statsData.risks) _RiskRow(risk: risk),
                   ],
                 ),
                 const SizedBox(height: 30),
@@ -120,7 +104,11 @@ class StatsScreen extends ConsumerWidget {
                         'Impacto real de lo que ya has abonado a tus préstamos',
                   ),
                   const SizedBox(height: 12),
-                  _AbonosHistorySummary(credits: credits),
+                  _AbonosHistorySummary(
+                    abonoCount: statsData.abonoCount,
+                    abonoTotal: statsData.abonoTotal,
+                    installmentsAdvanced: statsData.installmentsAdvanced,
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -133,12 +121,10 @@ class StatsScreen extends ConsumerWidget {
                     subtitle: 'Cuándo terminarías de pagar cada préstamo activo',
                   ),
                   const SizedBox(height: 12),
-                  _PayoffProjectionList(credits: credits),
-                  _InsightLine(text: buildBestPrepaymentRecommendation(credits)?.description),
+                  _PayoffProjectionList(entries: statsData.payoffProjections),
+                  _InsightLine(text: statsData.bestPrepayment),
                 ],
               ),
-              const SizedBox(height: 16),
-              _SimulatorEntryRow(credits: credits),
               const SizedBox(height: 24),
             ],
           );
@@ -158,34 +144,26 @@ class StatsScreen extends ConsumerWidget {
 /// dashboard_screen.dart's "DEUDA TOTAL"), and cupo disponible follows as a
 /// secondary typographic stat — no surrounding boxes.
 class _DebtOverviewPanel extends StatelessWidget {
-  final List<Credit> credits;
-  const _DebtOverviewPanel({required this.credits});
+  final double totalOwed;
+  final double totalLimit;
+  final int activeCount;
+  final double totalPaidHistorico;
+  final double progressPct;
+  final List<FinancialRecommendation> risks;
+
+  const _DebtOverviewPanel({
+    required this.totalOwed,
+    required this.totalLimit,
+    required this.activeCount,
+    required this.totalPaidHistorico,
+    required this.progressPct,
+    required this.risks,
+  });
 
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
-    double totalOwed = 0;
-    double totalLimit = 0;
-    int activeCount = 0;
-
-    for (final c in credits) {
-      if (c is LoanCredit) {
-        final unpaid = c.installments
-            .where((i) => !i.paid)
-            .fold(0.0, (sum, i) => sum + i.amount);
-        totalOwed += unpaid;
-        if (unpaid > 0) activeCount++;
-      } else if (c is CardCredit) {
-        totalOwed += c.currentBalance;
-        totalLimit += c.creditLimit;
-        if (c.currentBalance > 0) activeCount++;
-      }
-    }
-
-    final availableCredit = totalLimit > totalOwed
-        ? totalLimit - totalOwed
-        : 0.0;
-    final progressPct = getLoansProgressPercent(credits);
+    final availableCredit = totalLimit > totalOwed ? totalLimit - totalOwed : 0.0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,7 +199,17 @@ class _DebtOverviewPanel extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 16),
-            ProgressRing(percent: progressPct, size: 68),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                ProgressRing(percent: progressPct, size: 68),
+                // Indicador aditivo: si hay riesgos detectados (misma
+                // función que ya alimenta la sección "RIESGOS DETECTADOS"
+                // más abajo), un pill discreto lo adelanta aquí arriba —
+                // no reemplaza esa sección, solo la anticipa visualmente.
+                _RiskCountPill(risks: risks),
+              ],
+            ),
           ],
         ),
         const SizedBox(height: 22),
@@ -254,8 +242,8 @@ class _DebtOverviewPanel extends StatelessWidget {
             ),
             Expanded(
               child: _StatColumn(
-                label: 'Límite total',
-                value: formatCOP(totalLimit),
+                label: 'Total pagado',
+                value: formatCOP(totalPaidHistorico),
               ),
             ),
           ],
@@ -306,6 +294,47 @@ class _StatColumn extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
         ),
       ],
+    );
+  }
+}
+
+/// Pill discreto que adelanta cuántos riesgos hay detectados, junto al
+/// anillo de progreso — se oculta por completo cuando no hay ninguno, para
+/// no agregar ruido visual al caso feliz.
+class _RiskCountPill extends StatelessWidget {
+  final List<FinancialRecommendation> risks;
+  const _RiskCountPill({required this.risks});
+
+  @override
+  Widget build(BuildContext context) {
+    if (risks.isEmpty) return const SizedBox.shrink();
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final hasDanger = risks.any((r) => r.severity == RecommendationSeverity.danger);
+    final color = hasDanger ? kredit.danger : kredit.warning;
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(KreditRadius.chip),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.warning_amber_rounded, size: 12, color: color),
+            const SizedBox(width: 4),
+            Text(
+              '${risks.length} ${risks.length == 1 ? 'riesgo' : 'riesgos'}',
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -464,77 +493,18 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-/// Bucket key for a calendar month.
-class _MonthKey implements Comparable<_MonthKey> {
-  final int year;
-  final int month;
-  const _MonthKey(this.year, this.month);
-
-  @override
-  bool operator ==(Object other) =>
-      other is _MonthKey && other.year == year && other.month == month;
-
-  @override
-  int get hashCode => year * 12 + month;
-
-  @override
-  int compareTo(_MonthKey other) => hashCode.compareTo(other.hashCode);
-
-  String get label => '${_monthsEs[month - 1]}\n$year';
-}
-
-/// Sums projected debt per month for the next [monthsAhead] months: loan
-/// installments (unpaid, grouped by dueDate month) plus each card's current
-/// balance placed in the month of its next due date.
-Map<_MonthKey, double> _projectMonthlyDebt(
-  List<Credit> credits, {
-  int monthsAhead = 6,
-}) {
-  final now = DateTime.now();
-  final start = _MonthKey(now.year, now.month);
-  final months = <_MonthKey>[];
-  for (var i = 0; i < monthsAhead; i++) {
-    final totalMonth0 = (start.month - 1) + i;
-    final y = start.year + totalMonth0 ~/ 12;
-    final m = totalMonth0 % 12 + 1;
-    months.add(_MonthKey(y, m));
-  }
-  final buckets = {for (final m in months) m: 0.0};
-
-  for (final credit in credits) {
-    if (credit is LoanCredit) {
-      for (final inst in credit.installments) {
-        if (inst.paid) continue;
-        final due = parseDateStr(inst.dueDate);
-        final key = _MonthKey(due.year, due.month);
-        if (buckets.containsKey(key)) {
-          buckets[key] = buckets[key]! + inst.amount;
-        }
-      }
-    } else if (credit is CardCredit) {
-      if (credit.currentBalance <= 0) continue;
-      final dates = getCardCycleDates(credit);
-      final key = _MonthKey(dates.dueDate.year, dates.dueDate.month);
-      if (buckets.containsKey(key)) {
-        buckets[key] = buckets[key]! + credit.currentBalance;
-      }
-    }
-  }
-
-  return {for (final m in months) m: buckets[m] ?? 0.0};
-}
-
+/// Gráfica de barras con proyección mensual. Recibe datos ya calculados
+/// desde [statsDataProvider] — no llama ninguna función de cómputo en build().
+/// [RepaintBoundary] aísla el CustomPainter de fl_chart del árbol de widgets
+/// padre para que sus redraws (animación, tooltip) no invaliden la pantalla.
 class _MonthlyDebtChart extends StatelessWidget {
-  final List<Credit> credits;
-  const _MonthlyDebtChart({required this.credits});
-
-  static final _currency = NumberFormatLike();
+  final Map<MonthKey, double> data;
+  const _MonthlyDebtChart({required this.data});
 
   @override
   Widget build(BuildContext context) {
     final accent = Theme.of(context).colorScheme.primary;
     final kredit = Theme.of(context).extension<KreditColors>()!;
-    final data = _projectMonthlyDebt(credits);
     final entries = data.entries.toList();
     final maxY = entries.fold<double>(0, (m, e) => e.value > m ? e.value : m);
 
@@ -546,124 +516,94 @@ class _MonthlyDebtChart extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 8, 8, 0),
-      child: SizedBox(
-        height: 220,
-        child: BarChart(
-          duration: const Duration(milliseconds: 600),
-          curve: Curves.easeOutCubic,
-          BarChartData(
-            maxY: maxY * 1.2,
-            alignment: BarChartAlignment.spaceAround,
-            gridData: const FlGridData(show: false),
-            borderData: FlBorderData(show: false),
-            barTouchData: BarTouchData(
-              touchTooltipData: BarTouchTooltipData(
-                getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                  return BarTooltipItem(
-                    _currency.format(rod.toY),
-                    TextStyle(
-                      color: kredit.textPrimary,
-                      fontSize: KreditTextSize.caption,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  );
-                },
-              ),
-            ),
-            titlesData: FlTitlesData(
-              leftTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false),
-              ),
-              topTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false),
-              ),
-              rightTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false),
-              ),
-              bottomTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  reservedSize: 36,
-                  getTitlesWidget: (value, meta) {
-                    final idx = value.toInt();
-                    if (idx < 0 || idx >= entries.length) {
-                      return const SizedBox.shrink();
-                    }
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Text(
-                        entries[idx].key.label,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: KreditTextSize.caption,
-                          color: kredit.textTertiary,
-                        ),
+      child: RepaintBoundary(
+        child: SizedBox(
+          height: 220,
+          child: BarChart(
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeOutCubic,
+            BarChartData(
+              maxY: maxY * 1.2,
+              alignment: BarChartAlignment.spaceAround,
+              gridData: const FlGridData(show: false),
+              borderData: FlBorderData(show: false),
+              barTouchData: BarTouchData(
+                touchTooltipData: BarTouchTooltipData(
+                  getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                    return BarTooltipItem(
+                      formatCOP(rod.toY),
+                      TextStyle(
+                        color: kredit.textPrimary,
+                        fontSize: KreditTextSize.caption,
+                        fontWeight: FontWeight.bold,
                       ),
                     );
                   },
                 ),
               ),
-            ),
-            barGroups: [
-              for (var i = 0; i < entries.length; i++)
-                BarChartGroupData(
-                  x: i,
-                  barRods: [
-                    BarChartRodData(
-                      toY: entries[i].value,
-                      gradient: LinearGradient(
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
-                        colors: [
-                          accent.withValues(alpha: 0.45),
-                          accent,
-                        ],
-                      ),
-                      width: 20,
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(6),
-                      ),
-                    ),
-                  ],
+              titlesData: FlTitlesData(
+                leftTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
                 ),
-            ],
+                topTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                rightTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 36,
+                    getTitlesWidget: (value, meta) {
+                      final idx = value.toInt();
+                      if (idx < 0 || idx >= entries.length) {
+                        return const SizedBox.shrink();
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(
+                          entries[idx].key.label,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: KreditTextSize.caption,
+                            color: kredit.textTertiary,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              barGroups: [
+                for (var i = 0; i < entries.length; i++)
+                  BarChartGroupData(
+                    x: i,
+                    barRods: [
+                      BarChartRodData(
+                        toY: entries[i].value,
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [
+                            accent.withValues(alpha: 0.45),
+                            accent,
+                          ],
+                        ),
+                        width: 20,
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(6),
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
-}
-
-/// Fase 7 / Tarea 3 del roadmap ("Estadísticas explicativas"): una línea de
-/// texto en español plano bajo cada gráfica que responde "¿qué significa
-/// esto para mí?", en vez de dejar que el lector interprete los números
-/// solo. Reutiliza los mismos datos que ya calcula cada chart — no agrega
-/// nuevas fuentes de verdad.
-String? _monthlyDebtInsight(List<Credit> credits) {
-  final data = _projectMonthlyDebt(credits);
-  if (data.isEmpty) return null;
-  final entries = data.entries.toList();
-  final total = entries.fold<double>(0, (s, e) => s + e.value);
-  if (total <= 0) return null;
-  final peak = entries.reduce((a, b) => b.value > a.value ? b : a);
-  final currency = NumberFormatLike();
-  final monthLabel = peak.key.label.replaceAll('\n', ' ');
-  final share = (peak.value / total * 100).round();
-  return 'Tu mes más cargado es $monthLabel, con ${currency.format(peak.value)} '
-      '($share% de lo proyectado en los próximos 6 meses).';
-}
-
-String? _lenderDistributionInsight(List<Credit> credits) {
-  final slices = _distributionByLender(credits);
-  if (slices.isEmpty) return null;
-  final total = slices.fold<double>(0, (s, e) => s + e.amount);
-  if (total <= 0) return null;
-  final top = slices.first;
-  final share = (top.amount / total * 100).round();
-  if (slices.length == 1) {
-    return 'Toda tu deuda pendiente está concentrada en ${top.label}.';
-  }
-  return 'El $share% de tu deuda pendiente está concentrada en ${top.label}.';
 }
 
 class _RiskRow extends StatelessWidget {
@@ -745,58 +685,19 @@ class _InlineEmptyCard extends StatelessWidget {
   }
 }
 
-class _LenderSlice {
-  final String label;
-  final double amount;
-  final Color color;
-  const _LenderSlice({
-    required this.label,
-    required this.amount,
-    required this.color,
-  });
-}
-
-List<_LenderSlice> _distributionByLender(List<Credit> credits) {
-  final byLender = <String, double>{};
-  final colorByLender = <String, Color>{};
-
-  for (final credit in credits) {
-    final balance = getCreditRemainingBalance(credit);
-    if (balance <= 0) continue;
-    final bank = detectBank(
-      lender: credit.lender,
-      card: credit is LoanCredit ? credit.card : null,
-    );
-    final key = bank.shortLabel.isEmpty ? credit.lender : bank.shortLabel;
-    byLender[key] = (byLender[key] ?? 0) + balance;
-    colorByLender.putIfAbsent(key, () {
-      final hex = bank.accentColor.replaceFirst('#', '');
-      final full = hex.length == 6 ? 'FF$hex' : hex;
-      return Color(int.parse(full, radix: 16));
-    });
-  }
-
-  final entries = byLender.entries.toList()
-    ..sort((a, b) => b.value.compareTo(a.value));
-  return [
-    for (final e in entries)
-      _LenderSlice(label: e.key, amount: e.value, color: colorByLender[e.key]!),
-  ];
-}
-
+/// Gráfica de torta con distribución por entidad. Recibe slices pre-computadas
+/// desde [statsDataProvider]. [RepaintBoundary] aísla el CustomPainter de
+/// fl_chart del árbol padre para que sus redraws no invaliden la pantalla.
 class _LenderDistributionChart extends StatelessWidget {
-  final List<Credit> credits;
+  final List<LenderSlice> slices;
   // Se muestra un poco más pequeño que el gráfico de barras que lo precede
   // en el grupo "Proyecciones" — es el complemento, no el protagonista.
   final bool compact;
-  const _LenderDistributionChart({required this.credits, this.compact = false});
-
-  static final _currency = NumberFormatLike();
+  const _LenderDistributionChart({required this.slices, this.compact = false});
 
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
-    final slices = _distributionByLender(credits);
     final total = slices.fold<double>(0, (s, e) => s + e.amount);
 
     if (slices.isEmpty || total <= 0) {
@@ -807,29 +708,30 @@ class _LenderDistributionChart extends StatelessWidget {
 
     return Column(
       children: [
-        SizedBox(
-          height: compact ? 160 : 180,
-          child: PieChart(
-            duration: const Duration(milliseconds: 600),
-            curve: Curves.easeOutCubic,
-            PieChartData(
-              sectionsSpace: 2,
-              centerSpaceRadius: 44,
-              sections: [
-                for (final s in slices)
-                  PieChartSectionData(
-                    value: s.amount,
-                    color: s.color,
-                    title: '${(s.amount / total * 100).round()}%',
-                    radius: 46,
-                    titleStyle: const TextStyle(
-                      fontSize: KreditTextSize.caption,
-                      fontWeight: FontWeight.bold,
-                      color: Colors
-                          .white, // Bug 1: always legible on vivid slice colors
+        RepaintBoundary(
+          child: SizedBox(
+            height: compact ? 160 : 180,
+            child: PieChart(
+              duration: const Duration(milliseconds: 600),
+              curve: Curves.easeOutCubic,
+              PieChartData(
+                sectionsSpace: 2,
+                centerSpaceRadius: 44,
+                sections: [
+                  for (final s in slices)
+                    PieChartSectionData(
+                      value: s.amount,
+                      color: s.color,
+                      title: '${(s.amount / total * 100).round()}%',
+                      radius: 46,
+                      titleStyle: const TextStyle(
+                        fontSize: KreditTextSize.caption,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -854,7 +756,7 @@ class _LenderDistributionChart extends StatelessWidget {
                   const SizedBox(width: 6),
                   Text(
                     '${s.label} · ${(s.amount / total * 100).round()}% · '
-                    '${_currency.format(s.amount)}',
+                    '${formatCOP(s.amount)}',
                     style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary),
                   ),
                 ],
@@ -866,51 +768,16 @@ class _LenderDistributionChart extends StatelessWidget {
   }
 }
 
-class _PayoffEntry {
-  final String name;
-  final DateTime endDate;
-  final int monthsFromNow;
-  const _PayoffEntry({
-    required this.name,
-    required this.endDate,
-    required this.monthsFromNow,
-  });
-}
-
-List<_PayoffEntry> _payoffProjections(List<Credit> credits) {
-  final now = DateTime.now();
-  final today = DateTime(now.year, now.month, now.day);
-  final entries = <_PayoffEntry>[];
-
-  for (final credit in credits) {
-    if (credit is! LoanCredit) continue;
-    final unpaid = credit.installments.where((i) => !i.paid).toList();
-    if (unpaid.isEmpty) continue;
-    final lastDue = unpaid
-        .map((i) => parseDateStr(i.dueDate))
-        .reduce((a, b) => a.isAfter(b) ? a : b);
-    final months = ((lastDue.difference(today).inDays) / 30).ceil();
-    entries.add(
-      _PayoffEntry(
-        name: credit.name,
-        endDate: lastDue,
-        monthsFromNow: months < 0 ? 0 : months,
-      ),
-    );
-  }
-
-  entries.sort((a, b) => a.endDate.compareTo(b.endDate));
-  return entries;
-}
-
+/// Lista de proyecciones de fin de pago. Recibe entradas pre-computadas
+/// desde [statsDataProvider] — solo convierte [DateTime] a texto con
+/// [toDateStr] + [formatDate], que son operaciones O(1).
 class _PayoffProjectionList extends StatelessWidget {
-  final List<Credit> credits;
-  const _PayoffProjectionList({required this.credits});
+  final List<PayoffEntry> entries;
+  const _PayoffProjectionList({required this.entries});
 
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
-    final entries = _payoffProjections(credits);
 
     if (entries.isEmpty) {
       return const _InlineEmptyCard(
@@ -973,30 +840,24 @@ class _PayoffProjectionList extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Historial real de abonos extra (Hallazgo B)
+// Historial real de abonos extra
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// Resumen de abonos extra. Recibe valores pre-computados desde
+/// [statsDataProvider] — no itera créditos en build().
 class _AbonosHistorySummary extends StatelessWidget {
-  final List<Credit> credits;
-  const _AbonosHistorySummary({required this.credits});
+  final int abonoCount;
+  final double abonoTotal;
+  final int installmentsAdvanced;
+
+  const _AbonosHistorySummary({
+    required this.abonoCount,
+    required this.abonoTotal,
+    required this.installmentsAdvanced,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final fmt = NumberFormatLike();
-
-    int abonoCount = 0;
-    double abonoTotal = 0;
-    int installmentsAdvanced = 0;
-
-    for (final c in credits) {
-      if (c is! LoanCredit) continue;
-      for (final abono in c.abonos) {
-        abonoCount++;
-        abonoTotal += abono.amount;
-        installmentsAdvanced += abono.installmentsSkipped;
-      }
-    }
-
     if (abonoCount == 0) {
       return const _InlineEmptyCard(
         text:
@@ -1038,50 +899,10 @@ class _AbonosHistorySummary extends StatelessWidget {
         Expanded(
           child: _StatColumn(
             label: 'Suma abonada',
-            value: fmt.format(abonoTotal),
+            value: formatCOP(abonoTotal),
           ),
         ),
       ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Simulator entry — fila de navegación, no un panel de datos
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// El simulador no es un gráfico ni un resumen: es un punto de entrada a
-/// otra pantalla (`simulator_sheet.dart`). Por eso, a diferencia de las
-/// demás secciones, no vive dentro de un [KreditSectionCard] — se muestra
-/// como una fila simple tipo `ListTile` con chevron, el mismo patrón que
-/// usan los accesos de navegación en `account_screen.dart`, para que su peso
-/// visual sea el de una acción y no el de un dato más.
-class _SimulatorEntryRow extends StatelessWidget {
-  final List<Credit> credits;
-  const _SimulatorEntryRow({required this.credits});
-
-  @override
-  Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
-    final accent = Theme.of(context).colorScheme.primary;
-
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      onTap: () => openSimulatorSheet(context),
-      leading: Icon(Icons.calculate_outlined, color: accent),
-      title: Text(
-        '¿Qué pasa si…?',
-        style: TextStyle(
-          fontWeight: FontWeight.w700,
-          fontSize: KreditTextSize.body,
-          color: kredit.textPrimary,
-        ),
-      ),
-      subtitle: Text(
-        'Simula una compra en cuotas o un abono extra a capital',
-        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary),
-      ),
-      trailing: Icon(Icons.chevron_right, color: kredit.textTertiary),
     );
   }
 }

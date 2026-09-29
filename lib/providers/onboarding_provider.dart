@@ -1,22 +1,23 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+import 'shared_preferences_provider.dart';
 
 const _kOnboardingShownKey = 'onboarding_shown';
 
-class OnboardingNotifier extends AsyncNotifier<bool> {
+/// Synchronous — SharedPreferences is pre-loaded in main() so build() never
+/// suspends and onboardingProvider.isLoading is never true.
+class OnboardingNotifier extends Notifier<bool> {
   @override
-  Future<bool> build() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_kOnboardingShownKey) ?? false;
+  bool build() {
+    return ref.read(sharedPreferencesProvider).getBool(_kOnboardingShownKey) ?? false;
   }
 
   Future<void> markShown() async {
-    state = const AsyncData(true);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_kOnboardingShownKey, true);
+    state = true;
+    await ref.read(sharedPreferencesProvider).setBool(_kOnboardingShownKey, true);
   }
 }
 
-final onboardingProvider = AsyncNotifierProvider<OnboardingNotifier, bool>(
+final onboardingProvider = NotifierProvider<OnboardingNotifier, bool>(
   OnboardingNotifier.new,
 );
