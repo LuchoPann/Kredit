@@ -6,6 +6,7 @@ import '../../data/models/credit.dart';
 import '../../providers/commercial_quotas_provider.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/currency_input_formatter.dart';
 import '../../widgets/account/voucher_pattern_picker.dart';
 import '../../widgets/voucher_pattern.dart';
 import '../../widgets/credit_detail/movements_tab.dart';
@@ -138,6 +139,88 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
     );
   }
 
+  void _showEditQuota(BuildContext context, CommercialQuota quota) {
+    final brandCtrl = TextEditingController(text: quota.brand);
+    final limitCtrl = TextEditingController(
+      text: CurrencyInputFormatter.format(quota.limit),
+    );
+    final formKey = GlobalKey<FormState>();
+
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          left: KreditSpacing.card,
+          right: KreditSpacing.card,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + KreditSpacing.card,
+        ),
+        child: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Editar cupo comercial',
+                style: Theme.of(ctx).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: brandCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre / Entidad',
+                  hintText: 'Ej: Totto, Lili Pink, Alkosto…',
+                ),
+                textCapitalization: TextCapitalization.words,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Requerido' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: limitCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Límite del cupo',
+                  prefixText: '\$ ',
+                ),
+                keyboardType: TextInputType.number,
+                inputFormatters: [const CurrencyInputFormatter()],
+                validator: (v) {
+                  final parsed = double.tryParse(
+                    CurrencyInputFormatter.unformat(v ?? ''),
+                  );
+                  if (parsed == null || parsed <= 0) return 'Monto inválido';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+              FilledButton(
+                onPressed: () {
+                  if (!formKey.currentState!.validate()) return;
+                  final newLimit = double.parse(
+                    CurrencyInputFormatter.unformat(limitCtrl.text),
+                  );
+                  ref.read(commercialQuotasProvider.notifier).upsert(
+                    CommercialQuota(
+                      id: quota.id,
+                      brand: brandCtrl.text.trim(),
+                      limit: newLimit,
+                      notes: quota.notes,
+                      voucherPattern: quota.voucherPattern,
+                    ),
+                  );
+                  Navigator.pop(ctx);
+                },
+                child: const Text('Guardar cambios'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Extracts the millisecond timestamp `_save()` encodes into every
   /// credit's id (`credit_<millis>`), for sorting purchases most-recent
   /// first. Falls back to 0 for ids that don't match (seeded demo credits).
@@ -222,12 +305,18 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
             // ya no vive en un botón separado aquí — se ofrece
             // automáticamente al vaciarlo (ver credits_list_screen).
             actions: [
-              if (isGrouped && quota != null)
+              if (isGrouped && quota != null) ...[
+                IconButton(
+                  onPressed: () => _showEditQuota(context, quota!),
+                  icon: const Icon(Icons.edit_outlined),
+                  tooltip: 'Editar cupo',
+                ),
                 IconButton(
                   onPressed: () => _showVoucherPatternPicker(context, quota!),
                   icon: const Icon(Icons.palette_outlined),
                   tooltip: 'Diseño de voucher',
                 ),
+              ],
             ],
             bottom: TabBar(
               controller: _tabController,

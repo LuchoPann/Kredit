@@ -325,11 +325,21 @@ void applyInstallmentPayment(Installment inst, bool paid) {
 }
 
 /// Port of getCreditRemainingBalance for loan credits (app.js ~L1332-1336):
-/// sum of the `amount` of every installment not yet marked paid.
+/// sum of the `amount` (principal + interest) of every unpaid installment.
+/// Use this for "how much do I still owe?" — the true total obligation.
 double getLoanRemainingBalance(LoanCredit credit) {
   return credit.installments
       .where((i) => !i.paid)
       .fold(0.0, (sum, i) => sum + i.amount);
+}
+
+/// Net capital still owed on unpaid installments, excluding future interest.
+/// Use this for "how much of my credit limit is consumed?" — interest is a
+/// cost of borrowing, not a consumption of the credit limit itself.
+double getLoanRemainingPrincipal(LoanCredit credit) {
+  return credit.installments
+      .where((i) => !i.paid)
+      .fold(0.0, (sum, i) => sum + i.principal);
 }
 
 /// Marks every unpaid installment of [credit] as paid (markAllInstallments,
