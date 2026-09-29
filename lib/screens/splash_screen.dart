@@ -39,27 +39,6 @@ const _kSvgPaths = [
   'M681.65 68.50 c-3.95 -0.40 -7 -3.20 -8.15 -7.55 -0.35 -1.25 -0.50 -10.30 -0.40 -25.30 l0.15 -23.40 1.25 -2.25 c0.70 -1.20 2.25 -2.90 3.40 -3.75 l2.20 -1.50 81.05 -0.15 c60.55 -0.10 81.80 0 83.80 0.45 3.30 0.70 1.70 -0.80 36.20 33.10 24 23.60 24.85 24.50 24.85 26.30 0 1.30 -0.35 2.20 -1.15 2.95 l-1.15 1.10 -109.75 0.10 c-60.30 0.10 -110.85 0.05 -112.30 -0.10z',
 ];
 
-enum _Dir { bottomTop, topBottom, leftRight, diagDownRight, diagUpRight }
-
-const _kDirs = <_Dir>[
-  _Dir.bottomTop,     // 0 — R body
-  _Dir.diagDownRight, // 1 — R diagonal leg
-  _Dir.diagUpRight,   // 2 — K bottom strokes
-  _Dir.bottomTop,     // 3 — D outer shell
-  _Dir.bottomTop,     // 4 — I bar
-  _Dir.bottomTop,     // 5 — T stem
-  _Dir.leftRight,     // 6 — E bottom cap
-  _Dir.diagDownRight, // 7 — E bottom sweep
-  _Dir.diagDownRight, // 8 — D front face
-  _Dir.leftRight,     // 9 — E middle bar
-  _Dir.topBottom,     // 10 — K vertical stem
-  _Dir.diagUpRight,   // 11 — K diagonal arm
-  _Dir.leftRight,     // 12 — T bar left
-  _Dir.leftRight,     // 13 — T bar right
-  _Dir.diagUpRight,   // 14 — E top-right corner
-  _Dir.leftRight,     // 15 — E top-left bar
-];
-
 class _FlutterPathProxy implements PathProxy {
   _FlutterPathProxy(this.path);
   final Path path;
@@ -73,29 +52,22 @@ class _FlutterPathProxy implements PathProxy {
 
 // ─── Static path cache — initialized once in main() ──────────────────────────
 List<Path>? _sPaths;
-List<Rect>? _sBounds;
-List<int>?  _sSortedIdx;
 
 /// Call once from main() after WidgetsFlutterBinding.ensureInitialized().
 void initSplashPaths() {
   if (_sPaths != null) return;
-  final paths = _kSvgPaths.map((d) {
+  _sPaths = _kSvgPaths.map((d) {
     final p = Path();
     writeSvgPathDataToPath(d, _FlutterPathProxy(p));
     return p;
   }).toList();
-  final bounds = paths.map((p) => p.getBounds()).toList();
-  final idx = List.generate(paths.length, (i) => i)
-    ..sort((a, b) => bounds[a].center.dx.compareTo(bounds[b].center.dx));
-  _sPaths     = paths;
-  _sBounds    = bounds;
-  _sSortedIdx = idx;
 }
 
 const _svgW = 1824.0;
 const _svgH  =  309.0;
 
-// ─── Painter — letter reveal only ────────────────────────────────────────────
+// ─── Painter — single left-to-right wipe ─────────────────────────────────────
+// One clipRect = one GPU scissor call per frame. No per-letter allocations.
 class _KreditLogoPainter extends CustomPainter {
   const _KreditLogoPainter(this.progress);
   final double progress;
@@ -103,10 +75,6 @@ class _KreditLogoPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (_sPaths == null) return;
-    final paths  = _sPaths!;
-    final bounds = _sBounds!;
-    final sorted = _sSortedIdx!;
-    final n      = sorted.length;
 
     final scale = math.min(size.width / _svgW, size.height / _svgH);
     final tx    = (size.width  - _svgW * scale) / 2;
@@ -116,54 +84,17 @@ class _KreditLogoPainter extends CustomPainter {
     canvas.translate(tx, ty);
     canvas.scale(scale, scale);
 
-    const stagger = 0.65;
-    const dur     = 0.35;
-    const pad     = 2.0;
+    // Left-to-right reveal: single scissor rect grows from 0 → svgW.
+    // easeInOutCubic: slow start, fast middle, slow end — reads as deliberate.
+    final t = Curves.easeInOutCubic.transform(progress);
+    canvas.clipRect(Rect.fromLTRB(-2, -2, _svgW * t, _svgH + 2));
+
     final paint = Paint()
       ..style = PaintingStyle.fill
       ..color = const Color(0xFFFAFAFB);
 
-    for (int rank = 0; rank < n; rank++) {
-      final idx   = sorted[rank];
-      final start = (rank / (n - 1)) * stagger;
-      final local = ((progress - start) / dur).clamp(0.0, 1.0);
-      if (local <= 0) continue;
-      final t   = Curves.easeOutCubic.transform(local);
-      final b   = bounds[idx];
-      final dir = _kDirs[idx];
-
-      canvas.save();
-      // clipRect is GPU-scissor (free); clipPath requires tessellation — use
-      // it only for the two diagonal reveal directions.
-      switch (dir) {
-        case _Dir.bottomTop:
-          canvas.clipRect(Rect.fromLTRB(
-              b.left - pad, b.bottom - b.height * t, b.right + pad, b.bottom + pad));
-        case _Dir.topBottom:
-          canvas.clipRect(Rect.fromLTRB(
-              b.left - pad, b.top - pad, b.right + pad, b.top + b.height * t));
-        case _Dir.leftRight:
-          canvas.clipRect(Rect.fromLTRB(
-              b.left - pad, b.top - pad, b.left + b.width * t, b.bottom + pad));
-        case _Dir.diagDownRight:
-          final s = (b.width + b.height) * t;
-          canvas.clipPath(Path()..addPolygon([
-            Offset(b.left - pad, b.top - pad),
-            Offset(b.left + s - b.height, b.top - pad),
-            Offset(b.left + s, b.bottom + pad),
-            Offset(b.left - pad, b.bottom + pad),
-          ], true));
-        case _Dir.diagUpRight:
-          final s = (b.width + b.height) * t;
-          canvas.clipPath(Path()..addPolygon([
-            Offset(b.left - pad, b.bottom + pad),
-            Offset(b.left + s - b.height, b.bottom + pad),
-            Offset(b.left + s, b.top - pad),
-            Offset(b.left - pad, b.top - pad),
-          ], true));
-      }
-      canvas.drawPath(paths[idx], paint);
-      canvas.restore();
+    for (final path in _sPaths!) {
+      canvas.drawPath(path, paint);
     }
 
     canvas.restore();
@@ -189,18 +120,18 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-    initSplashPaths(); // idempotent — no-op if already done in main()
+    initSplashPaths(); // no-op if already done in main()
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 4500),
+      duration: const Duration(milliseconds: 1600),
     );
     _sequence();
   }
 
   Future<void> _sequence() async {
-    await Future.delayed(const Duration(milliseconds: 200));
+    await Future.delayed(const Duration(milliseconds: 150));
     await _ctrl.forward().orCancel;
-    await Future.delayed(const Duration(milliseconds: 300)); // gabela
+    await Future.delayed(const Duration(milliseconds: 400)); // gabela visible
     if (mounted) widget.onCompleted();
   }
 
@@ -224,7 +155,7 @@ class _SplashScreenState extends State<SplashScreen>
                 animation: _ctrl,
                 builder: (_, child) => CustomPaint(
                   painter: _KreditLogoPainter(_ctrl.value),
-                  willChange: true, // animation changes every frame — skip raster cache
+                  willChange: true,
                   child: child,
                 ),
                 child: const SizedBox.expand(),
