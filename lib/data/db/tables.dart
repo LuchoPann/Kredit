@@ -78,6 +78,9 @@ class Credits extends Table {
 /// A commercial credit line with a brand (Totto, Lili Pink, Éxito...).
 /// Purchases inside it are Credits rows with quotaId pointing here — see
 /// Credits.quotaId above.
+///
+/// Also used for bank entities (Bancolombia, Davivienda…) and app-based
+/// lenders (Addi, Rapicredit…) since v8 via [entityType].
 @DataClassName('CommercialQuotaRow')
 class CommercialQuotas extends Table {
   TextColumn get id => text()();
@@ -91,6 +94,18 @@ class CommercialQuotas extends Table {
   /// on their vouchers. Null means "not chosen yet", falls back to the
   /// first pattern in code (see VoucherPattern.fromName).
   TextColumn get voucherPattern => text().nullable()();
+
+  /// 'store' | 'bank' | 'app' — distinguishes credit stores (Totto),
+  /// bank cards (Bancolombia), and app lenders (Addi). Default 'store'
+  /// so all rows created before v8 are correctly classified.
+  TextColumn get entityType =>
+      text().withDefault(const Constant('store'))();
+
+  // --- bank / card entity fields (null for stores) ---
+  IntColumn get cutoffDay => integer().nullable()();
+  IntColumn get paymentOffsetDays => integer().nullable()();
+  RealColumn get managementFee => real().nullable()();
+  TextColumn get managementFeeFrequency => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};

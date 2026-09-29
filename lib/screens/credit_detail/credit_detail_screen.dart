@@ -128,6 +128,11 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
                       limit: quota.limit,
                       notes: quota.notes,
                       voucherPattern: pattern.name,
+                      entityType: quota.entityType,
+                      cutoffDay: quota.cutoffDay,
+                      paymentOffsetDays: quota.paymentOffsetDays,
+                      managementFee: quota.managementFee,
+                      managementFeeFrequency: quota.managementFeeFrequency,
                     ),
                   );
                 },
@@ -208,6 +213,11 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
                       limit: newLimit,
                       notes: quota.notes,
                       voucherPattern: quota.voucherPattern,
+                      entityType: quota.entityType,
+                      cutoffDay: quota.cutoffDay,
+                      paymentOffsetDays: quota.paymentOffsetDays,
+                      managementFee: quota.managementFee,
+                      managementFeeFrequency: quota.managementFeeFrequency,
                     ),
                   );
                   Navigator.pop(ctx);

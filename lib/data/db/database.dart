@@ -38,7 +38,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -68,6 +68,15 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 7) {
             await m.addColumn(commercialQuotas, commercialQuotas.voucherPattern);
+          }
+          if (from < 8) {
+            await m.addColumn(commercialQuotas, commercialQuotas.entityType);
+            await m.addColumn(commercialQuotas, commercialQuotas.cutoffDay);
+            await m.addColumn(
+                commercialQuotas, commercialQuotas.paymentOffsetDays);
+            await m.addColumn(commercialQuotas, commercialQuotas.managementFee);
+            await m.addColumn(
+                commercialQuotas, commercialQuotas.managementFeeFrequency);
           }
         },
         // SQLite ignores FK constraints (like Credits.quotaId's
@@ -127,6 +136,7 @@ class AppDatabase extends _$AppDatabase {
           row.managementFeeFrequency ?? ManagementFeeFrequency.monthly,
       cycleCount: row.cycleCount ?? 0,
       lastAccrualCutoff: row.lastAccrualCutoff,
+      quotaId: row.quotaId,
       movements: movements,
     );
   }
@@ -172,6 +182,7 @@ class AppDatabase extends _$AppDatabase {
         managementFeeFrequency: Value(credit.managementFeeFrequency),
         cycleCount: Value(credit.cycleCount),
         lastAccrualCutoff: Value(credit.lastAccrualCutoff),
+        quotaId: Value(credit.quotaId),
       );
     }
     throw ArgumentError('Unknown credit subtype: ${credit.runtimeType}');
@@ -259,6 +270,11 @@ class AppDatabase extends _$AppDatabase {
               limit: r.limit,
               notes: r.notes,
               voucherPattern: r.voucherPattern,
+              entityType: r.entityType,
+              cutoffDay: r.cutoffDay,
+              paymentOffsetDays: r.paymentOffsetDays,
+              managementFee: r.managementFee,
+              managementFeeFrequency: r.managementFeeFrequency,
             ))
         .toList();
   }
@@ -271,6 +287,11 @@ class AppDatabase extends _$AppDatabase {
         limit: quota.limit,
         notes: Value(quota.notes),
         voucherPattern: Value(quota.voucherPattern),
+        entityType: Value(quota.entityType),
+        cutoffDay: Value(quota.cutoffDay),
+        paymentOffsetDays: Value(quota.paymentOffsetDays),
+        managementFee: Value(quota.managementFee),
+        managementFeeFrequency: Value(quota.managementFeeFrequency),
       ),
     );
   }

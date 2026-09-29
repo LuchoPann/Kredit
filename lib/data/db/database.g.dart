@@ -56,6 +56,62 @@ class $CommercialQuotasTable extends CommercialQuotas
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _entityTypeMeta = const VerificationMeta(
+    'entityType',
+  );
+  @override
+  late final GeneratedColumn<String> entityType = GeneratedColumn<String>(
+    'entity_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('store'),
+  );
+  static const VerificationMeta _cutoffDayMeta = const VerificationMeta(
+    'cutoffDay',
+  );
+  @override
+  late final GeneratedColumn<int> cutoffDay = GeneratedColumn<int>(
+    'cutoff_day',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _paymentOffsetDaysMeta = const VerificationMeta(
+    'paymentOffsetDays',
+  );
+  @override
+  late final GeneratedColumn<int> paymentOffsetDays = GeneratedColumn<int>(
+    'payment_offset_days',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _managementFeeMeta = const VerificationMeta(
+    'managementFee',
+  );
+  @override
+  late final GeneratedColumn<double> managementFee = GeneratedColumn<double>(
+    'management_fee',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _managementFeeFrequencyMeta =
+      const VerificationMeta('managementFeeFrequency');
+  @override
+  late final GeneratedColumn<String> managementFeeFrequency =
+      GeneratedColumn<String>(
+        'management_fee_frequency',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -63,6 +119,11 @@ class $CommercialQuotasTable extends CommercialQuotas
     limit,
     notes,
     voucherPattern,
+    entityType,
+    cutoffDay,
+    paymentOffsetDays,
+    managementFee,
+    managementFeeFrequency,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -112,6 +173,45 @@ class $CommercialQuotasTable extends CommercialQuotas
         ),
       );
     }
+    if (data.containsKey('entity_type')) {
+      context.handle(
+        _entityTypeMeta,
+        entityType.isAcceptableOrUnknown(data['entity_type']!, _entityTypeMeta),
+      );
+    }
+    if (data.containsKey('cutoff_day')) {
+      context.handle(
+        _cutoffDayMeta,
+        cutoffDay.isAcceptableOrUnknown(data['cutoff_day']!, _cutoffDayMeta),
+      );
+    }
+    if (data.containsKey('payment_offset_days')) {
+      context.handle(
+        _paymentOffsetDaysMeta,
+        paymentOffsetDays.isAcceptableOrUnknown(
+          data['payment_offset_days']!,
+          _paymentOffsetDaysMeta,
+        ),
+      );
+    }
+    if (data.containsKey('management_fee')) {
+      context.handle(
+        _managementFeeMeta,
+        managementFee.isAcceptableOrUnknown(
+          data['management_fee']!,
+          _managementFeeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('management_fee_frequency')) {
+      context.handle(
+        _managementFeeFrequencyMeta,
+        managementFeeFrequency.isAcceptableOrUnknown(
+          data['management_fee_frequency']!,
+          _managementFeeFrequencyMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -141,6 +241,26 @@ class $CommercialQuotasTable extends CommercialQuotas
         DriftSqlType.string,
         data['${effectivePrefix}voucher_pattern'],
       ),
+      entityType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}entity_type'],
+      )!,
+      cutoffDay: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cutoff_day'],
+      ),
+      paymentOffsetDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}payment_offset_days'],
+      ),
+      managementFee: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}management_fee'],
+      ),
+      managementFeeFrequency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}management_fee_frequency'],
+      ),
     );
   }
 
@@ -163,12 +283,26 @@ class CommercialQuotaRow extends DataClass
   /// on their vouchers. Null means "not chosen yet", falls back to the
   /// first pattern in code (see VoucherPattern.fromName).
   final String? voucherPattern;
+
+  /// 'store' | 'bank' | 'app' — distinguishes credit stores (Totto),
+  /// bank cards (Bancolombia), and app lenders (Addi). Default 'store'
+  /// so all rows created before v8 are correctly classified.
+  final String entityType;
+  final int? cutoffDay;
+  final int? paymentOffsetDays;
+  final double? managementFee;
+  final String? managementFeeFrequency;
   const CommercialQuotaRow({
     required this.id,
     required this.brand,
     required this.limit,
     this.notes,
     this.voucherPattern,
+    required this.entityType,
+    this.cutoffDay,
+    this.paymentOffsetDays,
+    this.managementFee,
+    this.managementFeeFrequency,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -181,6 +315,21 @@ class CommercialQuotaRow extends DataClass
     }
     if (!nullToAbsent || voucherPattern != null) {
       map['voucher_pattern'] = Variable<String>(voucherPattern);
+    }
+    map['entity_type'] = Variable<String>(entityType);
+    if (!nullToAbsent || cutoffDay != null) {
+      map['cutoff_day'] = Variable<int>(cutoffDay);
+    }
+    if (!nullToAbsent || paymentOffsetDays != null) {
+      map['payment_offset_days'] = Variable<int>(paymentOffsetDays);
+    }
+    if (!nullToAbsent || managementFee != null) {
+      map['management_fee'] = Variable<double>(managementFee);
+    }
+    if (!nullToAbsent || managementFeeFrequency != null) {
+      map['management_fee_frequency'] = Variable<String>(
+        managementFeeFrequency,
+      );
     }
     return map;
   }
@@ -196,6 +345,19 @@ class CommercialQuotaRow extends DataClass
       voucherPattern: voucherPattern == null && nullToAbsent
           ? const Value.absent()
           : Value(voucherPattern),
+      entityType: Value(entityType),
+      cutoffDay: cutoffDay == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cutoffDay),
+      paymentOffsetDays: paymentOffsetDays == null && nullToAbsent
+          ? const Value.absent()
+          : Value(paymentOffsetDays),
+      managementFee: managementFee == null && nullToAbsent
+          ? const Value.absent()
+          : Value(managementFee),
+      managementFeeFrequency: managementFeeFrequency == null && nullToAbsent
+          ? const Value.absent()
+          : Value(managementFeeFrequency),
     );
   }
 
@@ -210,6 +372,13 @@ class CommercialQuotaRow extends DataClass
       limit: serializer.fromJson<double>(json['limit']),
       notes: serializer.fromJson<String?>(json['notes']),
       voucherPattern: serializer.fromJson<String?>(json['voucherPattern']),
+      entityType: serializer.fromJson<String>(json['entityType']),
+      cutoffDay: serializer.fromJson<int?>(json['cutoffDay']),
+      paymentOffsetDays: serializer.fromJson<int?>(json['paymentOffsetDays']),
+      managementFee: serializer.fromJson<double?>(json['managementFee']),
+      managementFeeFrequency: serializer.fromJson<String?>(
+        json['managementFeeFrequency'],
+      ),
     );
   }
   @override
@@ -221,6 +390,13 @@ class CommercialQuotaRow extends DataClass
       'limit': serializer.toJson<double>(limit),
       'notes': serializer.toJson<String?>(notes),
       'voucherPattern': serializer.toJson<String?>(voucherPattern),
+      'entityType': serializer.toJson<String>(entityType),
+      'cutoffDay': serializer.toJson<int?>(cutoffDay),
+      'paymentOffsetDays': serializer.toJson<int?>(paymentOffsetDays),
+      'managementFee': serializer.toJson<double?>(managementFee),
+      'managementFeeFrequency': serializer.toJson<String?>(
+        managementFeeFrequency,
+      ),
     };
   }
 
@@ -230,6 +406,11 @@ class CommercialQuotaRow extends DataClass
     double? limit,
     Value<String?> notes = const Value.absent(),
     Value<String?> voucherPattern = const Value.absent(),
+    String? entityType,
+    Value<int?> cutoffDay = const Value.absent(),
+    Value<int?> paymentOffsetDays = const Value.absent(),
+    Value<double?> managementFee = const Value.absent(),
+    Value<String?> managementFeeFrequency = const Value.absent(),
   }) => CommercialQuotaRow(
     id: id ?? this.id,
     brand: brand ?? this.brand,
@@ -238,6 +419,17 @@ class CommercialQuotaRow extends DataClass
     voucherPattern: voucherPattern.present
         ? voucherPattern.value
         : this.voucherPattern,
+    entityType: entityType ?? this.entityType,
+    cutoffDay: cutoffDay.present ? cutoffDay.value : this.cutoffDay,
+    paymentOffsetDays: paymentOffsetDays.present
+        ? paymentOffsetDays.value
+        : this.paymentOffsetDays,
+    managementFee: managementFee.present
+        ? managementFee.value
+        : this.managementFee,
+    managementFeeFrequency: managementFeeFrequency.present
+        ? managementFeeFrequency.value
+        : this.managementFeeFrequency,
   );
   CommercialQuotaRow copyWithCompanion(CommercialQuotasCompanion data) {
     return CommercialQuotaRow(
@@ -248,6 +440,19 @@ class CommercialQuotaRow extends DataClass
       voucherPattern: data.voucherPattern.present
           ? data.voucherPattern.value
           : this.voucherPattern,
+      entityType: data.entityType.present
+          ? data.entityType.value
+          : this.entityType,
+      cutoffDay: data.cutoffDay.present ? data.cutoffDay.value : this.cutoffDay,
+      paymentOffsetDays: data.paymentOffsetDays.present
+          ? data.paymentOffsetDays.value
+          : this.paymentOffsetDays,
+      managementFee: data.managementFee.present
+          ? data.managementFee.value
+          : this.managementFee,
+      managementFeeFrequency: data.managementFeeFrequency.present
+          ? data.managementFeeFrequency.value
+          : this.managementFeeFrequency,
     );
   }
 
@@ -258,13 +463,29 @@ class CommercialQuotaRow extends DataClass
           ..write('brand: $brand, ')
           ..write('limit: $limit, ')
           ..write('notes: $notes, ')
-          ..write('voucherPattern: $voucherPattern')
+          ..write('voucherPattern: $voucherPattern, ')
+          ..write('entityType: $entityType, ')
+          ..write('cutoffDay: $cutoffDay, ')
+          ..write('paymentOffsetDays: $paymentOffsetDays, ')
+          ..write('managementFee: $managementFee, ')
+          ..write('managementFeeFrequency: $managementFeeFrequency')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, brand, limit, notes, voucherPattern);
+  int get hashCode => Object.hash(
+    id,
+    brand,
+    limit,
+    notes,
+    voucherPattern,
+    entityType,
+    cutoffDay,
+    paymentOffsetDays,
+    managementFee,
+    managementFeeFrequency,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -273,7 +494,12 @@ class CommercialQuotaRow extends DataClass
           other.brand == this.brand &&
           other.limit == this.limit &&
           other.notes == this.notes &&
-          other.voucherPattern == this.voucherPattern);
+          other.voucherPattern == this.voucherPattern &&
+          other.entityType == this.entityType &&
+          other.cutoffDay == this.cutoffDay &&
+          other.paymentOffsetDays == this.paymentOffsetDays &&
+          other.managementFee == this.managementFee &&
+          other.managementFeeFrequency == this.managementFeeFrequency);
 }
 
 class CommercialQuotasCompanion extends UpdateCompanion<CommercialQuotaRow> {
@@ -282,6 +508,11 @@ class CommercialQuotasCompanion extends UpdateCompanion<CommercialQuotaRow> {
   final Value<double> limit;
   final Value<String?> notes;
   final Value<String?> voucherPattern;
+  final Value<String> entityType;
+  final Value<int?> cutoffDay;
+  final Value<int?> paymentOffsetDays;
+  final Value<double?> managementFee;
+  final Value<String?> managementFeeFrequency;
   final Value<int> rowid;
   const CommercialQuotasCompanion({
     this.id = const Value.absent(),
@@ -289,6 +520,11 @@ class CommercialQuotasCompanion extends UpdateCompanion<CommercialQuotaRow> {
     this.limit = const Value.absent(),
     this.notes = const Value.absent(),
     this.voucherPattern = const Value.absent(),
+    this.entityType = const Value.absent(),
+    this.cutoffDay = const Value.absent(),
+    this.paymentOffsetDays = const Value.absent(),
+    this.managementFee = const Value.absent(),
+    this.managementFeeFrequency = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CommercialQuotasCompanion.insert({
@@ -297,6 +533,11 @@ class CommercialQuotasCompanion extends UpdateCompanion<CommercialQuotaRow> {
     required double limit,
     this.notes = const Value.absent(),
     this.voucherPattern = const Value.absent(),
+    this.entityType = const Value.absent(),
+    this.cutoffDay = const Value.absent(),
+    this.paymentOffsetDays = const Value.absent(),
+    this.managementFee = const Value.absent(),
+    this.managementFeeFrequency = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        brand = Value(brand),
@@ -307,6 +548,11 @@ class CommercialQuotasCompanion extends UpdateCompanion<CommercialQuotaRow> {
     Expression<double>? limit,
     Expression<String>? notes,
     Expression<String>? voucherPattern,
+    Expression<String>? entityType,
+    Expression<int>? cutoffDay,
+    Expression<int>? paymentOffsetDays,
+    Expression<double>? managementFee,
+    Expression<String>? managementFeeFrequency,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -315,6 +561,12 @@ class CommercialQuotasCompanion extends UpdateCompanion<CommercialQuotaRow> {
       if (limit != null) 'limit': limit,
       if (notes != null) 'notes': notes,
       if (voucherPattern != null) 'voucher_pattern': voucherPattern,
+      if (entityType != null) 'entity_type': entityType,
+      if (cutoffDay != null) 'cutoff_day': cutoffDay,
+      if (paymentOffsetDays != null) 'payment_offset_days': paymentOffsetDays,
+      if (managementFee != null) 'management_fee': managementFee,
+      if (managementFeeFrequency != null)
+        'management_fee_frequency': managementFeeFrequency,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -325,6 +577,11 @@ class CommercialQuotasCompanion extends UpdateCompanion<CommercialQuotaRow> {
     Value<double>? limit,
     Value<String?>? notes,
     Value<String?>? voucherPattern,
+    Value<String>? entityType,
+    Value<int?>? cutoffDay,
+    Value<int?>? paymentOffsetDays,
+    Value<double?>? managementFee,
+    Value<String?>? managementFeeFrequency,
     Value<int>? rowid,
   }) {
     return CommercialQuotasCompanion(
@@ -333,6 +590,12 @@ class CommercialQuotasCompanion extends UpdateCompanion<CommercialQuotaRow> {
       limit: limit ?? this.limit,
       notes: notes ?? this.notes,
       voucherPattern: voucherPattern ?? this.voucherPattern,
+      entityType: entityType ?? this.entityType,
+      cutoffDay: cutoffDay ?? this.cutoffDay,
+      paymentOffsetDays: paymentOffsetDays ?? this.paymentOffsetDays,
+      managementFee: managementFee ?? this.managementFee,
+      managementFeeFrequency:
+          managementFeeFrequency ?? this.managementFeeFrequency,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -355,6 +618,23 @@ class CommercialQuotasCompanion extends UpdateCompanion<CommercialQuotaRow> {
     if (voucherPattern.present) {
       map['voucher_pattern'] = Variable<String>(voucherPattern.value);
     }
+    if (entityType.present) {
+      map['entity_type'] = Variable<String>(entityType.value);
+    }
+    if (cutoffDay.present) {
+      map['cutoff_day'] = Variable<int>(cutoffDay.value);
+    }
+    if (paymentOffsetDays.present) {
+      map['payment_offset_days'] = Variable<int>(paymentOffsetDays.value);
+    }
+    if (managementFee.present) {
+      map['management_fee'] = Variable<double>(managementFee.value);
+    }
+    if (managementFeeFrequency.present) {
+      map['management_fee_frequency'] = Variable<String>(
+        managementFeeFrequency.value,
+      );
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -369,6 +649,11 @@ class CommercialQuotasCompanion extends UpdateCompanion<CommercialQuotaRow> {
           ..write('limit: $limit, ')
           ..write('notes: $notes, ')
           ..write('voucherPattern: $voucherPattern, ')
+          ..write('entityType: $entityType, ')
+          ..write('cutoffDay: $cutoffDay, ')
+          ..write('paymentOffsetDays: $paymentOffsetDays, ')
+          ..write('managementFee: $managementFee, ')
+          ..write('managementFeeFrequency: $managementFeeFrequency, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3562,6 +3847,11 @@ typedef $$CommercialQuotasTableCreateCompanionBuilder =
       required double limit,
       Value<String?> notes,
       Value<String?> voucherPattern,
+      Value<String> entityType,
+      Value<int?> cutoffDay,
+      Value<int?> paymentOffsetDays,
+      Value<double?> managementFee,
+      Value<String?> managementFeeFrequency,
       Value<int> rowid,
     });
 typedef $$CommercialQuotasTableUpdateCompanionBuilder =
@@ -3571,6 +3861,11 @@ typedef $$CommercialQuotasTableUpdateCompanionBuilder =
       Value<double> limit,
       Value<String?> notes,
       Value<String?> voucherPattern,
+      Value<String> entityType,
+      Value<int?> cutoffDay,
+      Value<int?> paymentOffsetDays,
+      Value<double?> managementFee,
+      Value<String?> managementFeeFrequency,
       Value<int> rowid,
     });
 
@@ -3641,6 +3936,31 @@ class $$CommercialQuotasTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get cutoffDay => $composableBuilder(
+    column: $table.cutoffDay,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get paymentOffsetDays => $composableBuilder(
+    column: $table.paymentOffsetDays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get managementFee => $composableBuilder(
+    column: $table.managementFee,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get managementFeeFrequency => $composableBuilder(
+    column: $table.managementFeeFrequency,
+    builder: (column) => ColumnFilters(column),
+  );
+
   Expression<bool> creditsRefs(
     Expression<bool> Function($$CreditsTableFilterComposer f) f,
   ) {
@@ -3700,6 +4020,31 @@ class $$CommercialQuotasTableOrderingComposer
     column: $table.voucherPattern,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get cutoffDay => $composableBuilder(
+    column: $table.cutoffDay,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get paymentOffsetDays => $composableBuilder(
+    column: $table.paymentOffsetDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get managementFee => $composableBuilder(
+    column: $table.managementFee,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get managementFeeFrequency => $composableBuilder(
+    column: $table.managementFeeFrequency,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CommercialQuotasTableAnnotationComposer
@@ -3725,6 +4070,29 @@ class $$CommercialQuotasTableAnnotationComposer
 
   GeneratedColumn<String> get voucherPattern => $composableBuilder(
     column: $table.voucherPattern,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get cutoffDay =>
+      $composableBuilder(column: $table.cutoffDay, builder: (column) => column);
+
+  GeneratedColumn<int> get paymentOffsetDays => $composableBuilder(
+    column: $table.paymentOffsetDays,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get managementFee => $composableBuilder(
+    column: $table.managementFee,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get managementFeeFrequency => $composableBuilder(
+    column: $table.managementFeeFrequency,
     builder: (column) => column,
   );
 
@@ -3789,6 +4157,11 @@ class $$CommercialQuotasTableTableManager
                 Value<double> limit = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<String?> voucherPattern = const Value.absent(),
+                Value<String> entityType = const Value.absent(),
+                Value<int?> cutoffDay = const Value.absent(),
+                Value<int?> paymentOffsetDays = const Value.absent(),
+                Value<double?> managementFee = const Value.absent(),
+                Value<String?> managementFeeFrequency = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CommercialQuotasCompanion(
                 id: id,
@@ -3796,6 +4169,11 @@ class $$CommercialQuotasTableTableManager
                 limit: limit,
                 notes: notes,
                 voucherPattern: voucherPattern,
+                entityType: entityType,
+                cutoffDay: cutoffDay,
+                paymentOffsetDays: paymentOffsetDays,
+                managementFee: managementFee,
+                managementFeeFrequency: managementFeeFrequency,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -3805,6 +4183,11 @@ class $$CommercialQuotasTableTableManager
                 required double limit,
                 Value<String?> notes = const Value.absent(),
                 Value<String?> voucherPattern = const Value.absent(),
+                Value<String> entityType = const Value.absent(),
+                Value<int?> cutoffDay = const Value.absent(),
+                Value<int?> paymentOffsetDays = const Value.absent(),
+                Value<double?> managementFee = const Value.absent(),
+                Value<String?> managementFeeFrequency = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CommercialQuotasCompanion.insert(
                 id: id,
@@ -3812,12 +4195,19 @@ class $$CommercialQuotasTableTableManager
                 limit: limit,
                 notes: notes,
                 voucherPattern: voucherPattern,
+                entityType: entityType,
+                cutoffDay: cutoffDay,
+                paymentOffsetDays: paymentOffsetDays,
+                managementFee: managementFee,
+                managementFeeFrequency: managementFeeFrequency,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$CommercialQuotasTable, CommercialQuotaRow>(
+                    table,
+                  ),
                   $$CommercialQuotasTableReferences(db, table, e),
                 ),
               )
@@ -4781,7 +5171,7 @@ class $$CreditsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$CreditsTable, CreditRow>(table),
                   $$CreditsTableReferences(db, table, e),
                 ),
               )
@@ -5270,7 +5660,7 @@ class $$InstallmentsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$InstallmentsTable, InstallmentRow>(table),
                   $$InstallmentsTableReferences(db, table, e),
                 ),
               )
@@ -5605,7 +5995,7 @@ class $$CardMovementsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$CardMovementsTable, CardMovementRow>(table),
                   $$CardMovementsTableReferences(db, table, e),
                 ),
               )
@@ -5983,7 +6373,7 @@ class $$LoanAbonosTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable(table),
+                  e.readTable<$LoanAbonosTable, LoanAbonoRow>(table),
                   $$LoanAbonosTableReferences(db, table, e),
                 ),
               )

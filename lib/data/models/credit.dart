@@ -185,6 +185,10 @@ class CardCredit extends Credit {
 
   List<CardMovement> movements;
 
+  /// Links this card to a CommercialQuota entity (e.g. a bank entity like
+  /// Bancolombia). Null for standalone cards not grouped under any entity.
+  String? quotaId;
+
   CardCredit({
     required super.id,
     required super.name,
@@ -201,6 +205,7 @@ class CardCredit extends Credit {
     this.managementFeeFrequency = ManagementFeeFrequency.monthly,
     this.cycleCount = 0,
     this.lastAccrualCutoff,
+    this.quotaId,
     List<CardMovement>? movements,
   })  : movements = movements ?? [],
         super(type: CreditType.card);
@@ -222,6 +227,7 @@ class CardCredit extends Credit {
         'managementFeeFrequency': managementFeeFrequency,
         'cycleCount': cycleCount,
         'lastAccrualCutoff': lastAccrualCutoff,
+        'quotaId': quotaId,
         'movements': movements.map((m) => m.toJson()).toList(),
       };
 
@@ -244,6 +250,7 @@ class CardCredit extends Credit {
             ManagementFeeFrequency.monthly,
         cycleCount: (json['cycleCount'] as num?)?.toInt() ?? 0,
         lastAccrualCutoff: json['lastAccrualCutoff'] as String?,
+        quotaId: json['quotaId'] as String?,
         movements: (json['movements'] as List<dynamic>? ?? [])
             .map((e) => CardMovement.fromJson(e as Map<String, dynamic>))
             .toList(),
