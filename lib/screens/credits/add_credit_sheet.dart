@@ -70,7 +70,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   // izquierda) — para que el slide del asistente se sienta como moverse
   // físicamente entre pasos y no como un corte seco.
   int _stepDirection = 1;
-  static const int _lastStep = 3;
+  static const int _lastStep = 4;
 
   final _nameCtrl = TextEditingController();
   final _lenderCtrl = TextEditingController(text: 'Bancolombia');
@@ -97,11 +97,12 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   // es opcionalmente parte de un cupo ya registrado, o de uno nuevo creado
   // aquí mismo. `_isCommercialQuotaPurchase` es opt-in y por defecto false
   // — no afecta en nada un préstamo bancario normal.
-  bool _isCommercialQuotaPurchase = false;
-  String? _selectedCommercialQuotaId;
-  bool _creatingNewCommercialQuota = false;
-  final _newQuotaBrandCtrl = TextEditingController();
-  final _newQuotaLimitCtrl = TextEditingController();
+  // Entity-first (paso 0): null = no elegida, 'none' = sin entidad,
+  // '__new__' = nueva entidad, cualquier otro = id de quota existente.
+  String? _selectedEntityId;
+  String _newEntityType = EntityType.store;
+  final _newEntityBrandCtrl = TextEditingController();
+  final _newEntityLimitCtrl = TextEditingController();
 
   // Tasa opcional: el usuario puede no conocerla, y Kredit nunca debe
   // sintetizar una tasa falsa en su lugar (ver ROADMAP_KREDIT.md).
@@ -176,8 +177,8 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       _cutoffDayCtrl,
       _paymentOffsetCtrl,
       _managementFeeCtrl,
-      _newQuotaBrandCtrl,
-      _newQuotaLimitCtrl,
+      _newEntityBrandCtrl,
+      _newEntityLimitCtrl,
     ]) {
       c.dispose();
     }
@@ -291,49 +292,44 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     return null;
   }
 
-  // Aviso no bloqueante (spec "cupo comercial"): si esta compra dejaría el
-  // cupo en negativo, se lo decimos al usuario pero nunca le impedimos
-  // continuar — puede tener condiciones (aumento de cupo, fianza especial)
-  // que Kredit no conoce.
+  // Aviso no bloqueante: si esta compra dejaría el cupo de una tienda en
+  // negativo, se lo decimos al usuario pero nunca le impedimos continuar.
   String? get _overLimitWarning {
-    if (!_isCommercialQuotaPurchase) return null;
+    if (_selectedEntityId == null || _selectedEntityId == 'none' || _type != CreditType.loan) return null;
     final amount = double.tryParse(CurrencyInputFormatter.unformat(_amountCtrl.text));
     if (amount == null || amount <= 0) return null;
 
     double limit;
     List<LoanCredit> existingPurchases;
-    if (_creatingNewCommercialQuota) {
-      final parsedLimit = double.tryParse(
-          CurrencyInputFormatter.unformat(_newQuotaLimitCtrl.text));
+    if (_selectedEntityId == '__new__') {
+      final parsedLimit =
+          double.tryParse(CurrencyInputFormatter.unformat(_newEntityLimitCtrl.text));
       if (parsedLimit == null) return null;
       limit = parsedLimit;
       existingPurchases = const [];
     } else {
-      final quotaId = _selectedCommercialQuotaId;
-      if (quotaId == null) return null;
       final quotas = ref.read(commercialQuotasProvider).valueOrNull ?? const [];
       CommercialQuota? quota;
       for (final q in quotas) {
-        if (q.id == quotaId) {
+        if (q.id == _selectedEntityId) {
           quota = q;
           break;
         }
       }
       if (quota == null) return null;
+      if (quota.entityType != EntityType.store) return null;
       limit = quota.limit;
       existingPurchases = (ref.read(creditsProvider).valueOrNull ?? const [])
           .whereType<LoanCredit>()
-          .where((c) => c.quotaId == quotaId)
+          .where((c) => c.quotaId == _selectedEntityId)
           .toList();
     }
-
     final available = quotaAvailable(
       CommercialQuota(id: '', brand: '', limit: limit),
       existingPurchases,
     );
     if (available - amount < 0) {
-      return 'Esta compra deja tu cupo en negativo '
-          '(disponible: ${formatCOP(available)}).';
+      return 'Esta compra deja tu cupo en negativo (disponible: ${formatCOP(available)}).';
     }
     return null;
   }
@@ -353,11 +349,11 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       _limitCtrl,
       _cutoffDayCtrl,
       _paymentOffsetCtrl,
-      _newQuotaBrandCtrl,
-      _newQuotaLimitCtrl,
+      _newEntityBrandCtrl,
+      _newEntityLimitCtrl,
     ];
     if (textControllers.any((c) => c.text.trim().isNotEmpty)) return true;
-    if (_isCommercialQuotaPurchase) return true;
+    if (_selectedEntityId != null) return true;
     if (_balanceCtrl.text.trim().isNotEmpty && _balanceCtrl.text.trim() != '0') return true;
     if (_managementFeeCtrl.text.trim().isNotEmpty && _managementFeeCtrl.text.trim() != '0') {
       return true;
@@ -391,12 +387,18 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   // Tarea 1: advance to the next step, validating only the fields that are
   // currently mounted (i.e. those belonging to `_currentStep`).
   void _nextStep() {
+    if (_currentStep == 0 && _selectedEntityId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Elige a qué entidad pertenece este crédito')),
+      );
+      return;
+    }
     final isValid = _formKey.currentState?.validate() ?? true;
     if (!isValid) return;
     // La cuota calculada ya no tiene un campo visible propio (vive en el
     // panel grande de arriba) — se valida acá en vez de con un
     // TextFormField.validator oculto.
-    if (_currentStep == 1 && _type == CreditType.loan) {
+    if (_currentStep == 2 && _type == CreditType.loan) {
       final quota = double.tryParse(CurrencyInputFormatter.unformat(_quotaCtrl.text));
       if (quota == null || quota <= 0) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -405,7 +407,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         return;
       }
     }
-    if (_currentStep == 2 && _type == CreditType.loan && _startDate == null) {
+    if (_currentStep == 3 && _type == CreditType.loan && _startDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Selecciona la fecha de primer pago')),
       );
@@ -454,14 +456,39 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     final lender = _lenderCtrl.text.trim();
     final notes = _notesCtrl.text.trim();
 
+    // Resuelve la entidad (aplica a loan y card por igual).
+    String? quotaId;
+    if (_selectedEntityId != null && _selectedEntityId != 'none') {
+      if (_selectedEntityId == '__new__') {
+        quotaId = 'quota_${DateTime.now().millisecondsSinceEpoch}';
+        final entityLimit = double.tryParse(
+                CurrencyInputFormatter.unformat(_newEntityLimitCtrl.text)) ??
+            0;
+        await ref.read(commercialQuotasProvider.notifier).upsert(
+              CommercialQuota(
+                id: quotaId,
+                brand: _newEntityBrandCtrl.text.trim(),
+                limit: entityLimit,
+                entityType: _newEntityType,
+              ),
+            );
+      } else {
+        quotaId = _selectedEntityId;
+      }
+    }
+
     Credit credit;
     if (_type == CreditType.card) {
-      final creditLimit = double.tryParse(CurrencyInputFormatter.unformat(_limitCtrl.text)) ?? 0;
-      final currentBalance = double.tryParse(CurrencyInputFormatter.unformat(_balanceCtrl.text)) ?? 0;
+      final creditLimit =
+          double.tryParse(CurrencyInputFormatter.unformat(_limitCtrl.text)) ?? 0;
+      final currentBalance =
+          double.tryParse(CurrencyInputFormatter.unformat(_balanceCtrl.text)) ?? 0;
       final cutoffDay = int.tryParse(_cutoffDayCtrl.text) ?? 1;
       final paymentDueOffsetDays = int.tryParse(_paymentOffsetCtrl.text) ?? 20;
-      final interestRate = double.tryParse(_interestCtrl.text.replaceAll(',', '.')) ?? 0;
-      final managementFee = double.tryParse(CurrencyInputFormatter.unformat(_managementFeeCtrl.text)) ?? 0;
+      final interestRate =
+          double.tryParse(_interestCtrl.text.replaceAll(',', '.')) ?? 0;
+      final managementFee =
+          double.tryParse(CurrencyInputFormatter.unformat(_managementFeeCtrl.text)) ?? 0;
 
       final cardCredit = CardCredit(
         id: id,
@@ -477,6 +504,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         interestRateType: _interestRateType,
         managementFee: managementFee,
         managementFeeFrequency: _managementFeeFrequency,
+        quotaId: quotaId,
         movements: currentBalance > 0
             ? [
                 CardMovement(
@@ -492,9 +520,11 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       accrueCardCredit(cardCredit);
       credit = cardCredit;
     } else {
-      final totalAmount = double.parse(CurrencyInputFormatter.unformat(_amountCtrl.text));
+      final totalAmount =
+          double.parse(CurrencyInputFormatter.unformat(_amountCtrl.text));
       final totalInstallments = int.parse(_installmentsCtrl.text);
-      final quotaAmount = double.parse(CurrencyInputFormatter.unformat(_quotaCtrl.text));
+      final quotaAmount =
+          double.parse(CurrencyInputFormatter.unformat(_quotaCtrl.text));
       final interestRate = _interestUnknown
           ? 0.0
           : double.tryParse(_interestCtrl.text.replaceAll(',', '.')) ?? 0;
@@ -510,26 +540,6 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         interestRateType: _interestRateType,
       );
       _markAdvancedInstallments(installments);
-
-      String? quotaId;
-      // Si es una compra de cupo comercial, la marca del cupo ES la entidad
-      // — _lenderCtrl ya se mantiene sincronizado con ella (ver
-      // _commercialQuotaSection), nunca hay un "banco/prestamista" aparte.
-      if (_isCommercialQuotaPurchase) {
-        if (_creatingNewCommercialQuota) {
-          quotaId = 'quota_${DateTime.now().millisecondsSinceEpoch}';
-          await ref.read(commercialQuotasProvider.notifier).upsert(
-                CommercialQuota(
-                  id: quotaId,
-                  brand: _newQuotaBrandCtrl.text.trim(),
-                  limit: double.parse(
-                      CurrencyInputFormatter.unformat(_newQuotaLimitCtrl.text)),
-                ),
-              );
-        } else {
-          quotaId = _selectedCommercialQuotaId;
-        }
-      }
 
       credit = LoanCredit(
         id: id,
@@ -591,8 +601,8 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   // pasos más chicos (en vez de un único paso con 4-5 bloques apilados) es
   // la mejora de UX pedida: menos densidad visual por pantalla.
   List<String> get _stepTitles => _type == CreditType.card
-      ? const ['Tipo de crédito', 'Cupo de la tarjeta', 'Interés y costos', 'Confirmación']
-      : const ['Tipo de crédito', 'Monto y cuotas', 'Fecha de pago', 'Confirmación'];
+      ? const ['Tu entidad', 'Tipo de crédito', 'Cupo de la tarjeta', 'Interés y costos', 'Confirmación']
+      : const ['Tu entidad', 'Tipo de crédito', 'Monto y cuotas', 'Fecha de pago', 'Confirmación'];
 
   @override
   Widget build(BuildContext context) {
@@ -644,9 +654,10 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                       padding: const EdgeInsets.all(KreditSpacing.card),
                       children: [
                         ...switch (_currentStep) {
-                          0 => _step1BasicData(kredit),
-                          1 => _step2FinancialCore(kredit),
-                          2 => _step3ScheduleAndExtras(kredit),
+                          0 => _step0EntitySelection(kredit),
+                          1 => _step1BasicData(kredit),
+                          2 => _step2FinancialCore(kredit),
+                          3 => _step3ScheduleAndExtras(kredit),
                           _ => _step4ColorNotesConfirm(kredit),
                         },
                       ],
@@ -693,9 +704,160 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     );
   }
 
+  IconData _entityIcon(String type) => switch (type) {
+        EntityType.bank => Icons.account_balance_outlined,
+        EntityType.store => Icons.storefront_outlined,
+        _ => Icons.phone_android_outlined,
+      };
+
+  String _entityTypeLabel(String type) => switch (type) {
+        EntityType.bank => 'Banco',
+        EntityType.store => 'Tienda',
+        _ => 'App / Plataforma',
+      };
+
+  String _entityTypeForId(String entityId) {
+    if (entityId == '__new__') return _newEntityType;
+    final quotas = ref.read(commercialQuotasProvider).valueOrNull ?? const [];
+    for (final q in quotas) {
+      if (q.id == entityId) return q.entityType;
+    }
+    return EntityType.store;
+  }
+
+  List<Widget> _step0EntitySelection(KreditColors kredit) {
+    final quotas = ref.watch(commercialQuotasProvider).valueOrNull ?? const [];
+    return [
+      const Text(
+        '¿Dónde tienes este crédito?',
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        'Elige la entidad donde tienes el crédito que vas a registrar.',
+        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+      ),
+      const SizedBox(height: 16),
+      _EntityOption(
+        selected: _selectedEntityId == 'none',
+        icon: Icons.credit_score_outlined,
+        title: 'Sin entidad específica',
+        subtitle: 'Préstamo o tarjeta sin entidad registrada (lo podrás vincular después).',
+        onTap: () => setState(() {
+          _selectedEntityId = 'none';
+          if (_selectedLenderPreset != null && _selectedLenderPreset != 'Otro...') {
+            _lenderCtrl.text = _selectedLenderPreset!;
+          }
+        }),
+      ),
+      if (quotas.isNotEmpty) ...[
+        const SizedBox(height: 16),
+        Text(
+          'TUS ENTIDADES',
+          style: TextStyle(
+            fontSize: KreditTextSize.caption,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.8,
+            color: kredit.textTertiary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        for (final q in quotas) ...[
+          _EntityOption(
+            selected: _selectedEntityId == q.id,
+            icon: _entityIcon(q.entityType),
+            title: q.brand,
+            subtitle: '${_entityTypeLabel(q.entityType)}${q.limit > 0 ? ' · Cupo: ${formatCOP(q.limit)}' : ''}',
+            onTap: () => setState(() {
+              _selectedEntityId = q.id;
+              _lenderCtrl.text = q.brand;
+            }),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ],
+      const SizedBox(height: 8),
+      _EntityOption(
+        selected: _selectedEntityId == '__new__',
+        icon: Icons.add_circle_outline,
+        title: 'Registrar nueva entidad',
+        subtitle: 'Banco, tienda o app que aún no tienes registrada en Kredit.',
+        onTap: () => setState(() {
+          _selectedEntityId = '__new__';
+          _lenderCtrl.text = _newEntityBrandCtrl.text;
+        }),
+      ),
+      if (_selectedEntityId == '__new__') ...[
+        const SizedBox(height: 16),
+        _SectionCard(
+          label: 'NUEVA ENTIDAD',
+          icon: Icons.business_outlined,
+          children: [
+            Row(
+              children: [
+                for (final t in [EntityType.bank, EntityType.store, EntityType.app]) ...[
+                  Expanded(
+                    child: _EntityTypePill(
+                      label: _entityTypeLabel(t),
+                      icon: _entityIcon(t),
+                      selected: _newEntityType == t,
+                      onTap: () => setState(() => _newEntityType = t),
+                    ),
+                  ),
+                  if (t != EntityType.app) const SizedBox(width: 8),
+                ],
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _newEntityBrandCtrl,
+              onChanged: (v) => setState(() => _lenderCtrl.text = v),
+              textCapitalization: TextCapitalization.words,
+              decoration: InputDecoration(
+                labelText: _newEntityType == EntityType.bank
+                    ? 'Nombre del banco'
+                    : _newEntityType == EntityType.store
+                        ? 'Nombre de la tienda'
+                        : 'Nombre de la app / plataforma',
+                hintText: _newEntityType == EntityType.bank
+                    ? 'Ej. Bancolombia, Davivienda'
+                    : _newEntityType == EntityType.store
+                        ? 'Ej. Totto, Lili Pink'
+                        : 'Ej. Addi, Rapicredit',
+              ),
+              validator: (v) => _selectedEntityId == '__new__' && (v == null || v.trim().isEmpty)
+                  ? 'Requerido'
+                  : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _newEntityLimitCtrl,
+              keyboardType: TextInputType.number,
+              inputFormatters: const [CurrencyInputFormatter()],
+              decoration: InputDecoration(
+                labelText: _newEntityType == EntityType.store ? 'Cupo aprobado' : 'Cupo o límite total (opcional)',
+                hintText: 'Ej. 3.000.000',
+              ),
+              validator: (v) {
+                if (_selectedEntityId != '__new__') return null;
+                if (_newEntityType == EntityType.store) {
+                  final n = double.tryParse(CurrencyInputFormatter.unformat(v ?? ''));
+                  if (n == null || n <= 0) return 'Requerido';
+                }
+                return null;
+              },
+            ),
+          ],
+        ),
+      ],
+      const SizedBox(height: 12),
+    ];
+  }
+
   List<Widget> _step1BasicData(KreditColors kredit) {
     final suggestion = _typeSuggestion;
     final subEntityOptions = subEntitiesForLender(_lenderCtrl.text);
+    final hasEntity = _selectedEntityId != null && _selectedEntityId != 'none';
     return [
       const Text(
         '¿Qué quieres registrar?',
@@ -710,28 +872,10 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       _CreditTypePicker(
         selectedType: _type,
         onChanged: (value) {
-          setState(() {
-            _type = value;
-            // El cupo comercial solo aplica a préstamos — cambiar a
-            // tarjeta con el toggle activo dejaba el campo Banco/Emisora
-            // oculto (y su validador desactivado) sin ninguna forma de
-            // volver a mostrarlo desde la UI.
-            if (value == CreditType.card && _isCommercialQuotaPurchase) {
-              _isCommercialQuotaPurchase = false;
-              _selectedCommercialQuotaId = null;
-              _creatingNewCommercialQuota = false;
-              _newQuotaBrandCtrl.clear();
-              _newQuotaLimitCtrl.clear();
-              if (_selectedLenderPreset != null &&
-                  _selectedLenderPreset != 'Otro...') {
-                _lenderCtrl.text = _selectedLenderPreset!;
-              }
-            }
-          });
+          setState(() => _type = value);
           _applyEntityTemplate();
         },
       ),
-      if (_type == CreditType.loan) ..._commercialQuotaSection(),
       const SizedBox(height: 20),
       Divider(color: kredit.borderCard),
       const SizedBox(height: 4),
@@ -748,135 +892,170 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
       ),
       const SizedBox(height: 12),
-      if (!_isCommercialQuotaPurchase)
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            flex: _selectedLenderPreset == 'Otro...' ? 1 : 2,
-            child: DropdownButtonFormField<String>(
-                isExpanded: true,
-              initialValue: _selectedLenderPreset,
-              decoration: InputDecoration(
-                labelText: _type == CreditType.card ? 'Banco / Entidad Emisora' : 'Banco / Prestamista',
-              ),
-              items: _presetLenders
-                  .map((l) => DropdownMenuItem(value: l, child: Text(l)))
-                  .toList(),
-              onChanged: (v) {
-                setState(() {
-                  _selectedLenderPreset = v;
-                  _selectedSubEntityLabel = null;
-                  if (v != null && v != 'Otro...') {
-                    _lenderCtrl.text = v;
-                    final lower = v.toLowerCase();
-                    if (lower.contains('nequi')) {
-                      _color = '#DA0081';
-                    } else if (lower.contains('nu')) {
-                      _color = '#820AD1';
-                    } else if (lower.contains('bancolombia')) {
-                      _color = '#FFDD00';
-                    } else if (lower.contains('davivienda') || lower.contains('daviplata')) {
-                      _color = '#E4032E';
-                    } else if (lower.contains('bbva')) {
-                      _color = '#004481';
-                    } else if (lower.contains('rappi')) {
-                      _color = '#FE3F23';
-                    } else if (lower.contains('lulo')) {
-                      _color = '#00E28A';
-                    } else if (lower.contains('popular')) {
-                      _color = '#00875A';
-                    } else if (lower.contains('occidente')) {
-                      _color = '#00205B';
-                    } else if (lower.contains('villas')) {
-                      _color = '#0055A5';
-                    } else if (lower.contains('itaú') || lower.contains('itau')) {
-                      _color = '#EC7000';
-                    } else if (lower.contains('tuya') || lower.contains('exito')) {
-                      _color = '#FFD100';
-                    }
-                  } else if (v == 'Otro...') {
-                    _lenderCtrl.clear();
-                  }
-                });
-                _applyEntityTemplate();
-              },
-              validator: (_) => (_lenderCtrl.text.trim().isEmpty) ? 'Requerido' : null,
-            ),
-          ),
-          if (_selectedLenderPreset == 'Otro...') ...[
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 1,
-              child: TextFormField(
-                controller: _lenderCtrl,
-                autofocus: true,
-                decoration: const InputDecoration(
-                  labelText: 'Escribir libre',
-                  hintText: 'Ej. PrestaYa...',
-                ),
-                validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
-                onChanged: (_) {
-                  setState(() => _selectedSubEntityLabel = null);
-                  _applyEntityTemplate();
-                },
-              ),
-            ),
-          ],
-        ],
-      ),
-      if (!_isCommercialQuotaPurchase && subEntityOptions.isNotEmpty) ...[
-        const SizedBox(height: 12),
-        DropdownButtonFormField<String>(
-            isExpanded: true,
-          initialValue: _selectedSubEntityLabel,
-          decoration: const InputDecoration(
-            labelText: 'Sub-marca / Producto (opcional)',
-            hintText: 'Ej. CMR Falabella vs. Banco Falabella',
-          ),
-          items: subEntityOptions
-              .map((s) => DropdownMenuItem(value: s.label, child: Text(s.label)))
-              .toList(),
-          onChanged: (v) {
-            setState(() {
-              _selectedSubEntityLabel = v;
-              final option = subEntityOptions.firstWhere((s) => s.label == v);
-              _lenderCtrl.text = option.lenderText;
-            });
-            _applyEntityTemplate();
-          },
-        ),
-      ],
-      if (!_isCommercialQuotaPurchase && suggestion != null) ...[
-        const SizedBox(height: 8),
+      if (hasEntity) ...[
+        // Entidad elegida en paso 0 — chip read-only con botón Cambiar
         Container(
-          padding: const EdgeInsets.all(KreditSpacing.tile),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: kredit.bgSecondary,
-            border: Border.all(color: kredit.borderCard),
+            color: kredit.bgCard,
             borderRadius: BorderRadius.circular(KreditRadius.tile),
+            border: Border.all(color: kredit.borderCard),
           ),
           child: Row(
             children: [
-              const Icon(Icons.warning_amber_rounded, size: KreditIconSize.small, color: AppColors.warning),
-              const SizedBox(width: 8),
+              Icon(
+                _entityIcon(_selectedEntityId == '__new__' ? _newEntityType : _entityTypeForId(_selectedEntityId!)),
+                size: 18,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 10),
               Expanded(
-                child: Text(suggestion.text, style: const TextStyle(fontSize: KreditTextSize.caption)),
+                child: Text(
+                  _selectedEntityId == '__new__'
+                      ? (_newEntityBrandCtrl.text.trim().isEmpty ? 'Nueva entidad' : _newEntityBrandCtrl.text.trim())
+                      : _lenderCtrl.text,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
               ),
               TextButton(
-                onPressed: () => setState(() => _type = CreditType.loan),
-                child: const Text('Cambiar a Préstamo', style: TextStyle(fontSize: KreditTextSize.caption)),
+                onPressed: () => setState(() {
+                  _stepDirection = -1;
+                  _currentStep = 0;
+                }),
+                child: const Text('Cambiar'),
               ),
             ],
           ),
         ),
-      ],
-      if (!_isCommercialQuotaPurchase)
-      Builder(
-        builder: (context) {
-          final duplicate = _duplicateActiveCredit;
-          if (duplicate == null) return const SizedBox.shrink();
-          final typeLabel = _type == CreditType.card ? 'una tarjeta' : 'un cupo';
+      ] else ...[
+        // Sin entidad: dropdown de banco/prestamista como antes
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: _selectedLenderPreset == 'Otro...' ? 1 : 2,
+              child: DropdownButtonFormField<String>(
+                  isExpanded: true,
+                initialValue: _selectedLenderPreset,
+                decoration: InputDecoration(
+                  labelText: _type == CreditType.card ? 'Banco / Entidad Emisora' : 'Banco / Prestamista',
+                ),
+                items: _presetLenders
+                    .map((l) => DropdownMenuItem(value: l, child: Text(l)))
+                    .toList(),
+                onChanged: (v) {
+                  setState(() {
+                    _selectedLenderPreset = v;
+                    _selectedSubEntityLabel = null;
+                    if (v != null && v != 'Otro...') {
+                      _lenderCtrl.text = v;
+                      final lower = v.toLowerCase();
+                      if (lower.contains('nequi')) {
+                        _color = '#DA0081';
+                      } else if (lower.contains('nu')) {
+                        _color = '#820AD1';
+                      } else if (lower.contains('bancolombia')) {
+                        _color = '#FFDD00';
+                      } else if (lower.contains('davivienda') || lower.contains('daviplata')) {
+                        _color = '#E4032E';
+                      } else if (lower.contains('bbva')) {
+                        _color = '#004481';
+                      } else if (lower.contains('rappi')) {
+                        _color = '#FE3F23';
+                      } else if (lower.contains('lulo')) {
+                        _color = '#00E28A';
+                      } else if (lower.contains('popular')) {
+                        _color = '#00875A';
+                      } else if (lower.contains('occidente')) {
+                        _color = '#00205B';
+                      } else if (lower.contains('villas')) {
+                        _color = '#0055A5';
+                      } else if (lower.contains('itaú') || lower.contains('itau')) {
+                        _color = '#EC7000';
+                      } else if (lower.contains('tuya') || lower.contains('exito')) {
+                        _color = '#FFD100';
+                      }
+                    } else if (v == 'Otro...') {
+                      _lenderCtrl.clear();
+                    }
+                  });
+                  _applyEntityTemplate();
+                },
+                validator: (_) => (_lenderCtrl.text.trim().isEmpty) ? 'Requerido' : null,
+              ),
+            ),
+            if (_selectedLenderPreset == 'Otro...') ...[
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 1,
+                child: TextFormField(
+                  controller: _lenderCtrl,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Escribir libre',
+                    hintText: 'Ej. PrestaYa...',
+                  ),
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
+                  onChanged: (_) {
+                    setState(() => _selectedSubEntityLabel = null);
+                    _applyEntityTemplate();
+                  },
+                ),
+              ),
+            ],
+          ],
+        ),
+        if (subEntityOptions.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+              isExpanded: true,
+            initialValue: _selectedSubEntityLabel,
+            decoration: const InputDecoration(
+              labelText: 'Sub-marca / Producto (opcional)',
+              hintText: 'Ej. CMR Falabella vs. Banco Falabella',
+            ),
+            items: subEntityOptions
+                .map((s) => DropdownMenuItem(value: s.label, child: Text(s.label)))
+                .toList(),
+            onChanged: (v) {
+              setState(() {
+                _selectedSubEntityLabel = v;
+                final option = subEntityOptions.firstWhere((s) => s.label == v);
+                _lenderCtrl.text = option.lenderText;
+              });
+              _applyEntityTemplate();
+            },
+          ),
+        ],
+        if (suggestion != null) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(KreditSpacing.tile),
+            decoration: BoxDecoration(
+              color: kredit.bgSecondary,
+              border: Border.all(color: kredit.borderCard),
+              borderRadius: BorderRadius.circular(KreditRadius.tile),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.warning_amber_rounded, size: KreditIconSize.small, color: AppColors.warning),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(suggestion.text, style: const TextStyle(fontSize: KreditTextSize.caption)),
+                ),
+                TextButton(
+                  onPressed: () => setState(() => _type = CreditType.loan),
+                  child: const Text('Cambiar a Préstamo', style: TextStyle(fontSize: KreditTextSize.caption)),
+                ),
+              ],
+            ),
+          ),
+        ],
+        Builder(
+          builder: (context) {
+            final duplicate = _duplicateActiveCredit;
+            if (duplicate == null) return const SizedBox.shrink();
+            final typeLabel = _type == CreditType.card ? 'una tarjeta' : 'un cupo';
           return Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Container(
@@ -921,103 +1100,11 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           );
         },
       ),
+      ], // end else (sin entidad)
       const SizedBox(height: 12),
     ];
   }
 
-  // Cupo comercial opcional (Totto, Lili Pink, Éxito CrediCompras...): el
-  // usuario nunca ve ni configura el proveedor financiero real detrás de la
-  // marca — solo la marca. Opt-in, por defecto apagado.
-  List<Widget> _commercialQuotaSection() {
-    final quotas = ref.watch(commercialQuotasProvider).valueOrNull ?? const [];
-    return [
-      const SizedBox(height: 12),
-      SwitchListTile(
-        contentPadding: EdgeInsets.zero,
-        title: const Text('Es una compra de un cupo comercial'),
-        subtitle: const Text('Ej. Totto, Lili Pink, Éxito CrediCompras'),
-        value: _isCommercialQuotaPurchase,
-        onChanged: (v) => setState(() {
-          _isCommercialQuotaPurchase = v;
-          if (!v) {
-            _selectedCommercialQuotaId = null;
-            _creatingNewCommercialQuota = false;
-            // Sin esto, reactivar el toggle después mostraba la marca y
-            // el límite de la vez anterior en vez de un formulario limpio.
-            _newQuotaBrandCtrl.clear();
-            _newQuotaLimitCtrl.clear();
-            // El campo Banco/Prestamista vuelve a mostrarse — su
-            // controlador quedó con la marca del cupo (o vacío), no con
-            // lo que el dropdown de banco realmente muestra.
-            if (_selectedLenderPreset != null &&
-                _selectedLenderPreset != 'Otro...') {
-              _lenderCtrl.text = _selectedLenderPreset!;
-            }
-          }
-        }),
-      ),
-      if (_isCommercialQuotaPurchase) ...[
-        DropdownButtonFormField<String>(
-          isExpanded: true,
-          initialValue: _creatingNewCommercialQuota
-              ? '__new__'
-              : _selectedCommercialQuotaId,
-          decoration: const InputDecoration(labelText: 'Cupo comercial'),
-          items: [
-            for (final quota in quotas)
-              DropdownMenuItem(value: quota.id, child: Text(quota.brand)),
-            const DropdownMenuItem(
-                value: '__new__', child: Text('Crear cupo nuevo')),
-          ],
-          onChanged: (v) => setState(() {
-            _creatingNewCommercialQuota = v == '__new__';
-            _selectedCommercialQuotaId = _creatingNewCommercialQuota ? null : v;
-            // La marca del cupo ES la entidad que ve el usuario en todos
-            // lados (vista previa, WalletCard, detalle) — nunca un banco
-            // aparte, así que _lenderCtrl se mantiene sincronizado con ella.
-            if (!_creatingNewCommercialQuota && v != null) {
-              final quota = quotas.firstWhere((q) => q.id == v);
-              _lenderCtrl.text = quota.brand;
-            } else {
-              _lenderCtrl.text = _newQuotaBrandCtrl.text;
-            }
-          }),
-          validator: (v) =>
-              (v == null) ? 'Selecciona o crea un cupo' : null,
-        ),
-        if (_creatingNewCommercialQuota) ...[
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _newQuotaBrandCtrl,
-            onChanged: (v) => setState(() => _lenderCtrl.text = v),
-            decoration: const InputDecoration(
-              labelText: 'Marca',
-              hintText: 'Ej. Totto, Lili Pink, Éxito',
-            ),
-            validator: (v) => (_creatingNewCommercialQuota &&
-                    (v == null || v.trim().isEmpty))
-                ? 'Requerido'
-                : null,
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _newQuotaLimitCtrl,
-            keyboardType: TextInputType.number,
-            inputFormatters: const [CurrencyInputFormatter()],
-            decoration: const InputDecoration(
-              labelText: 'Cupo aprobado',
-              hintText: 'Ej. 700.000',
-            ),
-            validator: (v) {
-              if (!_creatingNewCommercialQuota) return null;
-              final n = double.tryParse(CurrencyInputFormatter.unformat(v ?? ''));
-              return (n == null || n <= 0) ? 'Requerido' : null;
-            },
-          ),
-        ],
-      ],
-    ];
-  }
 
   // Paso 2: solo el bloque financiero "duro" — lo mínimo que se necesita
   // antes de poder calcular algo (monto/cupo, cuotas, tasa). Todo lo demás
@@ -1187,7 +1274,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         // realmente en _save(). Cualquier valor no nulo basta aquí: el
         // preview solo necesita saber que ES una compra de cupo, el id
         // real (nuevo o existente) se resuelve al guardar.
-        quotaId: _isCommercialQuotaPurchase ? 'preview-quota' : null,
+        quotaId: (_selectedEntityId != null && _selectedEntityId != 'none') ? 'preview-quota' : null,
         interestUnknown: _interestUnknown,
         earlyPaymentWaivesInterest: _earlyPaymentWaivesInterest,
       );
@@ -1201,6 +1288,10 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     final lender = _lenderCtrl.text.trim().isEmpty ? '(sin definir)' : _lenderCtrl.text.trim();
     final typeLabel = _type == CreditType.card ? 'Tarjeta de Crédito' : 'Préstamo / Cuotas Fijas';
 
+    final entityName = _selectedEntityId == '__new__'
+        ? (_newEntityBrandCtrl.text.trim().isEmpty ? 'Nueva entidad' : _newEntityBrandCtrl.text.trim())
+        : lender;
+
     if (_type == CreditType.card) {
       final limitText = _limitCtrl.text.trim();
       final limitValue = double.tryParse(CurrencyInputFormatter.unformat(limitText));
@@ -1213,7 +1304,10 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       return [
         (label: 'Nombre', value: name),
         (label: 'Tipo', value: typeLabel),
-        (label: 'Entidad', value: lender),
+        if (_selectedEntityId != null && _selectedEntityId != 'none')
+          (label: 'Entidad', value: entityName)
+        else
+          (label: 'Entidad', value: lender),
         (label: 'Límite', value: limit),
         (label: 'Saldo actual', value: balance),
         (label: 'Corte', value: cutoff),
@@ -1229,7 +1323,10 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     return [
       (label: 'Nombre', value: name),
       (label: 'Tipo', value: typeLabel),
-      (label: 'Entidad', value: lender),
+      if (_selectedEntityId != null && _selectedEntityId != 'none')
+        (label: 'Entidad', value: entityName)
+      else
+        (label: 'Entidad', value: lender),
       (label: 'Monto financiado', value: '\$$amount'),
       (label: 'Cuotas', value: installments),
       (label: 'Valor cuota', value: '\$$quota'),
@@ -1326,13 +1423,12 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               },
             ),
           ],
-          if (_isCommercialQuotaPurchase)
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Si pago antes de la fecha de pago, no cobran interés'),
-              value: _earlyPaymentWaivesInterest,
-              onChanged: (v) => setState(() => _earlyPaymentWaivesInterest = v),
-            ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Si pago antes de la fecha de pago, no cobran interés'),
+            value: _earlyPaymentWaivesInterest,
+            onChanged: (v) => setState(() => _earlyPaymentWaivesInterest = v),
+          ),
         ],
       ),
     ];
@@ -2088,6 +2184,142 @@ class _SummaryTile extends StatelessWidget {
           style: const TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w700),
         ),
       ],
+    );
+  }
+}
+
+class _EntityOption extends StatelessWidget {
+  final bool selected;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _EntityOption({
+    required this.selected,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accent = Theme.of(context).colorScheme.primary;
+    return Material(
+      color: selected ? accent.withValues(alpha: 0.12) : kredit.bgCard,
+      borderRadius: BorderRadius.circular(KreditRadius.card),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(KreditRadius.card),
+        child: Container(
+          padding: const EdgeInsets.all(KreditSpacing.card),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(KreditRadius.card),
+            border: Border.all(
+              color: selected ? accent : kredit.borderCard,
+              width: selected ? 1.3 : 1,
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: selected ? accent.withValues(alpha: 0.16) : kredit.bgSecondary,
+                  borderRadius: BorderRadius.circular(KreditRadius.tile),
+                ),
+                child: Icon(icon, size: KreditIconSize.small, color: selected ? accent : kredit.textTertiary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: KreditTextSize.body,
+                        fontWeight: FontWeight.w800,
+                        color: kredit.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: KreditTextSize.caption,
+                        color: kredit.textSecondary,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                size: KreditIconSize.small,
+                color: selected ? accent : kredit.textTertiary,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EntityTypePill extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _EntityTypePill({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accent = Theme.of(context).colorScheme.primary;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        decoration: BoxDecoration(
+          color: selected ? accent.withValues(alpha: 0.14) : kredit.bgSecondary,
+          borderRadius: BorderRadius.circular(KreditRadius.tile),
+          border: Border.all(
+            color: selected ? accent : kredit.borderCard,
+            width: selected ? 1.3 : 1,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: selected ? accent : kredit.textTertiary),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: KreditTextSize.caption,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: selected ? accent : kredit.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
