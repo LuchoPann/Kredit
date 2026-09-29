@@ -5,6 +5,8 @@ import '../../main.dart' show RootScaffold;
 import '../../providers/notification_settings_provider.dart';
 import '../../providers/onboarding_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/kredit_wordmark.dart';
+import '../../widgets/notification_settings_tile.dart';
 import '../lock/setup_lock_screen.dart';
 
 /// First-run welcome screen shown once (gated by `onboardingProvider` in
@@ -39,8 +41,7 @@ class WelcomeScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 24),
-              Icon(Icons.account_balance_wallet_rounded,
-                  size: KreditIconSize.large, color: accentColor),
+              KreditWordmark(color: kredit.textPrimary, height: 40),
               const SizedBox(height: 16),
               Text(
                 '¡Bienvenido a Kredit!',
@@ -74,10 +75,9 @@ class WelcomeScreen extends ConsumerWidget {
                       iconColor: accentColor,
                       title: 'Protege tu información',
                       description:
-                          'Activa un PIN o desbloqueo biométrico para que solo tú accedas '
-                          'a tus créditos, con bloqueo temporal tras varios intentos '
-                          'fallidos. Es totalmente opcional, y el widget de inicio '
-                          'oculta tus montos por defecto.',
+                          'Pon una clave o usa tu huella para que nadie más pueda abrir '
+                          'la app y ver tus créditos. Es opcional, y lo puedes activar '
+                          'ahora o después desde Cuenta.',
                       trailing: OutlinedButton(
                         onPressed: () => Navigator.of(context).push(
                           MaterialPageRoute(
@@ -93,16 +93,38 @@ class WelcomeScreen extends ConsumerWidget {
                       iconColor: accentColor,
                       title: 'No te pierdas un vencimiento',
                       description:
-                          'Recibe un aviso local unos días antes del vencimiento de una cuota.',
-                      trailing: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          'Te avisamos unos días antes de que venza una cuota, para que no se te pase.',
+                      trailing: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Expanded(child: Text('Notificaciones de vencimiento')),
-                          Switch(
-                            value: notificationsEnabled,
-                            onChanged: (value) => ref
-                                .read(notificationSettingsProvider.notifier)
-                                .setEnabled(value),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Expanded(
+                                child: Text('Notificaciones de vencimiento (Recomendado)'),
+                              ),
+                              Switch(
+                                value: notificationsEnabled,
+                                onChanged: (value) => ref
+                                    .read(notificationSettingsProvider.notifier)
+                                    .setEnabled(value),
+                              ),
+                            ],
+                          ),
+                          // Misma configuración de días/hora/frecuencia que
+                          // en Cuenta, pero visible aquí mismo al activar el
+                          // switch — no hace falta salir de la bienvenida
+                          // para ajustarla.
+                          AnimatedSize(
+                            duration: const Duration(milliseconds: 260),
+                            curve: Curves.easeOutCubic,
+                            alignment: Alignment.topCenter,
+                            child: notificationsEnabled
+                                ? const Padding(
+                                    padding: EdgeInsets.only(top: 12),
+                                    child: NotificationSettingsTile(showHeader: false),
+                                  )
+                                : const SizedBox.shrink(),
                           ),
                         ],
                       ),

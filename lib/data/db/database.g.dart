@@ -45,8 +45,25 @@ class $CommercialQuotasTable extends CommercialQuotas
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _voucherPatternMeta = const VerificationMeta(
+    'voucherPattern',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, brand, limit, notes];
+  late final GeneratedColumn<String> voucherPattern = GeneratedColumn<String>(
+    'voucher_pattern',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    brand,
+    limit,
+    notes,
+    voucherPattern,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -86,6 +103,15 @@ class $CommercialQuotasTable extends CommercialQuotas
         notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
       );
     }
+    if (data.containsKey('voucher_pattern')) {
+      context.handle(
+        _voucherPatternMeta,
+        voucherPattern.isAcceptableOrUnknown(
+          data['voucher_pattern']!,
+          _voucherPatternMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -111,6 +137,10 @@ class $CommercialQuotasTable extends CommercialQuotas
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
       ),
+      voucherPattern: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}voucher_pattern'],
+      ),
     );
   }
 
@@ -126,11 +156,19 @@ class CommercialQuotaRow extends DataClass
   final String brand;
   final double limit;
   final String? notes;
+
+  /// [VoucherPattern.name] chosen for every purchase under this quota —
+  /// per-quota, never a single app-wide setting: two different cupos
+  /// (e.g. "Joy" and "Totto") can each show a different abstract pattern
+  /// on their vouchers. Null means "not chosen yet", falls back to the
+  /// first pattern in code (see VoucherPattern.fromName).
+  final String? voucherPattern;
   const CommercialQuotaRow({
     required this.id,
     required this.brand,
     required this.limit,
     this.notes,
+    this.voucherPattern,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -140,6 +178,9 @@ class CommercialQuotaRow extends DataClass
     map['limit'] = Variable<double>(limit);
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
+    }
+    if (!nullToAbsent || voucherPattern != null) {
+      map['voucher_pattern'] = Variable<String>(voucherPattern);
     }
     return map;
   }
@@ -152,6 +193,9 @@ class CommercialQuotaRow extends DataClass
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
+      voucherPattern: voucherPattern == null && nullToAbsent
+          ? const Value.absent()
+          : Value(voucherPattern),
     );
   }
 
@@ -165,6 +209,7 @@ class CommercialQuotaRow extends DataClass
       brand: serializer.fromJson<String>(json['brand']),
       limit: serializer.fromJson<double>(json['limit']),
       notes: serializer.fromJson<String?>(json['notes']),
+      voucherPattern: serializer.fromJson<String?>(json['voucherPattern']),
     );
   }
   @override
@@ -175,6 +220,7 @@ class CommercialQuotaRow extends DataClass
       'brand': serializer.toJson<String>(brand),
       'limit': serializer.toJson<double>(limit),
       'notes': serializer.toJson<String?>(notes),
+      'voucherPattern': serializer.toJson<String?>(voucherPattern),
     };
   }
 
@@ -183,11 +229,15 @@ class CommercialQuotaRow extends DataClass
     String? brand,
     double? limit,
     Value<String?> notes = const Value.absent(),
+    Value<String?> voucherPattern = const Value.absent(),
   }) => CommercialQuotaRow(
     id: id ?? this.id,
     brand: brand ?? this.brand,
     limit: limit ?? this.limit,
     notes: notes.present ? notes.value : this.notes,
+    voucherPattern: voucherPattern.present
+        ? voucherPattern.value
+        : this.voucherPattern,
   );
   CommercialQuotaRow copyWithCompanion(CommercialQuotasCompanion data) {
     return CommercialQuotaRow(
@@ -195,6 +245,9 @@ class CommercialQuotaRow extends DataClass
       brand: data.brand.present ? data.brand.value : this.brand,
       limit: data.limit.present ? data.limit.value : this.limit,
       notes: data.notes.present ? data.notes.value : this.notes,
+      voucherPattern: data.voucherPattern.present
+          ? data.voucherPattern.value
+          : this.voucherPattern,
     );
   }
 
@@ -204,13 +257,14 @@ class CommercialQuotaRow extends DataClass
           ..write('id: $id, ')
           ..write('brand: $brand, ')
           ..write('limit: $limit, ')
-          ..write('notes: $notes')
+          ..write('notes: $notes, ')
+          ..write('voucherPattern: $voucherPattern')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, brand, limit, notes);
+  int get hashCode => Object.hash(id, brand, limit, notes, voucherPattern);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -218,7 +272,8 @@ class CommercialQuotaRow extends DataClass
           other.id == this.id &&
           other.brand == this.brand &&
           other.limit == this.limit &&
-          other.notes == this.notes);
+          other.notes == this.notes &&
+          other.voucherPattern == this.voucherPattern);
 }
 
 class CommercialQuotasCompanion extends UpdateCompanion<CommercialQuotaRow> {
@@ -226,12 +281,14 @@ class CommercialQuotasCompanion extends UpdateCompanion<CommercialQuotaRow> {
   final Value<String> brand;
   final Value<double> limit;
   final Value<String?> notes;
+  final Value<String?> voucherPattern;
   final Value<int> rowid;
   const CommercialQuotasCompanion({
     this.id = const Value.absent(),
     this.brand = const Value.absent(),
     this.limit = const Value.absent(),
     this.notes = const Value.absent(),
+    this.voucherPattern = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CommercialQuotasCompanion.insert({
@@ -239,6 +296,7 @@ class CommercialQuotasCompanion extends UpdateCompanion<CommercialQuotaRow> {
     required String brand,
     required double limit,
     this.notes = const Value.absent(),
+    this.voucherPattern = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        brand = Value(brand),
@@ -248,6 +306,7 @@ class CommercialQuotasCompanion extends UpdateCompanion<CommercialQuotaRow> {
     Expression<String>? brand,
     Expression<double>? limit,
     Expression<String>? notes,
+    Expression<String>? voucherPattern,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -255,6 +314,7 @@ class CommercialQuotasCompanion extends UpdateCompanion<CommercialQuotaRow> {
       if (brand != null) 'brand': brand,
       if (limit != null) 'limit': limit,
       if (notes != null) 'notes': notes,
+      if (voucherPattern != null) 'voucher_pattern': voucherPattern,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -264,6 +324,7 @@ class CommercialQuotasCompanion extends UpdateCompanion<CommercialQuotaRow> {
     Value<String>? brand,
     Value<double>? limit,
     Value<String?>? notes,
+    Value<String?>? voucherPattern,
     Value<int>? rowid,
   }) {
     return CommercialQuotasCompanion(
@@ -271,6 +332,7 @@ class CommercialQuotasCompanion extends UpdateCompanion<CommercialQuotaRow> {
       brand: brand ?? this.brand,
       limit: limit ?? this.limit,
       notes: notes ?? this.notes,
+      voucherPattern: voucherPattern ?? this.voucherPattern,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -290,6 +352,9 @@ class CommercialQuotasCompanion extends UpdateCompanion<CommercialQuotaRow> {
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
+    if (voucherPattern.present) {
+      map['voucher_pattern'] = Variable<String>(voucherPattern.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -303,6 +368,7 @@ class CommercialQuotasCompanion extends UpdateCompanion<CommercialQuotaRow> {
           ..write('brand: $brand, ')
           ..write('limit: $limit, ')
           ..write('notes: $notes, ')
+          ..write('voucherPattern: $voucherPattern, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3495,6 +3561,7 @@ typedef $$CommercialQuotasTableCreateCompanionBuilder =
       required String brand,
       required double limit,
       Value<String?> notes,
+      Value<String?> voucherPattern,
       Value<int> rowid,
     });
 typedef $$CommercialQuotasTableUpdateCompanionBuilder =
@@ -3503,6 +3570,7 @@ typedef $$CommercialQuotasTableUpdateCompanionBuilder =
       Value<String> brand,
       Value<double> limit,
       Value<String?> notes,
+      Value<String?> voucherPattern,
       Value<int> rowid,
     });
 
@@ -3568,6 +3636,11 @@ class $$CommercialQuotasTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get voucherPattern => $composableBuilder(
+    column: $table.voucherPattern,
+    builder: (column) => ColumnFilters(column),
+  );
+
   Expression<bool> creditsRefs(
     Expression<bool> Function($$CreditsTableFilterComposer f) f,
   ) {
@@ -3622,6 +3695,11 @@ class $$CommercialQuotasTableOrderingComposer
     column: $table.notes,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get voucherPattern => $composableBuilder(
+    column: $table.voucherPattern,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CommercialQuotasTableAnnotationComposer
@@ -3644,6 +3722,11 @@ class $$CommercialQuotasTableAnnotationComposer
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<String> get voucherPattern => $composableBuilder(
+    column: $table.voucherPattern,
+    builder: (column) => column,
+  );
 
   Expression<T> creditsRefs<T extends Object>(
     Expression<T> Function($$CreditsTableAnnotationComposer a) f,
@@ -3705,12 +3788,14 @@ class $$CommercialQuotasTableTableManager
                 Value<String> brand = const Value.absent(),
                 Value<double> limit = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
+                Value<String?> voucherPattern = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CommercialQuotasCompanion(
                 id: id,
                 brand: brand,
                 limit: limit,
                 notes: notes,
+                voucherPattern: voucherPattern,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -3719,12 +3804,14 @@ class $$CommercialQuotasTableTableManager
                 required String brand,
                 required double limit,
                 Value<String?> notes = const Value.absent(),
+                Value<String?> voucherPattern = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CommercialQuotasCompanion.insert(
                 id: id,
                 brand: brand,
                 limit: limit,
                 notes: notes,
+                voucherPattern: voucherPattern,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

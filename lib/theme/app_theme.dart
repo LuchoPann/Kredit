@@ -79,12 +79,15 @@ class KreditTextSize {
   /// tiny badges/counters.
   static const caption = 12.0;
 
-  /// Step 2 — default "normal" text: form field values, list-row titles,
-  /// most body copy, sub-section titles.
+  /// Step 2 — default "normal" text: list-row titles, most body copy,
+  /// sub-section titles.
   static const body = 14.0;
 
   /// Step 3 — section titles at the screen level (e.g. "Próximos pagos",
-  /// "Tus créditos") and stat-tile figures.
+  /// "Tus créditos"), stat-tile figures, and what a user actually types
+  /// into a form field (see `bodyLarge` below) — digits and typed text
+  /// need to read clearly while entering/editing a credit, not just at
+  /// the smaller `body` size everything else uses.
   static const heading = 18.0;
 
   /// Step 4 — largest of the four: second-level highlighted figures
@@ -348,14 +351,22 @@ Color applyBgToneToAccent(Color accent, String bgTone, bool isDarkMode) {
 /// across the app with two different thresholds (0.3 in dashboard_screen.dart
 /// / credits_list_screen.dart, 0.5 in schedule_tab.dart), which meant the
 /// same accent color could flip to a different (and sometimes wrong)
-/// foreground depending on which screen rendered it. 0.4 sits at the
-/// midpoint of the two ad-hoc values previously in use and biases slightly
-/// toward white foreground (better for the mid-tone/saturated accent colors
-/// this app offers, which tend to still read as "dark" backgrounds even
-/// above 0.3 luminance) while still flipping to black for genuinely light
-/// backgrounds like the default white accent.
+/// foreground depending on which screen rendered it.
+///
+/// Picks whichever of black/white gives the higher WCAG contrast ratio
+/// against [background], instead of a single fixed luminance threshold.
+/// A fixed cutoff (e.g. "luminance > 0.4 → black") gets several of this
+/// app's own accent options wrong — the pastel purple/blue/pink swatches
+/// sit just under 0.4 luminance, so a threshold picks white for them, but
+/// black is actually 3-4x higher contrast on every one of them (their
+/// luminance is "medium", not genuinely dark). Computing both ratios and
+/// comparing directly gets every accent right without needing to special-
+/// case any of them.
 Color legibleForegroundOn(Color background) {
-  return background.computeLuminance() > 0.4 ? Colors.black : Colors.white;
+  final bgLuminance = background.computeLuminance();
+  final contrastWithBlack = (bgLuminance + 0.05) / 0.05;
+  final contrastWithWhite = 1.05 / (bgLuminance + 0.05);
+  return contrastWithBlack >= contrastWithWhite ? Colors.black : Colors.white;
 }
 
 ThemeData buildAppTheme({
@@ -453,11 +464,17 @@ ThemeData buildAppTheme({
         fontWeight: FontWeight.w600,
         color: textPrimary,
       ),
+      // Material's own default style for TextField/DropdownButtonFormField
+      // input text (and nothing else — no other widget in this app reads
+      // bodyLarge, see the KreditTextSize.heading doc above). Bumped to
+      // the same size as a section heading: at 15 it read noticeably
+      // smaller than the rest of the UI, especially for the digits typed
+      // while editing or creating a credit.
       bodyLarge: const TextStyle(
         fontFamily: 'Outfit',
         fontWeight: FontWeight.w500,
-        fontSize: 15,
-        height: 1.4,
+        fontSize: KreditTextSize.heading,
+        height: 1.3,
       ),
       bodyMedium: TextStyle(
         fontFamily: 'Outfit',

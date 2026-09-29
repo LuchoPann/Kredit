@@ -483,7 +483,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                           child: TextFormField(
                             controller: _nameCtrl,
                             style: const TextStyle(
-                              fontSize: KreditTextSize.body,
+                              fontSize: KreditTextSize.heading,
                             ),
                             decoration: const InputDecoration(
                               labelText: 'Nombre del Crédito',
@@ -506,7 +506,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                             // estirar sus hijos, terminaba con dos cajas de
                             // alturas distintas pese a compartir isDense.
                             style: TextStyle(
-                              fontSize: KreditTextSize.body,
+                              fontSize: KreditTextSize.heading,
                               color: kredit.textPrimary,
                             ),
                             initialValue: _selectedLenderPreset,
@@ -521,7 +521,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                                     child: Text(
                                       l,
                                       style: const TextStyle(
-                                        fontSize: KreditTextSize.body,
+                                        fontSize: KreditTextSize.heading,
                                       ),
                                     ),
                                   ),
@@ -671,7 +671,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                           Expanded(
                             child: TextFormField(
                               controller: _interestCtrl,
-                              style: const TextStyle(fontSize: KreditTextSize.body),
+                              style: const TextStyle(fontSize: KreditTextSize.heading),
                               keyboardType: const TextInputType.numberWithOptions(
                                 decimal: true,
                               ),
@@ -693,7 +693,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                       const SizedBox(height: 12),
                       TextFormField(
                         controller: _quotaCtrl,
-                        style: const TextStyle(fontSize: KreditTextSize.body),
+                        style: const TextStyle(fontSize: KreditTextSize.heading),
                         keyboardType: TextInputType.number,
                         inputFormatters: const [CurrencyInputFormatter()],
                         decoration: const InputDecoration(
@@ -722,7 +722,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                           Expanded(
                             child: TextFormField(
                               controller: _limitCtrl,
-                              style: const TextStyle(fontSize: KreditTextSize.body),
+                              style: const TextStyle(fontSize: KreditTextSize.heading),
                               keyboardType: TextInputType.number,
                               inputFormatters: const [CurrencyInputFormatter()],
                               decoration: const InputDecoration(
@@ -735,7 +735,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                           Expanded(
                             child: TextFormField(
                               controller: _interestCardCtrl,
-                              style: const TextStyle(fontSize: KreditTextSize.body),
+                              style: const TextStyle(fontSize: KreditTextSize.heading),
                               keyboardType:
                                   const TextInputType.numberWithOptions(
                                     decimal: true,

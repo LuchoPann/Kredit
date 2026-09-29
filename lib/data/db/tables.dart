@@ -85,6 +85,13 @@ class CommercialQuotas extends Table {
   RealColumn get limit => real()();
   TextColumn get notes => text().nullable()();
 
+  /// [VoucherPattern.name] chosen for every purchase under this quota —
+  /// per-quota, never a single app-wide setting: two different cupos
+  /// (e.g. "Joy" and "Totto") can each show a different abstract pattern
+  /// on their vouchers. Null means "not chosen yet", falls back to the
+  /// first pattern in code (see VoucherPattern.fromName).
+  TextColumn get voucherPattern => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

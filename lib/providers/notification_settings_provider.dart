@@ -36,7 +36,7 @@ class NotificationSettings {
   }
 
   static const defaults = NotificationSettings(
-    enabled: true,
+    enabled: false,
     daysBefore: 3,
     reminderTime: TimeOfDay(hour: 9, minute: 0),
     repeatDaily: false,

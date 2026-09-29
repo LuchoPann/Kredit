@@ -14,7 +14,12 @@ import '../theme/app_theme.dart';
 /// a slider, an inline time row, and a lone switch with no grouping, which
 /// read as "confuso" (user feedback).
 class NotificationSettingsTile extends ConsumerWidget {
-  const NotificationSettingsTile({super.key});
+  // Cuando el switch maestro ya se muestra afuera (p. ej. la bienvenida
+  // trae su propio interruptor con su propia copia) se oculta este header
+  // duplicado y solo se rendieren los pasos 1-3 de configuración.
+  final bool showHeader;
+
+  const NotificationSettingsTile({super.key, this.showHeader = true});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -30,67 +35,85 @@ class NotificationSettingsTile extends ConsumerWidget {
       child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- Header: master on/off ---
-            Row(
-              children: [
-                Icon(Icons.notifications_active_outlined, size: KreditIconSize.small, color: kredit.textSecondary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Avisos de vencimiento',
-                    style: TextStyle(color: kredit.textSecondary, fontWeight: FontWeight.w600),
+            if (showHeader) ...[
+              // --- Header: master on/off ---
+              Row(
+                children: [
+                  Icon(Icons.notifications_active_outlined, size: KreditIconSize.small, color: kredit.textSecondary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Avisos de vencimiento',
+                      style: TextStyle(color: kredit.textSecondary, fontWeight: FontWeight.w600),
+                    ),
                   ),
-                ),
-                Switch(
-                  value: settings.enabled,
-                  onChanged: (v) => notifier.setEnabled(v),
-                ),
-              ],
-            ),
-            Divider(height: KreditSpacing.section, color: kredit.borderCard),
+                  Switch(
+                    value: settings.enabled,
+                    onChanged: (v) => notifier.setEnabled(v),
+                  ),
+                ],
+              ),
+              Divider(height: KreditSpacing.section, color: kredit.borderCard),
+            ],
 
             // --- Step 1: how many days ahead ---
-            _StepLabel(number: 1, text: '¿Con cuántos días de anticipación?', color: dimmedSecondary),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                _StepperButton(
-                  icon: Icons.remove,
-                  onTap: on && settings.daysBefore > 1
-                      ? () => notifier.setDaysBefore(settings.daysBefore - 1)
-                      : null,
-                ),
-                Expanded(
-                  child: Column(
-                    children: [
-                      Text(
-                        '${settings.daysBefore} día${settings.daysBefore == 1 ? '' : 's'} antes',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: dimmed, fontWeight: FontWeight.w700, fontSize: KreditTextSize.body),
-                      ),
-                      Slider(
-                        value: settings.daysBefore.toDouble(),
-                        min: 1,
-                        max: 7,
-                        divisions: 6,
-                        onChanged: on ? (v) => notifier.setDaysBefore(v.round()) : null,
-                      ),
-                    ],
+            _StepHeader(icon: Icons.calendar_today_outlined, text: 'DÍAS DE ANTICIPACIÓN', color: dimmedSecondary),
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+              decoration: BoxDecoration(
+                color: kredit.bgSecondary,
+                borderRadius: BorderRadius.circular(KreditRadius.tile),
+                border: Border.all(color: kredit.borderCard),
+              ),
+              child: Row(
+                children: [
+                  _StepperButton(
+                    icon: Icons.remove,
+                    onTap: on && settings.daysBefore > 1
+                        ? () => notifier.setDaysBefore(settings.daysBefore - 1)
+                        : null,
                   ),
-                ),
-                _StepperButton(
-                  icon: Icons.add,
-                  onTap: on && settings.daysBefore < 7
-                      ? () => notifier.setDaysBefore(settings.daysBefore + 1)
-                      : null,
-                ),
-              ],
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '${settings.daysBefore} día${settings.daysBefore == 1 ? '' : 's'} antes',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: dimmed, fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading),
+                        ),
+                        SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            trackHeight: 3,
+                            overlayShape: SliderComponentShape.noOverlay,
+                          ),
+                          child: Slider(
+                            value: settings.daysBefore.toDouble(),
+                            min: 1,
+                            max: 7,
+                            divisions: 6,
+                            onChanged: on ? (v) => notifier.setDaysBefore(v.round()) : null,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _StepperButton(
+                    icon: Icons.add,
+                    onTap: on && settings.daysBefore < 7
+                        ? () => notifier.setDaysBefore(settings.daysBefore + 1)
+                        : null,
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: KreditSpacing.tile),
+            const SizedBox(height: KreditSpacing.section),
 
             // --- Step 2: what time ---
-            _StepLabel(number: 2, text: '¿A qué hora?', color: dimmedSecondary),
-            const SizedBox(height: 4),
+            _StepHeader(icon: Icons.schedule_outlined, text: 'HORA DEL AVISO', color: dimmedSecondary),
+            const SizedBox(height: 8),
             InkWell(
               borderRadius: BorderRadius.circular(KreditRadius.tile),
               onTap: on
@@ -104,7 +127,7 @@ class NotificationSettingsTile extends ConsumerWidget {
                   : null,
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
                 decoration: BoxDecoration(
                   color: kredit.bgSecondary,
                   borderRadius: BorderRadius.circular(KreditRadius.tile),
@@ -112,14 +135,12 @@ class NotificationSettingsTile extends ConsumerWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.schedule_outlined, size: KreditIconSize.small, color: dimmedSecondary),
-                    const SizedBox(width: 8),
                     Expanded(
-                      child: Text('Hora del aviso', style: TextStyle(color: dimmedSecondary)),
+                      child: Text('Recibir el aviso a las', style: TextStyle(color: dimmedSecondary)),
                     ),
                     Text(
                       settings.reminderTime.format(context),
-                      style: TextStyle(color: dimmed, fontWeight: FontWeight.w700),
+                      style: TextStyle(color: dimmed, fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading),
                     ),
                     if (on) ...[
                       const SizedBox(width: 4),
@@ -129,15 +150,14 @@ class NotificationSettingsTile extends ConsumerWidget {
                 ),
               ),
             ),
-            const SizedBox(height: KreditSpacing.tile),
+            const SizedBox(height: KreditSpacing.section),
 
             // --- Step 3: how often ---
-            _StepLabel(number: 3, text: '¿Con qué frecuencia?', color: dimmedSecondary),
-            const SizedBox(height: 4),
+            _StepHeader(icon: Icons.repeat, text: 'FRECUENCIA', color: dimmedSecondary),
+            const SizedBox(height: 8),
             _FrequencyOption(
               selected: !settings.repeatDaily,
               enabled: on,
-              icon: Icons.notifications_none,
               title: 'Un solo aviso',
               subtitle: 'Recibes una notificación el día ${settings.daysBefore} antes del vencimiento.',
               onTap: () => notifier.setRepeatDaily(false),
@@ -146,7 +166,6 @@ class NotificationSettingsTile extends ConsumerWidget {
             _FrequencyOption(
               selected: settings.repeatDaily,
               enabled: on,
-              icon: Icons.repeat,
               title: 'Recordatorio diario',
               subtitle:
                   'Recibes una notificación cada día, desde ${settings.daysBefore} día${settings.daysBefore == 1 ? '' : 's'} antes hasta el día del vencimiento.',
@@ -158,24 +177,32 @@ class NotificationSettingsTile extends ConsumerWidget {
   }
 }
 
-class _StepLabel extends StatelessWidget {
-  final int number;
+/// Encabezado de paso: ícono + texto en mayúsculas — mismo lenguaje que
+/// `_SectionCard` en `add_credit_sheet.dart` (icono+caption+letterSpacing),
+/// en vez de los círculos numerados 1-2-3 anteriores, para que esta tarjeta
+/// se sienta parte del mismo sistema visual que el resto de la app.
+class _StepHeader extends StatelessWidget {
+  final IconData icon;
   final String text;
   final Color color;
 
-  const _StepLabel({required this.number, required this.text, required this.color});
+  const _StepHeader({required this.icon, required this.text, required this.color});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        CircleAvatar(
-          radius: 9,
-          backgroundColor: color.withValues(alpha: 0.15),
-          child: Text('$number', style: TextStyle(fontSize: KreditTextSize.caption, fontWeight: FontWeight.w700, color: color)),
+        Icon(icon, size: KreditIconSize.small, color: color),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: KreditTextSize.caption,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.4,
+            color: color,
+          ),
         ),
-        const SizedBox(width: 8),
-        Text(text, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: KreditTextSize.caption)),
       ],
     );
   }
@@ -204,7 +231,6 @@ class _StepperButton extends StatelessWidget {
 class _FrequencyOption extends StatelessWidget {
   final bool selected;
   final bool enabled;
-  final IconData icon;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
@@ -212,7 +238,6 @@ class _FrequencyOption extends StatelessWidget {
   const _FrequencyOption({
     required this.selected,
     required this.enabled,
-    required this.icon,
     required this.title,
     required this.subtitle,
     required this.onTap,
@@ -246,8 +271,6 @@ class _FrequencyOption extends StatelessWidget {
               color: selected && enabled ? accent : kredit.textTertiary,
             ),
             const SizedBox(width: 10),
-            Icon(icon, size: KreditIconSize.small, color: subtitleColor),
-            const SizedBox(width: 8),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

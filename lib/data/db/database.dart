@@ -38,7 +38,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -65,6 +65,9 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(credits, credits.quotaId);
             await m.addColumn(credits, credits.interestUnknown);
             await m.addColumn(credits, credits.earlyPaymentWaivesInterest);
+          }
+          if (from < 7) {
+            await m.addColumn(commercialQuotas, commercialQuotas.voucherPattern);
           }
         },
         // SQLite ignores FK constraints (like Credits.quotaId's
@@ -255,6 +258,7 @@ class AppDatabase extends _$AppDatabase {
               brand: r.brand,
               limit: r.limit,
               notes: r.notes,
+              voucherPattern: r.voucherPattern,
             ))
         .toList();
   }
@@ -266,6 +270,7 @@ class AppDatabase extends _$AppDatabase {
         brand: quota.brand,
         limit: quota.limit,
         notes: Value(quota.notes),
+        voucherPattern: Value(quota.voucherPattern),
       ),
     );
   }

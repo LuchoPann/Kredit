@@ -8,12 +8,17 @@ class CommercialQuota {
   String brand;
   double limit;
   String? notes;
+  // [VoucherPattern.name] (see widgets/voucher_pattern.dart) chosen for
+  // every voucher under THIS quota specifically — never a single
+  // app-wide setting. Null falls back to the first pattern in code.
+  String? voucherPattern;
 
   CommercialQuota({
     required this.id,
     required this.brand,
     required this.limit,
     this.notes,
+    this.voucherPattern,
   });
 
   Map<String, dynamic> toJson() => {
@@ -21,6 +26,7 @@ class CommercialQuota {
         'brand': brand,
         'limit': limit,
         'notes': notes,
+        'voucherPattern': voucherPattern,
       };
 
   factory CommercialQuota.fromJson(Map<String, dynamic> json) =>
@@ -29,5 +35,6 @@ class CommercialQuota {
         brand: json['brand'] as String,
         limit: (json['limit'] as num).toDouble(),
         notes: json['notes'] as String?,
+        voucherPattern: json['voucherPattern'] as String?,
       );
 }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/account/account_screen.dart';
+import 'screens/splash_screen.dart';
 import 'screens/credit_detail/credit_detail_screen.dart';
 import 'screens/credits/add_credit_sheet.dart';
 import 'screens/credits/credits_list_screen.dart';
@@ -61,7 +62,7 @@ class MyApp extends ConsumerWidget {
       ],
       supportedLocales: const [Locale('es', 'CO'), Locale('es')],
       locale: const Locale('es', 'CO'),
-      home: const AppLockGate(),
+      home: const SplashScreen(child: AppLockGate()),
       // Named routes for detail/creation modal views. '/credit-detail' expects
       // the credit id as a String route argument.
       onGenerateRoute: (settings) {

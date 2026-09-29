@@ -57,6 +57,7 @@
              lib/services/home_widget_service.dart via the home_widget plugin. -->
         <receiver
             android:name=".KreditHomeWidgetProvider"
+            android:label="Resumen"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
