@@ -23,10 +23,10 @@ class SecuritySettingsTile extends ConsumerWidget {
       children: [
         ListTile(
           contentPadding: EdgeInsets.zero,
-          leading: Icon(Icons.security_outlined, color: kredit.textSecondary),
+          leading: Icon(Icons.security_outlined, size: KreditIconSize.small, color: kredit.textSecondary),
           title: const Text('Seguridad'),
           subtitle: const Text('Bloqueo con biometría o PIN al abrir la app'),
-          trailing: Icon(Icons.chevron_right, color: kredit.textTertiary),
+          trailing: Icon(Icons.chevron_right, size: KreditIconSize.small, color: kredit.textTertiary),
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const SetupLockScreen()),

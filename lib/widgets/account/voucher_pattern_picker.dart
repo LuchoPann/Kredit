@@ -25,51 +25,46 @@ class VoucherPatternPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final scheme = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: TextStyle(color: kredit.textSecondary)),
-        const SizedBox(height: KreditSpacing.tile),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: VoucherPattern.values.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: 1.35,
-          ),
-          itemBuilder: (context, index) {
-            final pattern = VoucherPattern.values[index];
-            final isSelected = pattern == selected;
-            return GestureDetector(
-              onTap: () => onSelect(pattern),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(KreditRadius.card),
-                  border: Border.all(
-                    color: isSelected ? kredit.textPrimary : kredit.borderCard,
-                    width: isSelected ? 2.5 : 1,
-                  ),
-                ),
-                padding: const EdgeInsets.all(6),
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: Stack(
-                        children: [
-                          Center(
-                            child: AspectRatio(
-                              aspectRatio: 1.9,
+        Text(title, style: TextStyle(color: scheme.onSurfaceVariant)),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 380,
+          child: GridView.builder(
+            padding: EdgeInsets.zero,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 16,
+              crossAxisSpacing: 10,
+              childAspectRatio: 1.35,
+            ),
+            itemCount: VoucherPattern.values.length,
+            itemBuilder: (context, index) {
+              final pattern = VoucherPattern.values[index];
+              final isSelected = pattern == selected;
+              return RepaintBoundary(
+                child: GestureDetector(
+                  onTap: () => onSelect(pattern),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      AspectRatio(
+                        aspectRatio: 1.9,
+                        child: Stack(
+                          children: [
+                            Positioned.fill(
                               child: ClipPath(
                                 clipper: const VoucherClipper(),
                                 child: Stack(
                                   children: [
                                     Positioned.fill(
-                                      child: DecoratedBox(decoration: pattern.backgroundDecoration),
+                                      child: DecoratedBox(
+                                        decoration: pattern.backgroundDecoration,
+                                      ),
                                     ),
                                     Positioned.fill(
                                       child: CustomPaint(
@@ -80,43 +75,76 @@ class VoucherPatternPicker extends StatelessWidget {
                                 ),
                               ),
                             ),
-                          ),
-                          if (isSelected)
-                            Positioned(
-                              top: 2,
-                              right: 2,
-                              child: Container(
-                                padding: const EdgeInsets.all(2),
-                                decoration: BoxDecoration(
-                                  color: kredit.textPrimary,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  Icons.check,
-                                  size: 12,
-                                  color: kredit.bgCard,
+                            if (isSelected)
+                              Positioned.fill(
+                                child: CustomPaint(
+                                  painter: _VoucherSelectionBorderPainter(
+                                    color: scheme.primary,
+                                  ),
                                 ),
                               ),
-                            ),
-                        ],
+                            if (isSelected)
+                              Positioned(
+                                top: 4,
+                                right: 4,
+                                child: Container(
+                                  width: 20,
+                                  height: 20,
+                                  decoration: BoxDecoration(
+                                    color: scheme.primary,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.check,
+                                    size: 13,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      pattern.label,
-                      style: TextStyle(
-                        fontSize: KreditTextSize.caption,
-                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                        color: isSelected ? kredit.textPrimary : kredit.textSecondary,
+                      const SizedBox(height: 8),
+                      Text(
+                        pattern.label,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: KreditTextSize.caption,
+                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                          color: isSelected ? scheme.primary : scheme.onSurfaceVariant,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ],
     );
   }
+}
+
+class _VoucherSelectionBorderPainter extends CustomPainter {
+  final Color color;
+  const _VoucherSelectionBorderPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = voucherOutline(Offset.zero & size);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5
+        ..strokeJoin = StrokeJoin.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_VoucherSelectionBorderPainter old) => color != old.color;
 }

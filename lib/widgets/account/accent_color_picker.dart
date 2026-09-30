@@ -19,6 +19,7 @@ class AccentColorPicker extends ConsumerWidget {
         Text('Color de acento', style: TextStyle(color: kredit.textSecondary)),
         const SizedBox(height: KreditSpacing.tile),
         Wrap(
+          alignment: WrapAlignment.center,
           spacing: 12,
           runSpacing: 12,
           children: AppColors.accentOptions.map((color) {

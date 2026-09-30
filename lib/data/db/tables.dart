@@ -71,6 +71,11 @@ class Credits extends Table {
   BoolColumn get earlyPaymentWaivesInterest =>
       boolean().withDefault(const Constant(false))();
 
+  /// Card background design identifier — one of the 8 CardDesign enum values
+  /// serialized as String (e.g. 'gradiente', 'swissGrid', 'liquido', etc.).
+  /// Null means 'gradiente' (default gradient look).
+  TextColumn get cardDesign => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

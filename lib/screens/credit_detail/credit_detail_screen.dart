@@ -3,16 +3,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/commercial_quota.dart';
 import '../../data/models/credit.dart';
+import '../../domain/bank_detector.dart';
 import '../../providers/commercial_quotas_provider.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/currency_input_formatter.dart';
 import '../../widgets/account/voucher_pattern_picker.dart';
+import '../../widgets/card_design_painter.dart';
 import '../../widgets/voucher_pattern.dart';
+import '../../widgets/wallet_card.dart';
 import '../../widgets/credit_detail/movements_tab.dart';
 import '../../widgets/credit_detail/quota_group_tabs.dart';
 import '../../widgets/credit_detail/schedule_tab.dart';
 import '../../widgets/credit_detail/summary_tab.dart';
+import '../../domain/card_calculator.dart';
+import '../../domain/credit_calculator.dart';
+import '../../utils/credit_display_utils.dart';
+import '../../widgets/credit_detail/stat_box.dart';
 import '../../widgets/demo_badge.dart';
 import 'edit_credit_sheet.dart';
 
@@ -283,6 +290,7 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
           }
         }
         final isGrouped = groupPurchases != null;
+        final kredit = Theme.of(context).extension<KreditColors>()!;
         // La compra que trajo al usuario a este detalle empieza abierta;
         // se ejecuta en cada build pero solo asigna una vez (??=).
         if (isGrouped) {
@@ -327,6 +335,34 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
                   tooltip: 'Diseño de voucher',
                 ),
               ],
+              if (!isGrouped)
+                IconButton(
+                  onPressed: () {
+                    final bank = detectBank(
+                      lender: credit.lender,
+                      card: credit is LoanCredit
+                          ? (credit as LoanCredit).card  // ignore: unnecessary_cast
+                          : null,
+                      fallbackColor: credit.color,
+                    );
+                    final g = expandedGradientFor(bank.cssClass, credit.color);
+                    showCardDesignPicker(
+                      context,
+                      current: CardDesign.fromKey(credit.cardDesign),
+                      c1: g.first,
+                      c2: g[g.length ~/ 2],
+                      c3: g.last,
+                      onSelected: (design) {
+                        credit.cardDesign = design?.name;
+                        ref
+                            .read(creditsProvider.notifier)
+                            .updateCredit(credit);
+                      },
+                    );
+                  },
+                  icon: const Icon(Icons.palette_outlined),
+                  tooltip: 'Diseño de tarjeta',
+                ),
             ],
             bottom: TabBar(
               controller: _tabController,
@@ -359,16 +395,23 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
                     ),
                   ],
                 )
-              : TabBarView(
-            controller: _tabController,
-            children: [
-              SummaryTab(credit: credit),
-              if (credit case LoanCredit loan)
-                ScheduleTab(credit: loan)
-              else
-                MovementsTab(credit: credit as CardCredit),
-            ],
-          ),
+              : Column(
+                children: [
+                  _CreditOverviewTiles(credit: credit),
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        SummaryTab(credit: credit),
+                        if (credit case LoanCredit loan)
+                          ScheduleTab(credit: loan)
+                        else
+                          MovementsTab(credit: credit as CardCredit),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
           // Cuando está agrupado, editar/eliminar viven junto a cada
           // voucher dentro del Resumen (ambiguo cuál compra afectaría un
           // botón global aquí) — "Eliminar cupo" ya está en el AppBar.
@@ -380,6 +423,9 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: kredit.textPrimary,
+                          ),
                           onPressed: () => EditCreditSheet.show(context, credit),
                           icon: const Icon(Icons.edit_outlined),
                           label: const Text('Editar Crédito'),
@@ -444,6 +490,62 @@ class _CreditTypeBadge extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Two overview tiles shown above the TabBarView — always visible regardless
+/// of which tab is active, never inside the scrollable area.
+class _CreditOverviewTiles extends StatelessWidget {
+  final Credit credit;
+  const _CreditOverviewTiles({required this.credit});
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+
+    final String leftLabel;
+    final String leftValue;
+    final IconData leftIcon;
+    final String rightLabel;
+    final String rightValue;
+    final IconData rightIcon;
+
+    if (credit is LoanCredit) {
+      final loan = credit as LoanCredit;
+      final total = loan.installments.length;
+      final paid = loan.installments.where((i) => i.paid).length;
+      final remaining = getCreditRemainingBalance(loan);
+      leftLabel = 'Deuda restante';
+      leftValue = formatCOP(remaining);
+      leftIcon = Icons.account_balance_wallet_outlined;
+      rightLabel = 'Cuotas pagadas';
+      rightValue = '$paid de $total';
+      rightIcon = Icons.checklist_outlined;
+    } else {
+      final card = credit as CardCredit;
+      final available = getCardAvailableLimit(card);
+      leftLabel = 'Disponible';
+      leftValue = card.creditLimit > 0 ? formatCOP(available) : 'Sin límite';
+      leftIcon = Icons.credit_score_outlined;
+      rightLabel = 'Saldo utilizado';
+      rightValue = formatCOP(card.currentBalance);
+      rightIcon = Icons.account_balance_wallet_outlined;
+    }
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(KreditSpacing.card, 10, KreditSpacing.card, 10),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: kredit.borderCard)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: StatBox(label: leftLabel, value: leftValue, icon: leftIcon)),
+          Container(width: 1, height: 34, margin: const EdgeInsets.symmetric(horizontal: 18), color: kredit.borderCard),
+          Expanded(child: StatBox(label: rightLabel, value: rightValue, icon: rightIcon)),
         ],
       ),
     );

@@ -667,33 +667,63 @@ class _FilteredList extends ConsumerWidget {
   }
 }
 
-/// Staggered fade+slide-in animation for list items, so the credits list
-/// feels less "flat" on first load — purely presentational, no logic
-/// changes. Delay increases per index (capped) so items cascade in.
-class _StaggeredEntry extends StatelessWidget {
+/// Staggered fade+slide-in animation for list items.
+/// Uses FadeTransition + SlideTransition (compositor-level, no saveLayer)
+/// instead of Opacity + Transform (which force offscreen buffers while
+/// animating, causing jank when N items animate simultaneously on load).
+class _StaggeredEntry extends StatefulWidget {
   final int index;
   final Widget child;
 
   const _StaggeredEntry({required this.index, required this.child});
 
   @override
+  State<_StaggeredEntry> createState() => _StaggeredEntryState();
+}
+
+class _StaggeredEntryState extends State<_StaggeredEntry>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _fade;
+  late final Animation<Offset> _slide;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 320),
+    );
+    _fade = CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic);
+    _slide = Tween<Offset>(
+      begin: const Offset(0, 0.05),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
+
+    final delay = (widget.index * 40).clamp(0, 400);
+    if (delay == 0) {
+      _ctrl.forward();
+    } else {
+      Future.delayed(Duration(milliseconds: delay), () {
+        if (mounted) _ctrl.forward();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final delay = (index * 40).clamp(0, 400);
-    return TweenAnimationBuilder<double>(
-      key: ValueKey(index),
-      tween: Tween(begin: 0, end: 1),
-      duration: Duration(milliseconds: 320 + delay),
-      curve: Curves.easeOutCubic,
-      builder: (context, t, child) {
-        return Opacity(
-          opacity: t,
-          child: Transform.translate(
-            offset: Offset(0, (1 - t) * 16),
-            child: child,
-          ),
-        );
-      },
-      child: child,
+    return FadeTransition(
+      opacity: _fade,
+      child: SlideTransition(
+        position: _slide,
+        child: widget.child,
+      ),
     );
   }
 }

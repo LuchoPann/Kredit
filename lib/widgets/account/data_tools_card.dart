@@ -157,23 +157,50 @@ class DataToolsCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
     final lastBackup = ref.watch(lastBackupProvider);
+    final backupOk = lastBackup != null;
+    final statusColor = backupOk ? kredit.success : AppColors.warning;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Tus datos viven solo en este dispositivo. Puedes respaldarlos '
-          'o restaurarlos en cualquier momento.',
-          style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.cloud_sync_outlined, size: KreditIconSize.small, color: kredit.textTertiary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Tus datos viven solo en este dispositivo. Expórtalos para hacer un respaldo o importa uno para restaurar.',
+                style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 6),
-        Text(
-          lastBackup == null
-              ? 'Aun no has hecho un respaldo.'
-              : 'Ultimo respaldo: ${formatDate(toDateStr(lastBackup))}.',
-          style: TextStyle(
-            fontSize: KreditTextSize.caption,
-            fontWeight: FontWeight.w600,
-            color: lastBackup == null ? kredit.textTertiary : kredit.success,
+        const SizedBox(height: 10),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: statusColor.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(KreditRadius.tile),
+            border: Border.all(color: statusColor.withValues(alpha: 0.28)),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                backupOk ? Icons.check_circle_outline : Icons.warning_amber_rounded,
+                size: 15,
+                color: statusColor,
+              ),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  backupOk
+                      ? 'Último respaldo: ${formatDate(toDateStr(lastBackup!))}.'
+                      : 'Sin respaldo — se recomienda exportar una copia ahora.',
+                  style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600, color: statusColor),
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 12),
@@ -244,7 +271,7 @@ class _DataToolOption extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary),
+                    style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
                   ),
                   const SizedBox(height: 6),
                   Container(

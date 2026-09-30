@@ -21,7 +21,7 @@ Widget sectionHeader(String title, {Color? color, String? subtitle}) {
           ),
           if (subtitle != null) ...[
             const SizedBox(height: 3),
-            Text(subtitle, style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary)),
+            Text(subtitle, style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary)),
           ],
         ],
       );

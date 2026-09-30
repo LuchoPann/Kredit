@@ -15,13 +15,13 @@ class BgTonePicker extends ConsumerWidget {
     final options = isDark
         ? const [
             (value: BgTone.pure, label: 'Oscuro Puro'),
-            (value: BgTone.cool, label: 'Frío (Azul)'),
-            (value: BgTone.warm, label: 'Grafito'),
+            (value: BgTone.cool, label: 'Medianoche'),
+            (value: BgTone.warm, label: 'Ámbar'),
           ]
         : const [
             (value: BgTone.pure, label: 'Blanco Puro'),
-            (value: BgTone.cool, label: 'Nube (Frío)'),
-            (value: BgTone.warm, label: 'Arena (Cálido)'),
+            (value: BgTone.cool, label: 'Nube'),
+            (value: BgTone.warm, label: 'Arena'),
           ];
 
     final kredit = Theme.of(context).extension<KreditColors>()!;

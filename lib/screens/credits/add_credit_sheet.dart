@@ -20,6 +20,7 @@ import '../../providers/commercial_quotas_provider.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/credit_display_utils.dart';
+import '../../widgets/card_design_painter.dart';
 import '../../widgets/interest_rate_type_field.dart';
 import '../../widgets/wallet_card.dart';
 
@@ -58,6 +59,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
 
   String _type = CreditType.loan;
   String _color = '#00F2FE';
+  final _cardDesignNotifier = ValueNotifier<CardDesign?>(null);
   bool _saving = false;
 
   // Stepper state (Tarea 1). Only the fields belonging to the current step
@@ -163,6 +165,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
 
   @override
   void dispose() {
+    _cardDesignNotifier.dispose();
     for (final c in [
       _nameCtrl,
       _lenderCtrl,
@@ -643,6 +646,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         managementFee: managementFee,
         managementFeeFrequency: _managementFeeFrequency,
         quotaId: quotaId,
+        cardDesign: _cardDesignNotifier.value?.name,
         movements: currentBalance > 0
             ? [
                 CardMovement(
@@ -697,6 +701,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         quotaId: quotaId,
         interestUnknown: _interestUnknown,
         earlyPaymentWaivesInterest: _earlyPaymentWaivesInterest,
+        cardDesign: _cardDesignNotifier.value?.name,
       );
     }
 
@@ -1284,7 +1289,54 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
       ),
       const SizedBox(height: 12),
-      ..._previewCard(),
+      ValueListenableBuilder<CardDesign?>(
+        valueListenable: _cardDesignNotifier,
+        builder: (context, design, _) {
+          final credit = _buildPreviewCreditWith(design);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (credit != null) ...[
+                const Text(
+                  'VISTA PREVIA DE TARJETA',
+                  style: TextStyle(fontSize: KreditTextSize.caption, fontWeight: FontWeight.bold, letterSpacing: 0.8),
+                ),
+                const SizedBox(height: 8),
+                RepaintBoundary(child: WalletCard(credit: credit)),
+                const SizedBox(height: 16),
+              ],
+              Text(
+                'DISEÑO DE TARJETA',
+                style: TextStyle(
+                  fontSize: KreditTextSize.caption,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                  color: kredit.textTertiary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    final bank = detectBank(lender: _lenderCtrl.text.trim(), fallbackColor: _color);
+                    final g = expandedGradientFor(bank.cssClass, _color);
+                    showCardDesignPicker(
+                      context,
+                      current: design,
+                      c1: g.first, c2: g[g.length ~/ 2], c3: g.last,
+                      onSelected: (d) => _cardDesignNotifier.value = d,
+                    );
+                  },
+                  icon: const Icon(Icons.palette_outlined, size: 18),
+                  label: Text(design == null ? 'Predeterminado' : design.label),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          );
+        },
+      ),
       Text(
         'DETALLES DEL CRÉDITO',
         style: TextStyle(
@@ -1300,30 +1352,11 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     ];
   }
 
-  // Live preview of how this credit will look once saved, mirroring the
-  // "VISTA PREVIA DE TARJETA" block in edit_credit_sheet.dart so create and
-  // edit stay visually consistent. Only rendered once the fields needed to
-  // build a Credit are actually present — falls back to nothing (just the
-  // text summary below) if the data isn't parseable yet.
-  List<Widget> _previewCard() {
-    final credit = _buildPreviewCredit();
-    if (credit == null) return const [];
-    return [
-      const Text(
-        'VISTA PREVIA DE TARJETA',
-        style: TextStyle(fontSize: KreditTextSize.caption, fontWeight: FontWeight.bold, letterSpacing: 0.8),
-      ),
-      const SizedBox(height: 8),
-      WalletCard(credit: credit),
-      const SizedBox(height: 16),
-    ];
-  }
-
   // Builds a throwaway Credit from the current form state purely for the
   // step-3 preview — never persisted. Returns null when the data isn't
   // complete/parseable enough to render a meaningful card (the real
   // validation/build happens in `_save`).
-  Credit? _buildPreviewCredit() {
+  Credit? _buildPreviewCreditWith(CardDesign? design) {
     final name = _nameCtrl.text.trim().isEmpty ? '(sin nombre)' : _nameCtrl.text.trim();
     final lender = _lenderCtrl.text.trim().isEmpty ? '(sin definir)' : _lenderCtrl.text.trim();
     try {
@@ -1348,6 +1381,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           interestRateType: _interestRateType,
           managementFee: managementFee,
           managementFeeFrequency: _managementFeeFrequency,
+          cardDesign: design?.name,
         );
       }
       if (_startDate == null) return null;
@@ -1390,6 +1424,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         quotaId: (_selectedEntityId != null && _selectedEntityId != 'none') ? 'preview-quota' : null,
         interestUnknown: _interestUnknown,
         earlyPaymentWaivesInterest: _earlyPaymentWaivesInterest,
+        cardDesign: design?.name,
       );
     } catch (_) {
       return null;
@@ -2593,3 +2628,4 @@ class _EntityPickerCard extends StatelessWidget {
     );
   }
 }
+

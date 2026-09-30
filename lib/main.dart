@@ -50,7 +50,7 @@ class MyApp extends ConsumerWidget {
         bgTone: prefs.bgTone,
         isDarkMode: prefs.isDarkMode,
       ),
-      themeAnimationDuration: const Duration(milliseconds: 350),
+      themeAnimationDuration: const Duration(milliseconds: 150),
       themeAnimationCurve: Curves.easeInOutCubic,
       // Spanish locale for built-in widgets (date/time pickers, etc.) — the
       // whole app is written in Spanish, but without this Flutter's own

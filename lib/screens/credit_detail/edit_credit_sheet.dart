@@ -10,6 +10,7 @@ import '../../utils/currency_input_formatter.dart';
 import '../../domain/loan_calculator.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/card_design_painter.dart';
 import '../../widgets/interest_rate_type_field.dart';
 import '../../widgets/kredit_section_card.dart';
 import '../../widgets/wallet_card.dart';
@@ -74,6 +75,7 @@ class EditCreditSheet extends ConsumerStatefulWidget {
 class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
   final _formKey = GlobalKey<FormState>();
   late String _color;
+  CardDesign? _cardDesign;
   bool _saving = false;
   late String? _selectedLenderPreset =
       _presetLenders.contains(widget.credit.lender)
@@ -154,6 +156,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
   void initState() {
     super.initState();
     _color = widget.credit.color ?? '#00F2FE';
+    _cardDesign = CardDesign.fromKey(widget.credit.cardDesign);
   }
 
   @override
@@ -276,6 +279,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
     credit.lender = _lenderCtrl.text.trim();
     credit.color = _color;
     credit.notes = _notesCtrl.text.trim();
+    credit.cardDesign = _cardDesign?.name;
 
     if (credit is CardCredit) {
       credit.creditLimit =
@@ -415,6 +419,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                             interestUnknown: loan.interestUnknown,
                             earlyPaymentWaivesInterest:
                                 loan.earlyPaymentWaivesInterest,
+                            cardDesign: _cardDesign?.name,
                           )
                         : CardCredit(
                             id: widget.credit.id,
@@ -444,9 +449,8 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                             lastAccrualCutoff:
                                 (widget.credit as CardCredit).lastAccrualCutoff,
                             color: _color,
-                            // Carry over real movement history so the preview
-                            // reflects the actual current balance/cupo.
                             movements: (widget.credit as CardCredit).movements,
+                            cardDesign: _cardDesign?.name,
                           );
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -460,7 +464,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        WalletCard(credit: previewCredit),
+                        RepaintBoundary(child: WalletCard(credit: previewCredit)),
                         const SizedBox(height: 16),
                       ],
                     );
@@ -577,7 +581,6 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                       const SizedBox(height: 12),
                       TextFormField(
                         controller: _lenderCtrl,
-                        autofocus: true,
                         decoration: const InputDecoration(
                           labelText: 'Escribir libre',
                           hintText: 'Ej. PrestaYa...',
@@ -590,12 +593,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                // Mismo estilo de encabezado que el label interno de
-                // _EditSectionCard (icono 14 + mayúsculas + label token +
-                // textTertiary) — antes este header flotaba con un estilo
-                // totalmente distinto (bodyLarge, mixed-case, color
-                // primario) al lado de "DATOS BÁSICOS", que sí usa el
-                // patrón de tarjeta — la asimetría venía de ahí.
+                // ─────────────────────────────────────────────────────────
                 Row(
                   children: [
                     Icon(
@@ -651,7 +649,6 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _locationCtrl,
-                          autofocus: true,
                           decoration: const InputDecoration(
                             labelText: 'Escribir libre',
                             hintText: 'Ej. Tienda de la esquina...',
@@ -908,8 +905,6 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
   }
 }
 
-/// Small amber/warning hint shown below the interest-rate field when
-/// [rateInconsistencyWarning] flags a likely periodicity mix-up. Purely
 /// informational — never blocks saving.
 class _EditInterestRateWarningHint extends StatelessWidget {
   final String text;

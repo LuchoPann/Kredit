@@ -38,7 +38,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -78,6 +78,9 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(
                 commercialQuotas, commercialQuotas.managementFeeFrequency);
           }
+          if (from < 9) {
+            await m.addColumn(credits, credits.cardDesign);
+          }
         },
         // SQLite ignores FK constraints (like Credits.quotaId's
         // onDelete: restrict) unless this pragma is set per-connection —
@@ -113,6 +116,7 @@ class AppDatabase extends _$AppDatabase {
       quotaId: row.quotaId,
       interestUnknown: row.interestUnknown,
       earlyPaymentWaivesInterest: row.earlyPaymentWaivesInterest,
+      cardDesign: row.cardDesign,
     );
   }
 
@@ -137,6 +141,7 @@ class AppDatabase extends _$AppDatabase {
       cycleCount: row.cycleCount ?? 0,
       lastAccrualCutoff: row.lastAccrualCutoff,
       quotaId: row.quotaId,
+      cardDesign: row.cardDesign,
       movements: movements,
     );
   }
@@ -163,6 +168,7 @@ class AppDatabase extends _$AppDatabase {
         quotaId: Value(credit.quotaId),
         interestUnknown: Value(credit.interestUnknown),
         earlyPaymentWaivesInterest: Value(credit.earlyPaymentWaivesInterest),
+        cardDesign: Value(credit.cardDesign),
       );
     } else if (credit is CardCredit) {
       return CreditsCompanion.insert(
@@ -183,6 +189,7 @@ class AppDatabase extends _$AppDatabase {
         cycleCount: Value(credit.cycleCount),
         lastAccrualCutoff: Value(credit.lastAccrualCutoff),
         quotaId: Value(credit.quotaId),
+        cardDesign: Value(credit.cardDesign),
       );
     }
     throw ArgumentError('Unknown credit subtype: ${credit.runtimeType}');

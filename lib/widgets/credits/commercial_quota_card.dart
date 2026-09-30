@@ -39,8 +39,43 @@ class CommercialQuotaCard extends StatefulWidget {
   State<CommercialQuotaCard> createState() => _CommercialQuotaCardState();
 }
 
-class _CommercialQuotaCardState extends State<CommercialQuotaCard> {
+class _CommercialQuotaCardState extends State<CommercialQuotaCard>
+    with SingleTickerProviderStateMixin {
   bool _expanded = false;
+  // Initialized in initState — AnimationController requires vsync (this),
+  // which is only valid after the mixin is bound. Accessed only from build()
+  // which runs after initState, so late is safe here.
+  late final AnimationController _chevronCtrl;
+
+  Animation<double> get _chevronTurn => _chevronCtrl.drive(
+        Tween<double>(begin: 0.0, end: 0.5).chain(
+          CurveTween(curve: Curves.easeInOut),
+        ),
+      );
+
+  @override
+  void initState() {
+    super.initState();
+    _chevronCtrl = AnimationController(
+      duration: const Duration(milliseconds: 220),
+      vsync: this,
+    );
+  }
+
+  @override
+  void dispose() {
+    _chevronCtrl.dispose();
+    super.dispose();
+  }
+
+  void _toggle() {
+    setState(() => _expanded = !_expanded);
+    if (_expanded) {
+      _chevronCtrl.forward();
+    } else {
+      _chevronCtrl.reverse();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +104,7 @@ class _CommercialQuotaCardState extends State<CommercialQuotaCard> {
         // bajo un WalletCard normal (_CreditComparisonStrip) — nunca un
         // chevron suelto flotando bajo el voucher.
         InkWell(
-          onTap: () => setState(() => _expanded = !_expanded),
+          onTap: _toggle,
           child: Container(
             margin: const EdgeInsets.fromLTRB(14, 0, 14, 0),
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 11),
@@ -105,53 +140,80 @@ class _CommercialQuotaCardState extends State<CommercialQuotaCard> {
                         ),
                       ),
                     ),
-                    Icon(
-                      _expanded ? Icons.expand_less : Icons.expand_more,
-                      size: KreditIconSize.small,
-                      color: kredit.textSecondary,
+                    RotationTransition(
+                      turns: _chevronTurn,
+                      child: Icon(
+                        Icons.expand_more,
+                        size: KreditIconSize.small,
+                        color: kredit.textSecondary,
+                      ),
                     ),
                   ],
                 ),
-                if (_expanded) ...[
-                  const SizedBox(height: 8),
-                  for (final purchase in widget.purchases)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Row(
-                        children: [
-                          Expanded(
+                // AnimatedSize anima el crecimiento/reducción del área
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 240),
+                  curve: Curves.easeInOutCubic,
+                  alignment: Alignment.topCenter,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 180),
+                    switchInCurve: Curves.easeOut,
+                    switchOutCurve: Curves.easeIn,
+                    transitionBuilder: (child, animation) => FadeTransition(
+                      opacity: animation,
+                      child: child,
+                    ),
+                    child: _expanded
+                        ? Column(
+                            key: const ValueKey('expanded'),
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 8),
+                              for (final purchase in widget.purchases)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 6),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          purchase.name,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: KreditTextSize.caption,
+                                            color: kredit.textPrimary,
+                                          ),
+                                        ),
+                                      ),
+                                      Text(
+                                        formatCOP(getCreditRemainingBalance(purchase)),
+                                        style: TextStyle(
+                                          fontSize: KreditTextSize.caption,
+                                          fontWeight: FontWeight.w800,
+                                          color: kredit.textPrimary,
+                                          fontFeatures: const [
+                                            FontFeature.tabularFigures(),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          )
+                        : Align(
+                            key: const ValueKey('collapsed'),
+                            alignment: Alignment.centerLeft,
                             child: Text(
-                              purchase.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                              '$count compra${count == 1 ? '' : 's'}',
                               style: TextStyle(
                                 fontSize: KreditTextSize.caption,
-                                color: kredit.textPrimary,
+                                color: kredit.textSecondary,
                               ),
                             ),
                           ),
-                          Text(
-                            formatCOP(getCreditRemainingBalance(purchase)),
-                            style: TextStyle(
-                              fontSize: KreditTextSize.caption,
-                              fontWeight: FontWeight.w800,
-                              color: kredit.textPrimary,
-                              fontFeatures: const [
-                                FontFeature.tabularFigures(),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ] else
-                  Text(
-                    '$count compra${count == 1 ? '' : 's'}',
-                    style: TextStyle(
-                      fontSize: KreditTextSize.caption,
-                      color: kredit.textSecondary,
-                    ),
                   ),
+                ),
               ],
             ),
           ),

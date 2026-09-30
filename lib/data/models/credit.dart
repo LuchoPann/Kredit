@@ -31,6 +31,7 @@ abstract class Credit {
   String lender;
   String? color;
   String? notes;
+  String? cardDesign;
 
   Credit({
     required this.id,
@@ -39,6 +40,7 @@ abstract class Credit {
     required this.lender,
     this.color,
     this.notes,
+    this.cardDesign,
   });
 
   bool get isCard => type == CreditType.card;
@@ -93,6 +95,7 @@ class LoanCredit extends Credit {
     required super.lender,
     super.color,
     super.notes,
+    super.cardDesign,
     this.location,
     this.card,
     required this.totalAmount,
@@ -134,6 +137,7 @@ class LoanCredit extends Credit {
         'quotaId': quotaId,
         'interestUnknown': interestUnknown,
         'earlyPaymentWaivesInterest': earlyPaymentWaivesInterest,
+        'cardDesign': cardDesign,
       };
 
   factory LoanCredit.fromJson(Map<String, dynamic> json) => LoanCredit(
@@ -164,6 +168,7 @@ class LoanCredit extends Credit {
         interestUnknown: json['interestUnknown'] as bool? ?? false,
         earlyPaymentWaivesInterest:
             json['earlyPaymentWaivesInterest'] as bool? ?? false,
+        cardDesign: json['cardDesign'] as String?,
       );
 }
 
@@ -195,6 +200,7 @@ class CardCredit extends Credit {
     required super.lender,
     super.color,
     super.notes,
+    super.cardDesign,
     this.creditLimit = 0,
     this.currentBalance = 0,
     this.cutoffDay = 1,
@@ -228,6 +234,7 @@ class CardCredit extends Credit {
         'cycleCount': cycleCount,
         'lastAccrualCutoff': lastAccrualCutoff,
         'quotaId': quotaId,
+        'cardDesign': cardDesign,
         'movements': movements.map((m) => m.toJson()).toList(),
       };
 
@@ -251,6 +258,7 @@ class CardCredit extends Credit {
         cycleCount: (json['cycleCount'] as num?)?.toInt() ?? 0,
         lastAccrualCutoff: json['lastAccrualCutoff'] as String?,
         quotaId: json['quotaId'] as String?,
+        cardDesign: json['cardDesign'] as String?,
         movements: (json['movements'] as List<dynamic>? ?? [])
             .map((e) => CardMovement.fromJson(e as Map<String, dynamic>))
             .toList(),

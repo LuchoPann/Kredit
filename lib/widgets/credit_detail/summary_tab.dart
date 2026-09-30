@@ -45,29 +45,6 @@ class SummaryTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final remaining = getCreditRemainingBalance(credit);
-
-    late final String totalLabel;
-    late final String totalValue;
-    late final double interestRate;
-    // Nunca sintetiza una tasa falsa: si el usuario marcó que no la conoce
-    // (cupo comercial), se muestra un aviso en vez de un "0.0%" engañoso.
-    final interestUnknown =
-        credit is LoanCredit && (credit as LoanCredit).interestUnknown;
-
-    if (credit is LoanCredit) {
-      final loan = credit as LoanCredit;
-      totalLabel = 'Monto Financiado';
-      totalValue = formatCOP(loan.totalAmount);
-      interestRate = loan.interestRate;
-    } else {
-      final card = credit as CardCredit;
-      totalLabel = 'Límite Total';
-      totalValue = card.creditLimit > 0
-          ? formatCOP(card.creditLimit)
-          : 'No definido';
-      interestRate = card.interestRate;
-    }
-
     final kredit = Theme.of(context).extension<KreditColors>()!;
 
     return ListView(
@@ -76,14 +53,10 @@ class SummaryTab extends ConsumerWidget {
       physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
       children: [
         WalletCard(credit: credit),
-        // El monto pendiente ya se muestra como "DEUDA RESTANTE" dentro del
-        // WalletCard de arriba para préstamos, así que aquí no se repite —
-        // solo las tarjetas de crédito conservan este bloque, porque su
-        // WalletCard no incluye esa cifra.
         if (credit is! LoanCredit) ...[
-          const SizedBox(height: 24),
-          // "Pendiente" leads as the protagonist figure — full jerarquía
-          // tipográfica sin caja, como en el dashboard.
+          const SizedBox(height: 16),
+          Divider(height: 1, color: kredit.borderCard),
+          const SizedBox(height: 16),
           StatBox(
             label: 'Pendiente',
             value: formatCOP(remaining),
@@ -95,40 +68,9 @@ class SummaryTab extends ConsumerWidget {
           Divider(height: 1, color: kredit.borderCard),
           const SizedBox(height: 16),
         ] else
-          const SizedBox(height: 24),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: StatBox(
-                label: totalLabel,
-                value: totalValue,
-                icon: Icons.paid_outlined,
-              ),
-            ),
-            Container(
-              width: 1,
-              height: 34,
-              margin: const EdgeInsets.symmetric(horizontal: 18),
-              color: kredit.borderCard,
-            ),
-            Expanded(
-              child: interestUnknown
-                  ? const StatBox(
-                      label: 'Interés',
-                      value: 'Cuenta sin intereses registrados',
-                      icon: Icons.percent,
-                    )
-                  : StatBox(
-                      label: 'Interés E.A.',
-                      value: '${interestRate.toStringAsFixed(1)}%',
-                      icon: Icons.percent,
-                    ),
-            ),
-          ],
-        ),
+          const SizedBox(height: 12),
         if (credit is LoanCredit) ...[
-          const SizedBox(height: 18),
+          const SizedBox(height: 12),
           Divider(height: 1, color: kredit.borderCard),
           const SizedBox(height: 20),
           _LoanProgress(credit: credit as LoanCredit),
@@ -263,16 +205,17 @@ class _NextInstallmentCard extends ConsumerWidget {
     final isOverdue = status.state == InstallmentState.overdue;
     final accent = Theme.of(context).colorScheme.primary;
 
-    String subtitle;
+    String daysLabel;
     if (isOverdue) {
-      subtitle = 'Vencida hace ${days.abs()} día(s)';
+      daysLabel = 'Venció hace ${days.abs()} día(s)';
     } else if (days == 0) {
-      subtitle = 'Vence hoy';
+      daysLabel = 'Vence hoy';
     } else {
-      subtitle = 'Vence en $days día(s) · ${formatDate(next.dueDate)}';
+      daysLabel = 'Vence en $days día(s)';
     }
 
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
           child: Column(
@@ -287,40 +230,42 @@ class _NextInstallmentCard extends ConsumerWidget {
                   color: kredit.textTertiary,
                 ),
               ),
-              const SizedBox(height: 5),
-              // El monto ya protagoniza el WalletCard de arriba ("PRÓXIMA
-              // CUOTA"); aquí solo aporta contexto nuevo (el número de cuota
-              // arriba y cuánto falta/si está vencida abajo), así que va en
-              // un tamaño secundario en vez de repetirse como cifra grande.
+              const SizedBox(height: 3),
               Text(
-                subtitle,
+                daysLabel,
                 style: TextStyle(
                   fontSize: KreditTextSize.body,
                   fontWeight: isOverdue ? FontWeight.w700 : FontWeight.w600,
                   color: isOverdue ? accent : kredit.textPrimary,
                 ),
               ),
+              if (!isOverdue && days != 0) ...[
+                const SizedBox(height: 1),
+                Text(
+                  formatDate(next.dueDate),
+                  style: TextStyle(
+                    fontSize: KreditTextSize.caption,
+                    color: kredit.textSecondary,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
         const SizedBox(width: 10),
-        Tooltip(
-          message: 'Simular abono extra sobre este crédito',
-          child: OutlinedButton(
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              minimumSize: const Size(0, 0),
-            ),
-            onPressed: () =>
-                openSimulatorSheet(context, initialCreditId: credit.id),
-            child: const Icon(
-              Icons.calculate_outlined,
-              size: KreditIconSize.small,
-            ),
+        OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: kredit.textPrimary,
           ),
+          onPressed: () => openSimulatorSheet(context, initialCreditId: credit.id),
+          icon: const Icon(Icons.calculate_outlined, size: KreditIconSize.small),
+          label: const Text('Simular'),
         ),
         const SizedBox(width: 10),
         FilledButton.icon(
+          style: FilledButton.styleFrom(
+            foregroundColor: legibleForegroundOn(accent),
+          ),
           onPressed: () async {
             final messenger = ScaffoldMessenger.of(context);
             try {
@@ -492,6 +437,7 @@ class _CardQuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
     return Row(
       children: [
         Expanded(
@@ -508,6 +454,9 @@ class _CardQuickActions extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: FilledButton.icon(
+            style: FilledButton.styleFrom(
+              foregroundColor: legibleForegroundOn(accent),
+            ),
             onPressed: () => CardMovementSheet.show(
               context,
               creditId: credit.id,

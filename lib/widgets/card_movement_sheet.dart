@@ -259,7 +259,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
                         'Algunos bancos permiten sobrecupo con un cargo adicional; revisa las '
                         'condiciones de tu tarjeta antes de continuar.',
                         style: TextStyle(
-                          fontSize: KreditTextSize.caption,
+                          fontSize: KreditTextSize.body,
                           color: Theme.of(context).colorScheme.error,
                         ),
                       ),

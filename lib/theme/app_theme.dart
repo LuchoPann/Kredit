@@ -24,15 +24,23 @@ class AppColors {
   static const dangerBg = Color(0xFF7F1D1D);
   static const info = Color(0xFF06B6D4);    // Cyan
 
-  // Accent color picker options (modern electric/cyber swatches).
+  // Accent color picker options — orden arcoíris (ROYGBIV + cierre):
+  // blanco/negro neutro primero, luego 14 colores de la paleta nueva.
   static const accentOptions = <Color>[
-    Color(0xFFFFFFFF),
-    Color(0xFF00F2FE),
-    Color(0xFFC084FC),
-    Color(0xFF4FACFE),
-    Color(0xFFFACC15),
-    Color(0xFF34D399),
-    Color(0xFFFB7185),
+    Color(0xFFFFFFFF), // neutro (blanco en oscuro, negro en claro)
+    Color(0xFFD72027), // rojo
+    Color(0xFFB11F24), // carmesí
+    Color(0xFFF25A38), // rojo-naranja
+    Color(0xFFF2845C), // naranja
+    Color(0xFFFFDE59), // amarillo
+    Color(0xFF00BF63), // verde
+    Color(0xFF6BAF99), // verde-teal
+    Color(0xFFB8E1D7), // menta
+    Color(0xFF38B6FF), // azul cielo
+    Color(0xFF006BFF), // azul
+    Color(0xFF7A0CDC), // violeta profundo
+    Color(0xFFCB6CE6), // violeta
+    Color(0xFFECADBC), // rosa
   ];
 }
 
@@ -77,7 +85,7 @@ class KreditTextSize {
   /// Step 1 — smallest: uppercase section eyebrows/labels (e.g. "MONTO Y
   /// CUOTA"), hint text, contextual help/notes, row subtitles/metadata,
   /// tiny badges/counters.
-  static const caption = 12.0;
+  static const caption = 13.0;
 
   /// Step 2 — default "normal" text: list-row titles, most body copy,
   /// sub-section titles.
@@ -258,26 +266,34 @@ class KreditColors extends ThemeExtension<KreditColors> {
   }
 }
 
-// Light mode tone variants — distinctly differentiated
-const _bgToneLightPure = _BgToneColors(
-  bgPrimary: Color(0xFFFFFFFF),
-  bgSecondary: Color(0xFFF1F5F9),
-  bgCard: Color(0xFFF8FAFC),
-  borderCard: Color(0xFFE2E8F0),
-);
+// Light mode tone variants.
+// Design rule mirrors dark mode: bgCard is ALWAYS brighter/whiter than
+// bgPrimary so cards visually elevate above the background — the same
+// relationship dark mode has (bgCard #121212 on bgPrimary #000000).
+// bgPrimary is never pure white so cards have a surface to elevate from.
 
-const _bgToneLightCool = _BgToneColors(
-  bgPrimary: Color(0xFFEEF2F6),
+// Blanco Puro — neutral light gray bg, white cards
+const _bgToneLightPure = _BgToneColors(
+  bgPrimary: Color(0xFFF0F4F8),
   bgSecondary: Color(0xFFE2E8F0),
   bgCard: Color(0xFFFFFFFF),
-  borderCard: Color(0xFFCBD5E1),
+  borderCard: Color(0xFFCAD2DD),
 );
 
-const _bgToneLightWarm = _BgToneColors(
-  bgPrimary: Color(0xFFFDFBF7),
-  bgSecondary: Color(0xFFF5F0E6),
+// Nube — cool blue-tinted bg (analogous to dark Medianoche's subtle blue)
+const _bgToneLightCool = _BgToneColors(
+  bgPrimary: Color(0xFFE8F0FB),
+  bgSecondary: Color(0xFFD5E3F5),
   bgCard: Color(0xFFFFFFFF),
-  borderCard: Color(0xFFE7E5E4),
+  borderCard: Color(0xFFB8CEE8),
+);
+
+// Arena — warm cream-tinted bg (analogous to dark Ámbar's subtle warm)
+const _bgToneLightWarm = _BgToneColors(
+  bgPrimary: Color(0xFFF5EDE0),
+  bgSecondary: Color(0xFFEDD9C4),
+  bgCard: Color(0xFFFFFFFF),
+  borderCard: Color(0xFFD4BEA0),
 );
 
 _BgToneColors _resolveBgTone(String bgTone, bool isDarkMode) {
@@ -315,30 +331,30 @@ Color resolveEffectiveAccent(Color accent, bool isDarkMode) {
   return (!isDarkMode && isDefaultWhite) ? const Color(0xFF0F172A) : accent;
 }
 
-// Subtle reference hues blended into a chosen accent to make it feel part of
-// the selected bgTone's temperature — a light nudge, not a hue replacement.
-const _coolTintRef = Color(0xFF5AA9FF);
-const _warmTintRef = Color(0xFFFF9D4D);
+// Referencias de temperatura para el lerp de tono.
+// Warm: ámbar (naranja suave) — Cool: azul cielo.
+const _warmTintRef = Color(0xFFFFA040);
+const _coolTintRef = Color(0xFF4090FF);
+// Factor 0.25 → cambio visible (~25% mezcla) pero no tan extremo
+// que el color pierda su identidad.
+const _toneLerpFactor = 0.25;
 
-/// Tints [accent] toward the given [bgTone]'s temperature ('cool' → bluer,
-/// 'warm' → oranger, 'pure' → unchanged), so a user's chosen accent colour
-/// feels coherent with the background variant they picked instead of
-/// clashing against it. The neutral black/white default swatch is excluded
-/// on purpose — those are meant to stay perfectly neutral regardless of
-/// bgTone, since [resolveEffectiveAccent] already treats them as "no accent
-/// colour chosen".
+/// Desplaza [accent] hacia la temperatura del [bgTone] seleccionado:
+/// 'warm' → mezcla 25% hacia ámbar, 'cool' → 25% hacia azul claro.
+/// Todos los acentos reciben exactamente el mismo grado de desplazamiento,
+/// así la diferencia entre tonos se percibe de forma consistente.
+/// El neutro blanco/negro queda excluido — siempre pasa sin cambio.
 Color applyBgToneToAccent(Color accent, String bgTone, bool isDarkMode) {
   final isNeutral = accent == AppColors.accentPrimaryDefault ||
       accent == Colors.white ||
       accent == const Color(0xFF0F172A);
-  if (isNeutral) return accent;
+  if (isNeutral || bgTone == 'pure') return accent;
 
   switch (bgTone) {
-    case 'cool':
-      return Color.lerp(accent, _coolTintRef, 0.16)!;
     case 'warm':
-      return Color.lerp(accent, _warmTintRef, 0.16)!;
-    case 'pure':
+      return Color.lerp(accent, _warmTintRef, _toneLerpFactor)!;
+    case 'cool':
+      return Color.lerp(accent, _coolTintRef, _toneLerpFactor)!;
     default:
       return accent;
   }
@@ -381,14 +397,13 @@ ThemeData buildAppTheme({
   final bgSecondary = tone.bgSecondary;
   final bgCard = tone.bgCard;
   final borderCard = tone.borderCard;
-  // Full-strength text in both modes — 100% white on dark, 100% near-black on
-  // light — per explicit product decision to never let text read as "grayed
-  // out"/low-contrast. Hierarchy between primary/secondary/tertiary roles
-  // still comes through (font size, weight, letter-spacing), just not via
-  // reduced opacity/tint, which was reading as illegible gray to users.
+  // Dark mode: full-strength white for all levels (hierarchy via size/weight).
+  // Light mode: 3-level slate scale — primary=dark navy, secondary=medium
+  // slate, tertiary=lighter slate — mirrors the depth that dark-mode backgrounds
+  // provide naturally, giving both modes the same visual hierarchy.
   final textPrimary = isDarkMode ? const Color(0xFFFFFFFF) : const Color(0xFF0F172A);
-  final textSecondary = textPrimary;
-  final textTertiary = textPrimary;
+  final textSecondary = isDarkMode ? const Color(0xFFFFFFFF) : const Color(0xFF334155);
+  final textTertiary = isDarkMode ? const Color(0xFFFFFFFF) : const Color(0xFF64748B);
 
   final effectiveAccent = applyBgToneToAccent(
     resolveEffectiveAccent(accent, isDarkMode),
@@ -553,6 +568,21 @@ ThemeData buildAppTheme({
       unselectedItemColor: textTertiary,
     ),
     dividerColor: borderCard,
+    canvasColor: bgCard,
+    dialogTheme: DialogThemeData(backgroundColor: bgCard),
+    bottomSheetTheme: BottomSheetThemeData(backgroundColor: bgCard),
+    switchTheme: SwitchThemeData(
+      thumbColor: WidgetStateProperty.resolveWith<Color?>((states) {
+        if (states.contains(WidgetState.selected)) {
+          return effectiveAccent.computeLuminance() > 0.7 ? Colors.black : Colors.white;
+        }
+        return null;
+      }),
+      trackColor: WidgetStateProperty.resolveWith<Color?>((states) {
+        if (states.contains(WidgetState.selected)) return effectiveAccent;
+        return null;
+      }),
+    ),
     extensions: [
       KreditColors(
         bgPrimary: bgPrimary,

@@ -147,18 +147,31 @@ class DangerZoneCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // No boxed card — matches the borderless typographic language used
-    // elsewhere in "Cuenta", but the destructive action still gets a
-    // distinctive treatment via the danger color on its icon/title/tag,
-    // which is enough to read as "different" without a red border.
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(KreditRadius.card),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.danger.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(KreditRadius.card),
+          border: Border.all(color: AppColors.danger.withValues(alpha: 0.22)),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: _buildContent(context, ref),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, WidgetRef ref) {
     return InkWell(
       onTap: () => _confirmAndClear(context, ref),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.all(KreditSpacing.tile),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.delete_forever_outlined, color: AppColors.danger),
+            Icon(Icons.delete_forever_outlined, size: KreditIconSize.small, color: AppColors.danger),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -171,7 +184,7 @@ class DangerZoneCard extends ConsumerWidget {
                   const SizedBox(height: 2),
                   Text(
                     'Elimina todos tus créditos de forma permanente',
-                    style: TextStyle(fontSize: KreditTextSize.caption, color: Theme.of(context).extension<KreditColors>()!.textSecondary),
+                    style: TextStyle(fontSize: KreditTextSize.body, color: Theme.of(context).extension<KreditColors>()!.textSecondary),
                   ),
                   const SizedBox(height: 6),
                   const Text(

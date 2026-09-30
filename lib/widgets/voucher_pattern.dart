@@ -749,42 +749,43 @@ class VoucherPatternPainter extends CustomPainter {
   }
 
   // ---------------------------------------------------------------------------
-  // 6. Risograph — two blurred ellipses with multiply blend
+  // 6. Risograph — two radial-gradient blobs (no blur, no saveLayer)
   // ---------------------------------------------------------------------------
   void _paintRisograph(Canvas canvas) {
-    // MaskFilter.blur forces the shape into an offscreen buffer. Blending that
-    // buffer with BlendMode.multiply against a transparent destination gives
-    // (color × 0 = 0) everywhere — design vanishes. Fix: use saveLayer so the
-    // entire layer (white bg + blurred blob) composites via multiply against
-    // the cream background from the DecoratedBox below.
     canvas.drawRect(
       const Rect.fromLTWH(0, 0, 340, 180),
       Paint()..color = const Color(0xFFFDF6EC),
     );
-    const blur = MaskFilter.blur(BlurStyle.normal, 34);
-    final multiplyLayer = Paint()..blendMode = BlendMode.multiply;
 
-    // Pink blob (top-left) — alpha: 0.6 matches SVG opacity=".6" on the ellipse
-    canvas.saveLayer(null, multiplyLayer);
-    canvas.drawRect(const Rect.fromLTWH(0, 0, 340, 180), Paint()..color = Colors.white);
+    // Pink blob (top-left) — expanded to fill corner aggressively
     canvas.drawOval(
-      Rect.fromCenter(center: const Offset(70, 40), width: 420, height: 300),
+      Rect.fromCenter(center: const Offset(30, 20), width: 500, height: 360),
       Paint()
-        ..color = const Color(0xFFFF6F91).withValues(alpha: 0.6)
-        ..maskFilter = blur,
+        ..shader = const RadialGradient(
+          colors: [Color(0xAAFF6F91), Color(0x55FF6F91), Color(0x00FF6F91)],
+          stops: [0.0, 0.55, 1.0],
+        ).createShader(Rect.fromCenter(center: const Offset(30, 20), width: 500, height: 360)),
     );
-    canvas.restore();
 
-    // Teal blob (bottom-right) — alpha: 0.6 matches SVG opacity=".6" on the ellipse
-    canvas.saveLayer(null, multiplyLayer);
-    canvas.drawRect(const Rect.fromLTWH(0, 0, 340, 180), Paint()..color = Colors.white);
+    // Teal blob (bottom-right) — expanded to fill corner aggressively
     canvas.drawOval(
-      Rect.fromCenter(center: const Offset(290, 150), width: 420, height: 300),
+      Rect.fromCenter(center: const Offset(320, 165), width: 500, height: 360),
       Paint()
-        ..color = const Color(0xFF00A896).withValues(alpha: 0.6)
-        ..maskFilter = blur,
+        ..shader = const RadialGradient(
+          colors: [Color(0xAA00A896), Color(0x5500A896), Color(0x0000A896)],
+          stops: [0.0, 0.55, 1.0],
+        ).createShader(Rect.fromCenter(center: const Offset(320, 165), width: 500, height: 360)),
     );
-    canvas.restore();
+
+    // Overlap zone: mix effect where blobs naturally cross in the center
+    canvas.drawOval(
+      Rect.fromCenter(center: const Offset(175, 95), width: 240, height: 180),
+      Paint()
+        ..shader = const RadialGradient(
+          colors: [Color(0x4455CCAA), Color(0x1E66BBBB), Color(0x0000A896)],
+          stops: [0.0, 0.5, 1.0],
+        ).createShader(Rect.fromCenter(center: const Offset(175, 95), width: 240, height: 180)),
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -906,13 +907,11 @@ class VoucherPatternPainter extends CustomPainter {
   // 8. Ukiyo-e — orange sun, dark sea fill, wave horizon stroke
   // ---------------------------------------------------------------------------
   void _paintUkiyoE(Canvas canvas) {
-    // Sun glow
-    canvas.drawCircle(
-      const Offset(272, 82), 28,
-      Paint()
-        ..color = const Color(0xFFE8742C).withValues(alpha: 0.55)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
-    );
+    // Sun glow — concentric circles instead of blur
+    for (final (r, a) in [(38.0, 0.12), (32.0, 0.22), (27.0, 0.40)]) {
+      canvas.drawCircle(const Offset(272, 82), r,
+          Paint()..color = const Color(0xFFE8742C).withValues(alpha: a));
+    }
     // Sun disc
     canvas.drawCircle(
       const Offset(272, 82), 20,

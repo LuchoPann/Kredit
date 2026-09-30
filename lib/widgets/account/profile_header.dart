@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../providers/theme_provider.dart';
@@ -53,7 +54,28 @@ class ProfileHeader extends ConsumerWidget {
         imageQuality: 85,
       );
       if (picked == null) return;
-      await ref.read(themePreferencesProvider.notifier).setAvatarFromFile(picked.path);
+      if (!context.mounted) return;
+      final accent = Theme.of(context).colorScheme.primary;
+      final cropped = await ImageCropper().cropImage(
+        sourcePath: picked.path,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Recortar foto',
+            toolbarColor: Colors.black,
+            toolbarWidgetColor: Colors.white,
+            activeControlsWidgetColor: accent,
+            lockAspectRatio: true,
+          ),
+          IOSUiSettings(
+            title: 'Recortar foto',
+            aspectRatioLockEnabled: true,
+            resetAspectRatioEnabled: false,
+          ),
+        ],
+      );
+      if (cropped == null) return;
+      await ref.read(themePreferencesProvider.notifier).setAvatarFromFile(cropped.path);
     } catch (e) {
       debugPrint('pickImage failed: $e');
       if (context.mounted) {
@@ -114,18 +136,23 @@ class ProfileHeader extends ConsumerWidget {
     final accent = prefs.accentColor;
     final avatarPath = prefs.avatarPath;
     final kredit = Theme.of(context).extension<KreditColors>()!;
+    final effectiveAvatarBg = applyBgToneToAccent(
+      resolveEffectiveAccent(accent, prefs.isDarkMode),
+      prefs.bgTone,
+      prefs.isDarkMode,
+    );
     return Row(
       children: [
         GestureDetector(
           onTap: () => _showAvatarOptions(context, ref, avatarPath != null),
           child: CircleAvatar(
             radius: 28,
-            backgroundColor: accent,
+            backgroundColor: effectiveAvatarBg,
             backgroundImage: avatarPath != null ? FileImage(File(avatarPath)) : null,
             child: avatarPath == null
                 ? Icon(
                     Icons.person,
-                    color: legibleForegroundOn(accent),
+                    color: legibleForegroundOn(effectiveAvatarBg),
                     size: KreditIconSize.small,
                   )
                 : null,

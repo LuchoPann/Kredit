@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../domain/credit_calculator.dart';
-import '../../providers/credits_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../theme/app_theme.dart';
-import '../../utils/credit_display_utils.dart';
 import '../../widgets/account/accent_color_picker.dart';
 import '../../widgets/account/bg_tone_picker.dart';
 import '../../widgets/account/danger_zone_card.dart';
@@ -16,43 +13,6 @@ import '../../widgets/kredit_section_card.dart';
 import '../../widgets/notification_settings_tile.dart';
 import '../../widgets/security_settings_tile.dart';
 import 'how_it_works_screen.dart';
-
-/// "Cuenta" screen: profile, stats, personalization, data tools and danger
-/// zone. Port of legacy_pwa `#view-settings` (index.html + app.js
-/// renderSettings ~L1524-1560, exportData/importData ~L1615-1658,
-/// clearAllData ~L1660-1669).
-/// Resumen aditivo bajo el perfil: cuántos créditos activos y cuánto queda
-/// pendiente en total, para dar contexto financiero de un vistazo sin bajar
-/// a otra pestaña — puramente informativo, no modifica ningún dato.
-class _AccountQuickSummary extends ConsumerWidget {
-  const _AccountQuickSummary();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final creditsAsync = ref.watch(creditsProvider);
-    final credits = creditsAsync.valueOrNull;
-    if (credits == null || credits.isEmpty) return const SizedBox.shrink();
-    final kredit = Theme.of(context).extension<KreditColors>()!;
-    final active = credits.where(creditHasUnpaid).length;
-    final totalPending = credits.fold<double>(
-      0,
-      (sum, c) => sum + getCreditRemainingBalance(c),
-    );
-
-    return Row(
-      children: [
-        Icon(Icons.account_balance_wallet_outlined, size: KreditIconSize.small, color: kredit.textTertiary),
-        const SizedBox(width: 6),
-        Text(
-          '$active ${active == 1 ? 'crédito activo' : 'créditos activos'} · ${formatCOP(totalPending)} pendiente',
-          style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
-    );
-  }
-}
 
 class AccountScreen extends ConsumerWidget {
   const AccountScreen({super.key});
@@ -68,8 +28,6 @@ class AccountScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(KreditSpacing.card),
         children: [
           ProfileHeader(profileName: prefs.profileName),
-          const SizedBox(height: KreditSpacing.tile),
-          const _AccountQuickSummary(),
           const SizedBox(height: KreditSpacing.section),
           KreditSectionCard(
             children: [

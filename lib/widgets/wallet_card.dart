@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -13,6 +15,7 @@ import '../providers/commercial_quotas_provider.dart';
 import '../providers/credits_provider.dart' show isDemoCredit;
 import '../theme/app_theme.dart';
 import '../utils/credit_display_utils.dart';
+import 'card_design_painter.dart';
 import 'demo_badge.dart';
 import 'kredit_wordmark.dart';
 import 'voucher_pattern.dart';
@@ -143,7 +146,7 @@ List<Color> _expandGradient(List<Color> base) {
 /// Evita 4 Color.lerp + computeLuminance por cada build de WalletCard/EntityCardFace.
 final _gradientExpandedCache = <String, List<Color>>{};
 
-List<Color> _expandedGradientFor(String cssClass, String? fallbackColorHex) {
+List<Color> expandedGradientFor(String cssClass, String? fallbackColorHex) {
   final key = '$cssClass|${fallbackColorHex ?? ''}';
   return _gradientExpandedCache.putIfAbsent(
     key,
@@ -157,9 +160,24 @@ final _luminanceCache = <String, double>{};
 double _avgLuminanceFor(String cssClass, String? fallbackColorHex) {
   final key = '$cssClass|${fallbackColorHex ?? ''}';
   return _luminanceCache.putIfAbsent(key, () {
-    final g = _expandedGradientFor(cssClass, fallbackColorHex);
+    final g = expandedGradientFor(cssClass, fallbackColorHex);
     return g.fold<double>(0, (s, c) => s + c.computeLuminance()) / g.length;
   });
+}
+
+/// Pre-calienta los cachés de gradiente y luminancia para todos los créditos.
+/// Llamar desde el splash después de que carguen los datos, antes de mostrar
+/// la pantalla de créditos, para evitar caídas de FPS en la primera entrada.
+void prewarmCardCaches(List<Credit> credits) {
+  for (final credit in credits) {
+    final bank = detectBank(
+      lender: credit.lender,
+      card: credit is LoanCredit ? (credit as LoanCredit).card : null, // ignore: unnecessary_cast
+      fallbackColor: credit.color,
+    );
+    expandedGradientFor(bank.cssClass, credit.color);
+    _avgLuminanceFor(bank.cssClass, credit.color);
+  }
 }
 
 /// Faint diagonal-line texture characteristic of physical card mockups —
@@ -189,70 +207,96 @@ class _CardPatternPainter extends CustomPainter {
 }
 
 // Instancia estática — shouldRepaint devuelve false, por lo que Flutter
-// nunca la redibuja. Compartida por todos los _EmvChip del árbol.
-final _emvChipPainter = _EmvChipLinesPainter();
+// Shared — never redraws.
+final _emvChipPainter = _EmvChipPainter();
 
-/// Simulated EMV chip — a small gold rectangle with the characteristic
-/// grid of contact lines, purely decorative (no real chip data exists).
+/// EMV chip fiel al prototipo HTML: fondo oscuro 1a1a1a, 6 contactos en
+/// gradiente radial plata, borde gris oscuro. viewBox SVG origen: 36×28.
 class _EmvChip extends StatelessWidget {
   const _EmvChip();
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 40,
-      height: 30,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(6),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFE8D48A), Color(0xFFBFA054), Color(0xFFE8D48A)],
-        ),
-      ),
-      child: CustomPaint(painter: _emvChipPainter),
-    );
-  }
+  Widget build(BuildContext context) => CustomPaint(
+        size: const Size(40, 30),
+        painter: _emvChipPainter,
+      );
 }
 
-class _EmvChipLinesPainter extends CustomPainter {
+class _EmvChipPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFF7A6528).withValues(alpha: 0.55)
-      ..strokeWidth = 1;
-    // Horizontal divider lines.
-    canvas.drawLine(
-      Offset(0, size.height * 0.35),
-      Offset(size.width, size.height * 0.35),
-      paint,
+    final sx = size.width / 36.0;
+    final sy = size.height / 28.0;
+
+    double px(double v) => v * sx;
+    double py(double v) => v * sy;
+
+    // Fondo negro
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Offset.zero & size,
+        Radius.circular(3.5 * sx),
+      ),
+      Paint()..color = const Color(0xFF1a1a1a),
     );
-    canvas.drawLine(
-      Offset(0, size.height * 0.65),
-      Offset(size.width, size.height * 0.65),
-      paint,
+
+    // Gradiente radial plata: cx=12,cy=9,r=24 (userSpaceOnUse en SVG → canvas)
+    final shader = ui.Gradient.radial(
+      Offset(px(12), py(9)),
+      px(24),
+      const [Color(0xFFececec), Color(0xFFd8d8d8), Color(0xFFbebebe), Color(0xFFa0a0a0)],
+      [0.0, 0.30, 0.62, 1.0],
     );
-    // Vertical divider lines within the middle band.
-    canvas.drawLine(
-      Offset(size.width * 0.35, size.height * 0.35),
-      Offset(size.width * 0.35, size.height * 0.65),
-      paint,
+    final padPaint = Paint()..shader = shader;
+
+    Path pad(List<List<double>> cmds) {
+      final p = Path();
+      for (final c in cmds) {
+        switch (c[0].toInt()) {
+          case 0: p.moveTo(px(c[1]), py(c[2]));
+          case 1: p.lineTo(px(c[1]), py(c[2]));
+          case 2: p.quadraticBezierTo(px(c[1]), py(c[2]), px(c[3]), py(c[4]));
+          case 3: p.close();
+        }
+      }
+      return p;
+    }
+
+    // 6 contactos (3 izq, 3 der) exactos del SVG — comando: 0=M,1=L,2=Q,3=Z
+    final pads = [
+      // C1 — top-left
+      pad([[0,3.5,1.5],[1,14.5,1.5],[1,14.5,6.2],[2,14.5,9.2,11.5,9.2],[1,1.5,9.2],[1,1.5,3.5],[2,1.5,1.5,3.5,1.5],[3,0,0]]),
+      // C2 — mid-left
+      pad([[0,1.5,10.2],[1,11.5,10.2],[2,14.5,10.2,14.5,13.2],[1,14.5,14.9],[2,14.5,17.9,11.5,17.9],[1,1.5,17.9],[3,0,0]]),
+      // C3 — bot-left
+      pad([[0,1.5,18.9],[1,11.5,18.9],[2,14.5,18.9,14.5,21.9],[1,14.5,26.5],[1,3.5,26.5],[2,1.5,26.5,1.5,24.5],[1,1.5,18.9],[3,0,0]]),
+      // C5 — top-right
+      pad([[0,20.5,1.5],[1,32.5,1.5],[2,34.5,1.5,34.5,3.5],[1,34.5,9.2],[1,23.5,9.2],[2,20.5,9.2,20.5,6.2],[1,20.5,1.5],[3,0,0]]),
+      // C6 — mid-right
+      pad([[0,23.5,10.2],[2,20.5,10.2,20.5,13.2],[1,20.5,14.9],[2,20.5,17.9,23.5,17.9],[1,34.5,17.9],[1,34.5,10.2],[3,0,0]]),
+      // C7 — bot-right
+      pad([[0,23.5,18.9],[2,20.5,18.9,20.5,21.9],[1,20.5,26.5],[1,32.5,26.5],[2,34.5,26.5,34.5,24.5],[1,34.5,18.9],[3,0,0]]),
+    ];
+
+    for (final path in pads) {
+      canvas.drawPath(path, padPaint);
+    }
+
+    // Borde exterior
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(px(0.5), py(0.5), px(35), py(27)),
+        Radius.circular(3.5 * sx),
+      ),
+      Paint()
+        ..color = const Color(0xFF5a5a5a)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.8 * sx,
     );
-    canvas.drawLine(
-      Offset(size.width * 0.65, size.height * 0.35),
-      Offset(size.width * 0.65, size.height * 0.65),
-      paint,
-    );
-    // Small rounded rect outline for the whole contact area.
-    final rect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(1, 1, size.width - 2, size.height - 2),
-      const Radius.circular(5),
-    );
-    canvas.drawRRect(rect, paint..style = PaintingStyle.stroke);
   }
 
   @override
-  bool shouldRepaint(covariant _EmvChipLinesPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _EmvChipPainter old) => false;
 }
 
 /// Builds a closed polygon path, rounding each vertex by the matching entry
@@ -285,6 +329,83 @@ Path _roundedPolygon(List<Offset> points, List<double> radii) {
   }
   path.close();
   return path;
+}
+
+/// Logo NFC fiel al prototipo HTML: viewBox 22×22, centro (11,11),
+/// 2 arcos concéntricos (r=9.2 stroke 1.8, r=7 stroke 0.9) abriendo a la
+/// derecha (260° sweep CW) + texto "NFC" centrado en (12.5,11.5).
+class _NfcIcon extends StatelessWidget {
+  final Color color;
+  final double size;
+  const _NfcIcon({required this.color, this.size = 22});
+
+  @override
+  Widget build(BuildContext context) =>
+      CustomPaint(size: Size(size, size), painter: _NfcPainter(color: color));
+}
+
+class _NfcPainter extends CustomPainter {
+  final Color color;
+  const _NfcPainter({required this.color});
+
+  static final Map<int, TextPainter> _tpCache = {};
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final s = size.width / 22.0;
+    // Centro en (11,11) del viewBox 22×22
+    final cx = 11.0 * s;
+    final cy = 11.0 * s;
+
+    // Ángulo inicial: atan2 del vector centro→punto inicio (16.91,18.05)
+    // dy=7.05, dx=5.91 → ≈50° = 0.8727 rad
+    const startAngle = 0.8727; // atan2(7.05, 5.91)
+    // Arco grande: 260° CW (la apertura de 100° queda al este, derecha del ícono)
+    const sweepAngle = 4.5379; // 260° en rad
+
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    // Arco exterior: r=9.2, strokeWidth=1.8
+    paint.strokeWidth = 1.8 * s;
+    canvas.drawArc(
+      Rect.fromCenter(center: Offset(cx, cy), width: 9.2 * 2 * s, height: 9.2 * 2 * s),
+      startAngle, sweepAngle, false, paint,
+    );
+
+    // Arco interior: r=7, strokeWidth=0.9
+    paint.strokeWidth = 0.9 * s;
+    canvas.drawArc(
+      Rect.fromCenter(center: Offset(cx, cy), width: 7.0 * 2 * s, height: 7.0 * 2 * s),
+      startAngle, sweepAngle, false, paint,
+    );
+
+    // Texto "NFC" centrado en (12.5, 11.5) del viewBox, font-size=6.5
+    final fontSize = 6.5 * s;
+    final tp = _tpCache.putIfAbsent(color.toARGB32(), () {
+      final p = TextPainter(
+        text: TextSpan(
+          text: 'NFC',
+          style: TextStyle(
+            color: color,
+            fontSize: fontSize,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      return p;
+    });
+    tp.paint(
+      canvas,
+      Offset(12.5 * s - tp.width / 2, 11.5 * s - tp.height / 2),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_NfcPainter old) => color != old.color;
 }
 
 /// Decorative zigzag cut in the voucher's top-left corner, styled after
@@ -363,12 +484,17 @@ class WalletCard extends ConsumerWidget {
       card: card,
       fallbackColor: credit.color,
     );
-    final gradient = _expandedGradientFor(bank.cssClass, credit.color);
+    final gradient = expandedGradientFor(bank.cssClass, credit.color);
     final remaining = getCreditRemainingBalance(credit);
     final isBankVoucher = credit is LoanCredit && !bank.hasPhysicalCard;
     final isQuotaVoucher =
         credit is LoanCredit && (credit as LoanCredit).quotaId != null;
     final isVoucher = isBankVoucher || isQuotaVoucher;
+
+    // Card design (null = predeterminado / legacy gradient)
+    final cardDesign = isVoucher
+        ? null
+        : CardDesign.fromKey(credit.cardDesign);
 
     // Luminancia promedio cacheada — evita fold+computeLuminance por build.
     final avgLuminance = _avgLuminanceFor(bank.cssClass, credit.color);
@@ -383,7 +509,9 @@ class WalletCard extends ConsumerWidget {
             )),
           )
         : VoucherPattern.diagonalLines;
-    final isLightFace = isBankVoucher || (!isVoucher && avgLuminance > 0.5);
+    final isLightFace = isBankVoucher ||
+        (cardDesign?.isLightBackground ?? false) ||
+        (!isVoucher && cardDesign == null && avgLuminance > 0.5);
     final ink = isQuotaVoucher
         ? quotaPattern.foregroundColor
         : (isLightFace ? Colors.black : Colors.white);
@@ -403,7 +531,7 @@ class WalletCard extends ConsumerWidget {
     // every character typed) forces the whole surrounding subtree onto the
     // same compositor layer, repainting this card's face too even though
     // nothing in it changed.
-    return RepaintBoundary(
+    final cardWidget = RepaintBoundary(
       child: AspectRatio(
         // Noticeably shorter than the previous 1.65 — same footprint width,
         // less vertical real-estate, while the stats block below absorbs the
@@ -437,7 +565,7 @@ class WalletCard extends ConsumerWidget {
                     : DecoratedBox(
                         decoration: BoxDecoration(
                           color: isBankVoucher ? Colors.white : null,
-                          gradient: isVoucher
+                          gradient: (isVoucher || cardDesign != null)
                               ? null
                               : LinearGradient(
                                   begin: Alignment.topLeft,
@@ -450,6 +578,20 @@ class WalletCard extends ConsumerWidget {
                         ),
                       ),
               ),
+              // Custom card design background (when not voucher and design selected)
+              if (!isVoucher && cardDesign != null)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomPaint(
+                      painter: CardDesignPainter(
+                        design: cardDesign,
+                        c1: gradient.first,
+                        c2: gradient[gradient.length ~/ 2],
+                        c3: gradient.last,
+                      ),
+                    ),
+                  ),
+                ),
               // Real bank cash-advance voucher only (Nequi/DaviPlata): the
               // brand's own wave-corner cut, echoing that bank's own app —
               // never used for a cupo comercial purchase, which is a flat
@@ -465,21 +607,15 @@ class WalletCard extends ConsumerWidget {
                     ),
                   ),
                 ),
-              // Very tenuous diagonal-line texture, characteristic of
-              // physical card mockups — pure decoration, no shadow. Skipped
-              // for the voucher variant, which should read as flatter paper
-              // rather than textured plastic.
-              if (!isVoucher)
+              // Diagonal-line texture: only for legacy gradient (no custom design)
+              if (!isVoucher && cardDesign == null)
                 Positioned.fill(
                   child: IgnorePointer(
                     child: CustomPaint(painter: const _CardPatternPainter()),
                   ),
                 ),
-              // Subtle radial highlight/reflection in the top-right corner, to
-              // sell the "physical card" feel — skipped for the voucher
-              // variant, which is meant to read as flat/minimalist paper, not
-              // glossy plastic.
-              if (!isVoucher)
+              // Radial highlights: only for legacy gradient
+              if (!isVoucher && cardDesign == null)
                 Positioned(
                   top: -40,
                   right: -40,
@@ -499,9 +635,7 @@ class WalletCard extends ConsumerWidget {
                     ),
                   ),
                 ),
-              // A second, dimmer glint low-left, for a bit of directional
-              // light instead of a single flat highlight — also card-only.
-              if (!isVoucher)
+              if (!isVoucher && cardDesign == null)
                 Positioned(
                   bottom: -50,
                   left: -30,
@@ -660,11 +794,7 @@ class WalletCard extends ConsumerWidget {
                         children: [
                           const _EmvChip(),
                           const Spacer(),
-                          Icon(
-                            Icons.wifi,
-                            color: inkMid,
-                            size: KreditIconSize.small,
-                          ),
+                          _NfcIcon(color: inkMid, size: KreditIconSize.small),
                         ],
                       ),
                     const Spacer(),
@@ -722,6 +852,194 @@ class WalletCard extends ConsumerWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+
+    return cardWidget;
+  }
+}
+
+void showCardDesignPicker(
+  BuildContext context, {
+  required CardDesign? current,
+  required Color c1,
+  required Color c2,
+  required Color c3,
+  required void Function(CardDesign?) onSelected,
+}) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _DesignPickerSheet(
+      current: current,
+      c1: c1,
+      c2: c2,
+      c3: c3,
+      onSelected: (d) {
+        Navigator.of(context).pop();
+        onSelected(d);
+      },
+    ),
+  );
+}
+
+class _DesignPickerSheet extends StatelessWidget {
+  final CardDesign? current;
+  final Color c1, c2, c3;
+  final void Function(CardDesign?) onSelected;
+
+  const _DesignPickerSheet({
+    required this.current,
+    required this.c1,
+    required this.c2,
+    required this.c3,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final allOptions = <(CardDesign?, String)>[
+      (null, 'Predeterminado'),
+      ...CardDesign.values.map((d) => (d, d.label)),
+    ];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.75,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: scheme.outlineVariant,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Text(
+              'DISEÑO DE TARJETA',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.2,
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: GridView.builder(
+                padding: EdgeInsets.zero,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 1.35,
+                ),
+                itemCount: allOptions.length,
+                itemBuilder: (_, i) {
+                  final (design, label) = allOptions[i];
+                  final isSelected = design == current;
+                  return RepaintBoundary(
+                    child: GestureDetector(
+                      onTap: () => onSelected(design),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: SizedBox.expand(
+                                    child: design == null
+                                        ? DecoratedBox(
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                begin: Alignment.topLeft,
+                                                end: Alignment.bottomRight,
+                                                colors: [c1, c2, c3],
+                                              ),
+                                            ),
+                                          )
+                                        : CustomPaint(
+                                            painter: CardDesignPainter(
+                                              design: design,
+                                              c1: c1,
+                                              c2: c2,
+                                              c3: c3,
+                                              isPreview: true,
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                                if (isSelected)
+                                  Positioned.fill(
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: scheme.primary,
+                                          width: 2.5,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                if (isSelected)
+                                  Positioned(
+                                    top: 4,
+                                    right: 4,
+                                    child: Container(
+                                      width: 20,
+                                      height: 20,
+                                      decoration: BoxDecoration(
+                                        color: scheme.primary,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.check,
+                                        size: 13,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            label,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight:
+                                  isSelected ? FontWeight.w700 : FontWeight.w500,
+                              color: isSelected
+                                  ? scheme.primary
+                                  : scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -879,7 +1197,7 @@ class EntityCardFace extends StatelessWidget {
   Widget build(BuildContext context) {
     final isStore = quota.entityType == EntityType.store;
     final bank = detectBank(lender: quota.brand);
-    final gradient = _expandedGradientFor(bank.cssClass, null);
+    final gradient = expandedGradientFor(bank.cssClass, null);
 
     final isQuotaVoucher = isStore;
     final isBankVoucher = !isStore && !bank.hasPhysicalCard;
@@ -1064,7 +1382,7 @@ class EntityCardFace extends StatelessWidget {
                       children: [
                         const _EmvChip(),
                         const Spacer(),
-                        Icon(Icons.wifi, color: inkFaint, size: KreditIconSize.small),
+                        _NfcIcon(color: inkFaint, size: KreditIconSize.small),
                       ],
                     ),
                   ],

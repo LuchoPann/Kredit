@@ -26,6 +26,7 @@ class NotificationSettingsTile extends ConsumerWidget {
     final settings = ref.watch(notificationSettingsProvider);
     final notifier = ref.read(notificationSettingsProvider.notifier);
     final kredit = Theme.of(context).extension<KreditColors>()!;
+    final stepBg = kredit.bgSecondary;
     final on = settings.enabled;
     final dimmed = on ? kredit.textPrimary : kredit.textTertiary;
     final dimmedSecondary = on ? kredit.textSecondary : kredit.textTertiary;
@@ -63,7 +64,7 @@ class NotificationSettingsTile extends ConsumerWidget {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
               decoration: BoxDecoration(
-                color: kredit.bgSecondary,
+                color: stepBg,
                 borderRadius: BorderRadius.circular(KreditRadius.tile),
                 border: Border.all(color: kredit.borderCard),
               ),
@@ -129,7 +130,7 @@ class NotificationSettingsTile extends ConsumerWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
                 decoration: BoxDecoration(
-                  color: kredit.bgSecondary,
+                  color: stepBg,
                   borderRadius: BorderRadius.circular(KreditRadius.tile),
                   border: Border.all(color: kredit.borderCard),
                 ),
@@ -158,6 +159,7 @@ class NotificationSettingsTile extends ConsumerWidget {
             _FrequencyOption(
               selected: !settings.repeatDaily,
               enabled: on,
+              bg: stepBg,
               title: 'Un solo aviso',
               subtitle: 'Recibes una notificación el día ${settings.daysBefore} antes del vencimiento.',
               onTap: () => notifier.setRepeatDaily(false),
@@ -166,6 +168,7 @@ class NotificationSettingsTile extends ConsumerWidget {
             _FrequencyOption(
               selected: settings.repeatDaily,
               enabled: on,
+              bg: stepBg,
               title: 'Recordatorio diario',
               subtitle:
                   'Recibes una notificación cada día, desde ${settings.daysBefore} día${settings.daysBefore == 1 ? '' : 's'} antes hasta el día del vencimiento.',
@@ -231,6 +234,7 @@ class _StepperButton extends StatelessWidget {
 class _FrequencyOption extends StatelessWidget {
   final bool selected;
   final bool enabled;
+  final Color bg;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
@@ -238,6 +242,7 @@ class _FrequencyOption extends StatelessWidget {
   const _FrequencyOption({
     required this.selected,
     required this.enabled,
+    required this.bg,
     required this.title,
     required this.subtitle,
     required this.onTap,
@@ -258,7 +263,7 @@ class _FrequencyOption extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(KreditSpacing.tile),
         decoration: BoxDecoration(
-          color: kredit.bgSecondary,
+          color: bg,
           borderRadius: BorderRadius.circular(KreditRadius.tile),
           border: Border.all(color: borderColor, width: selected && enabled ? 1.5 : 1),
         ),

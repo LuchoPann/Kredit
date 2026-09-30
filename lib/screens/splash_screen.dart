@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_parsing/path_parsing.dart';
 
 import '../providers/credits_provider.dart';
+import '../providers/theme_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/wallet_card.dart' show prewarmCardCaches;
 
 // ─── Reveal direction per stroke ─────────────────────────────────────────────
 
@@ -559,12 +561,18 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       if (!credits.isLoading) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!_dataReady && mounted) {
+            prewarmCardCaches(credits.value ?? []);
             _dataReady = true;
             _tryHide();
           }
         });
       }
     }
+
+    final prefs = ref.watch(themePreferencesProvider);
+    final isDark = prefs.isDarkMode;
+    final bgColor = isDark ? AppColors.bgPrimary : const Color(0xFFFFFFFF);
+    final fgColor = isDark ? AppColors.textPrimary : const Color(0xFF0F172A);
 
     return Stack(
       children: [
@@ -579,6 +587,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           child: _SplashContent(
             segments: _segments,
             logoAnim: _logoAnim,
+            bgColor: bgColor,
+            fgColor: fgColor,
           ),
           builder: (_, child) => IgnorePointer(
             child: Opacity(opacity: 1.0 - _fadeAnim.value, child: child),
@@ -594,13 +604,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 class _SplashContent extends StatelessWidget {
   final List<_Segment> segments;
   final Animation<double> logoAnim;
+  final Color bgColor;
+  final Color fgColor;
 
-  const _SplashContent({required this.segments, required this.logoAnim});
+  const _SplashContent({
+    required this.segments,
+    required this.logoAnim,
+    required this.bgColor,
+    required this.fgColor,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: AppColors.bgPrimary,
+      color: bgColor,
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -611,7 +628,7 @@ class _SplashContent extends StatelessWidget {
               _LogoAnimation(
                 segments: segments,
                 animation: logoAnim,
-                color: AppColors.textPrimary,
+                color: fgColor,
               ),
             ],
           ),
