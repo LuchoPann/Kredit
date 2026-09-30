@@ -139,6 +139,29 @@ List<Color> _expandGradient(List<Color> base) {
   ];
 }
 
+/// Caché para gradientes expandidos — keyed por `cssClass|colorHex`.
+/// Evita 4 Color.lerp + computeLuminance por cada build de WalletCard/EntityCardFace.
+final _gradientExpandedCache = <String, List<Color>>{};
+
+List<Color> _expandedGradientFor(String cssClass, String? fallbackColorHex) {
+  final key = '$cssClass|${fallbackColorHex ?? ''}';
+  return _gradientExpandedCache.putIfAbsent(
+    key,
+    () => _expandGradient(_gradientFor(cssClass, fallbackColorHex)),
+  );
+}
+
+/// Caché para luminancia promedio — evita el fold+computeLuminance por rebuild.
+final _luminanceCache = <String, double>{};
+
+double _avgLuminanceFor(String cssClass, String? fallbackColorHex) {
+  final key = '$cssClass|${fallbackColorHex ?? ''}';
+  return _luminanceCache.putIfAbsent(key, () {
+    final g = _expandedGradientFor(cssClass, fallbackColorHex);
+    return g.fold<double>(0, (s, c) => s + c.computeLuminance()) / g.length;
+  });
+}
+
 /// Faint diagonal-line texture characteristic of physical card mockups —
 /// drawn with a very low alpha so it reads as texture, not decoration, and
 /// never competes with the real information above it.
@@ -165,6 +188,10 @@ class _CardPatternPainter extends CustomPainter {
   bool shouldRepaint(covariant _CardPatternPainter oldDelegate) => false;
 }
 
+// Instancia estática — shouldRepaint devuelve false, por lo que Flutter
+// nunca la redibuja. Compartida por todos los _EmvChip del árbol.
+final _emvChipPainter = _EmvChipLinesPainter();
+
 /// Simulated EMV chip — a small gold rectangle with the characteristic
 /// grid of contact lines, purely decorative (no real chip data exists).
 class _EmvChip extends StatelessWidget {
@@ -183,7 +210,7 @@ class _EmvChip extends StatelessWidget {
           colors: [Color(0xFFE8D48A), Color(0xFFBFA054), Color(0xFFE8D48A)],
         ),
       ),
-      child: CustomPaint(painter: _EmvChipLinesPainter()),
+      child: CustomPaint(painter: _emvChipPainter),
     );
   }
 }
@@ -336,42 +363,24 @@ class WalletCard extends ConsumerWidget {
       card: card,
       fallbackColor: credit.color,
     );
-    final gradient = _expandGradient(_gradientFor(bank.cssClass, credit.color));
+    final gradient = _expandedGradientFor(bank.cssClass, credit.color);
     final remaining = getCreditRemainingBalance(credit);
-    // A LoanCredit whose lender has no real physical card product (e.g.
-    // Nequi cash advances) gets the "cash-advance voucher" chrome instead of
-    // the physical-card mockup — no EMV chip, no contactless icon. A
-    // CardCredit is, by definition, always a real card, so it NEVER uses
-    // this variant even if its lender were ever flagged hasPhysicalCard:
-    // false — the `is LoanCredit` check always comes first.
     final isBankVoucher = credit is LoanCredit && !bank.hasPhysicalCard;
-    // Every commercial-quota purchase (Totto, Lili Pink, Éxito
-    // CrediCompras...) is a voucher too — always, regardless of brand
-    // (explicit product decision: never guess per-brand whether it has a
-    // real physical card). Kept as its own flag (rather than folded into
-    // isBankVoucher) so the wave-corner color below can stay generic
-    // instead of Nequi's specific brand tones.
     final isQuotaVoucher =
         credit is LoanCredit && (credit as LoanCredit).quotaId != null;
     final isVoucher = isBankVoucher || isQuotaVoucher;
 
-    // The card face can be any accent color the user picks (light or dark),
-    // so text color is derived from the actual gradient rather than assumed
-    // white — the same luminance-based approach used for the dashboard FAB
-    // (dashboard_screen.dart) applied per-stop and averaged, since the face
-    // is a gradient, not a single flat color.
-    final avgLuminance =
-        gradient.fold<double>(0, (sum, c) => sum + c.computeLuminance()) /
-        gradient.length;
-    // A cupo comercial purchase's voucher uses the pattern's own fixed palette
-    // — never the app accent color. A real bank cash-advance voucher keeps its
-    // own white-paper + brand-wave look. Anything else is a normal plastic card.
+    // Luminancia promedio cacheada — evita fold+computeLuminance por build.
+    final avgLuminance = _avgLuminanceFor(bank.cssClass, credit.color);
+    // Patrón del voucher: select() para no reconstruir si cambia otra quota.
     final quotaPattern = isQuotaVoucher
         ? VoucherPattern.fromName(
-            (ref.watch(commercialQuotasProvider).valueOrNull ?? const [])
-                .where((q) => q.id == (credit as LoanCredit).quotaId)
-                .firstOrNull
-                ?.voucherPattern,
+            ref.watch(commercialQuotasProvider.select(
+              (quotas) => quotas.valueOrNull
+                  ?.where((q) => q.id == (credit as LoanCredit).quotaId)
+                  .firstOrNull
+                  ?.voucherPattern,
+            )),
           )
         : VoucherPattern.diagonalLines;
     final isLightFace = isBankVoucher || (!isVoucher && avgLuminance > 0.5);
@@ -870,7 +879,7 @@ class EntityCardFace extends StatelessWidget {
   Widget build(BuildContext context) {
     final isStore = quota.entityType == EntityType.store;
     final bank = detectBank(lender: quota.brand);
-    final gradient = _expandGradient(_gradientFor(bank.cssClass, null));
+    final gradient = _expandedGradientFor(bank.cssClass, null);
 
     final isQuotaVoucher = isStore;
     final isBankVoucher = !isStore && !bank.hasPhysicalCard;
@@ -880,9 +889,7 @@ class EntityCardFace extends StatelessWidget {
         ? VoucherPattern.fromName(quota.voucherPattern)
         : VoucherPattern.diagonalLines;
 
-    final avgLuminance =
-        gradient.fold<double>(0, (sum, c) => sum + c.computeLuminance()) /
-            gradient.length;
+    final avgLuminance = _avgLuminanceFor(bank.cssClass, null);
     final isLightFace = isBankVoucher || (!isVoucher && avgLuminance > 0.5);
     final ink = isQuotaVoucher
         ? quotaPattern.foregroundColor

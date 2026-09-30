@@ -499,14 +499,17 @@ class _EmptyState extends StatelessWidget {
 /// padre para que sus redraws (animación, tooltip) no invaliden la pantalla.
 class _MonthlyDebtChart extends StatelessWidget {
   final Map<MonthKey, double> data;
-  const _MonthlyDebtChart({required this.data});
+  // maxY pre-computado fuera de build() — evita fold por cada rebuild del tema/layout.
+  final double maxY;
+
+  _MonthlyDebtChart({required this.data})
+      : maxY = data.values.fold(0, (m, v) => v > m ? v : m);
 
   @override
   Widget build(BuildContext context) {
     final accent = Theme.of(context).colorScheme.primary;
     final kredit = Theme.of(context).extension<KreditColors>()!;
     final entries = data.entries.toList();
-    final maxY = entries.fold<double>(0, (m, e) => e.value > m ? e.value : m);
 
     if (maxY <= 0) {
       return const _InlineEmptyCard(
@@ -690,15 +693,16 @@ class _InlineEmptyCard extends StatelessWidget {
 /// fl_chart del árbol padre para que sus redraws no invaliden la pantalla.
 class _LenderDistributionChart extends StatelessWidget {
   final List<LenderSlice> slices;
-  // Se muestra un poco más pequeño que el gráfico de barras que lo precede
-  // en el grupo "Proyecciones" — es el complemento, no el protagonista.
   final bool compact;
-  const _LenderDistributionChart({required this.slices, this.compact = false});
+  // total pre-computado fuera de build().
+  final double total;
+
+  _LenderDistributionChart({required this.slices, this.compact = false})
+      : total = slices.fold(0, (s, e) => s + e.amount);
 
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
-    final total = slices.fold<double>(0, (s, e) => s + e.amount);
 
     if (slices.isEmpty || total <= 0) {
       return const _InlineEmptyCard(

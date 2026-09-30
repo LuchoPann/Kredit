@@ -142,12 +142,13 @@ class _DashboardErrorState extends StatelessWidget {
 /// textual element now that the AppBar has been collapsed to zero height.
 /// Ranges: mañana 5:00–11:59, tarde 12:00–17:59, noche 18:00–4:59 (cubre
 /// toda la franja nocturna/madrugada).
-String _greeting() {
+// Cacheado al abrir la app — cambia como máximo una vez por sesión.
+final _greeting = () {
   final hour = DateTime.now().hour;
   if (hour >= 5 && hour < 12) return 'Buenos días';
   if (hour >= 12 && hour < 18) return 'Buenas tardes';
   return 'Buenas noches';
-}
+}();
 
 class _DashboardBody extends ConsumerWidget {
   final List<Credit> credits;
@@ -197,7 +198,7 @@ class _DashboardBody extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '${_greeting()}, $profileName',
+                    '$_greeting, $profileName',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
@@ -756,17 +757,21 @@ Color _severityColor(
 /// The "Próximos pagos" list: rows separated by a hairline divider instead
 /// of stacked bordered cards — urgency lives in the text color and a small
 /// circular accent dot, not in a boxed container.
-class _UpcomingList extends StatelessWidget {
+class _UpcomingList extends ConsumerWidget {
   final List<PendingPayment> items;
   const _UpcomingList({required this.items});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
+    final notifier = ref.read(creditsProvider.notifier);
     return Column(
       children: [
         for (var i = 0; i < items.length; i++) ...[
-          _UpcomingRow(item: items[i]),
+          _UpcomingRow(
+            item: items[i],
+            onTogglePaid: notifier.toggleInstallmentPaid,
+          ),
           if (i != items.length - 1)
             Divider(height: 1, color: kredit.borderCard),
         ],
@@ -778,12 +783,13 @@ class _UpcomingList extends StatelessWidget {
 /// A single "Próximos pagos" entry: entity name, amount, due date, and an
 /// urgency dot (overdue = red, due soon = amber, otherwise neutral) — no
 /// surrounding card.
-class _UpcomingRow extends ConsumerWidget {
+class _UpcomingRow extends StatelessWidget {
   final PendingPayment item;
-  const _UpcomingRow({required this.item});
+  final void Function(String creditId, int installmentNumber) onTogglePaid;
+  const _UpcomingRow({required this.item, required this.onTogglePaid});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
     final isLoan = item.installment != null;
     final daysLeft = item.daysUntilDue();
@@ -878,12 +884,7 @@ class _UpcomingRow extends ConsumerWidget {
                       return InkWell(
                         onTap: () {
                           HapticFeedback.mediumImpact();
-                          ref
-                              .read(creditsProvider.notifier)
-                              .toggleInstallmentPaid(
-                                item.credit.id,
-                                item.installment!.number,
-                              );
+                          onTogglePaid(item.credit.id, item.installment!.number);
                         },
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
@@ -1063,7 +1064,10 @@ class _AllUpcomingPaymentsSheet extends ConsumerWidget {
                 itemCount: items.length,
                 separatorBuilder: (context, index) =>
                     Divider(height: 1, color: kredit.borderCard),
-                itemBuilder: (context, i) => _UpcomingRow(item: items[i]),
+                itemBuilder: (context, i) => _UpcomingRow(
+                  item: items[i],
+                  onTogglePaid: ref.read(creditsProvider.notifier).toggleInstallmentPaid,
+                ),
               ),
             ),
             Divider(height: 1, color: kredit.borderCard),

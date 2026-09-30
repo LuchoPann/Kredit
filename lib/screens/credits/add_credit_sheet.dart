@@ -897,41 +897,63 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           ),
         ),
         const SizedBox(height: 10),
-        // Scroll horizontal de tarjetas/vouchers — mismo diseño que en la
-        // lista principal, sin datos internos, solo el visual + cupo.
-        // Altura = ancho de tarjeta (260) / aspect ratio (1.9) ≈ 137px
-        SizedBox(
-          height: 140,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: quotas.length,
-            clipBehavior: Clip.none,
-            padding: EdgeInsets.zero,
-            itemBuilder: (ctx, i) {
-              final q = quotas[i];
-              final allCredits =
-                  ref.watch(creditsProvider).valueOrNull ?? const [];
-              return Padding(
-                padding: EdgeInsets.only(
-                  right: i < quotas.length - 1 ? 14 : 0,
-                ),
-                child: SizedBox(
-                  width: 260,
-                  height: 140,
-                  child: _EntityPickerCard(
-                    quota: q,
-                    selected: _selectedEntityId == q.id,
-                    allCredits: allCredits,
-                    onTap: () => setState(() {
-                      _selectedEntityId = q.id;
-                      _lenderCtrl.text = q.brand;
-                    }),
-                  ),
-                ),
-              );
-            },
+        // PageView: cada entidad ocupa todo el ancho disponible.
+        // Leer créditos fuera del builder evita ref.watch por item.
+        Builder(builder: (ctx) {
+          final allCredits = ref.watch(creditsProvider).valueOrNull ?? const [];
+          final loans = allCredits.whereType<LoanCredit>().toList();
+          // Ancho de la tarjeta = ancho disponible; alto = ancho/1.9.
+          return LayoutBuilder(builder: (ctx, constraints) {
+            final cardW = constraints.maxWidth;
+            final cardH = (cardW / 1.9).ceilToDouble();
+            return SizedBox(
+              height: cardH,
+              child: PageView.builder(
+                itemCount: quotas.length,
+                padEnds: false,
+                pageSnapping: true,
+                itemBuilder: (ctx, i) {
+                  final q = quotas[i];
+                  return Padding(
+                    padding: EdgeInsets.only(
+                      right: i < quotas.length - 1 ? 12 : 0,
+                    ),
+                    child: _EntityPickerCard(
+                      quota: q,
+                      selected: _selectedEntityId == q.id,
+                      allLoans: loans,
+                      onTap: () => setState(() {
+                        _selectedEntityId = q.id;
+                        _lenderCtrl.text = q.brand;
+                      }),
+                    ),
+                  );
+                },
+              ),
+            );
+          });
+        }),
+        if (quotas.length > 1)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: quotas
+                  .map((q) => AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: _selectedEntityId == q.id ? 16 : 6,
+                        height: 6,
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(3),
+                          color: _selectedEntityId == q.id
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
+                        ),
+                      ))
+                  .toList(),
+            ),
           ),
-        ),
       ],
       const SizedBox(height: 8),
       _AddEntityButton(
@@ -2508,27 +2530,26 @@ class _EntityTypePill extends StatelessWidget {
 class _EntityPickerCard extends StatelessWidget {
   final CommercialQuota quota;
   final bool selected;
-  final List<Credit> allCredits;
+  final List<LoanCredit> allLoans;
   final VoidCallback onTap;
 
   const _EntityPickerCard({
     required this.quota,
     required this.selected,
-    required this.allCredits,
+    required this.allLoans,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final accent = Theme.of(context).colorScheme.primary;
-    final loans = allCredits.whereType<LoanCredit>().toList();
 
     return GestureDetector(
       onTap: onTap,
       child: Stack(
         children: [
           // Cara de tarjeta/voucher con disponible dentro.
-          EntityCardFace(quota: quota, allLoans: loans),
+          EntityCardFace(quota: quota, allLoans: allLoans),
           // Anillo de selección superpuesto.
           if (selected)
             Positioned.fill(
