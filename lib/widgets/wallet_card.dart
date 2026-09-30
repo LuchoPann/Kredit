@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../data/models/commercial_quota.dart';
 import '../data/models/credit.dart';
 import '../domain/bank_detector.dart';
 import '../domain/card_calculator.dart';
+import '../domain/commercial_quota_calculator.dart';
 import '../domain/credit_calculator.dart';
 import '../domain/date_utils.dart';
 import '../providers/commercial_quotas_provider.dart';
@@ -847,6 +849,251 @@ class _CardStatColumn extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+/// Cara de tarjeta/voucher para el picker de entidades — mismo visual que
+/// [WalletCard] pero sin deuda restante. Muestra disponible/límite abajo.
+/// Se define aquí para acceder a las clases privadas del fichero.
+class EntityCardFace extends StatelessWidget {
+  final CommercialQuota quota;
+  final List<LoanCredit> allLoans;
+
+  const EntityCardFace({
+    super.key,
+    required this.quota,
+    required this.allLoans,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isStore = quota.entityType == EntityType.store;
+    final bank = detectBank(lender: quota.brand);
+    final gradient = _expandGradient(_gradientFor(bank.cssClass, null));
+
+    final isQuotaVoucher = isStore;
+    final isBankVoucher = !isStore && !bank.hasPhysicalCard;
+    final isVoucher = isQuotaVoucher || isBankVoucher;
+
+    final quotaPattern = isQuotaVoucher
+        ? VoucherPattern.fromName(quota.voucherPattern)
+        : VoucherPattern.diagonalLines;
+
+    final avgLuminance =
+        gradient.fold<double>(0, (sum, c) => sum + c.computeLuminance()) /
+            gradient.length;
+    final isLightFace = isBankVoucher || (!isVoucher && avgLuminance > 0.5);
+    final ink = isQuotaVoucher
+        ? quotaPattern.foregroundColor
+        : (isLightFace ? Colors.black : Colors.white);
+    final inkFaint = ink.withValues(alpha: isLightFace ? 0.55 : 0.6);
+    final chipChromeBorder =
+        Colors.white.withValues(alpha: isLightFace ? 0.55 : 0.08);
+
+    final double? available = quota.limit > 0
+        ? (isStore ? quotaAvailable(quota, allLoans) : quota.limit)
+        : null;
+    final bottomLabel = isStore ? 'DISPONIBLE' : 'LÍMITE';
+    final bottomValue = available != null ? formatCOP(available) : '—';
+
+    return AspectRatio(
+      aspectRatio: 1.9,
+      child: ClipPath(
+        clipper: isVoucher
+            ? const VoucherClipper()
+            : ShapeBorderClipper(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: isQuotaVoucher
+                  ? DecoratedBox(decoration: quotaPattern.backgroundDecoration)
+                  : DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: isBankVoucher ? Colors.white : null,
+                        gradient: isVoucher
+                            ? null
+                            : LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: gradient,
+                              ),
+                        border:
+                            isVoucher ? null : Border.all(color: chipChromeBorder),
+                      ),
+                    ),
+            ),
+            if (isBankVoucher)
+              const Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    painter: VoucherWaveCornerPainter(
+                      purple: Color(0xFF2A0944),
+                      pink: Color(0xFFDA0081),
+                    ),
+                  ),
+                ),
+              ),
+            if (!isVoucher)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(painter: const _CardPatternPainter()),
+                ),
+              ),
+            if (!isVoucher)
+              Positioned(
+                top: -40,
+                right: -40,
+                child: IgnorePointer(
+                  child: Container(
+                    width: 150,
+                    height: 150,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          Colors.white.withValues(alpha: 0.12),
+                          Colors.white.withValues(alpha: 0.0),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            if (isQuotaVoucher)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    painter: VoucherPatternPainter(pattern: quotaPattern),
+                  ),
+                ),
+              ),
+            if (isVoucher)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: CustomPaint(
+                    painter:
+                        VoucherBorderPainter(color: ink.withValues(alpha: 0.35)),
+                  ),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Builder(
+                          builder: (ctx) {
+                            if (isQuotaVoucher) {
+                              return Align(
+                                alignment: Alignment.centerLeft,
+                                child: KreditWordmark(color: ink, height: 18),
+                              );
+                            }
+                            final asset = bankLogoAssets[bank.cssClass];
+                            if (asset != null) {
+                              return Align(
+                                alignment: Alignment.centerLeft,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius:
+                                        BorderRadius.circular(KreditRadius.chip),
+                                  ),
+                                  child: FittedBox(
+                                    fit: BoxFit.contain,
+                                    child:
+                                        BankLogoChip(assetPath: asset, height: 17),
+                                  ),
+                                ),
+                              );
+                            }
+                            return Text(
+                              bank.fullLabel,
+                              style: TextStyle(
+                                color: ink,
+                                fontWeight: FontWeight.w700,
+                                fontSize: KreditTextSize.caption,
+                                letterSpacing: 0.5,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      Container(
+                        constraints: const BoxConstraints(maxWidth: 130),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 9, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isLightFace ? Colors.black : Colors.white,
+                          borderRadius: BorderRadius.circular(KreditRadius.chip),
+                        ),
+                        child: Text(
+                          quota.brand,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: isLightFace ? Colors.white : Colors.black,
+                            fontWeight: FontWeight.w800,
+                            fontSize: KreditTextSize.caption,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (!isVoucher) ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        const _EmvChip(),
+                        const Spacer(),
+                        Icon(Icons.wifi, color: inkFaint, size: KreditIconSize.small),
+                      ],
+                    ),
+                  ],
+                  const Spacer(),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        bottomLabel,
+                        style: TextStyle(
+                          color: inkFaint,
+                          fontSize: KreditTextSize.caption,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      Text(
+                        bottomValue,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: ink,
+                          fontWeight: FontWeight.w800,
+                          fontSize: KreditTextSize.emphasis,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

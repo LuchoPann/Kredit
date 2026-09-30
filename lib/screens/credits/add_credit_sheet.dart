@@ -738,11 +738,8 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
       ),
       const SizedBox(height: 16),
-      _EntityOption(
+      _NoEntityCard(
         selected: _selectedEntityId == 'none',
-        icon: Icons.credit_score_outlined,
-        title: 'Sin entidad específica',
-        subtitle: 'Préstamo o tarjeta sin entidad registrada (lo podrás vincular después).',
         onTap: () => setState(() {
           _selectedEntityId = 'none';
           if (_selectedLenderPreset != null && _selectedLenderPreset != 'Otro...') {
@@ -797,11 +794,8 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         ),
       ],
       const SizedBox(height: 8),
-      _EntityOption(
+      _AddEntityButton(
         selected: _selectedEntityId == '__new__',
-        icon: Icons.add_circle_outline,
-        title: 'Registrar nueva entidad',
-        subtitle: 'Banco, tienda o app que aún no tienes registrada en Kredit.',
         onTap: () => setState(() {
           _selectedEntityId = '__new__';
           _lenderCtrl.text = _newEntityBrandCtrl.text;
@@ -2208,85 +2202,166 @@ class _SummaryTile extends StatelessWidget {
   }
 }
 
-class _EntityOption extends StatelessWidget {
+/// Tarjeta visual "Sin entidad específica" — diseño de voucher abstracto dashed.
+class _NoEntityCard extends StatelessWidget {
   final bool selected;
-  final IconData icon;
-  final String title;
-  final String subtitle;
   final VoidCallback onTap;
 
-  const _EntityOption({
-    required this.selected,
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
+  const _NoEntityCard({required this.selected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
-    return Material(
-      color: selected ? accent.withValues(alpha: 0.12) : kredit.bgCard,
-      borderRadius: BorderRadius.circular(KreditRadius.card),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(KreditRadius.card),
-        child: Container(
-          padding: const EdgeInsets.all(KreditSpacing.card),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(KreditRadius.card),
-            border: Border.all(
-              color: selected ? accent : kredit.borderCard,
-              width: selected ? 1.3 : 1,
-            ),
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          color: selected ? accent.withValues(alpha: 0.08) : kredit.bgCard,
+          borderRadius: BorderRadius.circular(KreditRadius.card),
+          border: Border.all(
+            color: selected ? accent : kredit.borderCard,
+            width: selected ? 1.5 : 1,
+            strokeAlign: BorderSide.strokeAlignInside,
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: selected ? accent.withValues(alpha: 0.16) : kredit.bgSecondary,
-                  borderRadius: BorderRadius.circular(KreditRadius.tile),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(KreditRadius.tile),
+                border: Border.all(
+                  color: selected ? accent.withValues(alpha: 0.4) : kredit.borderCard,
+                  width: 1.5,
+                  style: BorderStyle.solid,
                 ),
-                child: Icon(icon, size: KreditIconSize.small, color: selected ? accent : kredit.textTertiary),
+                color: kredit.bgSecondary,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: KreditTextSize.body,
-                        fontWeight: FontWeight.w800,
-                        color: kredit.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: KreditTextSize.caption,
-                        color: kredit.textSecondary,
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(
-                selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+              child: Icon(
+                Icons.credit_card_off_outlined,
                 size: KreditIconSize.small,
                 color: selected ? accent : kredit.textTertiary,
               ),
-            ],
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Sin entidad específica',
+                    style: TextStyle(
+                      fontSize: KreditTextSize.body,
+                      fontWeight: FontWeight.w700,
+                      color: selected ? accent : kredit.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Registra el crédito sin vincularlo a una entidad.',
+                    style: TextStyle(
+                      fontSize: KreditTextSize.caption,
+                      color: kredit.textTertiary,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              selected ? Icons.check_circle : Icons.radio_button_unchecked,
+              size: 20,
+              color: selected ? accent : kredit.textTertiary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Botón CTA centrado para registrar una nueva entidad.
+class _AddEntityButton extends StatelessWidget {
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _AddEntityButton({required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accent = Theme.of(context).colorScheme.primary;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(KreditRadius.card),
+          gradient: selected
+              ? LinearGradient(
+                  colors: [accent.withValues(alpha: 0.18), accent.withValues(alpha: 0.08)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          color: selected ? null : kredit.bgCard,
+          border: Border.all(
+            color: selected ? accent : kredit.borderCard,
+            width: selected ? 1.5 : 1,
           ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: selected ? accent : kredit.bgSecondary,
+              ),
+              child: Icon(
+                Icons.add,
+                size: 18,
+                color: selected ? Colors.black : kredit.textTertiary,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Nueva entidad',
+                  style: TextStyle(
+                    fontSize: KreditTextSize.body,
+                    fontWeight: FontWeight.w800,
+                    color: selected ? accent : kredit.textPrimary,
+                  ),
+                ),
+                Text(
+                  'Banco, tienda o app',
+                  style: TextStyle(
+                    fontSize: KreditTextSize.caption,
+                    color: kredit.textTertiary,
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+            Icon(
+              selected ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+              size: 20,
+              color: selected ? accent : kredit.textTertiary,
+            ),
+          ],
         ),
       ),
     );
@@ -2345,8 +2420,8 @@ class _EntityTypePill extends StatelessWidget {
 }
 
 /// Tarjeta/voucher visual de una entidad en el picker del paso 0.
-/// Muestra el diseño real (WalletCard) con un anillo de selección superpuesto
-/// y el cupo disponible debajo — sin datos internos extra.
+/// Usa [EntityCardFace] — mismo visual que WalletCard pero con disponible
+/// dentro de la tarjeta, sin deuda restante.
 class _EntityPickerCard extends StatelessWidget {
   final CommercialQuota quota;
   final bool selected;
@@ -2362,111 +2437,53 @@ class _EntityPickerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
-
-    // Crédito ficticio solo para renderizar el diseño visual correcto.
-    // Para entidades de tienda: LoanCredit con quotaId → muestra el voucher
-    // con el patrón elegido. Para banco/app: CardCredit → muestra gradiente.
-    final Credit dummyCredit = quota.entityType == EntityType.store
-        ? LoanCredit(
-            id: 'picker_${quota.id}',
-            name: quota.brand,
-            lender: quota.brand,
-            color: null,
-            totalAmount: quota.limit,
-            quotaAmount: 0,
-            totalInstallments: 0,
-            frequency: CreditFrequency.monthly,
-            startDate: toDateStr(DateTime.now()),
-            interestRate: 0,
-            interestRateType: InterestRateType.effectiveAnnual,
-            installments: const [],
-            quotaId: quota.id,
-          )
-        : CardCredit(
-            id: 'picker_${quota.id}',
-            name: quota.brand,
-            lender: quota.brand,
-            color: null,
-            creditLimit: quota.limit,
-            currentBalance: 0,
-          );
-
-    // Cupo disponible para tiendas; límite registrado para bancos/apps.
     final loans = allCredits.whereType<LoanCredit>().toList();
-    final double? available = quota.limit > 0
-        ? (quota.entityType == EntityType.store
-            ? quotaAvailable(quota, loans)
-            : quota.limit)
-        : null;
 
     return GestureDetector(
       onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Stack(
         children: [
-          Stack(
-            children: [
-              // Diseño real de tarjeta/voucher — IgnorePointer para que el
-              // GestureDetector padre capture el tap.
-              IgnorePointer(child: WalletCard(credit: dummyCredit)),
-              // Anillo de selección superpuesto.
-              if (selected)
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: accent, width: 2.5),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              // Check en la esquina superior derecha.
-              Positioned(
-                top: 8,
-                right: 8,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 160),
-                  child: selected
-                      ? Container(
-                          key: const ValueKey('check'),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: accent,
-                          ),
-                          padding: const EdgeInsets.all(2),
-                          child: const Icon(Icons.check, size: 14, color: Colors.black),
-                        )
-                      : Container(
-                          key: const ValueKey('empty'),
-                          width: 18,
-                          height: 18,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.black.withValues(alpha: 0.35),
-                            border: Border.all(color: Colors.white54, width: 1),
-                          ),
-                        ),
+          // Cara de tarjeta/voucher con disponible dentro.
+          EntityCardFace(quota: quota, allLoans: loans),
+          // Anillo de selección superpuesto.
+          if (selected)
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border.all(color: accent, width: 2.5),
+                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          // Cupo disponible debajo de la tarjeta.
-          if (available != null)
-            Text(
-              quota.entityType == EntityType.store
-                  ? 'Disponible: ${formatCOP(available)}'
-                  : 'Límite: ${formatCOP(available)}',
-              style: TextStyle(
-                fontSize: KreditTextSize.caption,
-                fontWeight: FontWeight.w600,
-                color: selected ? accent : kredit.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
+          // Check en la esquina superior derecha.
+          Positioned(
+            top: 8,
+            right: 8,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 160),
+              child: selected
+                  ? Container(
+                      key: const ValueKey('check'),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: accent,
+                      ),
+                      padding: const EdgeInsets.all(2),
+                      child: const Icon(Icons.check, size: 14, color: Colors.black),
+                    )
+                  : Container(
+                      key: const ValueKey('empty'),
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.black.withValues(alpha: 0.35),
+                        border: Border.all(color: Colors.white54, width: 1),
+                      ),
+                    ),
+            ),
+          ),
         ],
       ),
     );
