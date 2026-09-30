@@ -761,20 +761,40 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
             color: kredit.textTertiary,
           ),
         ),
-        const SizedBox(height: 8),
-        for (final q in quotas) ...[
-          _EntityOption(
-            selected: _selectedEntityId == q.id,
-            icon: _entityIcon(q.entityType),
-            title: q.brand,
-            subtitle: '${_entityTypeLabel(q.entityType)}${q.limit > 0 ? ' · Cupo: ${formatCOP(q.limit)}' : ''}',
-            onTap: () => setState(() {
-              _selectedEntityId = q.id;
-              _lenderCtrl.text = q.brand;
-            }),
+        const SizedBox(height: 10),
+        // Scroll horizontal de tarjetas/vouchers — mismo diseño que en la
+        // lista principal, sin datos internos, solo el visual + cupo.
+        SizedBox(
+          height: 200,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: quotas.length,
+            clipBehavior: Clip.none,
+            padding: EdgeInsets.zero,
+            itemBuilder: (ctx, i) {
+              final q = quotas[i];
+              final allCredits =
+                  ref.watch(creditsProvider).valueOrNull ?? const [];
+              return Padding(
+                padding: EdgeInsets.only(
+                  right: i < quotas.length - 1 ? 14 : 0,
+                ),
+                child: SizedBox(
+                  width: 260,
+                  child: _EntityPickerCard(
+                    quota: q,
+                    selected: _selectedEntityId == q.id,
+                    allCredits: allCredits,
+                    onTap: () => setState(() {
+                      _selectedEntityId = q.id;
+                      _lenderCtrl.text = q.brand;
+                    }),
+                  ),
+                ),
+              );
+            },
           ),
-          const SizedBox(height: 8),
-        ],
+        ),
       ],
       const SizedBox(height: 8),
       _EntityOption(
@@ -2319,6 +2339,135 @@ class _EntityTypePill extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Tarjeta/voucher visual de una entidad en el picker del paso 0.
+/// Muestra el diseño real (WalletCard) con un anillo de selección superpuesto
+/// y el cupo disponible debajo — sin datos internos extra.
+class _EntityPickerCard extends StatelessWidget {
+  final CommercialQuota quota;
+  final bool selected;
+  final List<Credit> allCredits;
+  final VoidCallback onTap;
+
+  const _EntityPickerCard({
+    required this.quota,
+    required this.selected,
+    required this.allCredits,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accent = Theme.of(context).colorScheme.primary;
+
+    // Crédito ficticio solo para renderizar el diseño visual correcto.
+    // Para entidades de tienda: LoanCredit con quotaId → muestra el voucher
+    // con el patrón elegido. Para banco/app: CardCredit → muestra gradiente.
+    final Credit dummyCredit = quota.entityType == EntityType.store
+        ? LoanCredit(
+            id: 'picker_${quota.id}',
+            name: quota.brand,
+            lender: quota.brand,
+            color: null,
+            totalAmount: quota.limit,
+            quotaAmount: 0,
+            totalInstallments: 0,
+            frequency: CreditFrequency.monthly,
+            startDate: toDateStr(DateTime.now()),
+            interestRate: 0,
+            interestRateType: InterestRateType.effectiveAnnual,
+            installments: const [],
+            quotaId: quota.id,
+          )
+        : CardCredit(
+            id: 'picker_${quota.id}',
+            name: quota.brand,
+            lender: quota.brand,
+            color: null,
+            creditLimit: quota.limit,
+            currentBalance: 0,
+          );
+
+    // Cupo disponible para tiendas; límite registrado para bancos/apps.
+    final loans = allCredits.whereType<LoanCredit>().toList();
+    final double? available = quota.limit > 0
+        ? (quota.entityType == EntityType.store
+            ? quotaAvailable(quota, loans)
+            : quota.limit)
+        : null;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Stack(
+            children: [
+              // Diseño real de tarjeta/voucher — IgnorePointer para que el
+              // GestureDetector padre capture el tap.
+              IgnorePointer(child: WalletCard(credit: dummyCredit)),
+              // Anillo de selección superpuesto.
+              if (selected)
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: accent, width: 2.5),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              // Check en la esquina superior derecha.
+              Positioned(
+                top: 8,
+                right: 8,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 160),
+                  child: selected
+                      ? Container(
+                          key: const ValueKey('check'),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: accent,
+                          ),
+                          padding: const EdgeInsets.all(2),
+                          child: const Icon(Icons.check, size: 14, color: Colors.black),
+                        )
+                      : Container(
+                          key: const ValueKey('empty'),
+                          width: 18,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.black.withValues(alpha: 0.35),
+                            border: Border.all(color: Colors.white54, width: 1),
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          // Cupo disponible debajo de la tarjeta.
+          if (available != null)
+            Text(
+              quota.entityType == EntityType.store
+                  ? 'Disponible: ${formatCOP(available)}'
+                  : 'Límite: ${formatCOP(available)}',
+              style: TextStyle(
+                fontSize: KreditTextSize.caption,
+                fontWeight: FontWeight.w600,
+                color: selected ? accent : kredit.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+        ],
       ),
     );
   }
