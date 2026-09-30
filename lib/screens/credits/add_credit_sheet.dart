@@ -101,6 +101,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   // '__new__' = nueva entidad, cualquier otro = id de quota existente.
   String? _selectedEntityId;
   String _newEntityType = EntityType.store;
+  String? _newEntityPreset; // preset del dropdown cuando tipo es banco/app
   final _newEntityBrandCtrl = TextEditingController();
   final _newEntityLimitCtrl = TextEditingController();
 
@@ -382,6 +383,143 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       ),
     );
     return discard ?? false;
+  }
+
+  /// Modal para crear una nueva entidad (banco / tienda / app).
+  void _showNewEntitySheet(KreditColors kredit) {
+    // Estado local del sheet — no afecta el padre hasta que el user confirma.
+    var localType = _newEntityType;
+    String? localPreset = _newEntityPreset;
+    final brandCtrl = TextEditingController(text: _newEntityBrandCtrl.text);
+    final limitCtrl = TextEditingController(text: _newEntityLimitCtrl.text);
+    final formKey = GlobalKey<FormState>();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModal) => Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+            top: 4,
+          ),
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Nueva entidad',
+                    style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 16),
+                // Selector de tipo
+                Row(
+                  children: [
+                    for (final t in [EntityType.bank, EntityType.store, EntityType.app]) ...[
+                      Expanded(
+                        child: _EntityTypePill(
+                          label: _entityTypeLabel(t),
+                          icon: _entityIcon(t),
+                          selected: localType == t,
+                          onTap: () => setModal(() {
+                            localType = t;
+                            localPreset = null;
+                            brandCtrl.clear();
+                          }),
+                        ),
+                      ),
+                      if (t != EntityType.app) const SizedBox(width: 8),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 14),
+                // Banco / app: dropdown de presets
+                if (localType != EntityType.store) ...[
+                  DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    initialValue: localPreset,
+                    decoration: InputDecoration(
+                      labelText: localType == EntityType.bank ? 'Banco / Entidad emisora' : 'App o plataforma',
+                    ),
+                    hint: Text(localType == EntityType.bank ? 'Ej. Bancolombia, Davivienda' : 'Ej. Addi, Rapicredit'),
+                    items: _presetLenders.map((l) => DropdownMenuItem(value: l, child: Text(l))).toList(),
+                    onChanged: (v) {
+                      setModal(() {
+                        localPreset = v;
+                        if (v != null && v != 'Otro...') {
+                          brandCtrl.text = v;
+                        } else if (v == 'Otro...') {
+                          brandCtrl.clear();
+                        }
+                      });
+                    },
+                    validator: (_) => brandCtrl.text.trim().isEmpty ? 'Requerido' : null,
+                  ),
+                  if (localPreset == 'Otro...') ...[
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: brandCtrl,
+                      autofocus: true,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: InputDecoration(
+                        labelText: localType == EntityType.bank ? 'Nombre del banco' : 'Nombre de la app',
+                        hintText: 'Escríbelo aquí...',
+                      ),
+                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
+                    ),
+                  ],
+                ] else
+                  TextFormField(
+                    controller: brandCtrl,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: 'Nombre de la tienda',
+                      hintText: 'Ej. Totto, Lili Pink',
+                    ),
+                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
+                  ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: limitCtrl,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: const [CurrencyInputFormatter()],
+                  decoration: InputDecoration(
+                    labelText: localType == EntityType.store ? 'Cupo aprobado' : 'Cupo o límite total (opcional)',
+                    hintText: 'Ej. 3.000.000',
+                  ),
+                  validator: (v) {
+                    if (localType == EntityType.store) {
+                      final n = double.tryParse(CurrencyInputFormatter.unformat(v ?? ''));
+                      if (n == null || n <= 0) return 'Requerido';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 20),
+                FilledButton(
+                  onPressed: () {
+                    if (!formKey.currentState!.validate()) return;
+                    setState(() {
+                      _newEntityType = localType;
+                      _newEntityPreset = localPreset;
+                      _newEntityBrandCtrl.text = brandCtrl.text.trim();
+                      _newEntityLimitCtrl.text = limitCtrl.text;
+                      _lenderCtrl.text = brandCtrl.text.trim();
+                      _selectedEntityId = '__new__';
+                    });
+                    Navigator.pop(ctx);
+                  },
+                  child: const Text('Confirmar entidad'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   // Tarea 1: advance to the next step, validating only the fields that are
@@ -761,8 +899,9 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         const SizedBox(height: 10),
         // Scroll horizontal de tarjetas/vouchers — mismo diseño que en la
         // lista principal, sin datos internos, solo el visual + cupo.
+        // Altura = ancho de tarjeta (260) / aspect ratio (1.9) ≈ 137px
         SizedBox(
-          height: 200,
+          height: 140,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: quotas.length,
@@ -778,6 +917,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                 ),
                 child: SizedBox(
                   width: 260,
+                  height: 140,
                   child: _EntityPickerCard(
                     quota: q,
                     selected: _selectedEntityId == q.id,
@@ -796,74 +936,11 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       const SizedBox(height: 8),
       _AddEntityButton(
         selected: _selectedEntityId == '__new__',
-        onTap: () => setState(() {
-          _selectedEntityId = '__new__';
-          _lenderCtrl.text = _newEntityBrandCtrl.text;
-        }),
+        entityName: _selectedEntityId == '__new__' && _newEntityBrandCtrl.text.trim().isNotEmpty
+            ? _newEntityBrandCtrl.text.trim()
+            : null,
+        onTap: () => _showNewEntitySheet(kredit),
       ),
-      if (_selectedEntityId == '__new__') ...[
-        const SizedBox(height: 16),
-        _SectionCard(
-          label: 'NUEVA ENTIDAD',
-          icon: Icons.business_outlined,
-          children: [
-            Row(
-              children: [
-                for (final t in [EntityType.bank, EntityType.store, EntityType.app]) ...[
-                  Expanded(
-                    child: _EntityTypePill(
-                      label: _entityTypeLabel(t),
-                      icon: _entityIcon(t),
-                      selected: _newEntityType == t,
-                      onTap: () => setState(() => _newEntityType = t),
-                    ),
-                  ),
-                  if (t != EntityType.app) const SizedBox(width: 8),
-                ],
-              ],
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _newEntityBrandCtrl,
-              onChanged: (v) => setState(() => _lenderCtrl.text = v),
-              textCapitalization: TextCapitalization.words,
-              decoration: InputDecoration(
-                labelText: _newEntityType == EntityType.bank
-                    ? 'Nombre del banco'
-                    : _newEntityType == EntityType.store
-                        ? 'Nombre de la tienda'
-                        : 'Nombre de la app / plataforma',
-                hintText: _newEntityType == EntityType.bank
-                    ? 'Ej. Bancolombia, Davivienda'
-                    : _newEntityType == EntityType.store
-                        ? 'Ej. Totto, Lili Pink'
-                        : 'Ej. Addi, Rapicredit',
-              ),
-              validator: (v) => _selectedEntityId == '__new__' && (v == null || v.trim().isEmpty)
-                  ? 'Requerido'
-                  : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _newEntityLimitCtrl,
-              keyboardType: TextInputType.number,
-              inputFormatters: const [CurrencyInputFormatter()],
-              decoration: InputDecoration(
-                labelText: _newEntityType == EntityType.store ? 'Cupo aprobado' : 'Cupo o límite total (opcional)',
-                hintText: 'Ej. 3.000.000',
-              ),
-              validator: (v) {
-                if (_selectedEntityId != '__new__') return null;
-                if (_newEntityType == EntityType.store) {
-                  final n = double.tryParse(CurrencyInputFormatter.unformat(v ?? ''));
-                  if (n == null || n <= 0) return 'Requerido';
-                }
-                return null;
-              },
-            ),
-          ],
-        ),
-      ],
       const SizedBox(height: 12),
     ];
   }
@@ -2289,14 +2366,20 @@ class _NoEntityCard extends StatelessWidget {
 /// Botón CTA centrado para registrar una nueva entidad.
 class _AddEntityButton extends StatelessWidget {
   final bool selected;
+  final String? entityName; // nombre configurado si ya se confirmó una entidad
   final VoidCallback onTap;
 
-  const _AddEntityButton({required this.selected, required this.onTap});
+  const _AddEntityButton({
+    required this.selected,
+    required this.onTap,
+    this.entityName,
+  });
 
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
+    final hasEntity = selected && entityName != null;
 
     return GestureDetector(
       onTap: onTap,
@@ -2319,7 +2402,6 @@ class _AddEntityButton extends StatelessWidget {
           ),
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
               width: 32,
@@ -2329,36 +2411,37 @@ class _AddEntityButton extends StatelessWidget {
                 color: selected ? accent : kredit.bgSecondary,
               ),
               child: Icon(
-                Icons.add,
+                hasEntity ? Icons.check : Icons.add,
                 size: 18,
                 color: selected ? Colors.black : kredit.textTertiary,
               ),
             ),
             const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Nueva entidad',
-                  style: TextStyle(
-                    fontSize: KreditTextSize.body,
-                    fontWeight: FontWeight.w800,
-                    color: selected ? accent : kredit.textPrimary,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    hasEntity ? entityName! : 'Nueva entidad',
+                    style: TextStyle(
+                      fontSize: KreditTextSize.body,
+                      fontWeight: FontWeight.w800,
+                      color: selected ? accent : kredit.textPrimary,
+                    ),
                   ),
-                ),
-                Text(
-                  'Banco, tienda o app',
-                  style: TextStyle(
-                    fontSize: KreditTextSize.caption,
-                    color: kredit.textTertiary,
+                  Text(
+                    hasEntity ? 'Toca para editar' : 'Banco, tienda o app',
+                    style: TextStyle(
+                      fontSize: KreditTextSize.caption,
+                      color: kredit.textTertiary,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            const Spacer(),
             Icon(
-              selected ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-              size: 20,
+              Icons.arrow_forward_ios,
+              size: 14,
               color: selected ? accent : kredit.textTertiary,
             ),
           ],
