@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,14 +15,13 @@ import 'package:path_provider/path_provider.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  // Creates a LazyDatabase backed by a temp file — same async pattern as the
-  // real app, avoids blocking the main isolate on Android.
+  // Opens DB in a background isolate (same as real app) so the schema
+  // migration never blocks the main isolate / frame pipeline.
   Future<AppDatabase> openTempDb(String suffix) async {
     final dir = await getTemporaryDirectory();
     final file = File(p.join(dir.path, 'kredit_test_$suffix.sqlite'));
     if (file.existsSync()) file.deleteSync();
-    final executor = LazyDatabase(() async => NativeDatabase(file));
-    return AppDatabase.forTesting(executor);
+    return AppDatabase.forTesting(NativeDatabase.createInBackground(file));
   }
 
   Widget buildTestApp(AppDatabase db) {
