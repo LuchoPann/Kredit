@@ -38,7 +38,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -80,6 +80,19 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 9) {
             await m.addColumn(credits, credits.cardDesign);
+          }
+          if (from < 10) {
+            await m.addColumn(credits, credits.paymentDueDay);
+            await m.addColumn(credits, credits.oneInstallmentInterestPolicy);
+            // Poblar paymentDueDay para tarjetas existentes.
+            // Si no hay filas card, el UPDATE no falla (afecta 0 filas).
+            await customStatement('''
+              UPDATE credits
+              SET payment_due_day = ((cutoff_day + payment_due_offset_days - 1) % 31) + 1
+              WHERE type = 'card'
+                AND cutoff_day IS NOT NULL
+                AND payment_due_offset_days IS NOT NULL
+            ''');
           }
         },
         // SQLite ignores FK constraints (like Credits.quotaId's
@@ -142,6 +155,8 @@ class AppDatabase extends _$AppDatabase {
       lastAccrualCutoff: row.lastAccrualCutoff,
       quotaId: row.quotaId,
       cardDesign: row.cardDesign,
+      paymentDueDay: row.paymentDueDay,
+      oneInstallmentInterestPolicy: row.oneInstallmentInterestPolicy,
       movements: movements,
     );
   }
@@ -190,6 +205,9 @@ class AppDatabase extends _$AppDatabase {
         lastAccrualCutoff: Value(credit.lastAccrualCutoff),
         quotaId: Value(credit.quotaId),
         cardDesign: Value(credit.cardDesign),
+        paymentDueDay: Value(credit.paymentDueDay),
+        oneInstallmentInterestPolicy:
+            Value(credit.oneInstallmentInterestPolicy),
       );
     }
     throw ArgumentError('Unknown credit subtype: ${credit.runtimeType}');

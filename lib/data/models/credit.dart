@@ -194,6 +194,16 @@ class CardCredit extends Credit {
   /// Bancolombia). Null for standalone cards not grouped under any entity.
   String? quotaId;
 
+  /// Día del mes (1–31) en que vence el pago de la tarjeta.
+  /// Reemplaza paymentDueOffsetDays en la UI y lógica nueva.
+  /// 0 = no migrado aún (usa paymentDueOffsetDays como fallback).
+  int paymentDueDay;
+
+  /// null = usuario no lo configuró (desconocido)
+  /// true  = compras a 1 cuota sin interés si paga a tiempo
+  /// false = sí cobra interés en compras a 1 cuota
+  bool? oneInstallmentInterestPolicy;
+
   CardCredit({
     required super.id,
     required super.name,
@@ -205,6 +215,7 @@ class CardCredit extends Credit {
     this.currentBalance = 0,
     this.cutoffDay = 1,
     this.paymentDueOffsetDays = 20,
+    this.paymentDueDay = 0,
     this.interestRate = 0,
     this.interestRateType = InterestRateType.effectiveAnnual,
     this.managementFee = 0,
@@ -212,6 +223,7 @@ class CardCredit extends Credit {
     this.cycleCount = 0,
     this.lastAccrualCutoff,
     this.quotaId,
+    this.oneInstallmentInterestPolicy,
     List<CardMovement>? movements,
   })  : movements = movements ?? [],
         super(type: CreditType.card);
@@ -235,6 +247,8 @@ class CardCredit extends Credit {
         'lastAccrualCutoff': lastAccrualCutoff,
         'quotaId': quotaId,
         'cardDesign': cardDesign,
+        'paymentDueDay': paymentDueDay,
+        'oneInstallmentInterestPolicy': oneInstallmentInterestPolicy,
         'movements': movements.map((m) => m.toJson()).toList(),
       };
 
@@ -259,6 +273,9 @@ class CardCredit extends Credit {
         lastAccrualCutoff: json['lastAccrualCutoff'] as String?,
         quotaId: json['quotaId'] as String?,
         cardDesign: json['cardDesign'] as String?,
+        paymentDueDay: (json['paymentDueDay'] as num?)?.toInt() ?? 0,
+        oneInstallmentInterestPolicy:
+            json['oneInstallmentInterestPolicy'] as bool?,
         movements: (json['movements'] as List<dynamic>? ?? [])
             .map((e) => CardMovement.fromJson(e as Map<String, dynamic>))
             .toList(),

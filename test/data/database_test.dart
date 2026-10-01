@@ -134,6 +134,37 @@ void main() {
     expect(loaded.movements[0].type, CardMovementType.charge);
   });
 
+  test('round-trips CardCredit with paymentDueDay and oneInstallmentInterestPolicy', () async {
+    final card = CardCredit(
+      id: 'card-new',
+      name: 'Mi Tarjeta',
+      lender: 'Bancolombia',
+      creditLimit: 2000000,
+      currentBalance: 650000,
+      cutoffDay: 15,
+      paymentDueDay: 5,
+      oneInstallmentInterestPolicy: true,
+    );
+    await db.upsertCredit(card);
+    final loaded = (await db.loadAllCredits()).whereType<CardCredit>().first;
+    expect(loaded.paymentDueDay, 5);
+    expect(loaded.oneInstallmentInterestPolicy, true);
+  });
+
+  test('CardCredit with null oneInstallmentInterestPolicy round-trips as null', () async {
+    final card = CardCredit(
+      id: 'card-null-policy',
+      name: 'Sin policy',
+      lender: 'Davivienda',
+      cutoffDay: 10,
+      paymentDueDay: 0,
+    );
+    await db.upsertCredit(card);
+    final loaded = (await db.loadAllCredits()).whereType<CardCredit>().first;
+    expect(loaded.oneInstallmentInterestPolicy, isNull);
+    expect(loaded.paymentDueDay, 0);
+  });
+
   test('deleteCredit cascades to installments', () async {
     final loan = LoanCredit(
       id: 'loan2',

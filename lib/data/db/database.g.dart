@@ -974,6 +974,32 @@ class $CreditsTable extends Credits with TableInfo<$CreditsTable, CreditRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _paymentDueDayMeta = const VerificationMeta(
+    'paymentDueDay',
+  );
+  @override
+  late final GeneratedColumn<int> paymentDueDay = GeneratedColumn<int>(
+    'payment_due_day',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _oneInstallmentInterestPolicyMeta =
+      const VerificationMeta('oneInstallmentInterestPolicy');
+  @override
+  late final GeneratedColumn<bool> oneInstallmentInterestPolicy =
+      GeneratedColumn<bool>(
+        'one_installment_interest_policy',
+        aliasedName,
+        true,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("one_installment_interest_policy" IN (0, 1))',
+        ),
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1004,6 +1030,8 @@ class $CreditsTable extends Credits with TableInfo<$CreditsTable, CreditRow> {
     interestUnknown,
     earlyPaymentWaivesInterest,
     cardDesign,
+    paymentDueDay,
+    oneInstallmentInterestPolicy,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1232,6 +1260,24 @@ class $CreditsTable extends Credits with TableInfo<$CreditsTable, CreditRow> {
         cardDesign.isAcceptableOrUnknown(data['card_design']!, _cardDesignMeta),
       );
     }
+    if (data.containsKey('payment_due_day')) {
+      context.handle(
+        _paymentDueDayMeta,
+        paymentDueDay.isAcceptableOrUnknown(
+          data['payment_due_day']!,
+          _paymentDueDayMeta,
+        ),
+      );
+    }
+    if (data.containsKey('one_installment_interest_policy')) {
+      context.handle(
+        _oneInstallmentInterestPolicyMeta,
+        oneInstallmentInterestPolicy.isAcceptableOrUnknown(
+          data['one_installment_interest_policy']!,
+          _oneInstallmentInterestPolicyMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1353,6 +1399,14 @@ class $CreditsTable extends Credits with TableInfo<$CreditsTable, CreditRow> {
         DriftSqlType.string,
         data['${effectivePrefix}card_design'],
       ),
+      paymentDueDay: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}payment_due_day'],
+      )!,
+      oneInstallmentInterestPolicy: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}one_installment_interest_policy'],
+      ),
     );
   }
 
@@ -1416,6 +1470,14 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
   /// serialized as String (e.g. 'gradiente', 'swissGrid', 'liquido', etc.).
   /// Null means 'gradiente' (default gradient look).
   final String? cardDesign;
+
+  /// Día del mes (1–31) en que vence el pago de la tarjeta.
+  /// Reemplaza paymentDueOffsetDays en la UI y lógica nueva.
+  /// 0 = no migrado aún — usa paymentDueOffsetDays como fallback.
+  final int paymentDueDay;
+
+  /// null = desconocido, true = sin interés a 1 cuota, false = con interés.
+  final bool? oneInstallmentInterestPolicy;
   const CreditRow({
     required this.id,
     required this.type,
@@ -1445,6 +1507,8 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
     required this.interestUnknown,
     required this.earlyPaymentWaivesInterest,
     this.cardDesign,
+    required this.paymentDueDay,
+    this.oneInstallmentInterestPolicy,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1525,6 +1589,12 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
     if (!nullToAbsent || cardDesign != null) {
       map['card_design'] = Variable<String>(cardDesign);
     }
+    map['payment_due_day'] = Variable<int>(paymentDueDay);
+    if (!nullToAbsent || oneInstallmentInterestPolicy != null) {
+      map['one_installment_interest_policy'] = Variable<bool>(
+        oneInstallmentInterestPolicy,
+      );
+    }
     return map;
   }
 
@@ -1598,6 +1668,11 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
       cardDesign: cardDesign == null && nullToAbsent
           ? const Value.absent()
           : Value(cardDesign),
+      paymentDueDay: Value(paymentDueDay),
+      oneInstallmentInterestPolicy:
+          oneInstallmentInterestPolicy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(oneInstallmentInterestPolicy),
     );
   }
 
@@ -1645,6 +1720,10 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
         json['earlyPaymentWaivesInterest'],
       ),
       cardDesign: serializer.fromJson<String?>(json['cardDesign']),
+      paymentDueDay: serializer.fromJson<int>(json['paymentDueDay']),
+      oneInstallmentInterestPolicy: serializer.fromJson<bool?>(
+        json['oneInstallmentInterestPolicy'],
+      ),
     );
   }
   @override
@@ -1685,6 +1764,10 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
         earlyPaymentWaivesInterest,
       ),
       'cardDesign': serializer.toJson<String?>(cardDesign),
+      'paymentDueDay': serializer.toJson<int>(paymentDueDay),
+      'oneInstallmentInterestPolicy': serializer.toJson<bool?>(
+        oneInstallmentInterestPolicy,
+      ),
     };
   }
 
@@ -1717,6 +1800,8 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
     bool? interestUnknown,
     bool? earlyPaymentWaivesInterest,
     Value<String?> cardDesign = const Value.absent(),
+    int? paymentDueDay,
+    Value<bool?> oneInstallmentInterestPolicy = const Value.absent(),
   }) => CreditRow(
     id: id ?? this.id,
     type: type ?? this.type,
@@ -1762,6 +1847,10 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
     earlyPaymentWaivesInterest:
         earlyPaymentWaivesInterest ?? this.earlyPaymentWaivesInterest,
     cardDesign: cardDesign.present ? cardDesign.value : this.cardDesign,
+    paymentDueDay: paymentDueDay ?? this.paymentDueDay,
+    oneInstallmentInterestPolicy: oneInstallmentInterestPolicy.present
+        ? oneInstallmentInterestPolicy.value
+        : this.oneInstallmentInterestPolicy,
   );
   CreditRow copyWithCompanion(CreditsCompanion data) {
     return CreditRow(
@@ -1825,6 +1914,12 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
       cardDesign: data.cardDesign.present
           ? data.cardDesign.value
           : this.cardDesign,
+      paymentDueDay: data.paymentDueDay.present
+          ? data.paymentDueDay.value
+          : this.paymentDueDay,
+      oneInstallmentInterestPolicy: data.oneInstallmentInterestPolicy.present
+          ? data.oneInstallmentInterestPolicy.value
+          : this.oneInstallmentInterestPolicy,
     );
   }
 
@@ -1858,7 +1953,9 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
           ..write('quotaId: $quotaId, ')
           ..write('interestUnknown: $interestUnknown, ')
           ..write('earlyPaymentWaivesInterest: $earlyPaymentWaivesInterest, ')
-          ..write('cardDesign: $cardDesign')
+          ..write('cardDesign: $cardDesign, ')
+          ..write('paymentDueDay: $paymentDueDay, ')
+          ..write('oneInstallmentInterestPolicy: $oneInstallmentInterestPolicy')
           ..write(')'))
         .toString();
   }
@@ -1893,6 +1990,8 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
     interestUnknown,
     earlyPaymentWaivesInterest,
     cardDesign,
+    paymentDueDay,
+    oneInstallmentInterestPolicy,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -1925,7 +2024,10 @@ class CreditRow extends DataClass implements Insertable<CreditRow> {
           other.quotaId == this.quotaId &&
           other.interestUnknown == this.interestUnknown &&
           other.earlyPaymentWaivesInterest == this.earlyPaymentWaivesInterest &&
-          other.cardDesign == this.cardDesign);
+          other.cardDesign == this.cardDesign &&
+          other.paymentDueDay == this.paymentDueDay &&
+          other.oneInstallmentInterestPolicy ==
+              this.oneInstallmentInterestPolicy);
 }
 
 class CreditsCompanion extends UpdateCompanion<CreditRow> {
@@ -1957,6 +2059,8 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
   final Value<bool> interestUnknown;
   final Value<bool> earlyPaymentWaivesInterest;
   final Value<String?> cardDesign;
+  final Value<int> paymentDueDay;
+  final Value<bool?> oneInstallmentInterestPolicy;
   final Value<int> rowid;
   const CreditsCompanion({
     this.id = const Value.absent(),
@@ -1987,6 +2091,8 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
     this.interestUnknown = const Value.absent(),
     this.earlyPaymentWaivesInterest = const Value.absent(),
     this.cardDesign = const Value.absent(),
+    this.paymentDueDay = const Value.absent(),
+    this.oneInstallmentInterestPolicy = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CreditsCompanion.insert({
@@ -2018,6 +2124,8 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
     this.interestUnknown = const Value.absent(),
     this.earlyPaymentWaivesInterest = const Value.absent(),
     this.cardDesign = const Value.absent(),
+    this.paymentDueDay = const Value.absent(),
+    this.oneInstallmentInterestPolicy = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        type = Value(type),
@@ -2052,6 +2160,8 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
     Expression<bool>? interestUnknown,
     Expression<bool>? earlyPaymentWaivesInterest,
     Expression<String>? cardDesign,
+    Expression<int>? paymentDueDay,
+    Expression<bool>? oneInstallmentInterestPolicy,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2087,6 +2197,9 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
       if (earlyPaymentWaivesInterest != null)
         'early_payment_waives_interest': earlyPaymentWaivesInterest,
       if (cardDesign != null) 'card_design': cardDesign,
+      if (paymentDueDay != null) 'payment_due_day': paymentDueDay,
+      if (oneInstallmentInterestPolicy != null)
+        'one_installment_interest_policy': oneInstallmentInterestPolicy,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2120,6 +2233,8 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
     Value<bool>? interestUnknown,
     Value<bool>? earlyPaymentWaivesInterest,
     Value<String?>? cardDesign,
+    Value<int>? paymentDueDay,
+    Value<bool?>? oneInstallmentInterestPolicy,
     Value<int>? rowid,
   }) {
     return CreditsCompanion(
@@ -2154,6 +2269,9 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
       earlyPaymentWaivesInterest:
           earlyPaymentWaivesInterest ?? this.earlyPaymentWaivesInterest,
       cardDesign: cardDesign ?? this.cardDesign,
+      paymentDueDay: paymentDueDay ?? this.paymentDueDay,
+      oneInstallmentInterestPolicy:
+          oneInstallmentInterestPolicy ?? this.oneInstallmentInterestPolicy,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2253,6 +2371,14 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
     if (cardDesign.present) {
       map['card_design'] = Variable<String>(cardDesign.value);
     }
+    if (paymentDueDay.present) {
+      map['payment_due_day'] = Variable<int>(paymentDueDay.value);
+    }
+    if (oneInstallmentInterestPolicy.present) {
+      map['one_installment_interest_policy'] = Variable<bool>(
+        oneInstallmentInterestPolicy.value,
+      );
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2290,6 +2416,10 @@ class CreditsCompanion extends UpdateCompanion<CreditRow> {
           ..write('interestUnknown: $interestUnknown, ')
           ..write('earlyPaymentWaivesInterest: $earlyPaymentWaivesInterest, ')
           ..write('cardDesign: $cardDesign, ')
+          ..write('paymentDueDay: $paymentDueDay, ')
+          ..write(
+            'oneInstallmentInterestPolicy: $oneInstallmentInterestPolicy, ',
+          )
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -4345,6 +4475,8 @@ typedef $$CreditsTableCreateCompanionBuilder =
       Value<bool> interestUnknown,
       Value<bool> earlyPaymentWaivesInterest,
       Value<String?> cardDesign,
+      Value<int> paymentDueDay,
+      Value<bool?> oneInstallmentInterestPolicy,
       Value<int> rowid,
     });
 typedef $$CreditsTableUpdateCompanionBuilder =
@@ -4377,6 +4509,8 @@ typedef $$CreditsTableUpdateCompanionBuilder =
       Value<bool> interestUnknown,
       Value<bool> earlyPaymentWaivesInterest,
       Value<String?> cardDesign,
+      Value<int> paymentDueDay,
+      Value<bool?> oneInstallmentInterestPolicy,
       Value<int> rowid,
     });
 
@@ -4598,6 +4732,16 @@ class $$CreditsTableFilterComposer
 
   ColumnFilters<String> get cardDesign => $composableBuilder(
     column: $table.cardDesign,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get paymentDueDay => $composableBuilder(
+    column: $table.paymentDueDay,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get oneInstallmentInterestPolicy => $composableBuilder(
+    column: $table.oneInstallmentInterestPolicy,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4844,6 +4988,16 @@ class $$CreditsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get paymentDueDay => $composableBuilder(
+    column: $table.paymentDueDay,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get oneInstallmentInterestPolicy => $composableBuilder(
+    column: $table.oneInstallmentInterestPolicy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$CommercialQuotasTableOrderingComposer get quotaId {
     final $$CommercialQuotasTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -4987,6 +5141,16 @@ class $$CreditsTableAnnotationComposer
 
   GeneratedColumn<String> get cardDesign => $composableBuilder(
     column: $table.cardDesign,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get paymentDueDay => $composableBuilder(
+    column: $table.paymentDueDay,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get oneInstallmentInterestPolicy => $composableBuilder(
+    column: $table.oneInstallmentInterestPolicy,
     builder: (column) => column,
   );
 
@@ -5150,6 +5314,9 @@ class $$CreditsTableTableManager
                 Value<bool> interestUnknown = const Value.absent(),
                 Value<bool> earlyPaymentWaivesInterest = const Value.absent(),
                 Value<String?> cardDesign = const Value.absent(),
+                Value<int> paymentDueDay = const Value.absent(),
+                Value<bool?> oneInstallmentInterestPolicy =
+                    const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CreditsCompanion(
                 id: id,
@@ -5180,6 +5347,8 @@ class $$CreditsTableTableManager
                 interestUnknown: interestUnknown,
                 earlyPaymentWaivesInterest: earlyPaymentWaivesInterest,
                 cardDesign: cardDesign,
+                paymentDueDay: paymentDueDay,
+                oneInstallmentInterestPolicy: oneInstallmentInterestPolicy,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -5212,6 +5381,9 @@ class $$CreditsTableTableManager
                 Value<bool> interestUnknown = const Value.absent(),
                 Value<bool> earlyPaymentWaivesInterest = const Value.absent(),
                 Value<String?> cardDesign = const Value.absent(),
+                Value<int> paymentDueDay = const Value.absent(),
+                Value<bool?> oneInstallmentInterestPolicy =
+                    const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CreditsCompanion.insert(
                 id: id,
@@ -5242,6 +5414,8 @@ class $$CreditsTableTableManager
                 interestUnknown: interestUnknown,
                 earlyPaymentWaivesInterest: earlyPaymentWaivesInterest,
                 cardDesign: cardDesign,
+                paymentDueDay: paymentDueDay,
+                oneInstallmentInterestPolicy: oneInstallmentInterestPolicy,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
