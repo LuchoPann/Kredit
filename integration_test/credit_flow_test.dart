@@ -1,57 +1,52 @@
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:kredit/main.dart' as app;
+import 'package:kredit/data/db/database.dart';
+import 'package:kredit/providers/database_provider.dart';
+import 'package:kredit/screens/credits/add_credit_sheet.dart';
+import 'package:kredit/theme/app_theme.dart';
+
+// Pump helper: steps through frames without waiting for animations to settle.
+Future<void> pumpFrames(WidgetTester tester, {int frames = 30}) async {
+  for (var i = 0; i < frames; i++) {
+    await tester.pump(const Duration(milliseconds: 50));
+  }
+}
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
+  Widget buildTestApp(AppDatabase db) {
+    return ProviderScope(
+      overrides: [
+        databaseProvider.overrideWithValue(db),
+      ],
+      child: MaterialApp(
+        theme: buildAppTheme(isDarkMode: false),
+        home: const Scaffold(body: AddCreditSheet()),
+      ),
+    );
+  }
+
   group('Credit creation flow — mode selector redesign', () {
-    setUp(() async {
-      app.main();
-      await Future.delayed(const Duration(seconds: 3));
+    late AppDatabase db;
+
+    setUp(() {
+      db = AppDatabase.forTesting(NativeDatabase.memory());
     });
 
-    // ─── Helpers ────────────────────────────────────────────────────────────
+    tearDown(() async {
+      await db.close();
+    });
 
-    Future<void> openAddCreditSheet(WidgetTester tester) async {
-      // Intenta el FAB del dashboard primero; si no, busca el de créditos
-      final fab = find.byTooltip('Agregar crédito');
-      if (fab.evaluate().isEmpty) {
-        // El FAB puede no tener tooltip — busca por Icon
-        final iconBtn = find.widgetWithIcon(FloatingActionButton, Icons.add);
-        if (iconBtn.evaluate().isNotEmpty) {
-          await tester.tap(iconBtn.first);
-        } else {
-          // Navega a la pantalla de créditos y usa su botón
-          await tester.tap(find.byIcon(Icons.account_balance_wallet_outlined).first);
-          await tester.pumpAndSettle();
-          await tester.tap(find.widgetWithIcon(FloatingActionButton, Icons.add).first);
-        }
-      } else {
-        await tester.tap(fab.first);
-      }
-      await tester.pumpAndSettle(const Duration(seconds: 2));
-    }
+    // ─── A: selector de modo muestra las 3 opciones ─────────────────────────
 
-    Future<void> waitForText(WidgetTester tester, String text,
-        {int maxRetries = 10}) async {
-      for (var i = 0; i < maxRetries; i++) {
-        await tester.pump(const Duration(milliseconds: 300));
-        if (find.text(text).evaluate().isNotEmpty) return;
-      }
-    }
-
-    // ─── Test A: selector de modo muestra las 3 opciones ────────────────────
-
-    testWidgets('A — mode selector shows 3 options', (tester) async {
-      await tester.pumpWidget(const SizedBox()); // reset
-      app.main();
-      await tester.pumpAndSettle(const Duration(seconds: 4));
-
-      await openAddCreditSheet(tester);
-
-      await waitForText(tester, '¿Qué quieres registrar?');
+    testWidgets('A — mode selector shows 3 options',
+        timeout: const Timeout(Duration(minutes: 3)), (tester) async {
+      await tester.pumpWidget(buildTestApp(db));
+      await pumpFrames(tester, frames: 60);
 
       expect(find.text('¿Qué quieres registrar?'), findsOneWidget);
       expect(find.text('Cupo de tienda'), findsOneWidget);
@@ -59,92 +54,77 @@ void main() {
       expect(find.text('Préstamo bancario'), findsOneWidget);
     });
 
-    // ─── Test B: Flow tienda — selector → paso 0 → back al selector ─────────
+    // ─── B: tienda → paso 0, back al selector ───────────────────────────────
 
-    testWidgets('B — tienda flow: tap card navigates to step 0, back returns to selector',
-        (tester) async {
-      await tester.pumpWidget(const SizedBox());
-      app.main();
-      await tester.pumpAndSettle(const Duration(seconds: 4));
+    testWidgets(
+        'B — tienda flow: tap card navigates to step 0, back returns to selector',
+        timeout: const Timeout(Duration(minutes: 3)), (tester) async {
+      await tester.pumpWidget(buildTestApp(db));
+      await pumpFrames(tester, frames: 60);
 
-      await openAddCreditSheet(tester);
-      await waitForText(tester, 'Cupo de tienda');
-
-      // Tap en la tarjeta de tienda
       await tester.tap(find.text('Cupo de tienda'));
-      await tester.pumpAndSettle(const Duration(seconds: 1));
+      await pumpFrames(tester, frames: 30);
 
-      // Debe mostrar paso 0 — selección de entidad
       expect(find.text('Entidad'), findsWidgets);
 
-      // Back al selector
       final backBtn = find.text('← Cambiar tipo');
       expect(backBtn, findsOneWidget);
       await tester.tap(backBtn);
-      await tester.pumpAndSettle();
+      await pumpFrames(tester, frames: 30);
 
       expect(find.text('¿Qué quieres registrar?'), findsOneWidget);
     });
 
-    // ─── Test C: Flow tarjeta — completo hasta confirmar ────────────────────
+    // ─── C: tarjeta → 5 pasos hasta confirmar ───────────────────────────────
 
     testWidgets('C — tarjeta flow: navigates all 5 steps and reaches confirm',
-        (tester) async {
-      await tester.pumpWidget(const SizedBox());
-      app.main();
-      await tester.pumpAndSettle(const Duration(seconds: 4));
-
-      await openAddCreditSheet(tester);
-      await waitForText(tester, 'Tarjeta bancaria');
+        timeout: const Timeout(Duration(minutes: 3)), (tester) async {
+      await tester.pumpWidget(buildTestApp(db));
+      await pumpFrames(tester, frames: 60);
 
       await tester.tap(find.text('Tarjeta bancaria'));
-      await tester.pumpAndSettle(const Duration(seconds: 1));
+      await pumpFrames(tester, frames: 30);
 
-      // Paso 0 — Banco: pick primer chip disponible
+      // Paso 0 — Banco: pick primer FilterChip si hay
       final chips = find.byType(FilterChip);
       if (chips.evaluate().isNotEmpty) {
         await tester.tap(chips.first);
-        await tester.pumpAndSettle();
-      }
-      // Siguiente
-      await tester.tap(find.text('Siguiente'));
-      await tester.pumpAndSettle(const Duration(seconds: 1));
-
-      // Paso 1 — Cupo y deuda: llenar cupo
-      final cupoField = find.widgetWithText(TextFormField, '');
-      if (cupoField.evaluate().isNotEmpty) {
-        await tester.enterText(cupoField.first, '5000000');
-        await tester.pump();
+        await pumpFrames(tester, frames: 10);
       }
       await tester.tap(find.text('Siguiente'));
-      await tester.pumpAndSettle(const Duration(seconds: 1));
+      await pumpFrames(tester, frames: 30);
 
-      // Paso 2 — Condiciones: solo siguiente
+      // Paso 1 — Cupo y deuda
+      final cupoFields = find.byType(TextFormField);
+      if (cupoFields.evaluate().isNotEmpty) {
+        await tester.enterText(cupoFields.first, '5000000');
+        await pumpFrames(tester, frames: 10);
+      }
       await tester.tap(find.text('Siguiente'));
-      await tester.pumpAndSettle(const Duration(seconds: 1));
+      await pumpFrames(tester, frames: 30);
 
-      // Paso 3 — Ciclo: solo siguiente
+      // Paso 2 — Condiciones
       await tester.tap(find.text('Siguiente'));
-      await tester.pumpAndSettle(const Duration(seconds: 1));
+      await pumpFrames(tester, frames: 30);
+
+      // Paso 3 — Ciclo
+      await tester.tap(find.text('Siguiente'));
+      await pumpFrames(tester, frames: 30);
 
       // Paso 4 — Confirmar
       expect(find.text('Confirmar'), findsWidgets);
     });
 
-    // ─── Test D: Flow préstamo — selector → paso 0 ──────────────────────────
+    // ─── D: préstamo → paso 0 banco ─────────────────────────────────────────
 
-    testWidgets('D — prestamo flow: tap card navigates to step 0', (tester) async {
-      await tester.pumpWidget(const SizedBox());
-      app.main();
-      await tester.pumpAndSettle(const Duration(seconds: 4));
-
-      await openAddCreditSheet(tester);
-      await waitForText(tester, 'Préstamo bancario');
+    testWidgets('D — prestamo flow: tap card navigates to step 0',
+        timeout: const Timeout(Duration(minutes: 3)), (tester) async {
+      await tester.pumpWidget(buildTestApp(db));
+      await pumpFrames(tester, frames: 60);
 
       await tester.tap(find.text('Préstamo bancario'));
-      await tester.pumpAndSettle(const Duration(seconds: 1));
+      await pumpFrames(tester, frames: 30);
 
-      // Paso 0 — Banco
       expect(find.text('Banco'), findsWidgets);
     });
   });
