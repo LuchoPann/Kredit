@@ -14,20 +14,17 @@ void main() {
 
   Future<void> launchApp(WidgetTester tester) async {
     app.main();
-    await tester.pump();
-    await tester.pump(const Duration(seconds: 3));
+    // Pump frames until the dashboard FAB appears (max 10s).
+    // app.main() → runApp() → async providers initialize → FAB renders.
+    final fab = find.byTooltip('Agregar Crédito');
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(const Duration(milliseconds: 500));
+      if (fab.evaluate().isNotEmpty) break;
+    }
   }
 
   Future<void> openAddCreditSheet(WidgetTester tester) async {
-    // Correct tooltip (capital C): 'Agregar Crédito'
-    final fab = find.byTooltip('Agregar Crédito');
-    if (fab.evaluate().isNotEmpty) {
-      await tester.tap(fab);
-    } else {
-      // Dashboard still loading — credits tab FAB
-      final tabFab = find.widgetWithIcon(FloatingActionButton, Icons.add);
-      await tester.tap(tabFab.first);
-    }
+    await tester.tap(find.byTooltip('Agregar Crédito'));
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
   }
