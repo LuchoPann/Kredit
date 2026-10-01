@@ -14,13 +14,8 @@ void main() {
 
   Future<void> launchApp(WidgetTester tester) async {
     app.main();
-    // Pump frames until the dashboard FAB appears (max 10s).
-    // app.main() → runApp() → async providers initialize → FAB renders.
-    final fab = find.byTooltip('Agregar Crédito');
-    for (var i = 0; i < 20; i++) {
-      await tester.pump(const Duration(milliseconds: 500));
-      if (fab.evaluate().isNotEmpty) break;
-    }
+    await tester.pump();                          // kick off first frame
+    await tester.pump(const Duration(seconds: 10)); // let providers init + dashboard render
   }
 
   Future<void> openAddCreditSheet(WidgetTester tester) async {
