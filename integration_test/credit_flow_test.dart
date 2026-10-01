@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,9 +10,21 @@ import 'package:kredit/data/db/database.dart';
 import 'package:kredit/providers/database_provider.dart';
 import 'package:kredit/screens/credits/add_credit_sheet.dart';
 import 'package:kredit/theme/app_theme.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+
+  // Creates a LazyDatabase backed by a temp file — same async pattern as the
+  // real app, avoids blocking the main isolate on Android.
+  Future<AppDatabase> openTempDb(String suffix) async {
+    final dir = await getTemporaryDirectory();
+    final file = File(p.join(dir.path, 'kredit_test_$suffix.sqlite'));
+    if (file.existsSync()) file.deleteSync();
+    final executor = LazyDatabase(() async => NativeDatabase(file));
+    return AppDatabase.forTesting(executor);
+  }
 
   Widget buildTestApp(AppDatabase db) {
     return ProviderScope(
@@ -21,19 +36,19 @@ void main() {
     );
   }
 
-  // En LiveTestWidgetsFlutterBinding (dispositivo real) no usamos loops de
-  // pump() ni pumpAndSettle (se cuelgan con cursores de TextField).
-  // Dos pump puntuales: uno arranca el frame, otro deja correr async/animaciones.
+  // Two targeted pumps: one to kick off rendering, one to let the async DB
+  // open + initial providers resolve. No pumpAndSettle (cursor tickers
+  // prevent it from ever returning on a real device).
   Future<void> settle(WidgetTester tester) async {
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 800));
+    await tester.pump(const Duration(seconds: 2));
   }
 
   group('Credit creation flow — mode selector redesign', () {
     late AppDatabase db;
 
-    setUp(() {
-      db = AppDatabase.forTesting(NativeDatabase.memory());
+    setUp(() async {
+      db = await openTempDb('flow');
     });
 
     tearDown(() async {
