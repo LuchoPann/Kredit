@@ -348,7 +348,7 @@ class _AbonoTile extends ConsumerWidget {
                 Text(
                   abono.note.isNotEmpty ? abono.note : formatDate(abono.date),
                   style: TextStyle(
-                    fontSize: KreditTextSize.caption,
+                    fontSize: KreditTextSize.body,
                     color: kredit.textSecondary,
                   ),
                   maxLines: 1,
@@ -361,7 +361,7 @@ class _AbonoTile extends ConsumerWidget {
                       'Cuota bajó de ${formatCOP(impact!.quotaBefore!)} a '
                       '${formatCOP(impact!.quotaAfter!)}',
                       style: TextStyle(
-                        fontSize: KreditTextSize.caption,
+                        fontSize: KreditTextSize.body,
                         fontWeight: FontWeight.w600,
                         color: kredit.success,
                       ),
@@ -371,7 +371,7 @@ class _AbonoTile extends ConsumerWidget {
                       'Terminas ${impact!.installmentsSaved} cuota'
                       '${impact!.installmentsSaved == 1 ? '' : 's'} antes',
                       style: TextStyle(
-                        fontSize: KreditTextSize.caption,
+                        fontSize: KreditTextSize.body,
                         fontWeight: FontWeight.w600,
                         color: kredit.success,
                       ),
@@ -382,7 +382,7 @@ class _AbonoTile extends ConsumerWidget {
                       '${formatCOP(impact!.estimatedInterestSaving)} en '
                       'intereses estimados',
                       style: TextStyle(
-                        fontSize: KreditTextSize.caption,
+                        fontSize: KreditTextSize.body,
                         fontWeight: FontWeight.w600,
                         color: kredit.success,
                       ),
@@ -455,7 +455,7 @@ class _SectionGroup extends StatelessWidget {
                   Text(
                     title.toUpperCase(),
                     style: TextStyle(
-                      fontSize: KreditTextSize.caption,
+                      fontSize: KreditTextSize.body,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.6,
                       color: emphasized
@@ -467,7 +467,7 @@ class _SectionGroup extends StatelessWidget {
                   Text(
                     '($count)',
                     style: TextStyle(
-                      fontSize: KreditTextSize.caption,
+                      fontSize: KreditTextSize.body,
                       fontWeight: FontWeight.w600,
                       color: kredit.textTertiary,
                     ),
@@ -479,7 +479,7 @@ class _SectionGroup extends StatelessWidget {
                       // Slightly larger than the section label/count next to
                       // it — this is a real money figure someone scans for
                       // ("how much is overdue"), not just decorative meta.
-                      fontSize: KreditTextSize.caption,
+                      fontSize: KreditTextSize.body,
                       fontWeight: FontWeight.w700,
                       color: emphasized
                           ? kredit.textPrimary
@@ -580,7 +580,7 @@ class _InstallmentTile extends ConsumerWidget {
                   Text(
                     'Vence: ${formatDate(inst.dueDate)}',
                     style: TextStyle(
-                      fontSize: KreditTextSize.caption,
+                      fontSize: KreditTextSize.body,
                       color: kredit.textSecondary,
                     ),
                   ),
@@ -605,7 +605,7 @@ class _InstallmentTile extends ConsumerWidget {
                               '+ ~${formatCOP(mora)} de mora estimada '
                               '($daysLate días de atraso)',
                               style: TextStyle(
-                                fontSize: KreditTextSize.caption,
+                                fontSize: KreditTextSize.body,
                                 fontWeight: FontWeight.w600,
                                 color: kredit.warning,
                               ),
@@ -772,7 +772,7 @@ class _RegisterPaymentSheetState extends ConsumerState<_RegisterPaymentSheet> {
             Text(
               'Valor calculado por Kredit: ${formatCOP(widget.inst.amount)}',
               style: TextStyle(
-                fontSize: KreditTextSize.caption,
+                fontSize: KreditTextSize.body,
                 color: kredit.textSecondary,
               ),
             ),
@@ -780,7 +780,7 @@ class _RegisterPaymentSheetState extends ConsumerState<_RegisterPaymentSheet> {
             Text(
               'MONTO REALMENTE PAGADO',
               style: TextStyle(
-                fontSize: KreditTextSize.caption,
+                fontSize: KreditTextSize.body,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.4,
                 color: kredit.textTertiary,
@@ -827,7 +827,7 @@ class _RegisterPaymentSheetState extends ConsumerState<_RegisterPaymentSheet> {
                                 'excedente (estimado) se restará del capital de la '
                                 'siguiente cuota pendiente.',
                       style: TextStyle(
-                        fontSize: KreditTextSize.caption,
+                        fontSize: KreditTextSize.body,
                         color: kredit.textTertiary,
                       ),
                     ),

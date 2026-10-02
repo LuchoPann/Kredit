@@ -2,11 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/db/database.dart';
 import '../data/models/commercial_quota.dart';
+import '../data/models/card_movement.dart';
 import '../data/models/credit.dart';
 import '../data/models/loan_abono.dart';
 import '../domain/card_calculator.dart';
 import '../domain/credit_calculator.dart';
-import '../domain/date_utils.dart';
 import '../domain/loan_calculator.dart';
 import 'commercial_quotas_provider.dart';
 import 'database_provider.dart';
@@ -24,18 +24,6 @@ class CreditsNotifier extends AsyncNotifier<List<Credit>> {
   @override
   Future<List<Credit>> build() async {
     var credits = await _db.loadAllCredits();
-
-    // First-run demo data (app.js loadState ~L48-86): if the user has no
-    // credits at all yet, seed the two example credits so the app isn't
-    // empty on first open. Seeding lives here (provider layer) rather than
-    // in AppDatabase itself so AppDatabase's own tests keep starting from a
-    // clean slate.
-    if (credits.isEmpty) {
-      for (final demo in _buildDemoCredits()) {
-        await _db.upsertCredit(demo);
-      }
-      credits = await _db.loadAllCredits();
-    }
 
     // Show data immediately — don't block the first frame with CPU-intensive
     // accrual and amortization recomputation. _accrueAndRecompute runs those
@@ -199,6 +187,39 @@ class CreditsNotifier extends AsyncNotifier<List<Credit>> {
     await _reload();
   }
 
+  Future<void> registerAdvance(
+    String creditId, {
+    required double amount,
+    required String date,
+    int? installments,
+    double? interestRate,
+    String? interestRateType,
+    double? commission,
+    String? firstPaymentDate,
+    String? destination,
+    String note = '',
+  }) async {
+    final credits = state.value ?? [];
+    final credit = credits.whereType<CardCredit>().where((c) => c.id == creditId).firstOrNull;
+    if (credit == null) return;
+    final movement = CardMovement(
+      date: date,
+      type: CardMovementType.advance,
+      amount: amount.abs(),
+      note: note,
+      advanceInstallments: installments,
+      advanceInterestRate: interestRate,
+      advanceInterestRateType: interestRateType,
+      advanceCommission: commission,
+      advanceFirstPaymentDate: firstPaymentDate,
+      advanceDestination: destination,
+    );
+    credit.currentBalance = credit.currentBalance + amount.abs();
+    credit.movements.add(movement);
+    await _db.upsertCredit(credit);
+    await _reload();
+  }
+
   /// Registers an "abono extra" on a loan credit, applying it against the
   /// unpaid schedule (see applyLoanAbono) and persisting both the updated
   /// installments and the new abono history entry. Returns the created
@@ -268,70 +289,6 @@ class CreditsNotifier extends AsyncNotifier<List<Credit>> {
   }
 }
 
-/// Port of app.js's inline demo-data literal (loadState ~L48-86), built with
-/// `buildLoanInstallments` + `applyInstallmentPayment` (both already handle
-/// the principal/interest split and early-payment interest-waiving that
-/// generateDemoInstallments (~L114-138) approximated with a flat `amount`).
-/// The first 2 installments of each are marked paid, matching
-/// `generateDemoInstallments(total, amount, frequency, startOffsetDays, 2)`.
-List<Credit> _buildDemoCredits() {
-  final carStart = toDateStr(DateTime.now().subtract(const Duration(days: 60)));
-  final car = LoanCredit(
-    id: 'demo-1',
-    name: 'Préstamo de Coche',
-    lender: 'Banco Santander',
-    color: '#ffffff',
-    location: 'Concesionario AutoMix',
-    card: 'Cuenta Débito Santander',
-    notes:
-        'Débito automático los 5 de cada mes. Cuenta corriente terminada en 4321.',
-    totalAmount: 12000,
-    quotaAmount: 500,
-    totalInstallments: 24,
-    frequency: CreditFrequency.monthly,
-    startDate: carStart,
-    interestRate: 4.5,
-    installments: buildLoanInstallments(
-      totalAmount: 12000,
-      totalInstallments: 24,
-      quotaAmount: 500,
-      frequency: CreditFrequency.monthly,
-      startDate: carStart,
-    ),
-  );
-  for (final inst in car.installments.take(2)) {
-    applyInstallmentPayment(inst, true);
-  }
-
-  final laptopStart = toDateStr(DateTime.now().subtract(const Duration(days: 28)));
-  final laptop = LoanCredit(
-    id: 'demo-2',
-    name: 'Compra de Laptop',
-    lender: 'Tienda Tech',
-    color: '#c084fc',
-    location: 'Tienda Tech Outlet',
-    card: 'Tarjeta Visa BBVA',
-    notes: 'Pago quincenal manual por transferencia.',
-    totalAmount: 1200,
-    quotaAmount: 200,
-    totalInstallments: 6,
-    frequency: CreditFrequency.biweekly,
-    startDate: laptopStart,
-    interestRate: 0,
-    installments: buildLoanInstallments(
-      totalAmount: 1200,
-      totalInstallments: 6,
-      quotaAmount: 200,
-      frequency: CreditFrequency.biweekly,
-      startDate: laptopStart,
-    ),
-  );
-  for (final inst in laptop.installments.take(2)) {
-    applyInstallmentPayment(inst, true);
-  }
-
-  return [car, laptop];
-}
 
 final creditsProvider = AsyncNotifierProvider<CreditsNotifier, List<Credit>>(
   CreditsNotifier.new,

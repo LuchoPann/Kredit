@@ -157,7 +157,7 @@ class _ResumenPanel extends StatelessWidget {
                   Text(
                     'TOTAL PAGADO',
                     style: TextStyle(
-                      fontSize: KreditTextSize.caption,
+                      fontSize: KreditTextSize.body,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.4,
                       color: kredit.textTertiary,
@@ -181,12 +181,12 @@ class _ResumenPanel extends StatelessWidget {
                     children: [
                       Text(
                         'Por pagar: ',
-                        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary),
+                        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
                       ),
                       Text(
                         formatCOP(totalOwed),
                         style: TextStyle(
-                          fontSize: KreditTextSize.caption,
+                          fontSize: KreditTextSize.body,
                           fontWeight: FontWeight.w700,
                           color: kredit.textPrimary,
                           fontFeatures: const [FontFeature.tabularFigures()],
@@ -267,7 +267,7 @@ class _StatChip extends StatelessWidget {
             label,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 10,
+              fontSize: KreditTextSize.body,
               fontWeight: FontWeight.w500,
               color: kredit.textTertiary,
               height: 1.3,
@@ -311,7 +311,7 @@ class _StatColumn extends StatelessWidget {
         Text(
           label.toUpperCase(),
           style: TextStyle(
-            fontSize: KreditTextSize.caption,
+            fontSize: KreditTextSize.body,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.6,
             color: kredit.textTertiary,
@@ -348,12 +348,12 @@ class _RiskCountPill extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.warning_amber_rounded, size: 14, color: color),
+            Icon(Icons.warning_amber_rounded, size: KreditIconSize.micro, color: color),
             const SizedBox(width: 4),
             Text(
               '${risks.length} ${risks.length == 1 ? 'riesgo' : 'riesgos'}',
               style: TextStyle(
-                fontSize: KreditTextSize.caption,
+                fontSize: KreditTextSize.body,
                 fontWeight: FontWeight.w800,
                 color: color,
               ),
@@ -379,7 +379,7 @@ class _GroupLabel extends StatelessWidget {
     return Text(
       text,
       style: TextStyle(
-        fontSize: KreditTextSize.caption,
+        fontSize: KreditTextSize.body,
         fontWeight: FontWeight.w700,
         letterSpacing: 1.2,
         color: kredit.textTertiary,
@@ -419,7 +419,7 @@ Widget _statsSectionHeader(
           padding: const EdgeInsets.only(left: 26),
           child: Text(
             subtitle,
-            style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+            style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
           ),
         ),
       ],
@@ -465,7 +465,7 @@ class _ErrorState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary),
+              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
             ),
             const SizedBox(height: 20),
             OutlinedButton.icon(
@@ -510,7 +510,7 @@ class _EmptyState extends StatelessWidget {
             Text(
               'Agrega créditos para ver tus estadísticas de deuda.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
             ),
           ],
         ),
@@ -557,7 +557,7 @@ class _FreedomCallout extends StatelessWidget {
                 Text(
                   'LIBRE DE DEUDAS EN',
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: KreditTextSize.body,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.0,
                     color: kredit.success,
@@ -575,7 +575,7 @@ class _FreedomCallout extends StatelessWidget {
                 ),
                 Text(
                   '· $months ${months == 1 ? 'mes' : 'meses'} desde hoy',
-                  style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary),
+                  style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
                 ),
               ],
             ),
@@ -614,15 +614,15 @@ class _PayoffTimeline extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('HOY', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: kredit.textTertiary, letterSpacing: 0.5)),
+                  Text('HOY', style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600, color: kredit.textTertiary, letterSpacing: 0.5)),
                   if (maxMonths > 3)
                     Text(
                       '${maxMonths ~/ 2} meses',
-                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: kredit.textTertiary, letterSpacing: 0.5),
+                      style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600, color: kredit.textTertiary, letterSpacing: 0.5),
                     ),
                   Text(
                     formatDate(toDateStr(latestEntry.endDate)),
-                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: kredit.textTertiary, letterSpacing: 0.5),
+                    style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600, color: kredit.textTertiary, letterSpacing: 0.5),
                   ),
                 ],
               ),
@@ -670,14 +670,14 @@ class _TimelineRow extends StatelessWidget {
             children: [
               Text(
                 entry.name,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                style: const TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 2),
               Text(
                 formatDate(toDateStr(entry.endDate)),
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
+                style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600, color: color),
               ),
             ],
           ),
@@ -732,7 +732,7 @@ class _LegendItem extends StatelessWidget {
         const SizedBox(width: 6),
         Text(
           label,
-          style: TextStyle(fontSize: 10, color: kredit.textTertiary),
+          style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
         ),
       ],
     );
@@ -800,7 +800,7 @@ class _MonthlyDebtChart extends StatelessWidget {
                       formatCOP(rod.toY),
                       TextStyle(
                         color: kredit.textPrimary,
-                        fontSize: KreditTextSize.caption,
+                        fontSize: KreditTextSize.body,
                         fontWeight: FontWeight.bold,
                       ),
                     );
@@ -821,7 +821,7 @@ class _MonthlyDebtChart extends StatelessWidget {
                         padding: const EdgeInsets.only(right: 4),
                         child: Text(
                           _fmtY(value),
-                          style: TextStyle(fontSize: 10, color: kredit.textTertiary),
+                          style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
                           textAlign: TextAlign.right,
                         ),
                       );
@@ -853,12 +853,12 @@ class _MonthlyDebtChart extends StatelessWidget {
                           children: [
                             Text(
                               key.label.split('\n').first,
-                              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+                              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
                             ),
                             if (showYear)
                               Text(
                                 key.label.split('\n').last,
-                                style: TextStyle(fontSize: 9, color: kredit.textTertiary.withValues(alpha: 0.55)),
+                                style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary.withValues(alpha: 0.55)),
                               ),
                           ],
                         ),
@@ -946,7 +946,7 @@ class _RiskRow extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   risk.description,
-                  style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary, height: 1.4),
+                  style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary, height: 1.4),
                 ),
               ],
             ),
@@ -986,7 +986,7 @@ class _InsightLine extends StatelessWidget {
         child: Text(
           text!,
           style: TextStyle(
-            fontSize: KreditTextSize.caption,
+            fontSize: KreditTextSize.body,
             color: kredit.textSecondary,
             height: 1.4,
           ),
@@ -1007,7 +1007,7 @@ class _InlineEmptyCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Text(
         text,
-        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
       ),
     );
   }
@@ -1097,7 +1097,7 @@ class _LenderBar extends StatelessWidget {
         Text(
           formatCOP(slice.amount),
           style: TextStyle(
-            fontSize: KreditTextSize.caption,
+            fontSize: KreditTextSize.body,
             color: kredit.textTertiary,
           ),
         ),
@@ -1156,7 +1156,7 @@ class _PayoffProjectionList extends StatelessWidget {
                             ? 'Termina este mes'
                             : 'Termina en ${entries[i].monthsFromNow} mes${entries[i].monthsFromNow == 1 ? '' : 'es'}',
                         style: TextStyle(
-                          fontSize: KreditTextSize.caption,
+                          fontSize: KreditTextSize.body,
                           color: _payoffUrgencyColor(kredit, entries[i].monthsFromNow),
                           fontWeight: entries[i].monthsFromNow <= 6 ? FontWeight.w600 : FontWeight.w400,
                         ),
@@ -1167,7 +1167,7 @@ class _PayoffProjectionList extends StatelessWidget {
                 const SizedBox(width: 10),
                 Text(
                   formatDate(toDateStr(entries[i].endDate)),
-                  style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+                  style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
                 ),
               ],
             ),

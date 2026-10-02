@@ -5,12 +5,12 @@ import '../../data/models/card_movement.dart';
 import '../../data/models/credit.dart';
 import '../../data/models/installment.dart';
 import '../../domain/card_calculator.dart';
-import '../../domain/credit_calculator.dart';
 import '../../domain/date_utils.dart';
 import '../../domain/loan_calculator.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../screens/stats/simulator_sheet.dart';
+import '../card_advance_sheet.dart';
 import '../card_movement_sheet.dart';
 import '../../utils/credit_display_utils.dart';
 import '../wallet_card.dart';
@@ -44,7 +44,6 @@ class SummaryTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final remaining = getCreditRemainingBalance(credit);
     final kredit = Theme.of(context).extension<KreditColors>()!;
 
     return ListView(
@@ -53,18 +52,12 @@ class SummaryTab extends ConsumerWidget {
       physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
       children: [
         WalletCard(credit: credit),
-        if (credit is! LoanCredit) ...[
+        if (credit is CardCredit) ...[
           const SizedBox(height: 16),
           Divider(height: 1, color: kredit.borderCard),
           const SizedBox(height: 16),
-          StatBox(
-            label: 'Pendiente',
-            value: formatCOP(remaining),
-            caption: 'Lo que falta por pagar',
-            icon: Icons.account_balance_wallet_outlined,
-            emphasized: true,
-          ),
-          const SizedBox(height: 18),
+          _CardCycleSummary(credit: credit as CardCredit),
+          const SizedBox(height: 16),
           Divider(height: 1, color: kredit.borderCard),
           const SizedBox(height: 16),
         ] else
@@ -123,7 +116,7 @@ class _LoanProgress extends StatelessWidget {
             Text(
               'PROGRESO DE AMORTIZACIÓN',
               style: TextStyle(
-                fontSize: KreditTextSize.caption,
+                fontSize: KreditTextSize.body,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.6,
                 color: kredit.textTertiary,
@@ -132,7 +125,7 @@ class _LoanProgress extends StatelessWidget {
             Text(
               '$paid de $total cuotas · ${(pct * 100).round()}%',
               style: TextStyle(
-                fontSize: KreditTextSize.caption,
+                fontSize: KreditTextSize.body,
                 fontWeight: FontWeight.w600,
                 color: kredit.textSecondary,
               ),
@@ -153,7 +146,7 @@ class _LoanProgress extends StatelessWidget {
         Text(
           '${formatCOP(paidAmount)} pagado de ${formatCOP(totalAmount)}',
           style: TextStyle(
-            fontSize: KreditTextSize.caption,
+            fontSize: KreditTextSize.body,
             color: kredit.textTertiary,
           ),
         ),
@@ -189,7 +182,7 @@ class _NextInstallmentCard extends ConsumerWidget {
             child: Text(
               'Crédito totalmente pagado. ¡Sin cuotas pendientes!',
               style: TextStyle(
-                fontSize: KreditTextSize.caption,
+                fontSize: KreditTextSize.body,
                 fontWeight: FontWeight.w600,
                 color: kredit.textPrimary,
               ),
@@ -224,7 +217,7 @@ class _NextInstallmentCard extends ConsumerWidget {
               Text(
                 'PRÓXIMA CUOTA · #${next.number}',
                 style: TextStyle(
-                  fontSize: KreditTextSize.caption,
+                  fontSize: KreditTextSize.body,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.6,
                   color: kredit.textTertiary,
@@ -244,7 +237,7 @@ class _NextInstallmentCard extends ConsumerWidget {
                 Text(
                   formatDate(next.dueDate),
                   style: TextStyle(
-                    fontSize: KreditTextSize.caption,
+                    fontSize: KreditTextSize.body,
                     color: kredit.textSecondary,
                   ),
                 ),
@@ -315,7 +308,7 @@ class _CardUtilization extends StatelessWidget {
           Text(
             'CUPO UTILIZADO',
             style: TextStyle(
-              fontSize: KreditTextSize.caption,
+              fontSize: KreditTextSize.body,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.6,
               color: kredit.textTertiary,
@@ -327,7 +320,7 @@ class _CardUtilization extends StatelessWidget {
                 ? '${formatCOP(used)} en saldo · límite no definido'
                 : 'Límite no definido para esta tarjeta.',
             style: TextStyle(
-              fontSize: KreditTextSize.caption,
+              fontSize: KreditTextSize.body,
               color: kredit.textTertiary,
             ),
           ),
@@ -351,7 +344,7 @@ class _CardUtilization extends StatelessWidget {
             Text(
               'CUPO UTILIZADO',
               style: TextStyle(
-                fontSize: KreditTextSize.caption,
+                fontSize: KreditTextSize.body,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.6,
                 color: kredit.textTertiary,
@@ -360,7 +353,7 @@ class _CardUtilization extends StatelessWidget {
             Text(
               '${(pct * 100).round()}%',
               style: TextStyle(
-                fontSize: KreditTextSize.caption,
+                fontSize: KreditTextSize.body,
                 fontWeight: FontWeight.w700,
                 color: isHigh ? accent : kredit.textSecondary,
               ),
@@ -381,11 +374,59 @@ class _CardUtilization extends StatelessWidget {
         Text(
           '${formatCOP(used)} usado de ${formatCOP(limit)} · ${formatCOP(available)} disponible',
           style: TextStyle(
-            fontSize: KreditTextSize.caption,
+            fontSize: KreditTextSize.body,
             color: kredit.textTertiary,
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Consumo del ciclo actual + días para fecha límite de pago — datos que
+/// no aparecen en la tarjeta visual y que el usuario necesita de un vistazo.
+const _monthsEs = [
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+];
+
+String _humanDate(DateTime d) =>
+    '${d.day} de ${_monthsEs[d.month - 1]} de ${d.year}';
+
+class _CardCycleSummary extends StatelessWidget {
+  final CardCredit credit;
+
+  const _CardCycleSummary({required this.credit});
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final dates = getCardCycleDates(credit);
+    final today = DateTime.now();
+    final due = dates.dueDate;
+    final daysUntilDue = due.difference(DateTime(today.year, today.month, today.day)).inDays;
+
+    String dueLabel;
+    Color dueColor = kredit.textPrimary;
+    if (daysUntilDue < 0) {
+      dueLabel = 'Vencido';
+      dueColor = Colors.red.shade400;
+    } else if (daysUntilDue == 0) {
+      dueLabel = 'Hoy';
+      dueColor = Colors.orange.shade400;
+    } else if (daysUntilDue == 1) {
+      dueLabel = 'Mañana';
+      dueColor = Colors.orange.shade300;
+    } else {
+      dueLabel = 'En $daysUntilDue días';
+    }
+
+    return StatBox(
+      label: 'Próximo vencimiento',
+      value: dueLabel,
+      caption: _humanDate(due),
+      icon: Icons.timer_outlined,
+      valueColor: dueColor,
     );
   }
 }
@@ -438,32 +479,45 @@ class _CardQuickActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = Theme.of(context).colorScheme.primary;
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () => CardMovementSheet.show(
-              context,
-              creditId: credit.id,
-              movementType: CardMovementType.charge,
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => CardMovementSheet.show(
+                  context,
+                  creditId: credit.id,
+                  movementType: CardMovementType.charge,
+                ),
+                icon: const Icon(Icons.arrow_upward, size: KreditIconSize.small),
+                label: const Text('Cargo/Compra'),
+              ),
             ),
-            icon: const Icon(Icons.arrow_upward, size: KreditIconSize.small),
-            label: const Text('Cargo/Compra'),
-          ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  foregroundColor: legibleForegroundOn(accent),
+                ),
+                onPressed: () => CardMovementSheet.show(
+                  context,
+                  creditId: credit.id,
+                  movementType: CardMovementType.payment,
+                ),
+                icon: const Icon(Icons.arrow_downward, size: KreditIconSize.small),
+                label: const Text('Registrar Pago'),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: FilledButton.icon(
-            style: FilledButton.styleFrom(
-              foregroundColor: legibleForegroundOn(accent),
-            ),
-            onPressed: () => CardMovementSheet.show(
-              context,
-              creditId: credit.id,
-              movementType: CardMovementType.payment,
-            ),
-            icon: const Icon(Icons.arrow_downward, size: KreditIconSize.small),
-            label: const Text('Registrar Pago'),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () => CardAdvanceSheet.show(context, credit: credit),
+            icon: const Icon(Icons.attach_money_outlined, size: KreditIconSize.small),
+            label: const Text('Registrar avance'),
           ),
         ),
       ],

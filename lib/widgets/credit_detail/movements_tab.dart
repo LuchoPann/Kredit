@@ -12,23 +12,40 @@ import '../../utils/credit_display_utils.dart';
 import 'stat_box.dart';
 
 const _monthsEs = [
-  'Enero',
-  'Febrero',
-  'Marzo',
-  'Abril',
-  'Mayo',
-  'Junio',
-  'Julio',
-  'Agosto',
-  'Septiembre',
-  'Octubre',
-  'Noviembre',
-  'Diciembre',
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
 ];
 
-/// Movement history grouped by calendar month — lets a cardholder answer
-/// "how much did I charge this month vs last" at a glance instead of
-/// scanning a flat chronological list.
+String _humanDate(DateTime d) =>
+    '${d.day} de ${_monthsEs[d.month - 1]} de ${d.year}';
+
+/// Returns the closing cutoff date (YYYY-MM-DD) of the billing cycle that
+/// contains [movementDate], given [cutoffDay]. Used to group movements by
+/// extracto instead of calendar month.
+///
+/// If the movement falls on or before [cutoffDay] of its month → the cycle
+/// closes on cutoffDay of that same month.
+/// If the movement falls after [cutoffDay] → the cycle closes on cutoffDay
+/// of the FOLLOWING month.
+String _cycleKeyFor(String movementDate, int cutoffDay) {
+  if (movementDate.length < 10) return movementDate;
+  final d = DateTime.tryParse(movementDate);
+  if (d == null) return movementDate;
+  final clampedCutoff = cutoffDay.clamp(1, 28);
+  DateTime cycleEnd;
+  if (d.day <= clampedCutoff) {
+    cycleEnd = DateTime(d.year, d.month, clampedCutoff);
+  } else {
+    final nextMonth = d.month == 12 ? 1 : d.month + 1;
+    final nextYear = d.month == 12 ? d.year + 1 : d.year;
+    cycleEnd = DateTime(nextYear, nextMonth, clampedCutoff);
+  }
+  return toDateStr(cycleEnd);
+}
+
+/// Movement history grouped by billing cycle (extracto) — each group shows
+/// what the cardholder owes for one statement period, mirroring how the bank
+/// presents the information.
 class MovementsTab extends ConsumerWidget {
   final CardCredit credit;
 
@@ -40,13 +57,16 @@ class MovementsTab extends ConsumerWidget {
     final dates = getCardCycleDates(credit);
     final movements = credit.movements.reversed.toList();
 
-    // Group by "YYYY-MM" of the movement date, preserving the
-    // most-recent-first order already established above.
+    // Group by billing cycle (extracto closing date), most-recent-first.
     final groups = <String, List<CardMovement>>{};
     for (final m in movements) {
-      final key = m.date.length >= 7 ? m.date.substring(0, 7) : m.date;
+      final key = _cycleKeyFor(m.date, credit.cutoffDay);
       groups.putIfAbsent(key, () => []).add(m);
     }
+
+    // Fecha de corte y fecha límite de pago en formato legible.
+    final nextCutoffLabel = _humanDate(dates.nextCutoff);
+    final dueDateLabel = _humanDate(dates.dueDate);
 
     return Column(
       children: [
@@ -54,30 +74,21 @@ class MovementsTab extends ConsumerWidget {
           padding: const EdgeInsets.all(KreditSpacing.card),
           child: Column(
             children: [
-              // Available limit is the number a cardholder scans for first —
-              // full-width hero tile, cutoff/due dates as supporting detail.
-              StatBox(
-                label: 'Límite Disponible',
-                value: formatCOP(getCardAvailableLimit(credit)),
-                icon: Icons.account_balance_wallet_outlined,
-                emphasized: true,
-              ),
-              const SizedBox(height: 10),
               Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: StatBox(
-                      label: 'Próxima Fecha de Corte',
-                      value: toDateStr(dates.nextCutoff),
+                      label: 'Fecha de corte',
+                      value: nextCutoffLabel,
                       icon: Icons.event_repeat,
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: StatBox(
-                      label: 'Fecha Límite de Pago',
-                      value: toDateStr(dates.dueDate),
+                      label: 'Límite de pago',
+                      value: dueDateLabel,
                       icon: Icons.event_available,
                     ),
                   ),
@@ -93,8 +104,8 @@ class MovementsTab extends ConsumerWidget {
                         creditId: credit.id,
                         movementType: CardMovementType.charge,
                       ),
-                      icon: const Icon(Icons.arrow_upward, size: KreditIconSize.small),
-                      label: const Text('Cargo/Compra'),
+                      icon: const Icon(Icons.shopping_bag_outlined, size: KreditIconSize.small),
+                      label: const Text('Nueva compra'),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -109,8 +120,8 @@ class MovementsTab extends ConsumerWidget {
                         creditId: credit.id,
                         movementType: CardMovementType.payment,
                       ),
-                      icon: const Icon(Icons.arrow_downward, size: KreditIconSize.small),
-                      label: const Text('Registrar Pago'),
+                      icon: const Icon(Icons.payments_outlined, size: KreditIconSize.small),
+                      label: const Text('Pagar tarjeta'),
                     ),
                   ),
                 ],
@@ -158,7 +169,7 @@ class MovementsTab extends ConsumerWidget {
                           'Los cargos y pagos que registres aparecerán aquí.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: KreditTextSize.caption,
+                            fontSize: KreditTextSize.body,
                             color: kredit.textTertiary,
                           ),
                         ),
@@ -169,12 +180,15 @@ class MovementsTab extends ConsumerWidget {
               : ListView(
                   padding: const EdgeInsets.all(KreditSpacing.card),
                   children: [
-                    for (final entry in groups.entries)
-                      _MonthGroup(
+                    for (var i = 0; i < groups.entries.length; i++)
+                      _CycleGroup(
                         creditId: credit.id,
-                        monthKey: entry.key,
-                        movements: entry.value,
+                        cycleEndDate: groups.keys.elementAt(i),
+                        cutoffDay: credit.cutoffDay,
+                        movements: groups.values.elementAt(i),
                         allMovements: credit.movements,
+                        collapsible: groups.length > 1,
+                        initiallyExpanded: i == 0,
                       ),
                   ],
                 ),
@@ -184,82 +198,173 @@ class MovementsTab extends ConsumerWidget {
   }
 }
 
-class _MonthGroup extends StatelessWidget {
+/// Builds a human-readable "6 Sep – 5 Oct" range label for a billing cycle
+/// that ends on [cycleEnd], given [cutoffDay].
+String _cycleRangeLabel(DateTime cycleEnd, int cutoffDay) {
+  final clampedCutoff = cutoffDay.clamp(1, 28);
+  // Cycle start = day after cutoffDay of the previous month.
+  final prevMonth = cycleEnd.month == 1 ? 12 : cycleEnd.month - 1;
+  final prevYear = cycleEnd.month == 1 ? cycleEnd.year - 1 : cycleEnd.year;
+  final startDay = clampedCutoff + 1;
+  final startMonthLabel = _monthsEs[(prevMonth - 1).clamp(0, 11)];
+  final endMonthLabel = _monthsEs[(cycleEnd.month - 1).clamp(0, 11)];
+  // If both sides fall in the same month label, use short form.
+  if (prevMonth == cycleEnd.month && prevYear == cycleEnd.year) {
+    return '$startDay–$clampedCutoff $endMonthLabel ${cycleEnd.year}';
+  }
+  return '$startDay $startMonthLabel – $clampedCutoff $endMonthLabel ${cycleEnd.year}';
+}
+
+class _CycleGroup extends StatefulWidget {
   final String creditId;
-  final String monthKey; // "YYYY-MM"
+  final String cycleEndDate; // "YYYY-MM-DD" of the cycle's closing cutoff
+  final int cutoffDay;
   final List<CardMovement> movements;
   final List<CardMovement> allMovements;
+  final bool collapsible;
+  final bool initiallyExpanded;
 
-  const _MonthGroup({
+  const _CycleGroup({
     required this.creditId,
-    required this.monthKey,
+    required this.cycleEndDate,
+    required this.cutoffDay,
     required this.movements,
     required this.allMovements,
+    this.collapsible = false,
+    this.initiallyExpanded = true,
   });
+
+  @override
+  State<_CycleGroup> createState() => _CycleGroupState();
+}
+
+class _CycleGroupState extends State<_CycleGroup> {
+  late bool _expanded;
+
+  @override
+  void initState() {
+    super.initState();
+    _expanded = widget.initiallyExpanded;
+  }
 
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
-    final parts = monthKey.split('-').map(int.tryParse).toList();
-    final label = parts.length == 2 && parts[0] != null && parts[1] != null
-        ? '${_monthsEs[(parts[1]! - 1).clamp(0, 11)]} ${parts[0]}'
-        : monthKey;
-    final charged = movements
+    final accent = Theme.of(context).colorScheme.primary;
+    final cycleEnd = DateTime.tryParse(widget.cycleEndDate);
+    final label = cycleEnd != null
+        ? _cycleRangeLabel(cycleEnd, widget.cutoffDay)
+        : widget.cycleEndDate;
+
+    final charges = widget.movements
         .where((m) => m.type != CardMovementType.payment)
         .fold(0.0, (s, m) => s + m.amount);
-    final paid = movements
+    final payments = widget.movements
         .where((m) => m.type == CardMovementType.payment)
         .fold(0.0, (s, m) => s + m.amount);
+    final net = charges - payments;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.only(bottom: 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Row(
-              children: [
-                Text(
-                  label.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: KreditTextSize.caption,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.6,
-                    color: kredit.textSecondary,
-                  ),
-                ),
-                const Spacer(),
-                if (charged > 0)
-                  Text(
-                    '+${formatCOP(charged)}',
-                    style: TextStyle(
-                      fontSize: KreditTextSize.caption,
-                      fontWeight: FontWeight.w700,
-                      color: kredit.textPrimary,
+          // ── Extracto header ───────────────────────────────────────────────
+          GestureDetector(
+            onTap: widget.collapsible
+                ? () => setState(() => _expanded = !_expanded)
+                : null,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: kredit.bgCard,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.receipt_long_outlined,
+                      size: KreditIconSize.small, color: kredit.textTertiary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'EXTRACTO',
+                          style: TextStyle(
+                            fontSize: KreditTextSize.body,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.6,
+                            color: kredit.textTertiary,
+                          ),
+                        ),
+                        Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: KreditTextSize.body,
+                            fontWeight: FontWeight.w600,
+                            color: kredit.textSecondary,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                if (charged > 0 && paid > 0) const SizedBox(width: 8),
-                if (paid > 0)
-                  Text(
-                    '-${formatCOP(paid)}',
-                    style: TextStyle(
-                      fontSize: KreditTextSize.caption,
-                      fontWeight: FontWeight.w700,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (charges > 0)
+                        Text(
+                          formatCOP(charges),
+                          style: TextStyle(
+                            fontSize: KreditTextSize.heading,
+                            fontWeight: FontWeight.w800,
+                            color: kredit.textPrimary,
+                          ),
+                        ),
+                      if (payments > 0)
+                        Text(
+                          '–${formatCOP(payments)}',
+                          style: TextStyle(
+                            fontSize: KreditTextSize.body,
+                            fontWeight: FontWeight.w600,
+                            color: accent,
+                          ),
+                        ),
+                      if (charges > 0 && payments > 0)
+                        Text(
+                          'Neto: ${formatCOP(net.abs())}',
+                          style: TextStyle(
+                            fontSize: KreditTextSize.body,
+                            color: kredit.textTertiary,
+                          ),
+                        ),
+                    ],
                   ),
-              ],
+                  if (widget.collapsible) ...[
+                    const SizedBox(width: 8),
+                    AnimatedRotation(
+                      turns: _expanded ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Icon(Icons.expand_more,
+                          size: KreditIconSize.small, color: kredit.textTertiary),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
-          for (var i = 0; i < movements.length; i++) ...[
-            _MovementTile(
-              creditId: creditId,
-              movement: movements[i],
-              movementIndex: allMovements.indexOf(movements[i]),
-            ),
-            if (i != movements.length - 1)
-              Divider(height: 1, color: kredit.borderCard),
+          // ── Movement rows ─────────────────────────────────────────────────
+          if (_expanded) ...[
+            const SizedBox(height: 6),
+            for (var i = 0; i < widget.movements.length; i++) ...[
+              _MovementTile(
+                creditId: widget.creditId,
+                movement: widget.movements[i],
+                movementIndex: widget.allMovements.indexOf(widget.movements[i]),
+              ),
+              if (i != widget.movements.length - 1)
+                Divider(height: 1, color: kredit.borderCard),
+            ],
           ],
         ],
       ),
@@ -362,7 +467,7 @@ class _MovementTile extends ConsumerWidget {
                 const SizedBox(height: 2),
                 Text(
                   m.note.isNotEmpty ? m.note : formatDate(m.date),
-                  style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary),
+                  style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

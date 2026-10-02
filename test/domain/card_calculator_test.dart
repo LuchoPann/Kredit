@@ -56,6 +56,71 @@ void main() {
       expect(dates.lastCutoff, DateTime(2026, 2, 15));
       expect(dates.nextCutoff, DateTime(2026, 3, 15));
     });
+
+    group('paymentDueDay', () {
+      test('uses paymentDueDay when > 0, ignores paymentDueOffsetDays', () {
+        // corte día 15, pago día 5 del mes siguiente
+        final credit = CardCredit(
+          id: 'c1', name: 'T', lender: 'B',
+          cutoffDay: 15,
+          paymentDueDay: 5,
+          paymentDueOffsetDays: 999, // debe ser ignorado
+        );
+        // ref 2026-09-20: último corte fue sep 15 → pago oct 5
+        final dates = getCardCycleDates(credit, DateTime(2026, 9, 20));
+        expect(dates.dueDate, DateTime(2026, 10, 5));
+      });
+
+      test('falls back to paymentDueOffsetDays when paymentDueDay == 0', () {
+        final credit = CardCredit(
+          id: 'c2', name: 'T', lender: 'B',
+          cutoffDay: 15,
+          paymentDueDay: 0, // no migrado
+          paymentDueOffsetDays: 20,
+        );
+        // ref 2026-09-20: último corte sep 15 + 20 días = oct 5
+        final dates = getCardCycleDates(credit, DateTime(2026, 9, 20));
+        expect(dates.dueDate, DateTime(2026, 10, 5));
+      });
+
+      test('paymentDueDay handles month wrap (día 5 del mes siguiente al corte)', () {
+        final credit = CardCredit(
+          id: 'c3', name: 'T', lender: 'B',
+          cutoffDay: 28,
+          paymentDueDay: 5,
+          paymentDueOffsetDays: 0,
+        );
+        // ref 2026-09-30: último corte sep 28 → pago oct 5
+        final dates = getCardCycleDates(credit, DateTime(2026, 9, 30));
+        expect(dates.dueDate, DateTime(2026, 10, 5));
+      });
+
+      test('paymentDueDay clamps to last day of month (día 31 en mes de 30 días)', () {
+        final credit = CardCredit(
+          id: 'c4', name: 'T', lender: 'B',
+          cutoffDay: 1,
+          paymentDueDay: 31,
+          paymentDueOffsetDays: 0,
+        );
+        // ref 2026-09-05: último corte sep 1 → pago en oct → oct tiene 31 días → oct 31
+        final dates = getCardCycleDates(credit, DateTime(2026, 9, 5));
+        expect(dates.dueDate, DateTime(2026, 10, 31));
+      });
+
+      test('paymentDueDay 31 in month of 30 days clamps to 30', () {
+        final credit = CardCredit(
+          id: 'c5', name: 'T', lender: 'B',
+          cutoffDay: 1,
+          paymentDueDay: 31,
+          paymentDueOffsetDays: 0,
+        );
+        // ref 2026-04-05: último corte abr 1 → pago en mayo → mayo tiene 31 → mayo 31
+        // Pero si último corte fuera mar 1 → pago abr → abr tiene 30 → abr 30
+        final dates = getCardCycleDates(credit, DateTime(2026, 3, 5));
+        // último corte fue mar 1, pago es abr que tiene 30 días → abr 30
+        expect(dates.dueDate, DateTime(2026, 4, 30));
+      });
+    });
   });
 
   group('accrueCardCredit', () {

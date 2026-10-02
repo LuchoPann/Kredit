@@ -81,42 +81,44 @@ class KreditRadius {
 /// [hero] is the single documented exception: the dashboard's one-off
 /// giant balance numeral is a numeral/logotype treatment, not a step in
 /// the reading hierarchy, so it isn't counted among the four.
+/// Four-level type scale for Kredit. Every text element uses one of these
+/// four roles. The only exception is the 28px numeral in the billing-cycle
+/// timeline (day-of-cut / payment-limit indicator), which is hardcoded at
+/// its call site because it is a one-off display treatment, not a role.
 class KreditTextSize {
-  /// Step 1 — smallest: uppercase section eyebrows/labels (e.g. "MONTO Y
-  /// CUOTA"), hint text, contextual help/notes, row subtitles/metadata,
-  /// tiny badges/counters.
-  static const caption = 13.0;
-
-  /// Step 2 — default "normal" text: list-row titles, most body copy,
-  /// sub-section titles.
+  /// Default for all body copy, section info, labels, eyebrows, metadata,
+  /// chart ticks, hints, and any text that is not a title or a number.
   static const body = 14.0;
 
-  /// Step 3 — section titles at the screen level (e.g. "Próximos pagos",
-  /// "Tus créditos"), stat-tile figures, and what a user actually types
-  /// into a form field (see `bodyLarge` below) — digits and typed text
-  /// need to read clearly while entering/editing a credit, not just at
-  /// the smaller `body` size everything else uses.
-  static const heading = 18.0;
+  /// Subtitles, secondary headings, prominent labels — one step above body.
+  static const heading = 16.0;
 
-  /// Step 4 — largest of the four: second-level highlighted figures
-  /// (dialog confirmation amounts, larger stat call-outs).
+  /// Screen-level titles: greeting headers ("Buenos días, Usuario"),
+  /// view titles, stat call-outs that need prominence.
   static const emphasis = 24.0;
 
-  /// Exception, not part of the 4-step hierarchy above: the dashboard's
-  /// hero balance figure ("DEUDA TOTAL") — a one-off numeral treatment.
+  /// Large display numerals: dashboard total-debt hero figure and other
+  /// big stat treatments where the number IS the message.
   static const hero = 38.0;
 }
 
 /// Exactly two icon sizes for the whole app (the `KreditLogo` brand mark is
 /// the one deliberate exception, sized per its own context) — same
 /// "small fixed set of named roles" rationale as [KreditTextSize].
+/// Four-level icon scale matching the text scale. Every Icon size uses one
+/// of these tokens — no bare numeric size literals anywhere in the app.
 class KreditIconSize {
-  /// Inline/dense icons: section-header glyphs, row leading icons, button
-  /// icons, badges — the vast majority of icons in the app.
+  /// Micro: inline status indicators, tiny badge decorations, dense chips.
+  static const micro = 14.0;
+
+  /// Small: section-header glyphs, row leading icons, button icons —
+  /// the default for the vast majority of icons in the app.
   static const small = 18.0;
 
-  /// Prominent icons: empty-state/error placeholders (the single icon that
-  /// anchors a whole empty screen).
+  /// Medium: selection chips, prominent action icons, card decorators.
+  static const medium = 22.0;
+
+  /// Large: empty-state/error placeholders, full-screen hero icons.
   static const large = 48.0;
 }
 
@@ -481,47 +483,45 @@ ThemeData buildAppTheme({
       ),
       // Material's own default style for TextField/DropdownButtonFormField
       // input text (and nothing else — no other widget in this app reads
-      // bodyLarge, see the KreditTextSize.heading doc above). Bumped to
-      // the same size as a section heading: at 15 it read noticeably
-      // smaller than the rest of the UI, especially for the digits typed
-      // while editing or creating a credit.
+      // bodyLarge). Set to body (14px) for consistency: all input fields
+      // use the same size, matching the standard body token.
       bodyLarge: const TextStyle(
         fontFamily: 'Outfit',
         fontWeight: FontWeight.w500,
-        fontSize: KreditTextSize.heading,
+        fontSize: KreditTextSize.body,
         height: 1.3,
       ),
       bodyMedium: TextStyle(
         fontFamily: 'Outfit',
         fontWeight: FontWeight.w400,
-        fontSize: 13.5,
+        fontSize: KreditTextSize.body,
         height: 1.35,
         color: textSecondary,
       ),
       bodySmall: TextStyle(
         fontFamily: 'Outfit',
         fontWeight: FontWeight.w400,
-        fontSize: 12,
+        fontSize: KreditTextSize.body,
         height: 1.3,
         color: textTertiary,
       ),
       labelLarge: const TextStyle(
         fontFamily: 'Outfit',
         fontWeight: FontWeight.w700,
-        fontSize: 13.5,
+        fontSize: KreditTextSize.body,
         letterSpacing: 0.4,
       ),
       labelMedium: TextStyle(
         fontFamily: 'Outfit',
         fontWeight: FontWeight.w600,
-        fontSize: 11.5,
+        fontSize: KreditTextSize.body,
         letterSpacing: 0.6,
         color: textSecondary,
       ),
       labelSmall: TextStyle(
         fontFamily: 'Outfit',
         fontWeight: FontWeight.w600,
-        fontSize: 10.5,
+        fontSize: KreditTextSize.body,
         letterSpacing: 1.1,
         color: textTertiary,
       ),
@@ -539,7 +539,7 @@ ThemeData buildAppTheme({
       elevation: 0,
       titleTextStyle: TextStyle(
         fontFamily: 'SpaceGrotesk',
-        fontSize: 20,
+        fontSize: KreditTextSize.emphasis,
         fontWeight: FontWeight.w700,
         color: textPrimary,
       ),

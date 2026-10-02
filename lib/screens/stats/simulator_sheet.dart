@@ -135,7 +135,7 @@ class _SimulatorSheetState extends ConsumerState<SimulatorSheet>
             padding: const EdgeInsets.only(left: 52, right: 20),
             child: Text(
               '¿Qué pasaría si…? Resultados aproximados.',
-              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
             ),
           ),
           const SizedBox(height: 12),
@@ -256,7 +256,7 @@ class _PurchaseTabState extends State<_PurchaseTab> {
           Text('¿Con qué tarjeta harías la compra?',
               style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  fontSize: KreditTextSize.caption,
+                  fontSize: KreditTextSize.body,
                   color: kredit.textPrimary)),
           const SizedBox(height: 8),
           DropdownButtonFormField<CardCredit>(
@@ -280,7 +280,7 @@ class _PurchaseTabState extends State<_PurchaseTab> {
           Text('¿Cuánto vale la compra?',
               style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  fontSize: KreditTextSize.caption,
+                  fontSize: KreditTextSize.body,
                   color: kredit.textPrimary)),
           const SizedBox(height: 8),
           Row(
@@ -448,10 +448,10 @@ class _UtilizationBar extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text('Utilización del cupo',
-                style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary)),
+                style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary)),
             Text('${pct.toStringAsFixed(1)}%',
                 style: TextStyle(
-                    fontSize: KreditTextSize.caption,
+                    fontSize: KreditTextSize.body,
                     fontWeight: FontWeight.w700,
                     color: barColor)),
           ],
@@ -664,7 +664,7 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
         Text('¿A qué crédito harías el abono?',
             style: TextStyle(
                 fontWeight: FontWeight.w600,
-                fontSize: KreditTextSize.caption,
+                fontSize: KreditTextSize.body,
                 color: kredit.textPrimary)),
         const SizedBox(height: 8),
         DropdownButtonFormField<Credit>(
@@ -693,7 +693,7 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
         Text('¿Cuánto abonarías?',
             style: TextStyle(
                 fontWeight: FontWeight.w600,
-                fontSize: KreditTextSize.caption,
+                fontSize: KreditTextSize.body,
                 color: kredit.textPrimary)),
         const SizedBox(height: 8),
         TextFormField(
@@ -856,7 +856,7 @@ class _ThreeScenariosCard extends StatelessWidget {
           'Compara tus 3 opciones',
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            fontSize: KreditTextSize.caption,
+            fontSize: KreditTextSize.body,
             color: kredit.textPrimary,
           ),
         ),
@@ -954,7 +954,7 @@ class _ScenarioTile extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   description,
-                  style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary, height: 1.4),
+                  style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary, height: 1.4),
                 ),
               ],
             ),
@@ -984,7 +984,7 @@ class _ScenarioComparisonTable extends StatelessWidget {
           'Comparar escenarios de esta sesión',
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            fontSize: KreditTextSize.caption,
+            fontSize: KreditTextSize.body,
             color: kredit.textPrimary,
           ),
         ),
@@ -1012,7 +1012,7 @@ class _ScenarioComparisonTable extends StatelessWidget {
                         child: Text(
                           _fmtCOP(scenarios[i].extraPayment),
                           style: TextStyle(
-                            fontSize: KreditTextSize.caption,
+                            fontSize: KreditTextSize.body,
                             fontWeight: i == 0 ? FontWeight.w700 : FontWeight.w500,
                             color: kredit.textPrimary,
                           ),
@@ -1024,7 +1024,7 @@ class _ScenarioComparisonTable extends StatelessWidget {
                           scenarios[i].isCard
                               ? '${scenarios[i].monthsToPayoff} mes(es) para saldar'
                               : '${scenarios[i].quotasSkipped} cuota(s) adelantadas',
-                          style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary),
+                          style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
                         ),
                       ),
                       Expanded(
@@ -1035,7 +1035,7 @@ class _ScenarioComparisonTable extends StatelessWidget {
                               : '${_fmtCOP(scenarios[i].interestSaving)} ahorrados',
                           textAlign: TextAlign.right,
                           style: TextStyle(
-                            fontSize: KreditTextSize.caption,
+                            fontSize: KreditTextSize.body,
                             fontWeight: FontWeight.w600,
                             color: kredit.success,
                           ),
@@ -1202,7 +1202,7 @@ class _PaymentResultCardState extends ConsumerState<_PaymentResultCard> {
                 child: Text(
                   '¡Con este abono saldarías por completo este crédito!',
                   style: TextStyle(
-                      fontSize: KreditTextSize.caption,
+                      fontSize: KreditTextSize.body,
                       color: kredit.textPrimary,
                       fontWeight: FontWeight.w600),
                 ),
@@ -1224,7 +1224,7 @@ class _PaymentResultCardState extends ConsumerState<_PaymentResultCard> {
         const SizedBox(height: 6),
         Text(
           'Esto aplicará el abono real de forma permanente sobre ${result.creditName}.',
-          style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+          style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
         ),
       ],
     );
@@ -1276,7 +1276,7 @@ class _ResultRow extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: Text(label,
-              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary)),
+              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary)),
         ),
         Text(
           value,
@@ -1307,7 +1307,7 @@ class _WarningBanner extends StatelessWidget {
           child: Text(
             text,
             style: const TextStyle(
-              fontSize: KreditTextSize.caption,
+              fontSize: KreditTextSize.body,
               fontWeight: FontWeight.w600,
               color: AppColors.warning,
             ),
@@ -1336,7 +1336,7 @@ class _InfoBanner extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: Text(text,
-              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary)),
+              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary)),
         ),
       ],
     );
@@ -1358,7 +1358,7 @@ class _DisclaimerBanner extends StatelessWidget {
           child: Text(
             'Simulación aproximada con base en los datos registrados. '
             'Consulta con tu entidad financiera para información oficial.',
-            style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+            style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
           ),
         ),
       ],

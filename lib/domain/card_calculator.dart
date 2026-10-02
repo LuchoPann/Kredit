@@ -53,8 +53,21 @@ CardCycleDates getCardCycleDates(CardCredit credit, [DateTime? refDate]) {
   final nextCutoff =
       cutoffDateForMonth(nextMonthRef.year, nextMonthRef.month, cutoffDay);
 
-  final offset = credit.paymentDueOffsetDays;
-  final dueDate = lastCutoff.add(Duration(days: offset));
+  final DateTime dueDate;
+  if (credit.paymentDueDay > 0) {
+    // paymentDueDay es un día del mes: el vencimiento cae ese día en el mes
+    // siguiente al último corte (ej: corte sep 15 → pago oct 5).
+    final dueMonth = DateTime(lastCutoff.year, lastCutoff.month + 1, 1);
+    final lastDayOfDueMonth = _lastDayOfMonth(dueMonth.year, dueMonth.month);
+    dueDate = DateTime(
+      dueMonth.year,
+      dueMonth.month,
+      math.min(credit.paymentDueDay, lastDayOfDueMonth),
+    );
+  } else {
+    // Fallback para registros no migrados: offset en días desde el último corte.
+    dueDate = lastCutoff.add(Duration(days: credit.paymentDueOffsetDays));
+  }
 
   return CardCycleDates(
     lastCutoff: lastCutoff,

@@ -98,7 +98,7 @@ class _ErrorState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary),
+              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
             ),
             const SizedBox(height: 20),
             OutlinedButton.icon(
@@ -161,7 +161,7 @@ class _CreditsListBodyState extends ConsumerState<_CreditsListBody>
                   controller: _searchController,
                   decoration: InputDecoration(
                     hintText: 'Buscar crédito, banco...',
-                    hintStyle: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+                    hintStyle: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
                     prefixIcon: Icon(Icons.search, size: KreditIconSize.small, color: kredit.textSecondary),
                     suffixIcon: filter.query.isNotEmpty
                         ? IconButton(
@@ -356,7 +356,7 @@ class _QuickFilterChip extends StatelessWidget {
         selected: selected,
         onSelected: (_) => onTap(),
         labelStyle: TextStyle(
-          fontSize: KreditTextSize.caption,
+          fontSize: KreditTextSize.body,
           fontWeight: FontWeight.w700,
           color: selected ? legibleForegroundOn(accent) : kredit.textSecondary,
         ),
@@ -373,7 +373,7 @@ class _QuickFilterChip extends StatelessWidget {
   }
 }
 
-class _FilteredList extends ConsumerWidget {
+class _FilteredList extends ConsumerStatefulWidget {
   final List<Credit> credits;
   final CreditsFilterState filter;
   final String emptyText;
@@ -390,7 +390,28 @@ class _FilteredList extends ConsumerWidget {
     this.showCommercialQuotas = false,
   });
 
+  @override
+  ConsumerState<_FilteredList> createState() => _FilteredListState();
+}
+
+class _FilteredListState extends ConsumerState<_FilteredList> {
+  List<Credit>? _cached;
+  List<Credit>? _lastCredits;
+  CreditsFilterState? _lastFilter;
+
   List<Credit> _apply() {
+    final credits = widget.credits;
+    final filter = widget.filter;
+    if (identical(_lastCredits, credits) && _lastFilter == filter && _cached != null) {
+      return _cached!;
+    }
+    _lastCredits = credits;
+    _lastFilter = filter;
+    _cached = _compute(credits, filter);
+    return _cached!;
+  }
+
+  List<Credit> _compute(List<Credit> credits, CreditsFilterState filter) {
     var result = credits;
     final query = filter.query.trim().toLowerCase();
     if (query.isNotEmpty) {
@@ -409,7 +430,7 @@ class _FilteredList extends ConsumerWidget {
       }).toList();
     }
 
-    result = result.where(_matchesQuickFilter).toList();
+    result = result.where((c) => _matchesQuickFilter(c, filter)).toList();
 
     final sorted = [...result];
     switch (filter.sort) {
@@ -456,7 +477,7 @@ class _FilteredList extends ConsumerWidget {
     return sorted;
   }
 
-  bool _matchesQuickFilter(Credit credit) {
+  bool _matchesQuickFilter(Credit credit, CreditsFilterState filter) {
     switch (filter.quickFilter) {
       case CreditsQuickFilter.all:
         return true;
@@ -532,10 +553,10 @@ class _FilteredList extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
     final list = _apply();
-    final quotas = showCommercialQuotas
+    final quotas = widget.showCommercialQuotas
         ? ref.watch(commercialQuotasProvider).valueOrNull ??
             const <CommercialQuota>[]
         : const <CommercialQuota>[];
@@ -551,7 +572,7 @@ class _FilteredList extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                emptyText,
+                widget.emptyText,
                 style: TextStyle(
                   fontSize: KreditTextSize.body,
                   fontWeight: FontWeight.w600,
@@ -569,7 +590,7 @@ class _FilteredList extends ConsumerWidget {
                   const SizedBox(width: 4),
                   Text(
                     'Tus datos permanecen en tu dispositivo',
-                    style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+                    style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
                   ),
                 ],
               ),
@@ -774,7 +795,7 @@ class _CreditWalletListItemState extends State<_CreditWalletListItem> {
           // con un radio uniforme por encima anulaba esa forma específica.
           child: Column(
             children: [
-              WalletCard(credit: widget.credit),
+              RepaintBoundary(child: WalletCard(credit: widget.credit)),
               _CreditComparisonStrip(credit: widget.credit),
             ],
           ),
@@ -822,7 +843,7 @@ class _CreditComparisonStrip extends StatelessWidget {
                 child: Text(
                   label.toUpperCase(),
                   style: TextStyle(
-                    fontSize: KreditTextSize.caption,
+                    fontSize: KreditTextSize.body,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.5,
                     color: kredit.textTertiary,
@@ -832,7 +853,7 @@ class _CreditComparisonStrip extends StatelessWidget {
               Text(
                 detail,
                 style: TextStyle(
-                  fontSize: KreditTextSize.caption,
+                  fontSize: KreditTextSize.body,
                   fontWeight: FontWeight.w800,
                   color: accent,
                   fontFeatures: const [FontFeature.tabularFigures()],

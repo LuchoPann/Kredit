@@ -12,6 +12,7 @@ import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/stats/stats_screen.dart';
 import 'widgets/kredit_logo.dart';
 import 'providers/app_lock_provider.dart';
+import 'data/models/credit.dart';
 import 'providers/credits_provider.dart';
 import 'providers/navigation_provider.dart';
 import 'providers/notification_settings_provider.dart';
@@ -62,7 +63,9 @@ class MyApp extends ConsumerWidget {
       ],
       supportedLocales: const [Locale('es', 'CO'), Locale('es')],
       locale: const Locale('es', 'CO'),
-      home: const SplashScreen(child: AppLockGate()),
+      home: const bool.fromEnvironment('INTEGRATION_TEST')
+          ? AppLockGate()
+          : SplashScreen(child: AppLockGate()),
       // Named routes for detail/creation modal views. '/credit-detail' expects
       // the credit id as a String route argument.
       onGenerateRoute: (settings) {
@@ -116,8 +119,10 @@ class _AppLockGateState extends ConsumerState<AppLockGate> {
     final isLocked = ref.watch(appLockProvider).isLocked;
     final shown = ref.watch(onboardingProvider);
 
-    if (isLocked) return const LockScreen();
-    return shown ? const RootScaffold() : const WelcomeScreen();
+    const bool kIntegrationTest = bool.fromEnvironment('INTEGRATION_TEST');
+    if (isLocked && !kIntegrationTest) return const LockScreen();
+    if (!shown && !kIntegrationTest) return const WelcomeScreen();
+    return const RootScaffold();
   }
 }
 
@@ -152,7 +157,30 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _syncNotifications());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncNotifications();
+      // Listeners registered once here instead of inside build() — avoids
+      // re-registering on every rebuild (Riverpod still deduplicates but
+      // registering in initState is zero-cost on subsequent builds).
+      ref.listen(navigationIndexProvider, (_, next) {
+        if (!_visited.contains(next)) setState(() => _visited.add(next));
+      });
+      // Single creditsProvider listener: syncs both notifications AND the
+      // home-screen widget so there is no double-subscription.
+      ref.listen(creditsProvider, (_, next) {
+        final credits = next.value;
+        if (credits == null) return;
+        _rescheduleNotifications(credits);
+        _syncHomeWidget(credits);
+      });
+      ref.listen(notificationSettingsProvider, (_, __) {
+        final credits = ref.read(creditsProvider).value;
+        if (credits == null) return;
+        _rescheduleNotifications(credits);
+      });
+      ref.listen(widgetPrivacyProvider, (_, __) => _syncHomeWidget());
+      ref.listen(themePreferencesProvider, (_, __) => _syncHomeWidget());
+    });
   }
 
   Future<void> _syncNotifications() async {
@@ -161,82 +189,35 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
     if (!mounted) return;
     final settings = ref.read(notificationSettingsProvider);
     final credits = ref.read(creditsProvider).value ?? [];
-    if (settings.enabled) {
-      await service.rescheduleAll(
-        credits,
-        settings.daysBefore,
-        time: settings.reminderTime,
-        repeatDaily: settings.repeatDaily,
-      );
+    _rescheduleNotifications(credits);
+  }
+
+  void _rescheduleNotifications(List<Credit> credits) {
+    final s = ref.read(notificationSettingsProvider);
+    final service = ref.read(notificationServiceProvider);
+    if (s.enabled) {
+      service.rescheduleAll(credits, s.daysBefore, time: s.reminderTime, repeatDaily: s.repeatDaily);
     } else {
-      await service.rescheduleAll(const [], settings.daysBefore);
+      service.rescheduleAll(const [], s.daysBefore);
     }
+  }
+
+  // Home screen widget (Android): keep the total-debt/next-payment tile in
+  // sync with the credit list, independent of the notification listener
+  // above. See services/home_widget_service.dart. The widget is visible
+  // without unlocking the app, so whether real amounts are shown is
+  // gated by `widgetPrivacyProvider` (default: hidden).
+  void _syncHomeWidget([List<Credit>? credits]) {
+    final c = credits ?? ref.read(creditsProvider).value;
+    if (c == null) return;
+    final showAmounts = ref.read(widgetPrivacyProvider);
+    final themePrefs = ref.read(themePreferencesProvider);
+    updateHomeWidget(c, showAmounts: showAmounts, accentColor: themePrefs.accentColor, bgTone: themePrefs.bgTone);
   }
 
   @override
   Widget build(BuildContext context) {
     final activeIndex = ref.watch(navigationIndexProvider);
-
-    // Ensure programmatic tab switches (e.g. dashboard "Ver todos" button) also
-    // lazily mount the target screen, just like bottom-nav taps do.
-    ref.listen(navigationIndexProvider, (_, next) {
-      if (!_visited.contains(next)) setState(() => _visited.add(next));
-    });
-
-    ref.listen(creditsProvider, (previous, next) {
-      final credits = next.value;
-      if (credits == null) return;
-      final settings = ref.read(notificationSettingsProvider);
-      final service = ref.read(notificationServiceProvider);
-      if (settings.enabled) {
-        service.rescheduleAll(
-          credits,
-          settings.daysBefore,
-          time: settings.reminderTime,
-          repeatDaily: settings.repeatDaily,
-        );
-      } else {
-        service.rescheduleAll(const [], settings.daysBefore);
-      }
-    });
-    ref.listen(notificationSettingsProvider, (previous, next) {
-      final credits = ref.read(creditsProvider).value;
-      if (credits == null) return;
-      final service = ref.read(notificationServiceProvider);
-      if (next.enabled) {
-        service.rescheduleAll(
-          credits,
-          next.daysBefore,
-          time: next.reminderTime,
-          repeatDaily: next.repeatDaily,
-        );
-      } else {
-        service.rescheduleAll(const [], next.daysBefore);
-      }
-    });
-    // Home screen widget (Android): keep the total-debt/next-payment tile in
-    // sync with the credit list, independent of the notification listener
-    // above. See services/home_widget_service.dart. The widget is visible
-    // without unlocking the app, so whether real amounts are shown is
-    // gated by `widgetPrivacyProvider` (default: hidden).
-    void syncHomeWidget() {
-      final credits = ref.read(creditsProvider).value;
-      if (credits == null) return;
-      final showAmounts = ref.read(widgetPrivacyProvider);
-      final themePrefs = ref.read(themePreferencesProvider);
-      updateHomeWidget(
-        credits,
-        showAmounts: showAmounts,
-        accentColor: themePrefs.accentColor,
-        bgTone: themePrefs.bgTone,
-      );
-    }
-
-    ref.listen(creditsProvider, (previous, next) => syncHomeWidget());
-    ref.listen(widgetPrivacyProvider, (previous, next) => syncHomeWidget());
-    // El widget también debe reflejar el acento/tono elegidos en Cuenta >
-    // Personalización, no solo los datos de créditos.
-    ref.listen(themePreferencesProvider, (previous, next) => syncHomeWidget());
     return Scaffold(
       body: Stack(
         children: [

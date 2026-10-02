@@ -162,16 +162,23 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  isCharge ? 'Registrar Cargo/Compra' : 'Registrar Pago',
+                  isCharge ? 'Nueva compra' : 'Registrar pago',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              isCharge
+                  ? 'Registra lo que compraste con la tarjeta — suma a tu saldo.'
+                  : 'Registra lo que le pagaste al banco — reduce tu saldo.',
+              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
             ),
             const SizedBox(height: 20),
             Text(
               'MONTO',
               style: TextStyle(
-                fontSize: KreditTextSize.caption,
+                fontSize: KreditTextSize.body,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.4,
                 color: kredit.textTertiary,
@@ -203,7 +210,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
             Text(
               'SUGERENCIAS RÁPIDAS',
               style: TextStyle(
-                fontSize: KreditTextSize.caption,
+                fontSize: KreditTextSize.body,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.4,
                 color: kredit.textTertiary,
@@ -219,7 +226,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
               children: [
                 for (final preset in (isCharge
                     ? const ['Supermercado', 'Tecnología', 'Restaurante', 'Servicios públicos', 'Gasolina']
-                    : const ['Pago mensual de cuota', 'Abono extraordinario', 'Pago desde Nequi', 'Pago desde Bancolombia']))
+                    : const ['Pago mensual', 'Pago total del extracto', 'Abono parcial', 'Pago mínimo']))
                   Padding(
                     padding: const EdgeInsets.only(right: 12, top: 6),
                     child: InkWell(
@@ -227,7 +234,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
                       child: Text(
                         preset,
                         style: TextStyle(
-                          fontSize: KreditTextSize.caption,
+                          fontSize: KreditTextSize.body,
                           fontWeight: FontWeight.w600,
                           color: accent,
                         ),

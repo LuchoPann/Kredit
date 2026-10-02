@@ -190,7 +190,7 @@ class DangerZoneCard extends ConsumerWidget {
                   const Text(
                     'IRREVERSIBLE',
                     style: TextStyle(
-                      fontSize: KreditTextSize.caption,
+                      fontSize: KreditTextSize.body,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.8,
                       color: AppColors.danger,

@@ -7,7 +7,7 @@ import '../theme/app_theme.dart';
 /// información relacionada en toda la app.
 ///
 /// Si [label] no es nulo, se dibuja un header interno (ícono opcional +
-/// texto en mayúsculas, `KreditTextSize.caption`/`textTertiary`) antes del
+/// texto en mayúsculas, `KreditTextSize.body`/`textTertiary`) antes del
 /// contenido — el patrón de `_EditSectionCard`. Si [label] es nulo, la
 /// tarjeta solo envuelve [children] sin header — el patrón de
 /// `_DashboardSectionCard`.
@@ -47,7 +47,7 @@ class KreditSectionCard extends StatelessWidget {
                 Text(
                   label!,
                   style: TextStyle(
-                    fontSize: KreditTextSize.caption,
+                    fontSize: KreditTextSize.body,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.4,
                     color: kredit.textTertiary,

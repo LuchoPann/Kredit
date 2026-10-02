@@ -478,14 +478,14 @@ class _CreditTypeBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: color),
+          Icon(icon, size: KreditIconSize.micro, color: color),
           const SizedBox(width: 4),
           Text(
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 10,
+              fontSize: KreditTextSize.body,
               color: color,
               fontWeight: FontWeight.w700,
             ),

@@ -76,6 +76,15 @@ class Credits extends Table {
   /// Null means 'gradiente' (default gradient look).
   TextColumn get cardDesign => text().nullable()();
 
+  /// Día del mes (1–31) en que vence el pago de la tarjeta.
+  /// Reemplaza paymentDueOffsetDays en la UI y lógica nueva.
+  /// 0 = no migrado aún — usa paymentDueOffsetDays como fallback.
+  IntColumn get paymentDueDay =>
+      integer().withDefault(const Constant(0))();
+
+  /// null = desconocido, true = sin interés a 1 cuota, false = con interés.
+  BoolColumn get oneInstallmentInterestPolicy => boolean().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -142,9 +151,17 @@ class CardMovements extends Table {
   TextColumn get creditId =>
       text().references(Credits, #id, onDelete: KeyAction.cascade)();
   TextColumn get date => text()(); // YYYY-MM-DD
-  TextColumn get type => text()(); // charge|payment|interest|fee
+  TextColumn get type => text()(); // charge|payment|interest|fee|advance
   RealColumn get amount => real()();
   TextColumn get note => text().withDefault(const Constant(''))();
+
+  // Campos presentes solo cuando type == 'advance':
+  IntColumn get advanceInstallments => integer().nullable()();
+  RealColumn get advanceInterestRate => real().nullable()();
+  TextColumn get advanceInterestRateType => text().nullable()();
+  RealColumn get advanceCommission => real().nullable()();
+  TextColumn get advanceFirstPaymentDate => text().nullable()(); // YYYY-MM-DD
+  TextColumn get advanceDestination => text().nullable()(); // cash|transfer|other
 }
 
 /// One row per loan "abono extra" (extra manual payment). Mirrors
