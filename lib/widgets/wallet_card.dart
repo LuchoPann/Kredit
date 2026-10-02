@@ -512,12 +512,19 @@ class WalletCard extends ConsumerWidget {
     final isLightFace = isBankVoucher ||
         (cardDesign?.isLightBackground ?? false) ||
         (!isVoucher && cardDesign == null && avgLuminance > 0.5);
+    // Neo-Geo has a cream base visible in the bottom corners — white text
+    // there is illegible. Use dark ink only for the bottom block.
+    final isNeoGeoBottom = cardDesign == CardDesign.neoGeo;
     final ink = isQuotaVoucher
         ? quotaPattern.foregroundColor
         : (isLightFace ? Colors.black : Colors.white);
     final inkStrong = ink;
     final inkMid = ink.withValues(alpha: isLightFace ? 0.72 : 0.78);
     final inkFaint = ink.withValues(alpha: isLightFace ? 0.55 : 0.6);
+    // Bottom-block ink (dark for Neo-Geo cream zone, same as global otherwise).
+    final bottomInkStrong = isNeoGeoBottom ? Colors.black : inkStrong;
+    final bottomInkMid = isNeoGeoBottom ? Colors.black.withValues(alpha: 0.72) : inkMid;
+    final bottomInkFaint = isNeoGeoBottom ? Colors.black.withValues(alpha: 0.55) : inkFaint;
     final chipChromeBorder = Colors.white.withValues(
       alpha: isLightFace ? 0.55 : 0.08,
     );
@@ -605,13 +612,6 @@ class WalletCard extends ConsumerWidget {
                         pink: Color(0xFFDA0081),
                       ),
                     ),
-                  ),
-                ),
-              // Diagonal-line texture: only for legacy gradient (no custom design)
-              if (!isVoucher && cardDesign == null)
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: CustomPaint(painter: const _CardPatternPainter()),
                   ),
                 ),
               // Radial highlights: only for legacy gradient
@@ -735,7 +735,7 @@ class WalletCard extends ConsumerWidget {
                                 style: TextStyle(
                                   color: inkStrong,
                                   fontWeight: FontWeight.w700,
-                                  fontSize: KreditTextSize.caption,
+                                  fontSize: KreditTextSize.body,
                                   letterSpacing: 0.5,
                                 ),
                               );
@@ -776,7 +776,7 @@ class WalletCard extends ConsumerWidget {
                                       ? Colors.white
                                       : Colors.black,
                                   fontWeight: FontWeight.w800,
-                                  fontSize: KreditTextSize.caption,
+                                  fontSize: KreditTextSize.body,
                                   letterSpacing: 0.2,
                                 ),
                               ),
@@ -815,8 +815,8 @@ class WalletCard extends ConsumerWidget {
                               Text(
                                 'DEUDA RESTANTE',
                                 style: TextStyle(
-                                  color: inkFaint,
-                                  fontSize: KreditTextSize.caption,
+                                  color: bottomInkFaint,
+                                  fontSize: KreditTextSize.body,
                                   fontWeight: FontWeight.w600,
                                   letterSpacing: 1,
                                 ),
@@ -826,7 +826,7 @@ class WalletCard extends ConsumerWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: inkStrong,
+                                  color: bottomInkStrong,
                                   fontWeight: FontWeight.w800,
                                   fontSize: KreditTextSize.emphasis,
                                   letterSpacing: -0.5,
@@ -840,9 +840,9 @@ class WalletCard extends ConsumerWidget {
                           _CardStatColumn(
                             primary: stats[0],
                             secondary: stats.length > 1 ? stats[1] : null,
-                            captionColor: inkFaint,
-                            valueColor: inkStrong,
-                            secondaryColor: inkMid,
+                            captionColor: bottomInkFaint,
+                            valueColor: bottomInkStrong,
+                            secondaryColor: bottomInkMid,
                           ),
                         ],
                       ],
@@ -931,7 +931,7 @@ class _DesignPickerSheet extends StatelessWidget {
             Text(
               'DISEÑO DE TARJETA',
               style: TextStyle(
-                fontSize: 11,
+                fontSize: KreditTextSize.body,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.2,
                 color: scheme.onSurfaceVariant,
@@ -1009,7 +1009,7 @@ class _DesignPickerSheet extends StatelessWidget {
                                       ),
                                       child: const Icon(
                                         Icons.check,
-                                        size: 13,
+                                        size: KreditIconSize.micro,
                                         color: Colors.white,
                                       ),
                                     ),
@@ -1024,7 +1024,7 @@ class _DesignPickerSheet extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 10,
+                              fontSize: KreditTextSize.body,
                               fontWeight:
                                   isSelected ? FontWeight.w700 : FontWeight.w500,
                               color: isSelected
@@ -1145,7 +1145,7 @@ class _CardStatColumn extends StatelessWidget {
           primary.label.toUpperCase(),
           style: TextStyle(
             color: captionColor,
-            fontSize: KreditTextSize.caption,
+            fontSize: KreditTextSize.body,
             fontWeight: FontWeight.w600,
             letterSpacing: 1,
           ),
@@ -1170,7 +1170,7 @@ class _CardStatColumn extends StatelessWidget {
             style: TextStyle(
               color: secondaryColor,
               fontWeight: FontWeight.w600,
-              fontSize: KreditTextSize.caption,
+              fontSize: KreditTextSize.body,
               letterSpacing: 0.4,
             ),
           ),
@@ -1347,7 +1347,7 @@ class EntityCardFace extends StatelessWidget {
                               style: TextStyle(
                                 color: ink,
                                 fontWeight: FontWeight.w700,
-                                fontSize: KreditTextSize.caption,
+                                fontSize: KreditTextSize.body,
                                 letterSpacing: 0.5,
                               ),
                             );
@@ -1369,7 +1369,7 @@ class EntityCardFace extends StatelessWidget {
                           style: TextStyle(
                             color: isLightFace ? Colors.white : Colors.black,
                             fontWeight: FontWeight.w800,
-                            fontSize: KreditTextSize.caption,
+                            fontSize: KreditTextSize.body,
                             letterSpacing: 0.2,
                           ),
                         ),
@@ -1395,7 +1395,7 @@ class EntityCardFace extends StatelessWidget {
                         bottomLabel,
                         style: TextStyle(
                           color: inkFaint,
-                          fontSize: KreditTextSize.caption,
+                          fontSize: KreditTextSize.body,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 1,
                         ),

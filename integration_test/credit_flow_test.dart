@@ -4,45 +4,66 @@ import 'package:integration_test/integration_test.dart';
 
 import 'package:kredit/main.dart' as app;
 
+// app.main() / runApp() must be called exactly once per process.
+bool _appLaunched = false;
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  // Correct integration-test pattern on real devices:
-  // call app.main() (→ runApp), then tester.pump() to process frames.
-  // Never use tester.pumpWidget() — it conflicts with the live Activity/View
-  // and leaves _pendingFrame unresolved because vsyncs go to the real view.
-
-  Future<void> launchApp(WidgetTester tester) async {
-    app.main();
-    await tester.pump();                          // kick off first frame
-    await tester.pump(const Duration(seconds: 10)); // let providers init + dashboard render
+  Future<void> launchAppOnce(WidgetTester tester) async {
+    if (!_appLaunched) {
+      _appLaunched = true;
+      app.main();
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 10));
+    } else {
+      // Already running: just sync one frame to stabilize.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+    }
   }
 
   Future<void> openAddCreditSheet(WidgetTester tester) async {
+    // Dashboard FAB hides when credit list is empty (fresh install).
+    // Navigate to the "Créditos" tab whose FAB always shows.
+    final creditsTab = find.text('Créditos');
+    if (creditsTab.evaluate().isNotEmpty) {
+      await tester.tap(creditsTab);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+    }
     await tester.tap(find.byTooltip('Agregar Crédito'));
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
   }
 
-  group('Credit creation flow — mode selector redesign', () {
-    // ─── A: selector muestra las 3 opciones ─────────────────────────────────
+  Future<void> closeSheet(WidgetTester tester) async {
+    // Pop the /add-credit route to return to the credits tab.
+    final nav = find.byType(Navigator);
+    if (nav.evaluate().isNotEmpty) {
+      tester.state<NavigatorState>(nav).pop();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+  }
 
+  group('Credit creation flow — mode selector redesign', () {
     testWidgets('A — mode selector shows 3 options', (tester) async {
-      await launchApp(tester);
+      await launchAppOnce(tester);
       await openAddCreditSheet(tester);
 
       expect(find.text('¿Qué quieres registrar?'), findsOneWidget);
       expect(find.text('Cupo de tienda'), findsOneWidget);
       expect(find.text('Tarjeta bancaria'), findsOneWidget);
       expect(find.text('Préstamo bancario'), findsOneWidget);
-    });
 
-    // ─── B: tienda → paso 0, back al selector ───────────────────────────────
+      await closeSheet(tester);
+    });
 
     testWidgets(
         'B — tienda flow: tap card navigates to step 0, back returns to selector',
         (tester) async {
-      await launchApp(tester);
+      await launchAppOnce(tester);
       await openAddCreditSheet(tester);
 
       await tester.tap(find.text('Cupo de tienda'));
@@ -58,13 +79,13 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
 
       expect(find.text('¿Qué quieres registrar?'), findsOneWidget);
-    });
 
-    // ─── C: tarjeta → 5 pasos hasta confirmar ───────────────────────────────
+      await closeSheet(tester);
+    });
 
     testWidgets('C — tarjeta flow: navigates all 5 steps and reaches confirm',
         (tester) async {
-      await launchApp(tester);
+      await launchAppOnce(tester);
       await openAddCreditSheet(tester);
 
       await tester.tap(find.text('Tarjeta bancaria'));
@@ -103,13 +124,13 @@ void main() {
 
       // Paso 4 — Confirmar
       expect(find.text('Confirmar'), findsWidgets);
-    });
 
-    // ─── D: préstamo → paso 0 banco ─────────────────────────────────────────
+      await closeSheet(tester);
+    });
 
     testWidgets('D — prestamo flow: tap card navigates to step 0',
         (tester) async {
-      await launchApp(tester);
+      await launchAppOnce(tester);
       await openAddCreditSheet(tester);
 
       await tester.tap(find.text('Préstamo bancario'));

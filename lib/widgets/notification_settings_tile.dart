@@ -200,7 +200,7 @@ class _StepHeader extends StatelessWidget {
         Text(
           text,
           style: TextStyle(
-            fontSize: KreditTextSize.caption,
+            fontSize: KreditTextSize.body,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.4,
             color: color,
@@ -282,7 +282,7 @@ class _FrequencyOption extends StatelessWidget {
                 children: [
                   Text(title, style: TextStyle(color: textColor, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
-                  Text(subtitle, style: TextStyle(fontSize: KreditTextSize.caption, color: subtitleColor)),
+                  Text(subtitle, style: TextStyle(fontSize: KreditTextSize.body, color: subtitleColor)),
                 ],
               ),
             ),

@@ -22,6 +22,7 @@ import '../../theme/app_theme.dart';
 import '../../utils/credit_display_utils.dart';
 import '../../widgets/card_design_painter.dart';
 import '../../widgets/interest_rate_type_field.dart';
+import '../../widgets/kredit_section_card.dart';
 import '../../widgets/wallet_card.dart';
 
 const List<String> _presetLenders = [
@@ -73,6 +74,13 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   // físicamente entre pasos y no como un corte seco.
   int _stepDirection = 1;
 
+  // Selects all text on tap so a default value (e.g. "0") is fully replaced
+  // on the first keystroke instead of the cursor landing at the end.
+  static void _selectAll(TextEditingController ctrl) {
+    ctrl.selection =
+        TextSelection(baseOffset: 0, extentOffset: ctrl.text.length);
+  }
+
   final _nameCtrl = TextEditingController();
   final _lenderCtrl = TextEditingController(text: 'Bancolombia');
   final _notesCtrl = TextEditingController();
@@ -117,8 +125,12 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   // entity changes (see the lender dropdown's onChanged below).
   String? _selectedSubEntityLabel;
 
-  // Modo de creación: null = selector, 'tienda' | 'tarjeta' | 'prestamo'
+  // Modo de creación: null = selector, 'tienda' | 'banco' | 'tarjeta' | 'prestamo'
+  // 'banco' es un paso intermedio donde el usuario elige banco + subtipo.
   String? _mode;
+
+  // Subtipo dentro del flujo 'banco': 'tarjeta' | 'avance' (null hasta elegir)
+  String? _bancoSubType;
 
   // Card fields
   final _limitCtrl = TextEditingController();
@@ -130,7 +142,8 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
 
   // Nuevos campos para flujo tarjeta
   int _cutoffDayInt = 15;
-  int _paymentDueDayInt = 5;
+  // Days between cut date and payment due date (offset, not absolute day)
+  int _tarjetaPaymentOffsetDays = 7;
   bool? _oneInstallmentInterestPolicy; // null=indeterminado, true/false=elegido
 
   // Tarea "plantillas por entidad": tracks whether the user manually picked
@@ -374,31 +387,70 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   }
 
   Future<bool> _confirmDiscard() async {
-    final discard = await showDialog<bool>(
+    final discard = await showModalBottomSheet<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('¿Descartar este crédito?'),
-        content: const Text('Los datos no guardados se perderán.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancelar'),
+      builder: (ctx) {
+        final kredit = Theme.of(ctx).extension<KreditColors>()!;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40, height: 4,
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: kredit.borderCard,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Icon(Icons.delete_outline, size: KreditIconSize.large, color: AppColors.danger),
+                const SizedBox(height: 12),
+                Text(
+                  '¿Descartar este crédito?',
+                  style: TextStyle(fontSize: KreditTextSize.heading, fontWeight: FontWeight.w800),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Los datos no guardados se perderán.',
+                  style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+                    onPressed: () => Navigator.of(ctx).pop(true),
+                    child: const Text('Descartar'),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(ctx).pop(false),
+                    child: const Text('Seguir editando'),
+                  ),
+                ),
+              ],
+            ),
           ),
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Descartar'),
-          ),
-        ],
-      ),
+        );
+      },
     );
     return discard ?? false;
   }
 
   /// Modal para crear una nueva entidad (banco / tienda / app).
-  void _showNewEntitySheet(KreditColors kredit) {
+  /// [forcedType]: si se pasa, fija el tipo y oculta el selector de tipo.
+  void _showNewEntitySheet(KreditColors kredit, {String? forcedType}) {
     // Estado local del sheet — no afecta el padre hasta que el user confirma.
-    var localType = _newEntityType;
+    var localType = forcedType ?? _newEntityType;
     String? localPreset = _newEntityPreset;
     final brandCtrl = TextEditingController(text: _newEntityBrandCtrl.text);
     final limitCtrl = TextEditingController(text: _newEntityLimitCtrl.text);
@@ -425,7 +477,8 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                 Text('Nueva entidad',
                     style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
                 const SizedBox(height: 16),
-                // Selector de tipo
+                // Selector de tipo — oculto cuando el tipo está forzado
+                if (forcedType == null)
                 Row(
                   children: [
                     for (final t in [EntityType.bank, EntityType.store, EntityType.app]) ...[
@@ -496,6 +549,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                   controller: limitCtrl,
                   keyboardType: TextInputType.number,
                   inputFormatters: const [CurrencyInputFormatter()],
+                  onTap: () => _selectAll(limitCtrl),
                   decoration: InputDecoration(
                     labelText: localType == EntityType.store ? 'Cupo aprobado' : 'Cupo o límite total (opcional)',
                     hintText: 'Ej. 3.000.000',
@@ -537,6 +591,29 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   void _nextStep() {
     // Modo null → mostrar selector de modo; no hay "Siguiente" real
     if (_mode == null) return;
+
+    // Flujo banco: paso 0 → transicionar a tarjeta/prestamo en step 1
+    if (_mode == 'banco' && _currentStep == 0) {
+      if (_lenderCtrl.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Selecciona un banco')),
+        );
+        return;
+      }
+      if (_bancoSubType == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Elige si es Tarjeta o Avance / Adelanto')),
+        );
+        return;
+      }
+      setState(() {
+        _mode = _bancoSubType == 'tarjeta' ? 'tarjeta' : 'prestamo';
+        _type = _bancoSubType == 'tarjeta' ? CreditType.card : CreditType.loan;
+        _stepDirection = 1;
+        _currentStep = 1;
+      });
+      return;
+    }
 
     // Validación por flujo y paso
     if (_mode == 'tienda') {
@@ -588,7 +665,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           return;
         }
       }
-      if (_currentStep == 3 && _startDate == null) {
+      if (_currentStep == 2 && _startDate == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Selecciona la fecha de primer pago')),
         );
@@ -600,6 +677,25 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     if (!isValid) return;
 
     if (_currentStep < _lastStep) {
+      // Pre-warm the card design picture cache for flows that show WalletCard
+      // on the next step. Runs after the FIRST transition frame (≈16ms), so
+      // the cache is ready long before the 420ms slide animation completes.
+      if (_mode == 'tarjeta' || _mode == 'prestamo') {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          final design = _cardDesignNotifier.value;
+          if (design == null) return;
+          final bank = detectBank(lender: _lenderCtrl.text.trim(), fallbackColor: _color);
+          final gradient = expandedGradientFor(bank.cssClass, _color);
+          final screenW = MediaQuery.of(context).size.width;
+          final cardW = screenW - 2 * KreditSpacing.card;
+          final cardH = cardW / 1.9;
+          prewarmDesignCache(
+            [(design: design, c1: gradient.first, c2: gradient[gradient.length ~/ 2], c3: gradient.last)],
+            Size(cardW, cardH),
+          );
+        });
+      }
       setState(() {
         _stepDirection = 1;
         _currentStep++;
@@ -613,8 +709,11 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       _type = mode == 'tarjeta' ? CreditType.card : CreditType.loan;
       _currentStep = 0;
       _stepDirection = 1;
-      // Autofill lender para tarjeta y prestamo
-      if (mode == 'tarjeta' || mode == 'prestamo') {
+      if (mode == 'banco') {
+        _bancoSubType = null;
+        _lenderCtrl.text = 'Bancolombia';
+        _selectedLenderPreset = 'Bancolombia';
+      } else if (mode == 'tarjeta' || mode == 'prestamo') {
         _lenderCtrl.text = 'Bancolombia';
         _selectedLenderPreset = 'Bancolombia';
       }
@@ -633,6 +732,15 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   void _previousStep() {
     if (_mode != null && _currentStep == 0) {
       _backToModeSelector();
+      return;
+    }
+    // Tarjeta/préstamo step 1 viniendo del flujo 'banco': retroceder a 'banco' step 0
+    if ((_mode == 'tarjeta' || _mode == 'prestamo') && _currentStep == 1 && _bancoSubType != null) {
+      setState(() {
+        _mode = 'banco';
+        _stepDirection = -1;
+        _currentStep = 0;
+      });
       return;
     }
     if (_currentStep > 0) {
@@ -705,7 +813,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
 
       // Para el flujo de tarjeta nuevo, usar los dropdowns int en lugar de los text controllers
       final effectiveCutoffDay = _mode == 'tarjeta' ? _cutoffDayInt : cutoffDay;
-      final effectivePaymentDueDay = _mode == 'tarjeta' ? _paymentDueDayInt : 0;
+      final effectivePaymentDueDay = 0; // derived from offset, not stored as absolute
 
       final cardCredit = CardCredit(
         id: id,
@@ -716,7 +824,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         creditLimit: creditLimit,
         currentBalance: currentBalance,
         cutoffDay: effectiveCutoffDay,
-        paymentDueOffsetDays: paymentDueOffsetDays,
+        paymentDueOffsetDays: _mode == 'tarjeta' ? _tarjetaPaymentOffsetDays : paymentDueOffsetDays,
         paymentDueDay: effectivePaymentDueDay,
         oneInstallmentInterestPolicy: _oneInstallmentInterestPolicy,
         interestRate: interestRate,
@@ -819,15 +927,17 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
 
   int get _lastStep => switch (_mode) {
     'tienda' => 3,
+    'banco' => 0,
     'tarjeta' => 4,
-    'prestamo' => 4,
+    'prestamo' => 3,
     _ => 4,
   };
 
   List<String> get _stepTitles => switch (_mode) {
     'tienda' => const ['Entidad', 'Datos compra', 'Fechas', 'Confirmar'],
+    'banco' => const ['Banco y tipo'],
     'tarjeta' => const ['Banco', 'Cupo y deuda', 'Condiciones', 'Ciclo de pago', 'Confirmar'],
-    'prestamo' => const ['Banco', 'Datos préstamo', 'Condiciones', 'Fechas', 'Confirmar'],
+    'prestamo' => const ['Banco', 'Datos y condiciones', 'Fechas', 'Confirmar'],
     _ => const ['Entidad', 'Tipo de crédito', 'Monto y cuotas', 'Fecha de pago', 'Confirmación'],
   };
 
@@ -850,15 +960,26 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           key: _formKey,
           child: Column(
             children: [
-              if (_mode != null)
-                _StepProgress(
-                  currentStep: _currentStep,
-                  titles: _stepTitles,
-                  kredit: kredit,
+              // RepaintBoundary isolates the continuous animation repaints from
+              // the step content below — without it every animation frame forces
+              // a full-screen repaint.
+              RepaintBoundary(
+                child: AnimatedSize(
+                  duration: const Duration(milliseconds: 320),
+                  curve: Curves.easeOutCubic,
+                  child: _mode == null
+                      ? _InitialStepIndicator(kredit: kredit)
+                      : _StepProgress(
+                          currentStep: _currentStep,
+                          titles: _stepTitles,
+                          kredit: kredit,
+                        ),
                 ),
+              ),
               Expanded(
-                child: ClipRect(
-                  child: AnimatedSwitcher(
+                child: RepaintBoundary(
+                  child: ClipRect(
+                    child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 420),
                     switchInCurve: Curves.easeOutCubic,
                     switchOutCurve: Curves.easeInCubic,
@@ -877,39 +998,50 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                       ).animate(animation);
                       return SlideTransition(position: offsetAnimation, child: child);
                     },
-                    child: ListView(
-                      key: ValueKey('${_mode}_$_currentStep'),
-                      padding: const EdgeInsets.all(KreditSpacing.card),
-                      children: [
-                        ...switch (_mode) {
-                          null => _stepModeSelector(kredit),
-                          'tienda' => switch (_currentStep) {
-                            0 => _step0EntitySelection(kredit),
-                            1 => _stepTiendaDatos(kredit),
-                            2 => _stepTiendaFechas(kredit),
-                            _ => _stepTiendaConfirmar(kredit),
-                          },
-                          'tarjeta' => switch (_currentStep) {
-                            0 => _stepTarjetaBanco(kredit),
-                            1 => _stepTarjetaCupoDeuda(kredit),
-                            2 => _stepTarjetaCondiciones(kredit),
-                            3 => _stepTarjetaCiclo(kredit),
-                            _ => _stepTarjetaConfirmar(kredit),
-                          },
-                          'prestamo' => switch (_currentStep) {
-                            0 => _stepPrestamoBanco(kredit),
-                            1 => _stepPrestamoDatos(kredit),
-                            2 => _stepPrestamoCondiciones(kredit),
-                            3 => _stepPrestamoFechas(kredit),
-                            _ => _stepPrestamoConfirmar(kredit),
-                          },
-                          _ => _stepModeSelector(kredit),
+                    // Builder lets us compute the step item list once and pass
+                    // it to ListView.builder, which defers Element/State
+                    // creation to when each item scrolls into view — avoids
+                    // the first-render jank from simultaneous initState() calls
+                    // on all TextFormField and DropdownButtonFormField widgets.
+                    child: Builder(builder: (context) {
+                      final stepItems = switch (_mode) {
+                        null => _stepModeSelector(kredit),
+                        'banco' => _stepBancoSelector(kredit),
+                        'tienda' => switch (_currentStep) {
+                          0 => _step0EntitySelection(kredit),
+                          1 => _stepTiendaDatos(kredit),
+                          2 => _stepTiendaFechas(kredit),
+                          _ => _stepTiendaConfirmar(kredit),
                         },
-                      ],
-                    ),
+                        'tarjeta' => switch (_currentStep) {
+                          0 => _stepTarjetaBanco(kredit),
+                          1 => _stepTarjetaCupoDeuda(kredit),
+                          2 => _stepTarjetaCondiciones(kredit),
+                          3 => _stepTarjetaCiclo(kredit),
+                          _ => _stepTarjetaConfirmar(kredit),
+                        },
+                        'prestamo' => switch (_currentStep) {
+                          0 => _stepPrestamoBanco(kredit),
+                          1 => _stepPrestamoDataCondiciones(kredit),
+                          2 => _stepPrestamoFechas(kredit),
+                          _ => _stepPrestamoConfirmar(kredit),
+                        },
+                        _ => _stepModeSelector(kredit),
+                      };
+                      return ListView.builder(
+                        key: ValueKey('${_mode}_$_currentStep'),
+                        padding: const EdgeInsets.all(KreditSpacing.card),
+                        // Pre-build items 300px below the viewport so they are
+                        // ready before the user scrolls to them.
+                        cacheExtent: 300,
+                        itemCount: stepItems.length,
+                        itemBuilder: (_, i) => stepItems[i],
+                      );
+                    }),
                   ),
                 ),
               ),
+            ),
               _buildControls(),
             ],
           ),
@@ -919,34 +1051,44 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   }
 
   Widget _buildControls() {
-    // En el selector de modo no mostramos controles (los cards son el CTA)
-    if (_mode == null) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      child: Row(
-        children: [
-          Expanded(
-            child: OutlinedButton(
-              onPressed: _saving ? null : _previousStep,
-              child: Text(_currentStep == 0 ? '← Cambiar tipo' : 'Atrás'),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            flex: 2,
-            child: FilledButton(
-              onPressed: _saving
-                  ? null
-                  : (_currentStep < _lastStep ? _nextStep : _save),
-              child: Text(
-                _saving
-                    ? 'Guardando...'
-                    : (_currentStep < _lastStep ? 'Siguiente' : _saveLabel),
+    // AnimatedSize absorbs the height jump when controls appear/disappear so
+    // the AnimatedSwitcher above isn't interrupted by a layout change.
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+      child: _mode == null
+          ? const SizedBox.shrink()
+          : Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _saving ? null : _previousStep,
+                      child: Text(_currentStep == 0 ? '← Cambiar tipo' : 'Atrás'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // flex:1 → same width as the back button (equal halves).
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: _saving
+                          ? null
+                          : (_mode == 'banco' || _currentStep < _lastStep
+                              ? _nextStep
+                              : _save),
+                      child: Text(
+                        _saving
+                            ? 'Guardando...'
+                            : (_mode == 'banco' || _currentStep < _lastStep
+                                ? 'Siguiente'
+                                : _saveLabel),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -988,7 +1130,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       const SizedBox(height: 4),
       Text(
         'Elige la entidad donde tienes el crédito que vas a registrar.',
-        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
       ),
       const SizedBox(height: 16),
       _NoEntityCard(
@@ -1005,7 +1147,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         Text(
           'TUS ENTIDADES',
           style: TextStyle(
-            fontSize: KreditTextSize.caption,
+            fontSize: KreditTextSize.body,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.8,
             color: kredit.textTertiary,
@@ -1076,7 +1218,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         entityName: _selectedEntityId == '__new__' && _newEntityBrandCtrl.text.trim().isNotEmpty
             ? _newEntityBrandCtrl.text.trim()
             : null,
-        onTap: () => _showNewEntitySheet(kredit),
+        onTap: () => _showNewEntitySheet(kredit, forcedType: EntityType.store),
       ),
       const SizedBox(height: 12),
     ];
@@ -1094,7 +1236,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       const SizedBox(height: 4),
       Text(
         'Elige el tipo de crédito para adaptar los campos que siguen.',
-        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
       ),
       const SizedBox(height: 14),
       _CreditTypePicker(
@@ -1133,7 +1275,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
             children: [
               Icon(
                 _entityIcon(_selectedEntityId == '__new__' ? _newEntityType : _entityTypeForId(_selectedEntityId!)),
-                size: 18,
+                size: KreditIconSize.small,
                 color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(width: 10),
@@ -1269,11 +1411,11 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                 const Icon(Icons.warning_amber_rounded, size: KreditIconSize.small, color: AppColors.warning),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(suggestion.text, style: const TextStyle(fontSize: KreditTextSize.caption)),
+                  child: Text(suggestion.text, style: const TextStyle(fontSize: KreditTextSize.body)),
                 ),
                 TextButton(
                   onPressed: () => setState(() => _type = CreditType.loan),
-                  child: const Text('Cambiar a Préstamo', style: TextStyle(fontSize: KreditTextSize.caption)),
+                  child: const Text('Cambiar a Préstamo', style: TextStyle(fontSize: KreditTextSize.body)),
                 ),
               ],
             ),
@@ -1306,7 +1448,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                           'Ya tienes $typeLabel activo con esta entidad: "${duplicate.name}". '
                           'Si es tuyo, ábrelo en vez de crear otro. Si es de otra persona (ej. lo '
                           'usas prestado), puedes seguir y crear este como uno distinto.',
-                          style: const TextStyle(fontSize: KreditTextSize.caption),
+                          style: const TextStyle(fontSize: KreditTextSize.body),
                         ),
                       ),
                     ],
@@ -1319,7 +1461,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                         Navigator.of(context).pop();
                         Navigator.of(context).pushNamed('/credit-detail', arguments: duplicate.id);
                       },
-                      child: const Text('Abrir el que ya tengo', style: TextStyle(fontSize: KreditTextSize.caption)),
+                      child: const Text('Abrir el que ya tengo', style: TextStyle(fontSize: KreditTextSize.body)),
                     ),
                   ),
                 ],
@@ -1349,7 +1491,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         _type == CreditType.card
             ? 'Cuánto cupo tiene tu tarjeta y cuánto debes hoy.'
             : 'Cuánto vas a financiar, en cuántas cuotas y a qué tasa.',
-        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
       ),
       const SizedBox(height: 16),
       _LiveFinancialHero(
@@ -1379,7 +1521,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         _type == CreditType.card
             ? 'Cuánto te cobra la tarjeta por usarla.'
             : 'Cuándo empieza a pagarse y con qué frecuencia.',
-        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
       ),
       if (_type == CreditType.loan) ..._loanFieldsSchedule(),
       if (_type == CreditType.card) ..._cardFieldsExtra(),
@@ -1396,7 +1538,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       const SizedBox(height: 4),
       Text(
         'Revisa que todo esté correcto antes de registrar el crédito.',
-        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
       ),
       const SizedBox(height: 12),
       ValueListenableBuilder<CardDesign?>(
@@ -1409,7 +1551,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               if (credit != null) ...[
                 const Text(
                   'VISTA PREVIA DE TARJETA',
-                  style: TextStyle(fontSize: KreditTextSize.caption, fontWeight: FontWeight.bold, letterSpacing: 0.8),
+                  style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.bold, letterSpacing: 0.8),
                 ),
                 const SizedBox(height: 8),
                 RepaintBoundary(child: WalletCard(credit: credit)),
@@ -1418,7 +1560,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               Text(
                 'DISEÑO DE TARJETA',
                 style: TextStyle(
-                  fontSize: KreditTextSize.caption,
+                  fontSize: KreditTextSize.body,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.8,
                   color: kredit.textTertiary,
@@ -1438,7 +1580,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                       onSelected: (d) => _cardDesignNotifier.value = d,
                     );
                   },
-                  icon: const Icon(Icons.palette_outlined, size: 18),
+                  icon: const Icon(Icons.palette_outlined, size: KreditIconSize.small),
                   label: Text(design == null ? 'Predeterminado' : design.label),
                 ),
               ),
@@ -1450,7 +1592,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       Text(
         'DETALLES DEL CRÉDITO',
         style: TextStyle(
-          fontSize: KreditTextSize.caption,
+          fontSize: KreditTextSize.body,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.8,
           color: kredit.textTertiary,
@@ -1474,8 +1616,8 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         final creditLimit = double.tryParse(CurrencyInputFormatter.unformat(_limitCtrl.text)) ?? 0;
         final currentBalance = double.tryParse(CurrencyInputFormatter.unformat(_balanceCtrl.text)) ?? 0;
         final cutoffDay = _mode == 'tarjeta' ? _cutoffDayInt : (int.tryParse(_cutoffDayCtrl.text) ?? 15);
-        final paymentDueDay = _mode == 'tarjeta' ? _paymentDueDayInt : 0;
-        final paymentDueOffsetDays = _mode == 'tarjeta' ? 0 : (int.tryParse(_paymentOffsetCtrl.text) ?? 20);
+        final paymentDueDay = 0;
+        final paymentDueOffsetDays = _mode == 'tarjeta' ? _tarjetaPaymentOffsetDays : (int.tryParse(_paymentOffsetCtrl.text) ?? 20);
         final interestRate = double.tryParse(_interestCtrl.text.replaceAll(',', '.')) ?? 0;
         final managementFee = double.tryParse(CurrencyInputFormatter.unformat(_managementFeeCtrl.text)) ?? 0;
         return CardCredit(
@@ -1600,7 +1742,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   List<Widget> _loanFieldsCore() {
     return [
       const SizedBox(height: 12),
-      _SectionCard(
+      KreditSectionCard(
         label: 'DATOS DEL CRÉDITO',
         icon: Icons.request_quote_outlined,
         children: [
@@ -1611,6 +1753,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                   controller: _amountCtrl,
                   keyboardType: TextInputType.number,
                   inputFormatters: const [CurrencyInputFormatter()],
+                  onTap: () => _selectAll(_amountCtrl),
                   decoration: const InputDecoration(labelText: 'Monto a financiar', hintText: 'Ej. 1.500.000'),
                   onChanged: (_) => _recalcSuggestedQuota(),
                   validator: (v) {
@@ -1625,6 +1768,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                 child: TextFormField(
                   controller: _installmentsCtrl,
                   keyboardType: TextInputType.number,
+                  onTap: () => _selectAll(_installmentsCtrl),
                   decoration: const InputDecoration(labelText: 'Número de cuotas', hintText: 'Ej. 12'),
                   onChanged: (_) => _recalcSuggestedQuota(),
                   validator: (v) {
@@ -1658,7 +1802,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               child: Text(
                 'Cuenta sin intereses registrados',
                 style: TextStyle(
-                  fontSize: KreditTextSize.caption,
+                  fontSize: KreditTextSize.body,
                   color: Theme.of(context).extension<KreditColors>()!.textTertiary,
                 ),
               ),
@@ -1666,8 +1810,8 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           else ...[
             TextFormField(
               controller: _interestCtrl,
-              style: const TextStyle(fontSize: KreditTextSize.heading),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              onTap: () => _selectAll(_interestCtrl),
               decoration: const InputDecoration(
                 labelText: 'Interés anual',
                 hintText: 'Opcional — ej. 28%',
@@ -1702,7 +1846,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     final kredit = Theme.of(context).extension<KreditColors>()!;
     return [
       const SizedBox(height: 12),
-      _SectionCard(
+      KreditSectionCard(
         label: 'FECHA Y FRECUENCIA',
         icon: Icons.event_repeat_outlined,
         children: [
@@ -1730,7 +1874,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                     const SizedBox(height: 6),
                     Text(
                       '¿Cada cuánto vence una cuota? La mayoría de créditos son mensuales.',
-                      style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+                      style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
                     ),
                   ],
                 ),
@@ -1751,7 +1895,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                     Text(
                       'La fecha en que vence (o venció) tu primera cuota — la ves en tu '
                       'contrato o primer recibo.',
-                      style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+                      style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
                     ),
                   ],
                 ),
@@ -1768,6 +1912,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           TextFormField(
             controller: _paidInstallmentsCtrl,
             keyboardType: TextInputType.number,
+            onTap: () => _selectAll(_paidInstallmentsCtrl),
             decoration: const InputDecoration(
               labelText: '¿Ya venías pagando este crédito? (opcional)',
               hintText: 'Cuántas cuotas ya pagaste, ej. 2',
@@ -1792,7 +1937,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   List<Widget> _cardFieldsCore() {
     return [
       const SizedBox(height: 12),
-      _SectionCard(
+      KreditSectionCard(
         label: 'DATOS DE LA TARJETA',
         icon: Icons.credit_card_outlined,
         children: [
@@ -1803,6 +1948,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                   controller: _limitCtrl,
                   keyboardType: TextInputType.number,
                   inputFormatters: const [CurrencyInputFormatter()],
+                  onTap: () => _selectAll(_limitCtrl),
                   decoration: const InputDecoration(
                     labelText: 'Límite de la tarjeta (opcional)',
                     hintText: 'Ej. 3.000.000 — déjalo vacío si no lo sabes',
@@ -1828,6 +1974,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                   controller: _balanceCtrl,
                   keyboardType: TextInputType.number,
                   inputFormatters: const [CurrencyInputFormatter()],
+                  onTap: () => _selectAll(_balanceCtrl),
                   decoration: const InputDecoration(
                     labelText: 'Saldo actual de deuda (opcional)',
                     hintText: 'Ej. 500.000',
@@ -1846,7 +1993,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         ],
       ),
       const SizedBox(height: 12),
-      _SectionCard(
+      KreditSectionCard(
         label: 'CORTE Y FECHA DE PAGO',
         icon: Icons.event_available_outlined,
         children: [
@@ -1901,7 +2048,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
             const SizedBox(height: 6),
             Text(
               _entityTemplateNote!,
-              style: TextStyle(fontSize: KreditTextSize.caption, color: Theme.of(context).extension<KreditColors>()!.textTertiary),
+              style: TextStyle(fontSize: KreditTextSize.body, color: Theme.of(context).extension<KreditColors>()!.textTertiary),
             ),
           ],
         ],
@@ -1914,7 +2061,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   List<Widget> _cardFieldsExtra() {
     return [
       const SizedBox(height: 12),
-      _SectionCard(
+      KreditSectionCard(
         label: 'INTERÉS Y MANTENIMIENTO',
         icon: Icons.percent_outlined,
         children: [
@@ -1926,8 +2073,8 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                   children: [
                     TextFormField(
                       controller: _interestCtrl,
-                      style: const TextStyle(fontSize: KreditTextSize.heading),
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      onTap: () => _selectAll(_interestCtrl),
                       decoration: const InputDecoration(
                         labelText: 'Interés anual (%)',
                         hintText: 'Opcional',
@@ -1942,9 +2089,9 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               Expanded(
                 child: TextFormField(
                   controller: _managementFeeCtrl,
-                  style: const TextStyle(fontSize: KreditTextSize.heading),
                   keyboardType: TextInputType.number,
                   inputFormatters: const [CurrencyInputFormatter()],
+                  onTap: () => _selectAll(_managementFeeCtrl),
                   decoration: const InputDecoration(
                     labelText: 'Cuota de Mantenimiento (\$)',
                     hintText: 'Ej. 15.000 (0 si no cobra)',
@@ -1981,12 +2128,12 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     return [
       Text(
         '¿Qué quieres registrar?',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading, color: kredit.textPrimary),
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.body, color: kredit.textPrimary),
       ),
       const SizedBox(height: 6),
       Text(
         'Elige el tipo de crédito que vas a agregar.',
-        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
       ),
       const SizedBox(height: 20),
       _ModeCard(
@@ -1998,19 +2145,124 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       ),
       const SizedBox(height: 12),
       _ModeCard(
-        icon: Icons.credit_card_outlined,
-        title: 'Tarjeta bancaria',
-        subtitle: 'Tarjetas de crédito de cualquier banco',
-        onTap: () => _setMode('tarjeta'),
+        icon: Icons.account_balance_outlined,
+        title: 'Banco',
+        subtitle: 'Tarjeta de crédito o avance / préstamo',
+        onTap: () => _setMode('banco'),
         kredit: kredit,
       ),
-      const SizedBox(height: 12),
-      _ModeCard(
+    ];
+  }
+
+  List<Widget> _stepBancoSelector(KreditColors kredit) {
+    return [
+      Text(
+        '¿Con qué banco?',
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.body, color: kredit.textPrimary),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        'Selecciona el banco y el tipo de producto.',
+        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+      ),
+      const SizedBox(height: 20),
+      KreditSectionCard(
+        label: 'BANCO Y PRODUCTO',
         icon: Icons.account_balance_outlined,
-        title: 'Préstamo bancario',
-        subtitle: 'Libre inversión, consumo, vehículo...',
-        onTap: () => _setMode('prestamo'),
-        kredit: kredit,
+        children: [
+          DropdownButtonFormField<String>(
+            value: _selectedLenderPreset,
+            isExpanded: true,
+            decoration: const InputDecoration(labelText: 'Banco'),
+            items: _presetLenders
+                .map((b) => DropdownMenuItem(value: b, child: Text(b)))
+                .toList(),
+            onChanged: (val) {
+              if (val == null) return;
+              setState(() {
+                _lenderCtrl.text = val;
+                _selectedLenderPreset = val;
+                _cutoffDayTouched = false;
+                _paymentOffsetTouched = false;
+                _oneInstallmentInterestPolicy = null;
+              });
+              _applyEntityTemplate();
+            },
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Tipo de producto',
+            style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600, color: kredit.textSecondary),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _SubTypeChip(
+                  label: 'Tarjeta de crédito',
+                  icon: Icons.credit_card_outlined,
+                  selected: _bancoSubType == 'tarjeta',
+                  onTap: () => setState(() => _bancoSubType = 'tarjeta'),
+                  kredit: kredit,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    IgnorePointer(
+                      child: Opacity(
+                        opacity: 0.45,
+                        child: _SubTypeChip(
+                          label: 'Avance / Préstamo',
+                          icon: Icons.attach_money_outlined,
+                          selected: false,
+                          onTap: () {},
+                          kredit: kredit,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: -6,
+                      right: -6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade700,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'Próximamente',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      const SizedBox(height: 12),
+      KreditSectionCard(
+        label: 'PERSONALIZAR',
+        icon: Icons.edit_outlined,
+        children: [
+          TextFormField(
+            controller: _nameCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Nombre personalizado del crédito (Opcional)',
+              hintText: 'Ej: La de viajes, Libre inversión...',
+            ),
+          ),
+        ],
       ),
     ];
   }
@@ -2021,17 +2273,17 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     return [
       Text(
         'Datos de la compra',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading, color: kredit.textPrimary),
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.body, color: kredit.textPrimary),
       ),
       const SizedBox(height: 4),
       Text(
         'Ingresa el monto, cuotas y condiciones de esta compra.',
-        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
       ),
       ..._loanFieldsCore(),
       ..._interestSection(kredit),
       const SizedBox(height: 8),
-      _SectionCard(
+      KreditSectionCard(
         label: 'OPCIONES',
         icon: Icons.tune_outlined,
         children: [
@@ -2055,12 +2307,12 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     return [
       Text(
         'Fecha y frecuencia',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading, color: kredit.textPrimary),
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.body, color: kredit.textPrimary),
       ),
       const SizedBox(height: 4),
       Text(
         'Configura cuándo y con qué frecuencia pagas.',
-        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
       ),
       ..._step3ScheduleAndExtras(kredit),
     ];
@@ -2070,12 +2322,12 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     return [
       Text(
         '¡Ya casi está!',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading, color: kredit.textPrimary),
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.body, color: kredit.textPrimary),
       ),
       const SizedBox(height: 4),
       Text(
         'Revisa que todo esté correcto antes de registrar.',
-        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
       ),
       ..._step4ColorNotesConfirm(kredit),
     ];
@@ -2087,65 +2339,174 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     return [
       Text(
         '¿En qué banco tienes la tarjeta?',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading, color: kredit.textPrimary),
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.body, color: kredit.textPrimary),
       ),
       const SizedBox(height: 4),
       Text(
         'Selecciona el banco emisor de tu tarjeta.',
-        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
       ),
       const SizedBox(height: 16),
-      _BankChipPicker(
-        banks: _presetLenders,
-        selectedBank: _lenderCtrl.text.trim().isEmpty ? null : _lenderCtrl.text.trim(),
-        onSelected: (bank) {
-          setState(() {
-            _lenderCtrl.text = bank;
-            _selectedLenderPreset = bank;
-            _cutoffDayTouched = false;
-            _paymentOffsetTouched = false;
-            _oneInstallmentInterestPolicy = null;
-          });
-          _applyEntityTemplate();
-        },
-        kredit: kredit,
+      KreditSectionCard(
+        label: 'BANCO EMISOR',
+        icon: Icons.account_balance_outlined,
+        children: [
+          _BankChipPicker(
+            banks: _presetLenders,
+            selectedBank: _lenderCtrl.text.trim().isEmpty ? null : _lenderCtrl.text.trim(),
+            onSelected: (bank) {
+              setState(() {
+                _lenderCtrl.text = bank;
+                _selectedLenderPreset = bank;
+                _cutoffDayTouched = false;
+                _paymentOffsetTouched = false;
+                _oneInstallmentInterestPolicy = null;
+              });
+              _applyEntityTemplate();
+            },
+            kredit: kredit,
+          ),
+        ],
       ),
-      const SizedBox(height: 16),
-      TextFormField(
-        controller: _nameCtrl,
-        decoration: const InputDecoration(
-          labelText: 'Nombre personalizado (opcional)',
-          hintText: 'Ej: La de viajes, Tarjeta principal...',
-        ),
+      const SizedBox(height: 12),
+      KreditSectionCard(
+        label: 'PERSONALIZAR',
+        icon: Icons.edit_outlined,
+        children: [
+          TextFormField(
+            controller: _nameCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Nombre personalizado del crédito (Opcional)',
+              hintText: 'Ej: La de viajes, Tarjeta principal...',
+            ),
+          ),
+        ],
       ),
     ];
   }
 
+
+  Widget _inlineStat(String label, String value, KreditColors kredit) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary)),
+        Text(value, style: TextStyle(fontSize: KreditTextSize.heading, fontWeight: FontWeight.w800, color: kredit.textPrimary)),
+      ],
+    );
+  }
+
   List<Widget> _stepTarjetaCupoDeuda(KreditColors kredit) {
+    final accent = Theme.of(context).colorScheme.primary;
     final limitText = _limitCtrl.text.trim();
     final limitVal = double.tryParse(CurrencyInputFormatter.unformat(limitText)) ?? 0;
     final balanceVal = double.tryParse(CurrencyInputFormatter.unformat(_balanceCtrl.text)) ?? 0;
-    final available = limitVal > 0 ? (limitVal - balanceVal).clamp(0, double.infinity) : null;
+    final available = (limitVal - balanceVal).clamp(0, double.infinity).toDouble();
     final pct = limitVal > 0 ? (balanceVal / limitVal).clamp(0.0, 1.0) : null;
+    final hasLimit = limitVal > 0;
     return [
       Text(
         'Cupo y saldo actual',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading, color: kredit.textPrimary),
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.body, color: kredit.textPrimary),
       ),
       const SizedBox(height: 4),
       Text(
         'El cupo es opcional — puedes dejarlo vacío si no lo conoces.',
-        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
       ),
       const SizedBox(height: 16),
-      _SectionCard(
-        label: 'CUPO DE LA TARJETA',
+      // ── Visualizador de cupo ──────────────────────────────────────────────
+      Container(
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+        decoration: BoxDecoration(
+          color: accent.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: accent.withValues(alpha: 0.18)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Hero: disponible (el número que más importa) ──────────────
+            Text(
+              hasLimit ? 'DISPONIBLE' : 'DEUDA ACTUAL',
+              style: TextStyle(
+                fontSize: KreditTextSize.body,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.6,
+                color: kredit.textTertiary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              hasLimit ? formatCOP(available) : formatCOP(balanceVal),
+              style: TextStyle(
+                fontSize: KreditTextSize.hero,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -1,
+                color: hasLimit
+                    ? (pct != null && pct > 0.85 ? Colors.red.shade400 : accent)
+                    : (balanceVal == 0 ? kredit.textTertiary : kredit.textPrimary),
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 16),
+            // ── Barra de utilización ──────────────────────────────────────
+            if (pct != null) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: SizedBox(
+                  height: 10,
+                  child: LinearProgressIndicator(
+                    value: pct,
+                    backgroundColor: kredit.borderCard,
+                    color: pct > 0.85 ? Colors.red.shade400 : accent,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              // ── Stats secundarios inline ──────────────────────────────
+              Row(
+                children: [
+                  _inlineStat('Deuda', formatCOP(balanceVal), kredit),
+                  Container(
+                    width: 1, height: 14,
+                    margin: const EdgeInsets.symmetric(horizontal: 10),
+                    color: kredit.borderCard,
+                  ),
+                  _inlineStat('Cupo total', formatCOP(limitVal), kredit),
+                  const Spacer(),
+                  Text(
+                    '${(pct * 100).round()}% usado',
+                    style: TextStyle(
+                      fontSize: KreditTextSize.heading,
+                      fontWeight: FontWeight.w800,
+                      color: pct > 0.85 ? Colors.red.shade400 : kredit.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ] else ...[
+              Text(
+                hasLimit
+                    ? 'Ingresa la deuda para ver el disponible'
+                    : 'Ingresa el cupo para ver el disponible',
+                style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+              ),
+            ],
+          ],
+        ),
+      ),
+      const SizedBox(height: 16),
+      KreditSectionCard(
+        label: 'CUPO DEL CRÉDITO',
         icon: Icons.credit_card_outlined,
         children: [
           TextFormField(
             controller: _limitCtrl,
             keyboardType: TextInputType.number,
             inputFormatters: const [CurrencyInputFormatter()],
+            onTap: () => _selectAll(_limitCtrl),
             decoration: const InputDecoration(
               labelText: 'Cupo aprobado (opcional)',
               hintText: 'Ej. 5.000.000',
@@ -2157,50 +2518,13 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
             controller: _balanceCtrl,
             keyboardType: TextInputType.number,
             inputFormatters: const [CurrencyInputFormatter()],
+            onTap: () => _selectAll(_balanceCtrl),
             decoration: const InputDecoration(
               labelText: 'Deuda actual',
               hintText: '0 si no tienes deuda',
             ),
             onChanged: (_) => setState(() {}),
           ),
-          if (available != null) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: kredit.bgCard,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: kredit.borderCard),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Disponible', style: TextStyle(color: kredit.textSecondary, fontSize: KreditTextSize.caption)),
-                      Text(formatCOP(available.toDouble()), style: TextStyle(color: kredit.textPrimary, fontWeight: FontWeight.w700)),
-                    ],
-                  ),
-                  if (pct != null) ...[
-                    const SizedBox(height: 6),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(3),
-                      child: LinearProgressIndicator(
-                        value: pct,
-                        minHeight: 5,
-                        backgroundColor: kredit.borderCard,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text('${(pct * 100).round()}% utilizado',
-                        style: TextStyle(fontSize: 11, color: kredit.textTertiary)),
-                  ],
-                ],
-              ),
-            ),
-          ],
         ],
       ),
     ];
@@ -2215,15 +2539,15 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     return [
       Text(
         'Condiciones financieras',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading, color: kredit.textPrimary),
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.body, color: kredit.textPrimary),
       ),
       const SizedBox(height: 4),
       Text(
         'Todos los campos son opcionales — puedes continuar sin ellos.',
-        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
       ),
       const SizedBox(height: 12),
-      _SectionCard(
+      KreditSectionCard(
         label: 'TASA DE INTERÉS',
         icon: Icons.percent_outlined,
         children: [
@@ -2247,7 +2571,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         ],
       ),
       const SizedBox(height: 12),
-      _SectionCard(
+      KreditSectionCard(
         label: 'COMPRAS A 1 CUOTA',
         icon: Icons.shopping_cart_checkout_outlined,
         children: [
@@ -2266,7 +2590,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                       _oneInstallmentInterestPolicy == null
                           ? 'Sin configurar — actívalo si aplica'
                           : 'Tu tarjeta ${_oneInstallmentInterestPolicy! ? 'no cobra' : 'sí cobra'} interés en compras a 1 cuota pagadas a tiempo.',
-                      style: TextStyle(fontSize: 12, color: kredit.textSecondary),
+                      style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
                     ),
                   ],
                 ),
@@ -2281,7 +2605,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         ],
       ),
       const SizedBox(height: 12),
-      _SectionCard(
+      KreditSectionCard(
         label: 'CUOTA DE MANEJO',
         icon: Icons.receipt_long_outlined,
         children: [
@@ -2289,6 +2613,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
             controller: _managementFeeCtrl,
             keyboardType: TextInputType.number,
             inputFormatters: const [CurrencyInputFormatter()],
+            onTap: () => _selectAll(_managementFeeCtrl),
             decoration: const InputDecoration(
               labelText: 'Cuota de manejo (opcional)',
               hintText: '0 si no aplica',
@@ -2299,7 +2624,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
               isExpanded: true,
-              style: TextStyle(fontSize: KreditTextSize.heading, color: kredit.textPrimary),
+              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textPrimary),
               initialValue: _managementFeeFrequency,
               decoration: const InputDecoration(labelText: 'Frecuencia de cobro'),
               items: const [
@@ -2314,34 +2639,353 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     ];
   }
 
+  // ── Ciclo timeline visual ────────────────────────────────────────────────
+  Widget _buildCicloTimelineCard(KreditColors kredit, Color accent, int dueDay) {
+    final wraps = dueDay <= _cutoffDayInt;
+    // Colors for each segment
+    final spendColor = const Color(0xFF4CAF93); // teal/green: spending period
+    final payColor   = accent;                   // accent: payment window
+    final restColor  = Colors.transparent;
+
+    // Fractions along the 1-31 axis
+    double frac(int day) => (day - 1) / 30.0;
+    final cutFrac  = frac(_cutoffDayInt);
+    final dueFrac  = frac(dueDay);
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kredit.borderCard),
+        color: kredit.bgCard,
+      ),
+      clipBehavior: Clip.hardEdge,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header strip ────────────────────────────────────────────────
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            color: accent.withValues(alpha: 0.1),
+            child: Row(
+              children: [
+                Icon(Icons.timeline_rounded, size: KreditIconSize.small, color: accent),
+                const SizedBox(width: 8),
+                Text('Así funciona tu ciclo de facturación',
+                    style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w700, color: accent)),
+              ],
+            ),
+          ),
+          // ── Big numbers ─────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+            child: Row(
+              children: [
+                _cycleStat('DÍA $_cutoffDayInt', 'CORTE', spendColor, kredit),
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Text('$_tarjetaPaymentOffsetDays días',
+                            style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w700, color: kredit.textSecondary)),
+                        Text('de plazo', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary)),
+                      ],
+                    ),
+                  ),
+                ),
+                _cycleStat('DÍA $dueDay', wraps ? 'LÍMITE (mes sig.)' : 'LÍMITE DE PAGO', payColor, kredit, alignEnd: true),
+              ],
+            ),
+          ),
+          // ── Timeline bar ────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+            child: LayoutBuilder(builder: (ctx, box) {
+              final w = box.maxWidth;
+              final cutX  = w * cutFrac;
+              final dueX  = w * dueFrac;
+              const barH      = 10.0;
+              const labelH    = 14.0; // text line height above the dashed bar
+              const labelGap  = 4.0;  // gap between label and dashed bar
+              const nextH     = 5.0;  // height of the dashed "next cycle" bar
+              const nextGap   = 8.0;  // gap between dashed bar and main bar
+              const tickH     = labelH + labelGap + nextH + nextGap; // total above main bar
+              const dotR      = 5.5;
+              const totalH    = tickH + barH + 50.0;
+
+              return SizedBox(
+                height: totalH,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    // ── Próximo ciclo: label arriba, barra punteada abajo ─
+                    // Texto visible encima
+                    Positioned(
+                      top: 0,
+                      left: (cutX + 4).clamp(0, w - 130),
+                      child: Text(
+                        'Nuevo extracto →',
+                        style: TextStyle(
+                          fontSize: KreditTextSize.body,
+                          fontWeight: FontWeight.w600,
+                          color: spendColor,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ),
+                    // Barra punteada debajo del label
+                    Positioned(
+                      top: labelH + labelGap,
+                      left: cutX,
+                      right: 0,
+                      child: Row(
+                        children: List.generate(
+                          30,
+                          (i) => Expanded(
+                            child: Container(
+                              height: nextH,
+                              margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                              decoration: BoxDecoration(
+                                color: spendColor.withValues(alpha: i == 0 ? 0.85 : (0.6 - i * 0.015).clamp(0.1, 1.0)),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // ── Full bar background ──────────────────────────────
+                    Positioned(
+                      top: tickH,
+                      left: 0,
+                      right: 0,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Container(height: barH, color: kredit.borderCard),
+                      ),
+                    ),
+                    // ── Spending segment (1 → corte) ─────────────────────
+                    Positioned(
+                      top: tickH,
+                      left: 0,
+                      width: cutX.clamp(0, w),
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.only(topLeft: Radius.circular(6), bottomLeft: Radius.circular(6)),
+                        child: Container(height: barH, color: spendColor.withValues(alpha: 0.75)),
+                      ),
+                    ),
+                    // ── Payment segment (corte → límite, no-wrap) ────────
+                    if (!wraps && dueX > cutX)
+                      Positioned(
+                        top: tickH,
+                        left: cutX,
+                        width: (dueX - cutX).clamp(0, w - cutX),
+                        child: Container(height: barH, color: payColor.withValues(alpha: 0.6)),
+                      ),
+                    // ── Wrap: payment segment right side (corte → 31) ────
+                    if (wraps)
+                      Positioned(
+                        top: tickH,
+                        left: cutX,
+                        right: 0,
+                        child: Container(height: barH, color: payColor.withValues(alpha: 0.6)),
+                      ),
+                    // ── Wrap: payment segment left side (1 → límite) ─────
+                    if (wraps && dueX > 0)
+                      Positioned(
+                        top: tickH,
+                        left: 0,
+                        width: dueX.clamp(0, w),
+                        child: Container(height: barH, color: payColor.withValues(alpha: 0.35)),
+                      ),
+
+                    // ── Tick: corte ──────────────────────────────────────
+                    Positioned(
+                      top: 0,
+                      left: cutX - 1,
+                      child: Container(width: 2, height: tickH + barH + 4, color: spendColor),
+                    ),
+                    Positioned(
+                      top: tickH - dotR + barH / 2,
+                      left: cutX - dotR,
+                      child: Container(
+                        width: dotR * 2, height: dotR * 2,
+                        decoration: BoxDecoration(shape: BoxShape.circle, color: spendColor,
+                            border: Border.all(color: kredit.bgCard, width: 2)),
+                      ),
+                    ),
+                    // ── Tick: límite ─────────────────────────────────────
+                    Positioned(
+                      top: 0,
+                      left: dueX - 1,
+                      child: Container(width: 2, height: tickH + barH + 4, color: payColor),
+                    ),
+                    Positioned(
+                      top: tickH - dotR + barH / 2,
+                      left: dueX - dotR,
+                      child: Container(
+                        width: dotR * 2, height: dotR * 2,
+                        decoration: BoxDecoration(shape: BoxShape.circle, color: payColor,
+                            border: Border.all(color: kredit.bgCard, width: 2)),
+                      ),
+                    ),
+
+                    // ── Label: corte ─────────────────────────────────────
+                    Positioned(
+                      top: tickH + barH + 8,
+                      left: (cutX - 26).clamp(0, w - 52),
+                      width: 52,
+                      child: Text('Corte\nDía $_cutoffDayInt',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600, color: spendColor, height: 1.3)),
+                    ),
+                    // ── Label: límite ─────────────────────────────────────
+                    Positioned(
+                      top: tickH + barH + 8,
+                      left: (dueX - 26).clamp(0, w - 52),
+                      width: 52,
+                      child: Text(wraps ? 'Límite\n(mes sig.)' : 'Límite\nDía $dueDay',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600, color: payColor, height: 1.3)),
+                    ),
+                    // ── Day-1 label ──────────────────────────────────────
+                    Positioned(
+                      top: tickH + barH + 8,
+                      left: 0,
+                      child: Text('1', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary)),
+                    ),
+                    // ── Day-31 label ─────────────────────────────────────
+                    Positioned(
+                      top: tickH + barH + 8,
+                      right: 0,
+                      child: Text('31', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary)),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ),
+          // ── Legend chips ─────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                _legendChip(spendColor, 'Período de compras', kredit),
+                _legendChip(payColor, 'Plazo de pago', kredit),
+                _legendChip(spendColor.withValues(alpha: 0.45), 'Próximo extracto', kredit),
+              ],
+            ),
+          ),
+          // ── Educational explanation ──────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+            child: Column(
+              children: [
+                _cicloExplainRow(
+                  icon: Icons.shopping_cart_outlined,
+                  color: spendColor,
+                  title: 'Período de compras',
+                  desc: 'Todo lo que compres desde el día 1 hasta el día $_cutoffDayInt aparecerá en tu próximo extracto.',
+                  kredit: kredit,
+                ),
+                const SizedBox(height: 10),
+                _cicloExplainRow(
+                  icon: Icons.receipt_long_outlined,
+                  color: spendColor,
+                  title: 'Día de corte — día $_cutoffDayInt',
+                  desc: 'Se genera tu estado de cuenta. Tu deuda queda "congelada" y empieza el plazo para pagar. Al mismo tiempo, tus nuevas compras ya empiezan a contar para el próximo extracto.',
+                  kredit: kredit,
+                ),
+                const SizedBox(height: 10),
+                _cicloExplainRow(
+                  icon: Icons.autorenew_rounded,
+                  color: spendColor.withValues(alpha: 0.75),
+                  title: '¿Cuándo es el siguiente corte?',
+                  desc: 'El ciclo se repite cada mes: el día $_cutoffDayInt de cada mes se genera un nuevo extracto. Las compras que hagas desde el día $_cutoffDayInt de este mes hasta el día $_cutoffDayInt del siguiente mes aparecerán en ese próximo extracto, y tendrás hasta el día $dueDay${wraps ? ' del mes siguiente' : ''} para pagarlo.',
+                  kredit: kredit,
+                ),
+                const SizedBox(height: 10),
+                _cicloExplainRow(
+                  icon: Icons.hourglass_bottom_rounded,
+                  color: payColor,
+                  title: 'Plazo de pago — $_tarjetaPaymentOffsetDays días',
+                  desc: 'Tienes $_tarjetaPaymentOffsetDays días para pagar tu extracto. Si pagas antes del límite, evitas intereses de mora.',
+                  kredit: kredit,
+                ),
+                const SizedBox(height: 10),
+                _cicloExplainRow(
+                  icon: Icons.warning_amber_rounded,
+                  color: payColor,
+                  title: wraps ? 'Fecha límite — día $dueDay (mes siguiente)' : 'Fecha límite — día $dueDay',
+                  desc: 'Fecha máxima de pago. Si no pagas antes de esta fecha, se generan intereses de mora y posible reporte negativo.',
+                  kredit: kredit,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _cycleStat(String day, String label, Color color, KreditColors kredit, {bool alignEnd = false}) =>
+      Column(
+        crossAxisAlignment: alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          Text(day, style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: color, letterSpacing: -1)),
+          Text(label, style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600, color: kredit.textTertiary, letterSpacing: 0.8)),
+        ],
+      );
+
+  Widget _legendChip(Color color, String label, KreditColors kredit) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(width: 10, height: 10, decoration: BoxDecoration(color: color.withValues(alpha: 0.75), borderRadius: BorderRadius.circular(3))),
+          const SizedBox(width: 5),
+          Text(label, style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary)),
+        ],
+      );
+
+  Widget _cicloExplainRow({required IconData icon, required Color color, required String title, required String desc, required KreditColors kredit}) =>
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+            child: Icon(icon, size: KreditIconSize.small, color: color),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w700, color: kredit.textPrimary)),
+                const SizedBox(height: 3),
+                Text(desc, style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary, height: 1.45)),
+              ],
+            ),
+          ),
+        ],
+      );
+
   List<Widget> _stepTarjetaCiclo(KreditColors kredit) {
+    final accent = Theme.of(context).colorScheme.primary;
+    final dueDay = ((_cutoffDayInt - 1 + _tarjetaPaymentOffsetDays) % 31) + 1;
     return [
       Text(
         'Ciclo de facturación',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading, color: kredit.textPrimary),
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.body, color: kredit.textPrimary),
       ),
       const SizedBox(height: 4),
       Text(
         'Encuentra estos datos en tu extracto bancario.',
-        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
       ),
-      if (_entityTemplateNote != null) ...[
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: kredit.bgCard,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: kredit.borderCard),
-          ),
-          child: Text(
-            _entityTemplateNote!,
-            style: TextStyle(fontSize: 12, color: kredit.textSecondary),
-          ),
-        ),
-      ],
       const SizedBox(height: 16),
-      _SectionCard(
+      KreditSectionCard(
         label: 'FECHAS DEL CICLO',
         icon: Icons.calendar_month_outlined,
         children: [
@@ -2351,14 +2995,14 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Día de corte', style: TextStyle(fontSize: 13, color: kredit.textSecondary)),
+                    Text('Día de corte', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary)),
                     const SizedBox(height: 4),
                     DropdownButtonFormField<int>(
                       isExpanded: true,
-                      style: TextStyle(fontSize: KreditTextSize.heading, color: kredit.textPrimary),
-                      value: _cutoffDayInt.clamp(1, 28),
+                      style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textPrimary),
+                      value: _cutoffDayInt.clamp(1, 31),
                       decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
-                      items: List.generate(28, (i) => i + 1)
+                      items: List.generate(31, (i) => i + 1)
                           .map((d) => DropdownMenuItem(value: d, child: Text('Día $d')))
                           .toList(),
                       onChanged: (v) {
@@ -2373,19 +3017,24 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Día límite de pago', style: TextStyle(fontSize: 13, color: kredit.textSecondary)),
+                    Text('Días hasta el límite', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary)),
                     const SizedBox(height: 4),
                     DropdownButtonFormField<int>(
                       isExpanded: true,
-                      style: TextStyle(fontSize: KreditTextSize.heading, color: kredit.textPrimary),
-                      value: _paymentDueDayInt.clamp(1, 31),
+                      style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textPrimary),
+                      value: _tarjetaPaymentOffsetDays.clamp(1, 30),
                       decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
-                      items: List.generate(31, (i) => i + 1)
-                          .map((d) => DropdownMenuItem(value: d, child: Text('Día $d')))
+                      items: List.generate(30, (i) => i + 1)
+                          .map((d) => DropdownMenuItem(value: d, child: Text('$d ${d == 1 ? 'día' : 'días'}')))
                           .toList(),
                       onChanged: (v) {
-                        if (v != null) setState(() { _paymentDueDayInt = v; _paymentOffsetTouched = true; });
+                        if (v != null) setState(() { _tarjetaPaymentOffsetDays = v; _paymentOffsetTouched = true; });
                       },
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '→ límite día ${((_cutoffDayInt - 1 + _tarjetaPaymentOffsetDays) % 31) + 1} del mes',
+                      style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
                     ),
                   ],
                 ),
@@ -2403,6 +3052,23 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           ),
         ],
       ),
+      const SizedBox(height: 16),
+      _buildCicloTimelineCard(kredit, accent, dueDay),
+      if (_entityTemplateNote != null) ...[
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: kredit.bgCard,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: kredit.borderCard),
+          ),
+          child: Text(
+            _entityTemplateNote!,
+            style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
+          ),
+        ),
+      ],
     ];
   }
 
@@ -2415,7 +3081,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     return [
       Text(
         'Confirmar tarjeta',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading, color: kredit.textPrimary),
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.body, color: kredit.textPrimary),
       ),
       const SizedBox(height: 12),
       ValueListenableBuilder<CardDesign?>(
@@ -2426,12 +3092,12 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (credit != null) ...[
-                const Text('VISTA PREVIA', style: TextStyle(fontSize: KreditTextSize.caption, fontWeight: FontWeight.bold, letterSpacing: 0.8)),
+                const Text('VISTA PREVIA', style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.bold, letterSpacing: 0.8)),
                 const SizedBox(height: 8),
                 RepaintBoundary(child: WalletCard(credit: credit)),
                 const SizedBox(height: 16),
               ],
-              Text('DISEÑO DE TARJETA', style: TextStyle(fontSize: KreditTextSize.caption, fontWeight: FontWeight.w700, letterSpacing: 0.8, color: kredit.textTertiary)),
+              Text('DISEÑO DE TARJETA', style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w700, letterSpacing: 0.8, color: kredit.textTertiary)),
               const SizedBox(height: 8),
               SizedBox(
                 width: double.infinity,
@@ -2441,7 +3107,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                     final g = expandedGradientFor(bank.cssClass, _color);
                     showCardDesignPicker(context, current: design, c1: g.first, c2: g[g.length ~/ 2], c3: g.last, onSelected: (d) => _cardDesignNotifier.value = d);
                   },
-                  icon: const Icon(Icons.palette_outlined, size: 18),
+                  icon: const Icon(Icons.palette_outlined, size: KreditIconSize.small),
                   label: Text(design == null ? 'Predeterminado' : design.label),
                 ),
               ),
@@ -2450,20 +3116,24 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           );
         },
       ),
-      Text('RESUMEN', style: TextStyle(fontSize: KreditTextSize.caption, fontWeight: FontWeight.w700, letterSpacing: 0.8, color: kredit.textTertiary)),
-      const SizedBox(height: 8),
-      _SummaryGrid(items: [
-        (label: 'Banco', value: lender),
-        if (_nameCtrl.text.trim().isNotEmpty) (label: 'Nombre', value: _nameCtrl.text.trim()),
-        if (limitVal > 0) (label: 'Cupo', value: formatCOP(limitVal)),
-        (label: 'Deuda actual', value: formatCOP(balanceVal)),
-        if (limitVal > 0) (label: 'Disponible', value: formatCOP((limitVal - balanceVal).clamp(0, double.infinity))),
-        (label: 'Corte', value: 'Día $_cutoffDayInt'),
-        (label: 'Límite de pago', value: 'Día $_paymentDueDayInt'),
-        (label: 'Tasa', value: rateVal > 0 ? '${_interestCtrl.text}% $_interestRateType' : 'No especificada'),
-        (label: '1 cuota sin interés', value: _oneInstallmentInterestPolicy == null ? 'Sin configurar' : (_oneInstallmentInterestPolicy! ? 'Sí' : 'No')),
-        if (feeVal > 0) (label: 'Cuota de manejo', value: '${formatCOP(feeVal)} / $_managementFeeFrequency'),
-      ]),
+      KreditSectionCard(
+        label: 'RESUMEN',
+        icon: Icons.summarize_outlined,
+        children: [
+          _SummaryGrid(items: [
+            (label: 'Banco', value: lender),
+            if (_nameCtrl.text.trim().isNotEmpty) (label: 'Nombre', value: _nameCtrl.text.trim()),
+            if (limitVal > 0) (label: 'Cupo', value: formatCOP(limitVal)),
+            (label: 'Deuda actual', value: formatCOP(balanceVal)),
+            if (limitVal > 0) (label: 'Disponible', value: formatCOP((limitVal - balanceVal).clamp(0, double.infinity))),
+            (label: 'Corte', value: 'Día $_cutoffDayInt'),
+            (label: 'Límite de pago', value: '${_tarjetaPaymentOffsetDays} días después (día ${((_cutoffDayInt - 1 + _tarjetaPaymentOffsetDays) % 31) + 1})'),
+            (label: 'Tasa', value: rateVal > 0 ? '${_interestCtrl.text}% $_interestRateType' : 'No especificada'),
+            (label: '1 cuota sin interés', value: _oneInstallmentInterestPolicy == null ? 'Sin configurar' : (_oneInstallmentInterestPolicy! ? 'Sí' : 'No')),
+            if (feeVal > 0) (label: 'Cuota de manejo', value: '${formatCOP(feeVal)} / $_managementFeeFrequency'),
+          ]),
+        ],
+      ),
       const SizedBox(height: 12),
     ];
   }
@@ -2474,69 +3144,70 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     return [
       Text(
         '¿Dónde tienes el préstamo?',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading, color: kredit.textPrimary),
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.body, color: kredit.textPrimary),
       ),
       const SizedBox(height: 4),
       Text(
         'Selecciona el banco que te otorgó el préstamo.',
-        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
       ),
       const SizedBox(height: 16),
-      _BankChipPicker(
-        banks: _presetLenders,
-        selectedBank: _lenderCtrl.text.trim().isEmpty ? null : _lenderCtrl.text.trim(),
-        onSelected: (bank) => setState(() {
-          _lenderCtrl.text = bank;
-          _selectedLenderPreset = bank;
-        }),
-        kredit: kredit,
+      KreditSectionCard(
+        label: 'ENTIDAD',
+        icon: Icons.account_balance_outlined,
+        children: [
+          _BankChipPicker(
+            banks: _presetLenders,
+            selectedBank: _lenderCtrl.text.trim().isEmpty ? null : _lenderCtrl.text.trim(),
+            onSelected: (bank) => setState(() {
+              _lenderCtrl.text = bank;
+              _selectedLenderPreset = bank;
+            }),
+            kredit: kredit,
+          ),
+        ],
       ),
-      const SizedBox(height: 16),
-      TextFormField(
-        controller: _nameCtrl,
-        decoration: const InputDecoration(
-          labelText: 'Nombre del préstamo (opcional)',
-          hintText: 'Ej: Libre inversión, Vehículo...',
-        ),
+      const SizedBox(height: 12),
+      KreditSectionCard(
+        label: 'PERSONALIZAR',
+        icon: Icons.edit_outlined,
+        children: [
+          TextFormField(
+            controller: _nameCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Nombre personalizado del crédito (Opcional)',
+              hintText: 'Ej: Libre inversión, Vehículo...',
+            ),
+          ),
+        ],
       ),
     ];
   }
 
-  List<Widget> _stepPrestamoDatos(KreditColors kredit) {
+  List<Widget> _stepPrestamoDataCondiciones(KreditColors kredit) {
     return [
       Text(
-        'Datos del préstamo',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading, color: kredit.textPrimary),
+        'Datos y condiciones',
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.body, color: kredit.textPrimary),
       ),
       const SizedBox(height: 4),
       Text(
-        'Ingresa el monto financiado y la cantidad de cuotas.',
-        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+        'Monto, cuotas y condiciones del préstamo.',
+        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
       ),
-      ..._loanFieldsCore(),
-    ];
-  }
-
-  List<Widget> _stepPrestamoCondiciones(KreditColors kredit) {
-    return [
-      Text(
-        'Condiciones',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading, color: kredit.textPrimary),
-      ),
-      const SizedBox(height: 4),
-      Text(
-        'Todos los campos son opcionales — puedes continuar sin ellos.',
-        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+      const SizedBox(height: 16),
+      KreditSectionCard(
+        label: 'MONTO Y CUOTAS',
+        icon: Icons.request_quote_outlined,
+        children: _loanFieldsCore(),
       ),
       const SizedBox(height: 12),
-      ..._interestSection(kredit),
-      const SizedBox(height: 12),
-      _SectionCard(
+      KreditSectionCard(
         label: 'FRECUENCIA Y EXTRAS',
         icon: Icons.tune_outlined,
         children: [
           ..._frequencySelector(kredit),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           _EarlyPaymentRow(
             earlyPaymentWaivesInterest: _earlyPaymentWaivesInterest,
             onChanged: (v) => setState(() => _earlyPaymentWaivesInterest = v),
@@ -2550,12 +3221,12 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     return [
       Text(
         'Fechas',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading, color: kredit.textPrimary),
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.body, color: kredit.textPrimary),
       ),
       const SizedBox(height: 4),
       Text(
         'Indica cuándo fue la primera cuota.',
-        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
       ),
       ..._step3ScheduleAndExtras(kredit),
     ];
@@ -2565,7 +3236,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     return [
       Text(
         'Confirmar préstamo',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading, color: kredit.textPrimary),
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.body, color: kredit.textPrimary),
       ),
       const SizedBox(height: 12),
       ..._step4ColorNotesConfirm(kredit),
@@ -2580,13 +3251,14 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         (double.tryParse(rateText.replaceAll(',', '.')) ?? 0) > 0;
     return [
       const SizedBox(height: 12),
-      _SectionCard(
+      KreditSectionCard(
         label: 'TASA DE INTERÉS',
         icon: Icons.percent_outlined,
         children: [
           TextFormField(
             controller: _interestCtrl,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onTap: () => _selectAll(_interestCtrl),
             decoration: const InputDecoration(
               labelText: 'Tasa de interés (opcional)',
               hintText: 'Vacío si no la conoces',
@@ -2612,7 +3284,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
 
   List<Widget> _frequencySelector(KreditColors kredit) {
     return [
-      Text('Frecuencia de pago', style: TextStyle(fontSize: 13, color: kredit.textSecondary)),
+      Text('Frecuencia de pago', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary)),
       const SizedBox(height: 6),
       Wrap(
         spacing: 8,
@@ -2630,6 +3302,57 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
 }
 
 // ─── Widgets nuevos ─────────────────────────────────────────────────────────
+
+class _SubTypeChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+  final KreditColors kredit;
+
+  const _SubTypeChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+    required this.kredit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+        decoration: BoxDecoration(
+          color: selected ? accent.withValues(alpha: 0.12) : kredit.bgCard,
+          border: Border.all(
+            color: selected ? accent : kredit.borderCard,
+            width: selected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: KreditIconSize.medium, color: selected ? accent : kredit.textSecondary),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: KreditTextSize.body,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: selected ? accent : kredit.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _ModeCard extends StatelessWidget {
   final IconData icon;
@@ -2668,16 +3391,16 @@ class _ModeCard extends StatelessWidget {
                 color: accent.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, color: accent, size: 22),
+              child: Icon(icon, color: accent, size: KreditIconSize.medium),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: kredit.textPrimary)),
+                  Text(title, style: TextStyle(fontSize: KreditTextSize.heading, fontWeight: FontWeight.w700, color: kredit.textPrimary)),
                   const SizedBox(height: 2),
-                  Text(subtitle, style: TextStyle(fontSize: 13, color: kredit.textSecondary)),
+                  Text(subtitle, style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary)),
                 ],
               ),
             ),
@@ -2739,7 +3462,7 @@ class _InterestUnknownRow extends StatelessWidget {
       value: interestUnknown,
       onChanged: onChanged,
       title: Text('Tasa desconocida', style: TextStyle(fontWeight: FontWeight.w600, color: kredit.textPrimary)),
-      subtitle: Text('Kredit no mostrará tasa ni calculará intereses.', style: TextStyle(fontSize: 12, color: kredit.textSecondary)),
+      subtitle: Text('Kredit no mostrará tasa ni calculará intereses.', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary)),
     );
   }
 }
@@ -2757,7 +3480,7 @@ class _EarlyPaymentRow extends StatelessWidget {
       value: earlyPaymentWaivesInterest,
       onChanged: onChanged,
       title: Text('Pago anticipado sin interés', style: TextStyle(fontWeight: FontWeight.w600, color: kredit.textPrimary)),
-      subtitle: Text('Actívalo si la entidad condona el interés al pagar antes del vencimiento.', style: TextStyle(fontSize: 12, color: kredit.textSecondary)),
+      subtitle: Text('Actívalo si la entidad condona el interés al pagar antes del vencimiento.', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary)),
     );
   }
 }
@@ -2786,7 +3509,7 @@ class _InterestRateWarningHint extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
             ),
           ),
         ],
@@ -2841,7 +3564,7 @@ class _LiveFinancialHero extends StatelessWidget {
             Text(
               'CUPO DISPONIBLE',
               style: TextStyle(
-                fontSize: KreditTextSize.caption,
+                fontSize: KreditTextSize.body,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.2,
                 color: kredit.textTertiary,
@@ -2872,7 +3595,7 @@ class _LiveFinancialHero extends StatelessWidget {
               hasLimit
                   ? 'Usas ${(usage * 100).round()}% de tu cupo de ${formatCOP(limit)}'
                   : 'Ingresa el límite para ver tu cupo disponible',
-              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
             ),
           ],
         ),
@@ -2896,7 +3619,7 @@ class _LiveFinancialHero extends StatelessWidget {
           Text(
             'VALOR DE LA CUOTA',
             style: TextStyle(
-              fontSize: KreditTextSize.caption,
+              fontSize: KreditTextSize.body,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.2,
               color: kredit.textTertiary,
@@ -2917,7 +3640,7 @@ class _LiveFinancialHero extends StatelessWidget {
             hasQuota
                 ? 'Valor aproximado, calculado con base en el monto, las cuotas y el interés ingresados.'
                 : 'Completa los datos de abajo para calcularla automáticamente.',
-            style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+            style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
           ),
         ],
       ),
@@ -3021,7 +3744,7 @@ class _CreditTypeOption extends StatelessWidget {
                     Text(
                       subtitle,
                       style: TextStyle(
-                        fontSize: KreditTextSize.caption,
+                        fontSize: KreditTextSize.body,
                         color: kredit.textSecondary,
                         height: 1.35,
                       ),
@@ -3047,7 +3770,150 @@ class _CreditTypeOption extends StatelessWidget {
 /// (filled = done, outlined-accent = current, dim = upcoming) joined by
 /// connector lines, plus the current step's title underneath — clearer than
 /// a plain progress bar about *which* step you're on vs. how many remain.
-class _StepProgress extends StatelessWidget {
+/// Barra de progreso animada. Cuando el número de pasos cambia de 1 → N, los
+/// puntos adicionales "ruedan" hacia la derecha revelándose uno a uno desde
+// ══════════════════════════════════════════════════════════════════════════════
+// Step progress header — sequential fill animations
+//
+// _InitialStepIndicator (mode == null):
+//   1. Dot "0" fills with accent left→right (300ms)
+//   2. Future-line expands left→right (220ms)
+//   3. Chevrons march →→→ (repeat 1100ms)
+//
+// _StepProgress (mode != null):
+//   _fill: continuous float where dot[i] fills at [2i..2i+1], line[i→i+1] fills
+//   at [2i+1..2i+2]. Advancing: line fills L→R then dot fills. Retreating: dot
+//   unfills then line shrinks R→L (widthFactor going 1→0 with Alignment.centerLeft).
+//   Duration 420ms matches view AnimatedSwitcher so both feel synchronized.
+// ══════════════════════════════════════════════════════════════════════════════
+
+class _InitialStepIndicator extends StatefulWidget {
+  final KreditColors kredit;
+  const _InitialStepIndicator({required this.kredit});
+
+  @override
+  State<_InitialStepIndicator> createState() => _InitialStepIndicatorState();
+}
+
+class _InitialStepIndicatorState extends State<_InitialStepIndicator>
+    with TickerProviderStateMixin {
+  late final AnimationController _dotCtrl;
+  late final AnimationController _lineCtrl;
+  late final AnimationController _arrowCtrl;
+  late final Animation<double> _dotAnim;
+  late final Animation<double> _lineAnim;
+  late final List<Animation<double>> _chevronAnims;
+
+  @override
+  void initState() {
+    super.initState();
+    _dotCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
+    _lineCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 220));
+    _arrowCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100));
+    _dotAnim = CurvedAnimation(parent: _dotCtrl, curve: Curves.easeOutCubic);
+    _lineAnim = CurvedAnimation(parent: _lineCtrl, curve: Curves.easeOutCubic);
+    _chevronAnims = List.generate(3, (i) {
+      final start = i / 3.0;
+      final end = (i + 1) / 3.0;
+      return TweenSequence<double>([
+        TweenSequenceItem(
+          tween: Tween(begin: 0.08, end: 1.0).chain(CurveTween(curve: Curves.easeOut)),
+          weight: 40,
+        ),
+        TweenSequenceItem(
+          tween: Tween(begin: 1.0, end: 0.08).chain(CurveTween(curve: Curves.easeIn)),
+          weight: 60,
+        ),
+      ]).animate(CurvedAnimation(parent: _arrowCtrl, curve: Interval(start, end)));
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await _dotCtrl.forward();
+      if (!mounted) return;
+      await _lineCtrl.forward();
+      if (!mounted) return;
+      _arrowCtrl.repeat();
+    });
+  }
+
+  @override
+  void dispose() {
+    _dotCtrl.dispose();
+    _lineCtrl.dispose();
+    _arrowCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
+    final kredit = widget.kredit;
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Row(
+        children: [
+          // Dot "0" fills with accent color
+          AnimatedBuilder(
+            animation: _dotAnim,
+            builder: (context, _) => Container(
+              width: 24,
+              height: 24,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color.lerp(kredit.bgSecondary, accent, _dotAnim.value),
+                border: Border.all(
+                  color: Color.lerp(kredit.borderCard, accent, _dotAnim.value)!,
+                  width: 1.5,
+                ),
+              ),
+              child: Text(
+                '0',
+                style: TextStyle(
+                  fontSize: KreditTextSize.body,
+                  fontWeight: FontWeight.w800,
+                  color: Color.lerp(kredit.textTertiary, scaffoldBg, _dotAnim.value),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          // Line fills left→right — static Container passed as child so
+          // AnimatedBuilder only rebuilds the Align wrapper, not the fill.
+          Expanded(
+            child: AnimatedBuilder(
+              animation: _lineAnim,
+              child: Container(height: 1.5, color: kredit.borderCard),
+              builder: (context, child) => Align(
+                alignment: Alignment.centerLeft,
+                widthFactor: _lineAnim.value,
+                child: child,
+              ),
+            ),
+          ),
+          // Chevrons: FadeTransition is layer-based (no widget rebuild per
+          // frame) and the icons are pre-built once as the static child tree.
+          FadeTransition(
+            opacity: _lineAnim,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(
+                3,
+                (i) => FadeTransition(
+                  opacity: _chevronAnims[i],
+                  child: Icon(Icons.chevron_right_rounded, size: KreditIconSize.medium, color: accent),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StepProgress extends StatefulWidget {
   final int currentStep;
   final List<String> titles;
   final KreditColors kredit;
@@ -3059,96 +3925,181 @@ class _StepProgress extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final accent = Theme.of(context).colorScheme.primary;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: List.generate(titles.length * 2 - 1, (i) {
-              if (i.isOdd) {
-                final connectorDone = (i ~/ 2) < currentStep;
-                return Expanded(
-                  child: Container(
-                    height: 2,
-                    color: connectorDone ? accent : kredit.borderCard,
-                  ),
-                );
-              }
-              final step = i ~/ 2;
-              final done = step < currentStep;
-              final current = step == currentStep;
-              return Container(
-                width: 24,
-                height: 24,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: done ? accent : kredit.bgSecondary,
-                  border: Border.all(
-                    color: (done || current) ? accent : kredit.borderCard,
-                    width: current ? 2 : 1,
-                  ),
-                ),
-                child: done
-                    ? Icon(Icons.check, size: KreditIconSize.small, color: Theme.of(context).scaffoldBackgroundColor)
-                    : Text(
-                        '${step + 1}',
-                        style: TextStyle(
-                          fontSize: KreditTextSize.body,
-                          fontWeight: FontWeight.w700,
-                          color: current ? accent : kredit.textTertiary,
-                        ),
-                      ),
-              );
-            }),
-          ),
-        ],
-      ),
-    );
-  }
+  State<_StepProgress> createState() => _StepProgressState();
 }
 
-/// Typographic section separator used to group a related cluster of fields
-/// within a step (e.g. "monto/cuotas" vs. "fecha/frecuencia") — a small
-/// uppercase heading over a hairline [Divider] instead of a decorative
-/// bordered box, matching the "sin cajas" visual language used across the
-/// app (see dashboard_screen.dart).
-class _SectionCard extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final List<Widget> children;
+class _StepProgressState extends State<_StepProgress>
+    with TickerProviderStateMixin {
+  // _fill: dot[i] fills at [2i..2i+1], line[i→i+1] fills at [2i+1..2i+2]
+  late final AnimationController _fillCtrl;
+  late final Animation<double> _fillCurved;
+  late final AnimationController _expandCtrl;
+  late final Animation<double> _expandCurved;
+  late List<String> _displayTitles;
 
-  const _SectionCard({required this.label, required this.icon, required this.children});
+  double _fillFrom = 0.0;
+  double _fillTo = 0.0;
+
+  double get _fill =>
+      _fillFrom + (_fillTo - _fillFrom) * _fillCurved.value;
+
+  double _dotFill(int i) => (_fill - 2 * i).clamp(0.0, 1.0);
+  double _lineFill(int i) => (_fill - (2 * i + 1)).clamp(0.0, 1.0);
+
+  @override
+  void initState() {
+    super.initState();
+    _displayTitles = widget.titles;
+    _fillFrom = 0.0;
+    _fillTo = (2 * widget.currentStep + 1).toDouble();
+
+    _fillCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 420));
+    _fillCurved =
+        CurvedAnimation(parent: _fillCtrl, curve: Curves.easeInOutCubic);
+
+    _expandCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 420));
+    _expandCurved =
+        CurvedAnimation(parent: _expandCtrl, curve: Curves.easeOutCubic);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _fillCtrl.forward();
+      if (widget.titles.length > 1) _expandCtrl.forward();
+    });
+  }
+
+  @override
+  void didUpdateWidget(_StepProgress old) {
+    super.didUpdateWidget(old);
+
+    if (old.currentStep != widget.currentStep) {
+      _fillFrom = _fill;
+      _fillTo = (2 * widget.currentStep + 1).toDouble();
+      _fillCtrl.forward(from: 0);
+    }
+
+    if (old.titles.length != widget.titles.length) {
+      if (widget.titles.length > old.titles.length) {
+        setState(() => _displayTitles = widget.titles);
+        _expandCtrl.forward(from: 0);
+      } else {
+        _expandCtrl.reverse().whenComplete(() {
+          if (mounted) setState(() => _displayTitles = widget.titles);
+        });
+      }
+    } else if (_displayTitles != widget.titles) {
+      setState(() => _displayTitles = widget.titles);
+    }
+  }
+
+  @override
+  void dispose() {
+    _fillCtrl.dispose();
+    _expandCtrl.dispose();
+    super.dispose();
+  }
+
+  Widget _buildDot(BuildContext context, int step, Color accent) {
+    final fill = _dotFill(step);
+    final done = step < widget.currentStep;
+    final scaffoldBg = Theme.of(context).scaffoldBackgroundColor;
+    final kredit = widget.kredit;
+    return Container(
+      width: 24,
+      height: 24,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Color.lerp(kredit.bgSecondary, accent, fill),
+        border: Border.all(
+          color: Color.lerp(kredit.borderCard, accent, fill)!,
+          width: 1.5,
+        ),
+      ),
+      child: done
+          ? Icon(Icons.check,
+              size: KreditIconSize.small,
+              color: Color.lerp(kredit.textTertiary, scaffoldBg, fill))
+          : Text(
+              '${step + 1}',
+              style: TextStyle(
+                fontSize: KreditTextSize.body,
+                fontWeight: FontWeight.w700,
+                color: Color.lerp(kredit.textTertiary, scaffoldBg, fill),
+              ),
+            ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, size: KreditIconSize.small, color: kredit.textTertiary),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: KreditTextSize.caption,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.4,
-                color: kredit.textTertiary,
+    final accent = Theme.of(context).colorScheme.primary;
+    final kredit = widget.kredit;
+    final n = _displayTitles.length;
+
+    // LayoutBuilder wraps AnimatedBuilder so the layout pass only runs when
+    // constraints change — not on every animation frame (60 fps).
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: n <= 1
+          ? Align(
+              alignment: Alignment.centerLeft,
+              child: AnimatedBuilder(
+                animation: _fillCtrl,
+                builder: (ctx, _) => _buildDot(ctx, 0, accent),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Divider(height: 1, color: kredit.borderCard),
-        const SizedBox(height: 12),
-        ...children,
-      ],
+            )
+          : LayoutBuilder(builder: (ctx, constraints) {
+              final segments = n - 1;
+              // Dot 0 (24px) is outside the Expanded area, so subtract it
+              // before distributing the remaining space among connectors and
+              // dots 1..n-1. Without this, the inner SizedBox is 24px wider
+              // than the Expanded, causing an overflow warning in debug mode.
+              final innerW = constraints.maxWidth - 24.0;
+              final connW = (innerW - segments * 24.0) / segments.toDouble();
+              return AnimatedBuilder(
+                animation: Listenable.merge([_fillCtrl, _expandCtrl]),
+                builder: (ctx2, _) => Row(
+                  children: [
+                    _buildDot(ctx2, 0, accent),
+                    Expanded(
+                      child: ClipRect(
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: _expandCurved.value,
+                          child: SizedBox(
+                            width: innerW,
+                            child: Row(
+                              children: [
+                                for (int i = 1; i < n; i++) ...[
+                                  // Connector line: grey base + accent fill L→R
+                                  SizedBox(
+                                    width: connW,
+                                    child: Stack(
+                                      children: [
+                                        Container(height: 2, color: kredit.borderCard),
+                                        FractionallySizedBox(
+                                          widthFactor: _lineFill(i - 1),
+                                          alignment: Alignment.centerLeft,
+                                          child: Container(height: 2, color: accent),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  _buildDot(ctx2, i, accent),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
     );
   }
 }
@@ -3222,7 +4173,7 @@ class _SummaryTile extends StatelessWidget {
         Text(
           label.toUpperCase(),
           style: TextStyle(
-            fontSize: 10.5,
+            fontSize: KreditTextSize.body,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.5,
             color: kredit.textTertiary,
@@ -3301,7 +4252,7 @@ class _NoEntityCard extends StatelessWidget {
                   Text(
                     'Registra el crédito sin vincularlo a una entidad.',
                     style: TextStyle(
-                      fontSize: KreditTextSize.caption,
+                      fontSize: KreditTextSize.body,
                       color: kredit.textTertiary,
                       height: 1.3,
                     ),
@@ -3312,7 +4263,7 @@ class _NoEntityCard extends StatelessWidget {
             const SizedBox(width: 8),
             Icon(
               selected ? Icons.check_circle : Icons.radio_button_unchecked,
-              size: 20,
+              size: KreditIconSize.medium,
               color: selected ? accent : kredit.textTertiary,
             ),
           ],
@@ -3371,7 +4322,7 @@ class _AddEntityButton extends StatelessWidget {
               ),
               child: Icon(
                 hasEntity ? Icons.check : Icons.add,
-                size: 18,
+                size: KreditIconSize.small,
                 color: selected ? Colors.black : kredit.textTertiary,
               ),
             ),
@@ -3391,7 +4342,7 @@ class _AddEntityButton extends StatelessWidget {
                   Text(
                     hasEntity ? 'Toca para editar' : 'Banco, tienda o app',
                     style: TextStyle(
-                      fontSize: KreditTextSize.caption,
+                      fontSize: KreditTextSize.body,
                       color: kredit.textTertiary,
                     ),
                   ),
@@ -3400,7 +4351,7 @@ class _AddEntityButton extends StatelessWidget {
             ),
             Icon(
               Icons.arrow_forward_ios,
-              size: 14,
+              size: KreditIconSize.micro,
               color: selected ? accent : kredit.textTertiary,
             ),
           ],
@@ -3443,13 +4394,13 @@ class _EntityTypePill extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 18, color: selected ? accent : kredit.textTertiary),
+            Icon(icon, size: KreditIconSize.small, color: selected ? accent : kredit.textTertiary),
             const SizedBox(height: 4),
             Text(
               label,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: KreditTextSize.caption,
+                fontSize: KreditTextSize.body,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 color: selected ? accent : kredit.textSecondary,
               ),
@@ -3511,7 +4462,7 @@ class _EntityPickerCard extends StatelessWidget {
                         color: accent,
                       ),
                       padding: const EdgeInsets.all(2),
-                      child: const Icon(Icons.check, size: 14, color: Colors.black),
+                      child: const Icon(Icons.check, size: KreditIconSize.micro, color: Colors.black),
                     )
                   : Container(
                       key: const ValueKey('empty'),

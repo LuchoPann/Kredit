@@ -23,7 +23,7 @@ class DemoBadge extends StatelessWidget {
       child: Text(
         'EJEMPLO',
         style: TextStyle(
-          fontSize: KreditTextSize.caption,
+          fontSize: KreditTextSize.body,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.3,
           color: kredit.textTertiary,

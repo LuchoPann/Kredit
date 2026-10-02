@@ -283,7 +283,7 @@ class _DataToolOption extends StatelessWidget {
                     child: Text(
                       tag,
                       style: TextStyle(
-                        fontSize: KreditTextSize.caption,
+                        fontSize: KreditTextSize.body,
                         fontWeight: FontWeight.w600,
                         color: tagColor,
                       ),

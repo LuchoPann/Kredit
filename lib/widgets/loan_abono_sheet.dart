@@ -128,7 +128,7 @@ class _LoanAbonoSheetState extends ConsumerState<LoanAbonoSheet> {
             Text(
               'MONTO',
               style: TextStyle(
-                fontSize: KreditTextSize.caption,
+                fontSize: KreditTextSize.body,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.4,
                 color: kredit.textTertiary,
@@ -160,7 +160,7 @@ class _LoanAbonoSheetState extends ConsumerState<LoanAbonoSheet> {
             Text(
               'QUÉ HACER CON EL SALDO',
               style: TextStyle(
-                fontSize: KreditTextSize.caption,
+                fontSize: KreditTextSize.body,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.4,
                 color: kredit.textTertiary,
@@ -193,7 +193,7 @@ class _LoanAbonoSheetState extends ConsumerState<LoanAbonoSheet> {
               _strategy == AbonoStrategy.reducirCuota
                   ? 'Mismo número de cuotas restantes, pero cada una más barata.'
                   : 'Misma cuota mensual, pero el crédito termina antes.',
-              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
             ),
             const SizedBox(height: 20),
             SizedBox(

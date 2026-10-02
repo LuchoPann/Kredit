@@ -38,7 +38,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -93,6 +93,14 @@ class AppDatabase extends _$AppDatabase {
                 AND cutoff_day IS NOT NULL
                 AND payment_due_offset_days IS NOT NULL
             ''');
+          }
+          if (from < 11) {
+            await m.addColumn(cardMovements, cardMovements.advanceInstallments);
+            await m.addColumn(cardMovements, cardMovements.advanceInterestRate);
+            await m.addColumn(cardMovements, cardMovements.advanceInterestRateType);
+            await m.addColumn(cardMovements, cardMovements.advanceCommission);
+            await m.addColumn(cardMovements, cardMovements.advanceFirstPaymentDate);
+            await m.addColumn(cardMovements, cardMovements.advanceDestination);
           }
         },
         // SQLite ignores FK constraints (like Credits.quotaId's
@@ -234,6 +242,12 @@ class AppDatabase extends _$AppDatabase {
                     type: m.type,
                     amount: m.amount,
                     note: m.note,
+                    advanceInstallments: m.advanceInstallments,
+                    advanceInterestRate: m.advanceInterestRate,
+                    advanceInterestRateType: m.advanceInterestRateType,
+                    advanceCommission: m.advanceCommission,
+                    advanceFirstPaymentDate: m.advanceFirstPaymentDate,
+                    advanceDestination: m.advanceDestination,
                   ))
               .toList(),
         ));
@@ -421,6 +435,12 @@ class AppDatabase extends _$AppDatabase {
             type: mv.type,
             amount: mv.amount,
             note: Value(mv.note),
+            advanceInstallments: Value(mv.advanceInstallments),
+            advanceInterestRate: Value(mv.advanceInterestRate),
+            advanceInterestRateType: Value(mv.advanceInterestRateType),
+            advanceCommission: Value(mv.advanceCommission),
+            advanceFirstPaymentDate: Value(mv.advanceFirstPaymentDate),
+            advanceDestination: Value(mv.advanceDestination),
           ));
         }
       }

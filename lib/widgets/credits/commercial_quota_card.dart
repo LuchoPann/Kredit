@@ -133,7 +133,7 @@ class _CommercialQuotaCardState extends State<CommercialQuotaCard>
                       child: Text(
                         'COMPRAS DE ESTE CUPO',
                         style: TextStyle(
-                          fontSize: KreditTextSize.caption,
+                          fontSize: KreditTextSize.body,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.5,
                           color: kredit.textTertiary,
@@ -180,7 +180,7 @@ class _CommercialQuotaCardState extends State<CommercialQuotaCard>
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
-                                            fontSize: KreditTextSize.caption,
+                                            fontSize: KreditTextSize.body,
                                             color: kredit.textPrimary,
                                           ),
                                         ),
@@ -188,7 +188,7 @@ class _CommercialQuotaCardState extends State<CommercialQuotaCard>
                                       Text(
                                         formatCOP(getCreditRemainingBalance(purchase)),
                                         style: TextStyle(
-                                          fontSize: KreditTextSize.caption,
+                                          fontSize: KreditTextSize.body,
                                           fontWeight: FontWeight.w800,
                                           color: kredit.textPrimary,
                                           fontFeatures: const [
@@ -207,7 +207,7 @@ class _CommercialQuotaCardState extends State<CommercialQuotaCard>
                             child: Text(
                               '$count compra${count == 1 ? '' : 's'}',
                               style: TextStyle(
-                                fontSize: KreditTextSize.caption,
+                                fontSize: KreditTextSize.body,
                                 color: kredit.textSecondary,
                               ),
                             ),
@@ -312,7 +312,7 @@ class _QuotaVoucherFace extends StatelessWidget {
                                 style: TextStyle(
                                   color: ink.withValues(alpha: 0.7),
                                   fontWeight: FontWeight.w700,
-                                  fontSize: KreditTextSize.caption,
+                                  fontSize: KreditTextSize.body,
                                   letterSpacing: 0.5,
                                 ),
                               ),
@@ -335,7 +335,7 @@ class _QuotaVoucherFace extends StatelessWidget {
                               style: TextStyle(
                                 color: ink.withValues(alpha: 0.7),
                                 fontWeight: FontWeight.w700,
-                                fontSize: KreditTextSize.caption,
+                                fontSize: KreditTextSize.body,
                                 letterSpacing: 0.5,
                               ),
                             ),

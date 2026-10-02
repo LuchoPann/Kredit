@@ -3107,6 +3107,72 @@ class $CardMovementsTable extends CardMovements
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _advanceInstallmentsMeta =
+      const VerificationMeta('advanceInstallments');
+  @override
+  late final GeneratedColumn<int> advanceInstallments = GeneratedColumn<int>(
+    'advance_installments',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _advanceInterestRateMeta =
+      const VerificationMeta('advanceInterestRate');
+  @override
+  late final GeneratedColumn<double> advanceInterestRate =
+      GeneratedColumn<double>(
+        'advance_interest_rate',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _advanceInterestRateTypeMeta =
+      const VerificationMeta('advanceInterestRateType');
+  @override
+  late final GeneratedColumn<String> advanceInterestRateType =
+      GeneratedColumn<String>(
+        'advance_interest_rate_type',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _advanceCommissionMeta = const VerificationMeta(
+    'advanceCommission',
+  );
+  @override
+  late final GeneratedColumn<double> advanceCommission =
+      GeneratedColumn<double>(
+        'advance_commission',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _advanceFirstPaymentDateMeta =
+      const VerificationMeta('advanceFirstPaymentDate');
+  @override
+  late final GeneratedColumn<String> advanceFirstPaymentDate =
+      GeneratedColumn<String>(
+        'advance_first_payment_date',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _advanceDestinationMeta =
+      const VerificationMeta('advanceDestination');
+  @override
+  late final GeneratedColumn<String> advanceDestination =
+      GeneratedColumn<String>(
+        'advance_destination',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     rowId,
@@ -3115,6 +3181,12 @@ class $CardMovementsTable extends CardMovements
     type,
     amount,
     note,
+    advanceInstallments,
+    advanceInterestRate,
+    advanceInterestRateType,
+    advanceCommission,
+    advanceFirstPaymentDate,
+    advanceDestination,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3172,6 +3244,60 @@ class $CardMovementsTable extends CardMovements
         note.isAcceptableOrUnknown(data['note']!, _noteMeta),
       );
     }
+    if (data.containsKey('advance_installments')) {
+      context.handle(
+        _advanceInstallmentsMeta,
+        advanceInstallments.isAcceptableOrUnknown(
+          data['advance_installments']!,
+          _advanceInstallmentsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('advance_interest_rate')) {
+      context.handle(
+        _advanceInterestRateMeta,
+        advanceInterestRate.isAcceptableOrUnknown(
+          data['advance_interest_rate']!,
+          _advanceInterestRateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('advance_interest_rate_type')) {
+      context.handle(
+        _advanceInterestRateTypeMeta,
+        advanceInterestRateType.isAcceptableOrUnknown(
+          data['advance_interest_rate_type']!,
+          _advanceInterestRateTypeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('advance_commission')) {
+      context.handle(
+        _advanceCommissionMeta,
+        advanceCommission.isAcceptableOrUnknown(
+          data['advance_commission']!,
+          _advanceCommissionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('advance_first_payment_date')) {
+      context.handle(
+        _advanceFirstPaymentDateMeta,
+        advanceFirstPaymentDate.isAcceptableOrUnknown(
+          data['advance_first_payment_date']!,
+          _advanceFirstPaymentDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('advance_destination')) {
+      context.handle(
+        _advanceDestinationMeta,
+        advanceDestination.isAcceptableOrUnknown(
+          data['advance_destination']!,
+          _advanceDestinationMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -3205,6 +3331,30 @@ class $CardMovementsTable extends CardMovements
         DriftSqlType.string,
         data['${effectivePrefix}note'],
       )!,
+      advanceInstallments: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}advance_installments'],
+      ),
+      advanceInterestRate: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}advance_interest_rate'],
+      ),
+      advanceInterestRateType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}advance_interest_rate_type'],
+      ),
+      advanceCommission: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}advance_commission'],
+      ),
+      advanceFirstPaymentDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}advance_first_payment_date'],
+      ),
+      advanceDestination: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}advance_destination'],
+      ),
     );
   }
 
@@ -3221,6 +3371,12 @@ class CardMovementRow extends DataClass implements Insertable<CardMovementRow> {
   final String type;
   final double amount;
   final String note;
+  final int? advanceInstallments;
+  final double? advanceInterestRate;
+  final String? advanceInterestRateType;
+  final double? advanceCommission;
+  final String? advanceFirstPaymentDate;
+  final String? advanceDestination;
   const CardMovementRow({
     required this.rowId,
     required this.creditId,
@@ -3228,6 +3384,12 @@ class CardMovementRow extends DataClass implements Insertable<CardMovementRow> {
     required this.type,
     required this.amount,
     required this.note,
+    this.advanceInstallments,
+    this.advanceInterestRate,
+    this.advanceInterestRateType,
+    this.advanceCommission,
+    this.advanceFirstPaymentDate,
+    this.advanceDestination,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3238,6 +3400,28 @@ class CardMovementRow extends DataClass implements Insertable<CardMovementRow> {
     map['type'] = Variable<String>(type);
     map['amount'] = Variable<double>(amount);
     map['note'] = Variable<String>(note);
+    if (!nullToAbsent || advanceInstallments != null) {
+      map['advance_installments'] = Variable<int>(advanceInstallments);
+    }
+    if (!nullToAbsent || advanceInterestRate != null) {
+      map['advance_interest_rate'] = Variable<double>(advanceInterestRate);
+    }
+    if (!nullToAbsent || advanceInterestRateType != null) {
+      map['advance_interest_rate_type'] = Variable<String>(
+        advanceInterestRateType,
+      );
+    }
+    if (!nullToAbsent || advanceCommission != null) {
+      map['advance_commission'] = Variable<double>(advanceCommission);
+    }
+    if (!nullToAbsent || advanceFirstPaymentDate != null) {
+      map['advance_first_payment_date'] = Variable<String>(
+        advanceFirstPaymentDate,
+      );
+    }
+    if (!nullToAbsent || advanceDestination != null) {
+      map['advance_destination'] = Variable<String>(advanceDestination);
+    }
     return map;
   }
 
@@ -3249,6 +3433,24 @@ class CardMovementRow extends DataClass implements Insertable<CardMovementRow> {
       type: Value(type),
       amount: Value(amount),
       note: Value(note),
+      advanceInstallments: advanceInstallments == null && nullToAbsent
+          ? const Value.absent()
+          : Value(advanceInstallments),
+      advanceInterestRate: advanceInterestRate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(advanceInterestRate),
+      advanceInterestRateType: advanceInterestRateType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(advanceInterestRateType),
+      advanceCommission: advanceCommission == null && nullToAbsent
+          ? const Value.absent()
+          : Value(advanceCommission),
+      advanceFirstPaymentDate: advanceFirstPaymentDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(advanceFirstPaymentDate),
+      advanceDestination: advanceDestination == null && nullToAbsent
+          ? const Value.absent()
+          : Value(advanceDestination),
     );
   }
 
@@ -3264,6 +3466,24 @@ class CardMovementRow extends DataClass implements Insertable<CardMovementRow> {
       type: serializer.fromJson<String>(json['type']),
       amount: serializer.fromJson<double>(json['amount']),
       note: serializer.fromJson<String>(json['note']),
+      advanceInstallments: serializer.fromJson<int?>(
+        json['advanceInstallments'],
+      ),
+      advanceInterestRate: serializer.fromJson<double?>(
+        json['advanceInterestRate'],
+      ),
+      advanceInterestRateType: serializer.fromJson<String?>(
+        json['advanceInterestRateType'],
+      ),
+      advanceCommission: serializer.fromJson<double?>(
+        json['advanceCommission'],
+      ),
+      advanceFirstPaymentDate: serializer.fromJson<String?>(
+        json['advanceFirstPaymentDate'],
+      ),
+      advanceDestination: serializer.fromJson<String?>(
+        json['advanceDestination'],
+      ),
     );
   }
   @override
@@ -3276,6 +3496,16 @@ class CardMovementRow extends DataClass implements Insertable<CardMovementRow> {
       'type': serializer.toJson<String>(type),
       'amount': serializer.toJson<double>(amount),
       'note': serializer.toJson<String>(note),
+      'advanceInstallments': serializer.toJson<int?>(advanceInstallments),
+      'advanceInterestRate': serializer.toJson<double?>(advanceInterestRate),
+      'advanceInterestRateType': serializer.toJson<String?>(
+        advanceInterestRateType,
+      ),
+      'advanceCommission': serializer.toJson<double?>(advanceCommission),
+      'advanceFirstPaymentDate': serializer.toJson<String?>(
+        advanceFirstPaymentDate,
+      ),
+      'advanceDestination': serializer.toJson<String?>(advanceDestination),
     };
   }
 
@@ -3286,6 +3516,12 @@ class CardMovementRow extends DataClass implements Insertable<CardMovementRow> {
     String? type,
     double? amount,
     String? note,
+    Value<int?> advanceInstallments = const Value.absent(),
+    Value<double?> advanceInterestRate = const Value.absent(),
+    Value<String?> advanceInterestRateType = const Value.absent(),
+    Value<double?> advanceCommission = const Value.absent(),
+    Value<String?> advanceFirstPaymentDate = const Value.absent(),
+    Value<String?> advanceDestination = const Value.absent(),
   }) => CardMovementRow(
     rowId: rowId ?? this.rowId,
     creditId: creditId ?? this.creditId,
@@ -3293,6 +3529,24 @@ class CardMovementRow extends DataClass implements Insertable<CardMovementRow> {
     type: type ?? this.type,
     amount: amount ?? this.amount,
     note: note ?? this.note,
+    advanceInstallments: advanceInstallments.present
+        ? advanceInstallments.value
+        : this.advanceInstallments,
+    advanceInterestRate: advanceInterestRate.present
+        ? advanceInterestRate.value
+        : this.advanceInterestRate,
+    advanceInterestRateType: advanceInterestRateType.present
+        ? advanceInterestRateType.value
+        : this.advanceInterestRateType,
+    advanceCommission: advanceCommission.present
+        ? advanceCommission.value
+        : this.advanceCommission,
+    advanceFirstPaymentDate: advanceFirstPaymentDate.present
+        ? advanceFirstPaymentDate.value
+        : this.advanceFirstPaymentDate,
+    advanceDestination: advanceDestination.present
+        ? advanceDestination.value
+        : this.advanceDestination,
   );
   CardMovementRow copyWithCompanion(CardMovementsCompanion data) {
     return CardMovementRow(
@@ -3302,6 +3556,24 @@ class CardMovementRow extends DataClass implements Insertable<CardMovementRow> {
       type: data.type.present ? data.type.value : this.type,
       amount: data.amount.present ? data.amount.value : this.amount,
       note: data.note.present ? data.note.value : this.note,
+      advanceInstallments: data.advanceInstallments.present
+          ? data.advanceInstallments.value
+          : this.advanceInstallments,
+      advanceInterestRate: data.advanceInterestRate.present
+          ? data.advanceInterestRate.value
+          : this.advanceInterestRate,
+      advanceInterestRateType: data.advanceInterestRateType.present
+          ? data.advanceInterestRateType.value
+          : this.advanceInterestRateType,
+      advanceCommission: data.advanceCommission.present
+          ? data.advanceCommission.value
+          : this.advanceCommission,
+      advanceFirstPaymentDate: data.advanceFirstPaymentDate.present
+          ? data.advanceFirstPaymentDate.value
+          : this.advanceFirstPaymentDate,
+      advanceDestination: data.advanceDestination.present
+          ? data.advanceDestination.value
+          : this.advanceDestination,
     );
   }
 
@@ -3313,13 +3585,32 @@ class CardMovementRow extends DataClass implements Insertable<CardMovementRow> {
           ..write('date: $date, ')
           ..write('type: $type, ')
           ..write('amount: $amount, ')
-          ..write('note: $note')
+          ..write('note: $note, ')
+          ..write('advanceInstallments: $advanceInstallments, ')
+          ..write('advanceInterestRate: $advanceInterestRate, ')
+          ..write('advanceInterestRateType: $advanceInterestRateType, ')
+          ..write('advanceCommission: $advanceCommission, ')
+          ..write('advanceFirstPaymentDate: $advanceFirstPaymentDate, ')
+          ..write('advanceDestination: $advanceDestination')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(rowId, creditId, date, type, amount, note);
+  int get hashCode => Object.hash(
+    rowId,
+    creditId,
+    date,
+    type,
+    amount,
+    note,
+    advanceInstallments,
+    advanceInterestRate,
+    advanceInterestRateType,
+    advanceCommission,
+    advanceFirstPaymentDate,
+    advanceDestination,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3329,7 +3620,13 @@ class CardMovementRow extends DataClass implements Insertable<CardMovementRow> {
           other.date == this.date &&
           other.type == this.type &&
           other.amount == this.amount &&
-          other.note == this.note);
+          other.note == this.note &&
+          other.advanceInstallments == this.advanceInstallments &&
+          other.advanceInterestRate == this.advanceInterestRate &&
+          other.advanceInterestRateType == this.advanceInterestRateType &&
+          other.advanceCommission == this.advanceCommission &&
+          other.advanceFirstPaymentDate == this.advanceFirstPaymentDate &&
+          other.advanceDestination == this.advanceDestination);
 }
 
 class CardMovementsCompanion extends UpdateCompanion<CardMovementRow> {
@@ -3339,6 +3636,12 @@ class CardMovementsCompanion extends UpdateCompanion<CardMovementRow> {
   final Value<String> type;
   final Value<double> amount;
   final Value<String> note;
+  final Value<int?> advanceInstallments;
+  final Value<double?> advanceInterestRate;
+  final Value<String?> advanceInterestRateType;
+  final Value<double?> advanceCommission;
+  final Value<String?> advanceFirstPaymentDate;
+  final Value<String?> advanceDestination;
   const CardMovementsCompanion({
     this.rowId = const Value.absent(),
     this.creditId = const Value.absent(),
@@ -3346,6 +3649,12 @@ class CardMovementsCompanion extends UpdateCompanion<CardMovementRow> {
     this.type = const Value.absent(),
     this.amount = const Value.absent(),
     this.note = const Value.absent(),
+    this.advanceInstallments = const Value.absent(),
+    this.advanceInterestRate = const Value.absent(),
+    this.advanceInterestRateType = const Value.absent(),
+    this.advanceCommission = const Value.absent(),
+    this.advanceFirstPaymentDate = const Value.absent(),
+    this.advanceDestination = const Value.absent(),
   });
   CardMovementsCompanion.insert({
     this.rowId = const Value.absent(),
@@ -3354,6 +3663,12 @@ class CardMovementsCompanion extends UpdateCompanion<CardMovementRow> {
     required String type,
     required double amount,
     this.note = const Value.absent(),
+    this.advanceInstallments = const Value.absent(),
+    this.advanceInterestRate = const Value.absent(),
+    this.advanceInterestRateType = const Value.absent(),
+    this.advanceCommission = const Value.absent(),
+    this.advanceFirstPaymentDate = const Value.absent(),
+    this.advanceDestination = const Value.absent(),
   }) : creditId = Value(creditId),
        date = Value(date),
        type = Value(type),
@@ -3365,6 +3680,12 @@ class CardMovementsCompanion extends UpdateCompanion<CardMovementRow> {
     Expression<String>? type,
     Expression<double>? amount,
     Expression<String>? note,
+    Expression<int>? advanceInstallments,
+    Expression<double>? advanceInterestRate,
+    Expression<String>? advanceInterestRateType,
+    Expression<double>? advanceCommission,
+    Expression<String>? advanceFirstPaymentDate,
+    Expression<String>? advanceDestination,
   }) {
     return RawValuesInsertable({
       if (rowId != null) 'row_id': rowId,
@@ -3373,6 +3694,16 @@ class CardMovementsCompanion extends UpdateCompanion<CardMovementRow> {
       if (type != null) 'type': type,
       if (amount != null) 'amount': amount,
       if (note != null) 'note': note,
+      if (advanceInstallments != null)
+        'advance_installments': advanceInstallments,
+      if (advanceInterestRate != null)
+        'advance_interest_rate': advanceInterestRate,
+      if (advanceInterestRateType != null)
+        'advance_interest_rate_type': advanceInterestRateType,
+      if (advanceCommission != null) 'advance_commission': advanceCommission,
+      if (advanceFirstPaymentDate != null)
+        'advance_first_payment_date': advanceFirstPaymentDate,
+      if (advanceDestination != null) 'advance_destination': advanceDestination,
     });
   }
 
@@ -3383,6 +3714,12 @@ class CardMovementsCompanion extends UpdateCompanion<CardMovementRow> {
     Value<String>? type,
     Value<double>? amount,
     Value<String>? note,
+    Value<int?>? advanceInstallments,
+    Value<double?>? advanceInterestRate,
+    Value<String?>? advanceInterestRateType,
+    Value<double?>? advanceCommission,
+    Value<String?>? advanceFirstPaymentDate,
+    Value<String?>? advanceDestination,
   }) {
     return CardMovementsCompanion(
       rowId: rowId ?? this.rowId,
@@ -3391,6 +3728,14 @@ class CardMovementsCompanion extends UpdateCompanion<CardMovementRow> {
       type: type ?? this.type,
       amount: amount ?? this.amount,
       note: note ?? this.note,
+      advanceInstallments: advanceInstallments ?? this.advanceInstallments,
+      advanceInterestRate: advanceInterestRate ?? this.advanceInterestRate,
+      advanceInterestRateType:
+          advanceInterestRateType ?? this.advanceInterestRateType,
+      advanceCommission: advanceCommission ?? this.advanceCommission,
+      advanceFirstPaymentDate:
+          advanceFirstPaymentDate ?? this.advanceFirstPaymentDate,
+      advanceDestination: advanceDestination ?? this.advanceDestination,
     );
   }
 
@@ -3415,6 +3760,30 @@ class CardMovementsCompanion extends UpdateCompanion<CardMovementRow> {
     if (note.present) {
       map['note'] = Variable<String>(note.value);
     }
+    if (advanceInstallments.present) {
+      map['advance_installments'] = Variable<int>(advanceInstallments.value);
+    }
+    if (advanceInterestRate.present) {
+      map['advance_interest_rate'] = Variable<double>(
+        advanceInterestRate.value,
+      );
+    }
+    if (advanceInterestRateType.present) {
+      map['advance_interest_rate_type'] = Variable<String>(
+        advanceInterestRateType.value,
+      );
+    }
+    if (advanceCommission.present) {
+      map['advance_commission'] = Variable<double>(advanceCommission.value);
+    }
+    if (advanceFirstPaymentDate.present) {
+      map['advance_first_payment_date'] = Variable<String>(
+        advanceFirstPaymentDate.value,
+      );
+    }
+    if (advanceDestination.present) {
+      map['advance_destination'] = Variable<String>(advanceDestination.value);
+    }
     return map;
   }
 
@@ -3426,7 +3795,13 @@ class CardMovementsCompanion extends UpdateCompanion<CardMovementRow> {
           ..write('date: $date, ')
           ..write('type: $type, ')
           ..write('amount: $amount, ')
-          ..write('note: $note')
+          ..write('note: $note, ')
+          ..write('advanceInstallments: $advanceInstallments, ')
+          ..write('advanceInterestRate: $advanceInterestRate, ')
+          ..write('advanceInterestRateType: $advanceInterestRateType, ')
+          ..write('advanceCommission: $advanceCommission, ')
+          ..write('advanceFirstPaymentDate: $advanceFirstPaymentDate, ')
+          ..write('advanceDestination: $advanceDestination')
           ..write(')'))
         .toString();
   }
@@ -5982,6 +6357,12 @@ typedef $$CardMovementsTableCreateCompanionBuilder =
       required String type,
       required double amount,
       Value<String> note,
+      Value<int?> advanceInstallments,
+      Value<double?> advanceInterestRate,
+      Value<String?> advanceInterestRateType,
+      Value<double?> advanceCommission,
+      Value<String?> advanceFirstPaymentDate,
+      Value<String?> advanceDestination,
     });
 typedef $$CardMovementsTableUpdateCompanionBuilder =
     CardMovementsCompanion Function({
@@ -5991,6 +6372,12 @@ typedef $$CardMovementsTableUpdateCompanionBuilder =
       Value<String> type,
       Value<double> amount,
       Value<String> note,
+      Value<int?> advanceInstallments,
+      Value<double?> advanceInterestRate,
+      Value<String?> advanceInterestRateType,
+      Value<double?> advanceCommission,
+      Value<String?> advanceFirstPaymentDate,
+      Value<String?> advanceDestination,
     });
 
 final class $$CardMovementsTableReferences
@@ -6054,6 +6441,36 @@ class $$CardMovementsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<int> get advanceInstallments => $composableBuilder(
+    column: $table.advanceInstallments,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get advanceInterestRate => $composableBuilder(
+    column: $table.advanceInterestRate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get advanceInterestRateType => $composableBuilder(
+    column: $table.advanceInterestRateType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get advanceCommission => $composableBuilder(
+    column: $table.advanceCommission,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get advanceFirstPaymentDate => $composableBuilder(
+    column: $table.advanceFirstPaymentDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get advanceDestination => $composableBuilder(
+    column: $table.advanceDestination,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$CreditsTableFilterComposer get creditId {
     final $$CreditsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -6112,6 +6529,36 @@ class $$CardMovementsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get advanceInstallments => $composableBuilder(
+    column: $table.advanceInstallments,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get advanceInterestRate => $composableBuilder(
+    column: $table.advanceInterestRate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get advanceInterestRateType => $composableBuilder(
+    column: $table.advanceInterestRateType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get advanceCommission => $composableBuilder(
+    column: $table.advanceCommission,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get advanceFirstPaymentDate => $composableBuilder(
+    column: $table.advanceFirstPaymentDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get advanceDestination => $composableBuilder(
+    column: $table.advanceDestination,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$CreditsTableOrderingComposer get creditId {
     final $$CreditsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -6159,6 +6606,36 @@ class $$CardMovementsTableAnnotationComposer
 
   GeneratedColumn<String> get note =>
       $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<int> get advanceInstallments => $composableBuilder(
+    column: $table.advanceInstallments,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get advanceInterestRate => $composableBuilder(
+    column: $table.advanceInterestRate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get advanceInterestRateType => $composableBuilder(
+    column: $table.advanceInterestRateType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get advanceCommission => $composableBuilder(
+    column: $table.advanceCommission,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get advanceFirstPaymentDate => $composableBuilder(
+    column: $table.advanceFirstPaymentDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get advanceDestination => $composableBuilder(
+    column: $table.advanceDestination,
+    builder: (column) => column,
+  );
 
   $$CreditsTableAnnotationComposer get creditId {
     final $$CreditsTableAnnotationComposer composer = $composerBuilder(
@@ -6218,6 +6695,12 @@ class $$CardMovementsTableTableManager
                 Value<String> type = const Value.absent(),
                 Value<double> amount = const Value.absent(),
                 Value<String> note = const Value.absent(),
+                Value<int?> advanceInstallments = const Value.absent(),
+                Value<double?> advanceInterestRate = const Value.absent(),
+                Value<String?> advanceInterestRateType = const Value.absent(),
+                Value<double?> advanceCommission = const Value.absent(),
+                Value<String?> advanceFirstPaymentDate = const Value.absent(),
+                Value<String?> advanceDestination = const Value.absent(),
               }) => CardMovementsCompanion(
                 rowId: rowId,
                 creditId: creditId,
@@ -6225,6 +6708,12 @@ class $$CardMovementsTableTableManager
                 type: type,
                 amount: amount,
                 note: note,
+                advanceInstallments: advanceInstallments,
+                advanceInterestRate: advanceInterestRate,
+                advanceInterestRateType: advanceInterestRateType,
+                advanceCommission: advanceCommission,
+                advanceFirstPaymentDate: advanceFirstPaymentDate,
+                advanceDestination: advanceDestination,
               ),
           createCompanionCallback:
               ({
@@ -6234,6 +6723,12 @@ class $$CardMovementsTableTableManager
                 required String type,
                 required double amount,
                 Value<String> note = const Value.absent(),
+                Value<int?> advanceInstallments = const Value.absent(),
+                Value<double?> advanceInterestRate = const Value.absent(),
+                Value<String?> advanceInterestRateType = const Value.absent(),
+                Value<double?> advanceCommission = const Value.absent(),
+                Value<String?> advanceFirstPaymentDate = const Value.absent(),
+                Value<String?> advanceDestination = const Value.absent(),
               }) => CardMovementsCompanion.insert(
                 rowId: rowId,
                 creditId: creditId,
@@ -6241,6 +6736,12 @@ class $$CardMovementsTableTableManager
                 type: type,
                 amount: amount,
                 note: note,
+                advanceInstallments: advanceInstallments,
+                advanceInterestRate: advanceInterestRate,
+                advanceInterestRateType: advanceInterestRateType,
+                advanceCommission: advanceCommission,
+                advanceFirstPaymentDate: advanceFirstPaymentDate,
+                advanceDestination: advanceDestination,
               ),
           withReferenceMapper: (p0) => p0
               .map(

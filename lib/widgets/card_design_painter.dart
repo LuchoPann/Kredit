@@ -28,7 +28,8 @@ enum CardDesign {
   static CardDesign? fromKey(String? k) =>
       k == null ? null : values.where((v) => v.name == k).firstOrNull;
 
-  // Whether this design has a light (cream/white) background
+  // Whether this design has a light (cream/white) background — drives
+  // text color: black ink on light, white ink on dark.
   bool get isLightBackground =>
       this == organicModernism;
 }

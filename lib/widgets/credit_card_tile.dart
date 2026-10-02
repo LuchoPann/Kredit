@@ -111,7 +111,7 @@ class _CreditCardTileState extends State<CreditCardTile> {
                     Text(
                       '${bank.shortLabel} · ${creditTypeLabel(credit)} · ${creditSublabel(credit)}',
                       style: TextStyle(
-                        fontSize: KreditTextSize.caption,
+                        fontSize: KreditTextSize.body,
                         fontWeight: FontWeight.w600,
                         color: kredit.textTertiary,
                       ),
@@ -132,7 +132,7 @@ class _CreditCardTileState extends State<CreditCardTile> {
                   Text(
                     credit.isCard ? 'SALDO' : 'PENDIENTE',
                     style: TextStyle(
-                      fontSize: KreditTextSize.caption,
+                      fontSize: KreditTextSize.body,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.5,
                       color: kredit.textTertiary,

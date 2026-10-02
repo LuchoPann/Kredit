@@ -96,7 +96,7 @@ class VoucherPatternPicker extends StatelessWidget {
                                   ),
                                   child: const Icon(
                                     Icons.check,
-                                    size: 13,
+                                    size: KreditIconSize.micro,
                                     color: Colors.white,
                                   ),
                                 ),
@@ -111,7 +111,7 @@ class VoucherPatternPicker extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: KreditTextSize.caption,
+                          fontSize: KreditTextSize.body,
                           fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                           color: isSelected ? scheme.primary : scheme.onSurfaceVariant,
                         ),

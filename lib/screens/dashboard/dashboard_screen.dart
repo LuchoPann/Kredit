@@ -121,7 +121,7 @@ class _DashboardErrorState extends StatelessWidget {
               'No se pudieron cargar tus créditos.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: KreditTextSize.caption,
+                fontSize: KreditTextSize.body,
                 color: kredit.textSecondary,
               ),
             ),
@@ -209,7 +209,7 @@ class _DashboardBody extends ConsumerWidget {
                   Text(
                     'Tu situación crediticia',
                     style: TextStyle(
-                      fontSize: KreditTextSize.caption,
+                      fontSize: KreditTextSize.body,
                       color: kredit.textSecondary,
                     ),
                   ),
@@ -238,7 +238,7 @@ class _DashboardBody extends ConsumerWidget {
                   Text(
                     'DEUDA TOTAL',
                     style: TextStyle(
-                      fontSize: KreditTextSize.caption,
+                      fontSize: KreditTextSize.body,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.4,
                       color: kredit.textTertiary,
@@ -342,7 +342,7 @@ class _DashboardBody extends ConsumerWidget {
                             AppNavTab.credits,
                     child: const Text(
                       'Ver todos',
-                      style: TextStyle(fontSize: KreditTextSize.caption),
+                      style: TextStyle(fontSize: KreditTextSize.body),
                     ),
                   ),
                 ],
@@ -388,7 +388,7 @@ class _DashboardBody extends ConsumerWidget {
                 ),
                 subtitle: Text(
                   'Simula una compra en cuotas o un abono extra a capital',
-                  style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary),
+                  style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
                 ),
                 trailing: Icon(Icons.chevron_right, color: kredit.textTertiary),
                 ),
@@ -433,7 +433,7 @@ class _SecondaryStat extends StatelessWidget {
         Text(
           label.toUpperCase(),
           style: TextStyle(
-            fontSize: KreditTextSize.caption,
+            fontSize: KreditTextSize.body,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.6,
             color: kredit.textTertiary,
@@ -500,7 +500,7 @@ class _PaymentCoachCard extends ConsumerWidget {
                   const Text(
                     'Prioridad de hoy',
                     style: TextStyle(
-                      fontSize: KreditTextSize.caption,
+                      fontSize: KreditTextSize.body,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -565,7 +565,7 @@ class _PaymentCoachCard extends ConsumerWidget {
                     Text(
                       recommendation.title.toUpperCase(),
                       style: TextStyle(
-                        fontSize: KreditTextSize.caption,
+                        fontSize: KreditTextSize.body,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.7,
                         color: kredit.textTertiary,
@@ -601,7 +601,7 @@ class _PaymentCoachCard extends ConsumerWidget {
                   Text(
                     relativeLabel,
                     style: TextStyle(
-                      fontSize: KreditTextSize.caption,
+                      fontSize: KreditTextSize.body,
                       fontWeight: FontWeight.w700,
                       color: urgencyColor,
                     ),
@@ -698,7 +698,7 @@ class _UpcomingInlineHeader extends StatelessWidget {
         Text(
           'Después',
           style: TextStyle(
-            fontSize: KreditTextSize.caption,
+            fontSize: KreditTextSize.body,
             fontWeight: FontWeight.w800,
             letterSpacing: 0.7,
             color: kredit.textTertiary,
@@ -708,7 +708,7 @@ class _UpcomingInlineHeader extends StatelessWidget {
         Text(
           '$total pagos',
           style: TextStyle(
-            fontSize: KreditTextSize.caption,
+            fontSize: KreditTextSize.body,
             fontWeight: FontWeight.w600,
             color: kredit.textTertiary,
           ),
@@ -724,7 +724,7 @@ class _UpcomingInlineHeader extends StatelessWidget {
             onPressed: onSeeAll,
             child: const Text(
               'Ver todos',
-              style: TextStyle(fontSize: KreditTextSize.caption),
+              style: TextStyle(fontSize: KreditTextSize.body),
             ),
           ),
       ],
@@ -851,7 +851,7 @@ class _UpcomingRow extends StatelessWidget {
                   Text(
                     '${item.credit.lender} · $urgencyLabel',
                     style: TextStyle(
-                      fontSize: KreditTextSize.caption,
+                      fontSize: KreditTextSize.body,
                       color: urgencyColor,
                       fontWeight: FontWeight.w600,
                     ),
@@ -903,7 +903,7 @@ class _UpcomingRow extends StatelessWidget {
                           child: Text(
                             item.installment!.paid ? 'Pagado' : 'Marcar pago',
                             style: TextStyle(
-                              fontSize: KreditTextSize.caption,
+                              fontSize: KreditTextSize.body,
                               fontWeight: FontWeight.w700,
                               color: item.installment!.paid
                                   ? kredit.success
@@ -959,7 +959,7 @@ class _EmptyDashboard extends StatelessWidget {
             Text(
               'Agrega tu primera tarjeta o préstamo para empezar a llevar el control.',
               style: TextStyle(
-                fontSize: KreditTextSize.caption,
+                fontSize: KreditTextSize.body,
                 color: kredit.textSecondary,
               ),
               textAlign: TextAlign.center,

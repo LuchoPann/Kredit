@@ -55,7 +55,7 @@ class ProgressRing extends StatelessWidget {
                   Text(
                     'PAGADO',
                     style: TextStyle(
-                      fontSize: KreditTextSize.caption,
+                      fontSize: KreditTextSize.body,
                       letterSpacing: 0.5,
                       color: textColor,
                     ),

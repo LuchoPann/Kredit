@@ -174,7 +174,7 @@ class ProfileHeader extends ConsumerWidget {
               const SizedBox(height: 4),
               Text(
                 'Presiona la foto o el lápiz para editar',
-                style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+                style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
               ),
             ],
           ),

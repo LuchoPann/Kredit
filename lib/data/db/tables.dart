@@ -151,9 +151,17 @@ class CardMovements extends Table {
   TextColumn get creditId =>
       text().references(Credits, #id, onDelete: KeyAction.cascade)();
   TextColumn get date => text()(); // YYYY-MM-DD
-  TextColumn get type => text()(); // charge|payment|interest|fee
+  TextColumn get type => text()(); // charge|payment|interest|fee|advance
   RealColumn get amount => real()();
   TextColumn get note => text().withDefault(const Constant(''))();
+
+  // Campos presentes solo cuando type == 'advance':
+  IntColumn get advanceInstallments => integer().nullable()();
+  RealColumn get advanceInterestRate => real().nullable()();
+  TextColumn get advanceInterestRateType => text().nullable()();
+  RealColumn get advanceCommission => real().nullable()();
+  TextColumn get advanceFirstPaymentDate => text().nullable()(); // YYYY-MM-DD
+  TextColumn get advanceDestination => text().nullable()(); // cash|transfer|other
 }
 
 /// One row per loan "abono extra" (extra manual payment). Mirrors
