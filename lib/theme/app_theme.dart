@@ -104,6 +104,12 @@ class KreditTextSize {
   /// Large display numerals: dashboard total-debt hero figure and other
   /// big stat treatments where the number IS the message.
   static const hero = 38.0;
+
+  /// Card-exclusive sizes — used ONLY in wallet_card.dart for the lower-corner
+  /// text blocks (captions, stat values, secondary labels). 2px smaller than
+  /// the equivalent global token so text fits the physical card proportions.
+  static const cardCaption = 13.0; // body−3: eyebrow labels inside card corners
+  static const cardValue   = 21.0; // emphasis−3: stat values inside card corners
 }
 
 /// Exactly two icon sizes for the whole app (the `KreditLogo` brand mark is

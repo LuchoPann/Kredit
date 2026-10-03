@@ -819,7 +819,7 @@ class WalletCard extends ConsumerWidget {
                                 'DEUDA RESTANTE',
                                 style: TextStyle(
                                   color: bottomInkFaint,
-                                  fontSize: KreditTextSize.body,
+                                  fontSize: KreditTextSize.cardCaption,
                                   fontWeight: FontWeight.w600,
                                   letterSpacing: 1,
                                 ),
@@ -831,7 +831,7 @@ class WalletCard extends ConsumerWidget {
                                 style: TextStyle(
                                   color: bottomInkStrong,
                                   fontWeight: FontWeight.w800,
-                                  fontSize: KreditTextSize.emphasis,
+                                  fontSize: KreditTextSize.cardValue,
                                   letterSpacing: -0.5,
                                 ),
                               ),
@@ -1148,7 +1148,7 @@ class _CardStatColumn extends StatelessWidget {
           primary.label.toUpperCase(),
           style: TextStyle(
             color: captionColor,
-            fontSize: KreditTextSize.body,
+            fontSize: KreditTextSize.cardCaption,
             fontWeight: FontWeight.w600,
             letterSpacing: 1,
           ),
@@ -1160,7 +1160,7 @@ class _CardStatColumn extends StatelessWidget {
           style: TextStyle(
             color: valueColor,
             fontWeight: FontWeight.w800,
-            fontSize: KreditTextSize.emphasis,
+            fontSize: KreditTextSize.cardValue,
             letterSpacing: -0.5,
           ),
         ),
@@ -1173,7 +1173,7 @@ class _CardStatColumn extends StatelessWidget {
             style: TextStyle(
               color: secondaryColor,
               fontWeight: FontWeight.w600,
-              fontSize: KreditTextSize.body,
+              fontSize: KreditTextSize.cardCaption,
               letterSpacing: 0.4,
             ),
           ),
@@ -1398,7 +1398,7 @@ class EntityCardFace extends StatelessWidget {
                         bottomLabel,
                         style: TextStyle(
                           color: inkFaint,
-                          fontSize: KreditTextSize.body,
+                          fontSize: KreditTextSize.cardCaption,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 1,
                         ),
@@ -1410,7 +1410,7 @@ class EntityCardFace extends StatelessWidget {
                         style: TextStyle(
                           color: ink,
                           fontWeight: FontWeight.w800,
-                          fontSize: KreditTextSize.emphasis,
+                          fontSize: KreditTextSize.cardValue,
                           letterSpacing: -0.5,
                         ),
                       ),

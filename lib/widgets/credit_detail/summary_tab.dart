@@ -412,16 +412,48 @@ class _CardCycleSummaryRow extends StatelessWidget {
       dueLabel = 'En $daysUntilDue días';
     }
 
+    final cutoff = dates.nextCutoff;
+    final daysUntilCutoff = cutoff.difference(todayDate).inDays;
+    final cutoffLabel = daysUntilCutoff == 0
+        ? 'Hoy'
+        : daysUntilCutoff == 1
+            ? 'Mañana'
+            : daysUntilCutoff < 0
+                ? 'Pasado'
+                : 'En $daysUntilCutoff días';
+    final cutoffColor = daysUntilCutoff <= 1
+        ? Colors.orange.shade300
+        : kredit.textPrimary;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        StatBox(
-          label: 'Próximo vencimiento',
-          value: dueLabel,
-          caption: _humanDate(due),
-          icon: Icons.timer_outlined,
-          valueColor: dueColor,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: StatBox(
+                label: 'Próximo vencimiento',
+                value: dueLabel,
+                caption: _humanDate(due),
+                icon: Icons.timer_outlined,
+                valueColor: dueColor,
+              ),
+            ),
+            Container(width: 1, height: 52, color: kredit.borderCard, margin: const EdgeInsets.symmetric(horizontal: 16)),
+            Expanded(
+              child: StatBox(
+                label: 'Próximo corte',
+                value: cutoffLabel,
+                caption: _humanDate(cutoff),
+                icon: Icons.content_cut_rounded,
+                valueColor: cutoffColor,
+              ),
+            ),
+          ],
         ),
+        const SizedBox(height: 14),
+        Divider(color: kredit.borderCard, height: 1),
         const SizedBox(height: 14),
         Text(
           'CICLO DE FACTURACIÓN',
