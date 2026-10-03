@@ -770,8 +770,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                                 fontSize: KreditTextSize.body,
                                 color: kredit.textPrimary,
                               ),
-                              initialValue:
-                                  int.tryParse(_cutoffDayCtrl.text) ?? 15,
+                              value: (int.tryParse(_cutoffDayCtrl.text) ?? 15).clamp(1, 31),
                               decoration: const InputDecoration(
                                 labelText: 'Día de Corte',
                                 isDense: true,
@@ -782,8 +781,9 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                                       value: d,
                                       child: Text(
                                         'Día $d',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: KreditTextSize.body,
+                                          color: kredit.textPrimary,
                                         ),
                                       ),
                                     ),
@@ -806,13 +806,12 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                                 fontSize: KreditTextSize.body,
                                 color: kredit.textPrimary,
                               ),
-                              initialValue:
-                                  int.tryParse(_paymentOffsetCtrl.text) ?? 20,
+                              value: (int.tryParse(_paymentOffsetCtrl.text) ?? 20).clamp(1, 30),
                               decoration: const InputDecoration(
                                 labelText: 'Días para Pagar',
                                 isDense: true,
                               ),
-                              items: [10, 15, 20, 25, 30, 35, 40]
+                              items: List.generate(30, (i) => i + 1)
                                   .map(
                                     (d) => DropdownMenuItem(
                                       value: d,
