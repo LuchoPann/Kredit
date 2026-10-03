@@ -1583,40 +1583,13 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     onPressed: () {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                        ),
-                        builder: (ctx) => StatefulBuilder(
-                          builder: (ctx2, setModal) => Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Diseño de voucher',
-                                  style: TextStyle(
-                                    fontSize: KreditTextSize.heading,
-                                    fontWeight: FontWeight.w800,
-                                    color: Theme.of(ctx2).extension<KreditColors>()!.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                VoucherPatternPicker(
-                                  selected: _selectedVoucherPattern,
-                                  onSelect: (p) {
-                                    setState(() => _selectedVoucherPattern = p);
-                                    setLocal(() {});
-                                    Navigator.pop(ctx);
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                      showVoucherPatternPickerSheet(
+                        context,
+                        current: _selectedVoucherPattern,
+                        onSelected: (p) {
+                          setState(() => _selectedVoucherPattern = p);
+                          setLocal(() {});
+                        },
                       );
                     },
                     icon: const Icon(Icons.style_outlined, size: KreditIconSize.small),
@@ -2538,6 +2511,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           ],
         );
       }),
+      const SizedBox(height: 12),
       Builder(builder: (ctx) {
         final accent = Theme.of(ctx).colorScheme.primary;
         final kredit2 = Theme.of(ctx).extension<KreditColors>()!;
@@ -2766,7 +2740,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         if (_startDate == null || inst <= 0 || cuota <= 0) return const SizedBox.shrink();
         final dates = <DateTime>[];
         DateTime current = _startDate!;
-        for (int i = 0; i < inst && i < 4; i++) {
+        for (int i = 0; i < inst && i < 3; i++) {
           dates.add(current);
           current = DateTime(current.year, current.month + 1, current.day);
         }
@@ -2830,13 +2804,13 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                           ),
                         ],
                       ),
-                      if (i < dates.length - 1 || inst > 4)
+                      if (i < dates.length - 1 || inst > 3)
                         Padding(
                           padding: const EdgeInsets.only(left: 14),
                           child: Container(width: 1, height: 16, color: kredit.borderCard),
                         ),
                     ],
-                    if (inst > 4) ...[
+                    if (inst > 3) ...[
                       Row(
                         children: [
                           Container(
