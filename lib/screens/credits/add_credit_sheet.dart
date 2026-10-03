@@ -1828,7 +1828,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   }
 
   // Paso 2 (préstamo): solo lo indispensable para poder calcular la cuota.
-  List<Widget> _loanFieldsCore() {
+  List<Widget> _loanFieldsCore({bool hideSwitch = false}) {
     return [
       const SizedBox(height: 12),
       KreditSectionCard(
@@ -1875,16 +1875,17 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               child: _InterestRateWarningHint(text: _overLimitWarning!),
             ),
           const SizedBox(height: 12),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('No conozco la tasa'),
-            subtitle: const Text('Kredit solo hará seguimiento de cuotas, sin calcular interés'),
-            value: _interestUnknown,
-            onChanged: (v) => setState(() {
-              _interestUnknown = v;
-              if (v) _interestCtrl.clear();
-            }),
-          ),
+          if (!hideSwitch)
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('No conozco la tasa'),
+              subtitle: const Text('Kredit solo hará seguimiento de cuotas, sin calcular interés'),
+              value: _interestUnknown,
+              onChanged: (v) => setState(() {
+                _interestUnknown = v;
+                if (v) _interestCtrl.clear();
+              }),
+            ),
           if (_interestUnknown)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -2490,9 +2491,49 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   List<Widget> _stepTiendaDatos(KreditColors kredit) {
     return [
       Builder(builder: (ctx) {
+        final accent = Theme.of(ctx).colorScheme.primary;
         final kredit2 = Theme.of(ctx).extension<KreditColors>()!;
-        final accent2 = Theme.of(ctx).colorScheme.primary;
-        return _tiendaConfigBanner(kredit2, accent2);
+        final amount = double.tryParse(CurrencyInputFormatter.unformat(_amountCtrl.text));
+        final inst = int.tryParse(_installmentsCtrl.text);
+        final cuota = double.tryParse(CurrencyInputFormatter.unformat(_quotaCtrl.text));
+        if (amount == null || amount <= 0) return const SizedBox.shrink();
+        final subtitleParts = <String>[];
+        if (inst != null && inst > 0) subtitleParts.add('$inst cuotas');
+        if (cuota != null && cuota > 0) subtitleParts.add('${formatCOP(cuota)} c/u');
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+          decoration: BoxDecoration(
+            color: accent.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: accent.withValues(alpha: 0.18)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                formatCOP(amount),
+                style: TextStyle(
+                  fontSize: KreditTextSize.hero,
+                  fontWeight: FontWeight.w800,
+                  color: accent,
+                  height: 1.1,
+                ),
+              ),
+              if (subtitleParts.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  subtitleParts.join(' · '),
+                  style: TextStyle(
+                    fontSize: KreditTextSize.body,
+                    fontWeight: FontWeight.w600,
+                    color: kredit2.textSecondary,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
       }),
       Builder(builder: (ctx) {
         final entityName = _lenderCtrl.text.trim();
@@ -2512,7 +2553,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           ],
         );
       }),
-      ..._loanFieldsCore(),
+      ..._loanFieldsCore(hideSwitch: true),
       ..._interestSection(kredit),
       const SizedBox(height: 8),
       KreditSectionCard(
@@ -2835,156 +2876,11 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           ),
         );
       }),
-      const SizedBox(height: 12),
-      Builder(builder: (context) {
-        final accent = Theme.of(context).colorScheme.primary;
-        final inst = int.tryParse(_installmentsCtrl.text) ?? 0;
-        final cuota = double.tryParse(CurrencyInputFormatter.unformat(_quotaCtrl.text)) ?? 0;
-        final amount = double.tryParse(CurrencyInputFormatter.unformat(_amountCtrl.text)) ?? 0;
-        final paid = int.tryParse(_paidInstallmentsCtrl.text) ?? 0;
-        if (inst <= 0 || cuota <= 0 || amount <= 0) return const SizedBox.shrink();
-        final totalInterest = ((cuota * inst) - amount).clamp(0.0, double.infinity);
-        final principalPerInst = amount / inst;
-        final capitalFrac = cuota > 0 ? (principalPerInst / cuota).clamp(0.0, 1.0) : 0.8;
-        final interestFrac = 1.0 - capitalFrac;
-        return Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: kredit.borderCard),
-            color: kredit.bgCard,
-          ),
-          clipBehavior: Clip.hardEdge,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                color: accent.withValues(alpha: 0.08),
-                child: Row(
-                  children: [
-                    Icon(Icons.bar_chart_rounded, size: KreditIconSize.small, color: accent),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Distribución de cuotas',
-                      style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w700, color: accent),
-                    ),
-                    const Spacer(),
-                    Text(
-                      '$inst cuotas · ${formatCOP(cuota)} c/u',
-                      style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary, fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: LayoutBuilder(builder: (ctx, box) {
-                  final maxBarWidth = box.maxWidth;
-                  const barSpacing = 2.0;
-                  final visibleBars = inst.clamp(1, 24);
-                  final barW = ((maxBarWidth - (barSpacing * (visibleBars - 1))) / visibleBars).clamp(4.0, 20.0);
-                  const maxH = 48.0;
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        height: maxH + 20,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            for (int i = 0; i < visibleBars; i++) ...[
-                              if (i > 0) const SizedBox(width: barSpacing),
-                              Column(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  if (interestFrac > 0)
-                                    Container(
-                                      width: barW,
-                                      height: maxH * interestFrac,
-                                      decoration: BoxDecoration(
-                                        color: i < paid
-                                            ? Colors.orange.shade300.withValues(alpha: 0.6)
-                                            : Colors.orange.shade400.withValues(alpha: 0.5),
-                                        borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
-                                      ),
-                                    ),
-                                  Container(
-                                    width: barW,
-                                    height: maxH * capitalFrac,
-                                    decoration: BoxDecoration(
-                                      color: i < paid
-                                          ? accent.withValues(alpha: 0.35)
-                                          : accent.withValues(alpha: 0.75),
-                                      borderRadius: interestFrac > 0
-                                          ? BorderRadius.zero
-                                          : const BorderRadius.vertical(top: Radius.circular(3)),
-                                    ),
-                                  ),
-                                  if (i < paid)
-                                    Container(
-                                      width: barW,
-                                      height: 3,
-                                      color: accent.withValues(alpha: 0.9),
-                                    ),
-                                ],
-                              ),
-                            ],
-                            if (inst > 24) ...[
-                              const SizedBox(width: barSpacing * 2),
-                              Column(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  Text('···', style: TextStyle(color: kredit.textTertiary, fontWeight: FontWeight.w700, fontSize: KreditTextSize.heading)),
-                                  const SizedBox(height: 4),
-                                ],
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Container(width: 10, height: 10, color: accent.withValues(alpha: 0.75)),
-                          const SizedBox(width: 4),
-                          Text('Capital', style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary)),
-                          const SizedBox(width: 12),
-                          if (totalInterest > 0) ...[
-                            Container(width: 10, height: 10, color: Colors.orange.shade400.withValues(alpha: 0.7)),
-                            const SizedBox(width: 4),
-                            Text('Interés', style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary)),
-                            const SizedBox(width: 12),
-                          ],
-                          if (paid > 0) ...[
-                            Container(width: 10, height: 10, color: accent.withValues(alpha: 0.35)),
-                            const SizedBox(width: 4),
-                            Text('Pagadas ($paid)', style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary)),
-                          ],
-                        ],
-                      ),
-                    ],
-                  );
-                }),
-              ),
-            ],
-          ),
-        );
-      }),
     ];
   }
 
   List<Widget> _stepTiendaConfirmar(KreditColors kredit) {
     return [
-      Text(
-        '¡Ya casi está!',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.body, color: kredit.textPrimary),
-      ),
-      const SizedBox(height: 4),
-      Text(
-        'Revisa que todo esté correcto antes de registrar.',
-        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
-      ),
       ..._step4ColorNotesConfirm(kredit),
     ];
   }
