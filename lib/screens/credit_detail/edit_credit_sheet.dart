@@ -455,9 +455,14 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'VISTA PREVIA DE TARJETA',
-                          style: TextStyle(
+                        Text(
+                          widget.credit is LoanCredit &&
+                                  (widget.credit as LoanCredit).quotaId != null
+                              ? 'VISTA PREVIA DEL VOUCHER'
+                              : widget.credit is CardCredit
+                              ? 'VISTA PREVIA DE TARJETA'
+                              : 'VISTA PREVIA DEL CRÉDITO',
+                          style: const TextStyle(
                             fontSize: KreditTextSize.body,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.8,
@@ -593,43 +598,36 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                // ─────────────────────────────────────────────────────────
-                Row(
-                  children: [
-                    Icon(
-                      Icons.request_quote_outlined,
-                      size: KreditIconSize.small,
-                      color: kredit.textTertiary,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'DATOS FINANCIEROS',
-                      style: TextStyle(
-                        fontSize: KreditTextSize.body,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.4,
-                        color: kredit.textTertiary,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 0),
                 if (!isCard) ...[
                   KreditSectionCard(
-                    label: 'DÓNDE Y CON QUÉ',
+                    label: widget.credit is LoanCredit &&
+                            (widget.credit as LoanCredit).quotaId != null
+                        ? 'CUPO DE TIENDA'
+                        : 'DÓNDE Y CON QUÉ',
                     icon: Icons.storefront_outlined,
                     children: [
                       DropdownButtonFormField<String>(
-                          isExpanded: true,
+                        isExpanded: true,
+                        style: TextStyle(
+                          fontSize: KreditTextSize.body,
+                          color: kredit.textPrimary,
+                        ),
                         initialValue: _selectedLocationPreset,
                         decoration: const InputDecoration(
                           labelText: 'Comercio / Establecimiento',
+                          isDense: true,
                         ),
                         items: _presetLocations
                             .map(
                               (loc) => DropdownMenuItem(
                                 value: loc,
-                                child: Text(loc),
+                                child: Text(
+                                  loc,
+                                  style: const TextStyle(
+                                    fontSize: KreditTextSize.body,
+                                  ),
+                                ),
                               ),
                             )
                             .toList(),
@@ -672,7 +670,8 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                                 decimal: true,
                               ),
                               decoration: const InputDecoration(
-                                labelText: 'Interés anual (%)',
+                                labelText: 'Interés (%)',
+                                isDense: true,
                               ),
                             ),
                           ),
@@ -712,20 +711,22 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                     label: 'LÍMITE E INTERÉS',
                     icon: Icons.credit_card_outlined,
                     children: [
+                      TextFormField(
+                        controller: _limitCtrl,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: const [CurrencyInputFormatter()],
+                        decoration: const InputDecoration(
+                          labelText: 'Límite Total (\$)',
+                          isDense: true,
+                        ),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                      if (_insufficientLimitWarning != null)
+                        _EditInterestRateWarningHint(text: _insufficientLimitWarning!),
+                      const SizedBox(height: 12),
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _limitCtrl,
-                              keyboardType: TextInputType.number,
-                              inputFormatters: const [CurrencyInputFormatter()],
-                              decoration: const InputDecoration(
-                                labelText: 'Límite Total (\$)',
-                              ),
-                              onChanged: (_) => setState(() {}),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
                           Expanded(
                             child: TextFormField(
                               controller: _interestCardCtrl,
@@ -734,19 +735,20 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                                     decimal: true,
                                   ),
                               decoration: const InputDecoration(
-                                labelText: 'Interés anual (%)',
+                                labelText: 'Interés (%)',
+                                isDense: true,
                               ),
                               onChanged: (_) => setState(() {}),
                             ),
                           ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: InterestRateTypeField(
+                              value: _interestRateType,
+                              onChanged: (v) => setState(() => _interestRateType = v),
+                            ),
+                          ),
                         ],
-                      ),
-                      if (_insufficientLimitWarning != null)
-                        _EditInterestRateWarningHint(text: _insufficientLimitWarning!),
-                      const SizedBox(height: 12),
-                      InterestRateTypeField(
-                        value: _interestRateType,
-                        onChanged: (v) => setState(() => _interestRateType = v),
                       ),
                       if (_interestRateWarning != null)
                         _EditInterestRateWarningHint(
@@ -763,16 +765,27 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<int>(
+                              isExpanded: true,
+                              style: TextStyle(
+                                fontSize: KreditTextSize.body,
+                                color: kredit.textPrimary,
+                              ),
                               initialValue:
                                   int.tryParse(_cutoffDayCtrl.text) ?? 15,
                               decoration: const InputDecoration(
                                 labelText: 'Día de Corte',
+                                isDense: true,
                               ),
                               items: List.generate(31, (i) => i + 1)
                                   .map(
                                     (d) => DropdownMenuItem(
                                       value: d,
-                                      child: Text('Día $d de cada mes'),
+                                      child: Text(
+                                        'Día $d',
+                                        style: const TextStyle(
+                                          fontSize: KreditTextSize.body,
+                                        ),
+                                      ),
                                     ),
                                   )
                                   .toList(),
@@ -788,16 +801,27 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: DropdownButtonFormField<int>(
+                              isExpanded: true,
+                              style: TextStyle(
+                                fontSize: KreditTextSize.body,
+                                color: kredit.textPrimary,
+                              ),
                               initialValue:
                                   int.tryParse(_paymentOffsetCtrl.text) ?? 20,
                               decoration: const InputDecoration(
-                                labelText: 'Días Hasta Fecha Límite',
+                                labelText: 'Días para Pagar',
+                                isDense: true,
                               ),
                               items: [10, 15, 20, 25, 30, 35, 40]
                                   .map(
                                     (d) => DropdownMenuItem(
                                       value: d,
-                                      child: Text('$d días después del corte'),
+                                      child: Text(
+                                        '$d días',
+                                        style: const TextStyle(
+                                          fontSize: KreditTextSize.body,
+                                        ),
+                                      ),
                                     ),
                                   )
                                   .toList(),
@@ -828,26 +852,38 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                               keyboardType: TextInputType.number,
                               inputFormatters: const [CurrencyInputFormatter()],
                               decoration: const InputDecoration(
-                                labelText: 'Cuota de Mantenimiento (\$)',
+                                labelText: 'Cuota de Manejo (\$)',
+                                isDense: true,
                               ),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                                isExpanded: true,
+                              isExpanded: true,
+                              style: TextStyle(
+                                fontSize: KreditTextSize.body,
+                                color: kredit.textPrimary,
+                              ),
                               initialValue: _managementFeeFrequency,
                               decoration: const InputDecoration(
-                                labelText: 'Frecuencia de Cobro',
+                                labelText: 'Frecuencia',
+                                isDense: true,
                               ),
                               items: const [
                                 DropdownMenuItem(
                                   value: ManagementFeeFrequency.monthly,
-                                  child: Text('Mensual'),
+                                  child: Text(
+                                    'Mensual',
+                                    style: TextStyle(fontSize: KreditTextSize.body),
+                                  ),
                                 ),
                                 DropdownMenuItem(
                                   value: ManagementFeeFrequency.annual,
-                                  child: Text('Anual'),
+                                  child: Text(
+                                    'Anual',
+                                    style: TextStyle(fontSize: KreditTextSize.body),
+                                  ),
                                 ),
                               ],
                               onChanged: (v) => setState(

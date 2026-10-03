@@ -9,12 +9,10 @@ import '../theme/app_theme.dart';
 import '../utils/credit_display_utils.dart';
 import '../utils/currency_input_formatter.dart';
 
-/// Bottom sheet to register a charge/payment on a card credit, mirroring
-/// #modal-card-movement in legacy_pwa/index.html (~L762-784) and
-/// saveCardMovement in app.js.
+/// Bottom sheet to register a charge/payment on a card credit.
 class CardMovementSheet extends ConsumerStatefulWidget {
   final String creditId;
-  final String movementType; // CardMovementType.charge | .payment
+  final String movementType;
 
   const CardMovementSheet({
     super.key,
@@ -30,6 +28,7 @@ class CardMovementSheet extends ConsumerStatefulWidget {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (_) => CardMovementSheet(
         creditId: creditId,
         movementType: movementType,
@@ -63,6 +62,9 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
 
   void _onAmountChanged() => setState(() {});
 
+  String _mesEs(int m) =>
+      const ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][m - 1];
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
@@ -89,7 +91,6 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
-        debugPrint('registerMovement failed: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('No se pudo registrar el movimiento. Intenta de nuevo.')),
         );
@@ -103,27 +104,28 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
     final kredit = Theme.of(context).extension<KreditColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
 
-    // Non-blocking overlimit warning: Colombian card issuers sometimes allow
-    // a charge that pushes the balance past the credit limit (with a fee),
-    // so this only informs — it never disables the save button.
+    final credits = ref.watch(creditsProvider).value ?? [];
+    final credit = credits.whereType<CardCredit>().where((c) => c.id == widget.creditId).firstOrNull;
+
     double? overlimitBy;
-    if (isCharge) {
-      final credits = ref.watch(creditsProvider).value ?? [];
-      final credit = credits.whereType<CardCredit>().where((c) => c.id == widget.creditId).firstOrNull;
+    if (isCharge && credit != null) {
       final amount = double.tryParse(CurrencyInputFormatter.unformat(_amountCtrl.text));
-      if (credit != null && amount != null && amount > 0) {
+      if (amount != null && amount > 0) {
         final available = getCardAvailableLimit(credit);
-        if (amount > available) {
-          overlimitBy = amount - available;
-        }
+        if (amount > available) overlimitBy = amount - available;
       }
     }
-    return Padding(
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       padding: EdgeInsets.only(
         left: 20,
         right: 20,
         top: 12,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
       child: Form(
         key: _formKey,
@@ -131,6 +133,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Drag handle
             Center(
               child: Container(
                 width: 40,
@@ -142,8 +145,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
                 ),
               ),
             ),
-            // --- Header: icon badge + title, so the movement type reads at
-            // a glance instead of only through the plain text title.
+            // Header
             Row(
               children: [
                 Container(
@@ -174,70 +176,136 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
                   : 'Registra lo que le pagaste al banco — reduce tu saldo.',
               style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
             ),
-            const SizedBox(height: 20),
+            // Contexto de extracto
+            if (credit != null) ...[
+              const SizedBox(height: 12),
+              Builder(builder: (ctx) {
+                final dates = getCardCycleDates(credit);
+                if (isCharge) {
+                  final cutoffLabel = '${dates.nextCutoff.day} de ${_mesEs(dates.nextCutoff.month)}';
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: 0.07),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: accent.withValues(alpha: 0.15)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.receipt_long_outlined, size: KreditIconSize.small, color: accent),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Esta compra aparecerá en el extracto que cierra el $cutoffLabel.',
+                            style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary, height: 1.4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                } else {
+                  final cutoffLabel = '${dates.lastCutoff.day} de ${_mesEs(dates.lastCutoff.month)}';
+                  final dueLabel = '${dates.dueDate.day} de ${_mesEs(dates.dueDate.month)}';
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: 0.07),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: accent.withValues(alpha: 0.15)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.account_balance_wallet_outlined, size: KreditIconSize.small, color: accent),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Estás pagando el extracto cerrado el $cutoffLabel. Fecha límite: $dueLabel.',
+                            style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary, height: 1.4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              }),
+            ],
+            // Monto + Nota agrupados
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: kredit.bgCard,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: kredit.borderCard),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'MONTO',
+                    style: TextStyle(
+                      fontSize: KreditTextSize.body,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.4,
+                      color: kredit.textTertiary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextFormField(
+                    controller: _amountCtrl,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: const [CurrencyInputFormatter()],
+                    autofocus: true,
+                    style: const TextStyle(fontSize: KreditTextSize.emphasis, fontWeight: FontWeight.w700),
+                    decoration: const InputDecoration(prefixText: '\$ ', hintText: 'Ej. 80.000'),
+                    validator: (v) {
+                      final n = double.tryParse(CurrencyInputFormatter.unformat(v ?? ''));
+                      if (n == null || n <= 0) return 'Ingresa un monto válido';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _noteCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Nota / Descripción',
+                      hintText: 'Ej. Compra en supermercado, Pago desde Nequi',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Sugerencias como chips
+            const SizedBox(height: 16),
             Text(
-              'MONTO',
+              'SUGERENCIAS',
               style: TextStyle(
                 fontSize: KreditTextSize.body,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.4,
                 color: kredit.textTertiary,
-              ),
-            ),
-            const SizedBox(height: 6),
-            TextFormField(
-              controller: _amountCtrl,
-              keyboardType: TextInputType.number,
-              inputFormatters: const [CurrencyInputFormatter()],
-              autofocus: true,
-              style: const TextStyle(fontSize: KreditTextSize.emphasis, fontWeight: FontWeight.w700),
-              decoration: const InputDecoration(prefixText: '\$ ', hintText: 'Ej. 80.000'),
-              validator: (v) {
-                final n = double.tryParse(CurrencyInputFormatter.unformat(v ?? ''));
-                if (n == null || n <= 0) return 'Ingresa un monto válido';
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _noteCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Nota / Descripción',
-                hintText: 'Ej. Compra en supermercado, Pago desde Nequi',
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              'SUGERENCIAS RÁPIDAS',
-              style: TextStyle(
-                fontSize: KreditTextSize.body,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.4,
-                color: kredit.textTertiary,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Divider(height: 1, color: kredit.borderCard),
-            const SizedBox(height: 4),
-            // Sugerencias como texto tocable en vez de chips con fondo:
-            // jerarquía tipográfica + puntos separadores, sin cajas.
             Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 for (final preset in (isCharge
                     ? const ['Supermercado', 'Tecnología', 'Restaurante', 'Servicios públicos', 'Gasolina']
                     : const ['Pago mensual', 'Pago total del extracto', 'Abono parcial', 'Pago mínimo']))
-                  Padding(
-                    padding: const EdgeInsets.only(right: 12, top: 6),
-                    child: InkWell(
-                      onTap: () => setState(() => _noteCtrl.text = preset),
+                  GestureDetector(
+                    onTap: () => setState(() => _noteCtrl.text = preset),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: kredit.borderCard),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                       child: Text(
                         preset,
-                        style: TextStyle(
-                          fontSize: KreditTextSize.body,
-                          fontWeight: FontWeight.w600,
-                          color: accent,
-                        ),
+                        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
                       ),
                     ),
                   ),
@@ -254,28 +322,21 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.info_outline,
-                      size: KreditIconSize.small,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
+                    Icon(Icons.info_outline, size: KreditIconSize.small, color: Theme.of(context).colorScheme.error),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         'Este cargo supera el cupo disponible por ${formatCOP(overlimitBy)}. '
                         'Algunos bancos permiten sobrecupo con un cargo adicional; revisa las '
                         'condiciones de tu tarjeta antes de continuar.',
-                        style: TextStyle(
-                          fontSize: KreditTextSize.body,
-                          color: Theme.of(context).colorScheme.error,
-                        ),
+                        style: TextStyle(fontSize: KreditTextSize.body, color: Theme.of(context).colorScheme.error),
                       ),
                     ),
                   ],
                 ),
               ),
             ],
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
