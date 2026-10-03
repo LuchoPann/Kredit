@@ -3,21 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/card_movement.dart';
 import '../../data/models/credit.dart';
-import '../../domain/card_calculator.dart';
 import '../../domain/date_utils.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
 import '../card_movement_sheet.dart';
 import '../../utils/credit_display_utils.dart';
-import 'stat_box.dart';
 
-const _monthsEs = [
-  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
-];
-
-String _humanDate(DateTime d) =>
-    '${d.day} de ${_monthsEs[d.month - 1]} de ${d.year}';
 
 /// Returns the closing cutoff date (YYYY-MM-DD) of the billing cycle that
 /// contains [movementDate], given [cutoffDay]. Used to group movements by
@@ -54,7 +45,6 @@ class MovementsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
-    final dates = getCardCycleDates(credit);
     final movements = credit.movements.reversed.toList();
 
     // Group by billing cycle (extracto closing date), most-recent-first.
@@ -64,67 +54,34 @@ class MovementsTab extends ConsumerWidget {
       groups.putIfAbsent(key, () => []).add(m);
     }
 
-    // Fecha de corte y fecha límite de pago en formato legible.
-    final nextCutoffLabel = _humanDate(dates.nextCutoff);
-    final dueDateLabel = _humanDate(dates.dueDate);
-
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.all(KreditSpacing.card),
-          child: Column(
+          child: Row(
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: StatBox(
-                      label: 'Fecha de corte',
-                      value: nextCutoffLabel,
-                      icon: Icons.event_repeat,
-                    ),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => CardMovementSheet.show(
+                    context,
+                    creditId: credit.id,
+                    movementType: CardMovementType.charge,
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: StatBox(
-                      label: 'Límite de pago',
-                      value: dueDateLabel,
-                      icon: Icons.event_available,
-                    ),
-                  ),
-                ],
+                  icon: const Icon(Icons.shopping_bag_outlined, size: KreditIconSize.small),
+                  label: const Text('Nueva compra'),
+                ),
               ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => CardMovementSheet.show(
-                        context,
-                        creditId: credit.id,
-                        movementType: CardMovementType.charge,
-                      ),
-                      icon: const Icon(Icons.shopping_bag_outlined, size: KreditIconSize.small),
-                      label: const Text('Nueva compra'),
-                    ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () => CardMovementSheet.show(
+                    context,
+                    creditId: credit.id,
+                    movementType: CardMovementType.payment,
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    // Filled/primary here, matching the same priority given
-                    // to "Registrar Pago" in summary_tab.dart's quick
-                    // actions — paying down the balance is the recommended
-                    // action, registering a new charge is secondary.
-                    child: FilledButton.icon(
-                      onPressed: () => CardMovementSheet.show(
-                        context,
-                        creditId: credit.id,
-                        movementType: CardMovementType.payment,
-                      ),
-                      icon: const Icon(Icons.payments_outlined, size: KreditIconSize.small),
-                      label: const Text('Pagar tarjeta'),
-                    ),
-                  ),
-                ],
+                  icon: const Icon(Icons.payments_outlined, size: KreditIconSize.small),
+                  label: const Text('Pagar tarjeta'),
+                ),
               ),
             ],
           ),
@@ -197,6 +154,11 @@ class MovementsTab extends ConsumerWidget {
     );
   }
 }
+
+const _monthsEs = [
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+];
 
 /// Builds a human-readable "6 Sep – 5 Oct" range label for a billing cycle
 /// that ends on [cycleEnd], given [cutoffDay].

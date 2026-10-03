@@ -56,7 +56,7 @@ class SummaryTab extends ConsumerWidget {
           const SizedBox(height: 16),
           Divider(height: 1, color: kredit.borderCard),
           const SizedBox(height: 16),
-          _CardCycleSummary(credit: credit as CardCredit),
+          _CardCycleSummaryRow(credit: credit as CardCredit),
           const SizedBox(height: 16),
           Divider(height: 1, color: kredit.borderCard),
           const SizedBox(height: 16),
@@ -78,8 +78,6 @@ class SummaryTab extends ConsumerWidget {
           _CardUtilization(credit: credit as CardCredit),
           const SizedBox(height: 20),
           Divider(height: 1, color: kredit.borderCard),
-          const SizedBox(height: 20),
-          _CardCycleInfo(credit: credit as CardCredit),
           const SizedBox(height: 18),
           _CardQuickActions(credit: credit as CardCredit),
         ],
@@ -393,18 +391,23 @@ const _monthsEs = [
 String _humanDate(DateTime d) =>
     '${d.day} de ${_monthsEs[d.month - 1]} de ${d.year}';
 
-class _CardCycleSummary extends StatelessWidget {
+/// Próximo vencimiento + mini timeline del ciclo en un Row.
+/// El StatBox ocupa la mitad izquierda; la mitad derecha muestra
+/// una línea de tiempo [corte ──●── límite] con el día actual marcado.
+class _CardCycleSummaryRow extends StatelessWidget {
   final CardCredit credit;
 
-  const _CardCycleSummary({required this.credit});
+  const _CardCycleSummaryRow({required this.credit});
 
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
     final dates = getCardCycleDates(credit);
     final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
     final due = dates.dueDate;
-    final daysUntilDue = due.difference(DateTime(today.year, today.month, today.day)).inDays;
+    final cutoff = dates.nextCutoff;
+    final daysUntilDue = due.difference(todayDate).inDays;
 
     String dueLabel;
     Color dueColor = kredit.textPrimary;
@@ -421,52 +424,166 @@ class _CardCycleSummary extends StatelessWidget {
       dueLabel = 'En $daysUntilDue días';
     }
 
-    return StatBox(
-      label: 'Próximo vencimiento',
-      value: dueLabel,
-      caption: _humanDate(due),
-      icon: Icons.timer_outlined,
-      valueColor: dueColor,
-    );
-  }
-}
-
-/// Cutoff/due-date at-a-glance so a cardholder doesn't need to open the
-/// movements list just to know when the next bill closes.
-class _CardCycleInfo extends StatelessWidget {
-  final CardCredit credit;
-
-  const _CardCycleInfo({required this.credit});
-
-  @override
-  Widget build(BuildContext context) {
-    final dates = getCardCycleDates(credit);
-    // `.start`, not `.stretch` — this Row lives inside SummaryTab's
-    // ListView, which gives it an unbounded height; `.stretch` tries to
-    // force children to fill that height, which Flutter can't resolve
-    // against an infinite constraint and throws
-    // "BoxConstraints forces an infinite height".
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
           child: StatBox(
-            label: 'Próxima Fecha de Corte',
-            value: toDateStr(dates.nextCutoff),
-            icon: Icons.event_repeat,
+            label: 'Próximo vencimiento',
+            value: dueLabel,
+            caption: _humanDate(due),
+            icon: Icons.timer_outlined,
+            valueColor: dueColor,
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 12),
         Expanded(
-          child: StatBox(
-            label: 'Fecha Límite de Pago',
-            value: toDateStr(dates.dueDate),
-            icon: Icons.event_available,
+          child: _CycleTimeline(
+            cutoff: cutoff,
+            due: due,
+            today: todayDate,
+            kredit: kredit,
+            cutoffDay: credit.cutoffDay,
           ),
         ),
       ],
     );
   }
+}
+
+/// Mini línea de tiempo visual [corte ──●hoy──▶ límite].
+class _CycleTimeline extends StatelessWidget {
+  final DateTime cutoff;
+  final DateTime due;
+  final DateTime today;
+  final KreditColors kredit;
+  final int cutoffDay;
+
+  const _CycleTimeline({
+    required this.cutoff,
+    required this.due,
+    required this.today,
+    required this.kredit,
+    required this.cutoffDay,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
+
+    // Ventana: desde el corte anterior (cutoff - 30d aprox) hasta el límite.
+    // Usamos cutoff como inicio del ciclo de facturación y due como fin.
+    final cycleStart = cutoff.subtract(const Duration(days: 30));
+    final totalDays = due.difference(cycleStart).inDays.clamp(1, 999);
+    final elapsed = today.difference(cycleStart).inDays.clamp(0, totalDays);
+    final progress = elapsed / totalDays;
+
+    final isOverdue = today.isAfter(due);
+    final markerColor = isOverdue
+        ? Colors.red.shade400
+        : today.isAtSameMomentAs(due)
+            ? Colors.orange.shade400
+            : accent;
+
+    final dueDay = due.day;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Ciclo de facturación',
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.5,
+            color: kredit.textTertiary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        LayoutBuilder(
+          builder: (ctx, constraints) {
+            final w = constraints.maxWidth;
+            final markerX = (progress * w).clamp(4.0, w - 4.0);
+            return SizedBox(
+              height: 32,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // Track fondo
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top: 14,
+                    child: Container(
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: kredit.borderCard,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  // Track progreso
+                  Positioned(
+                    left: 0,
+                    width: markerX,
+                    top: 14,
+                    child: Container(
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: markerColor.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  // Marcador día actual
+                  Positioned(
+                    left: markerX - 5,
+                    top: 9,
+                    child: Container(
+                      width: 14,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: markerColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Theme.of(ctx).colorScheme.surface,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Label corte (izquierda)
+                  Positioned(
+                    left: 0,
+                    bottom: 0,
+                    child: Text(
+                      'Corte $cutoffDay',
+                      style: TextStyle(fontSize: 9, color: kredit.textTertiary),
+                    ),
+                  ),
+                  // Label límite (derecha)
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Text(
+                      'Pago $dueDay',
+                      style: TextStyle(
+                        fontSize: 9,
+                        color: isOverdue ? Colors.red.shade400 : kredit.textTertiary,
+                        fontWeight: isOverdue ? FontWeight.w700 : FontWeight.normal,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
 }
 
 /// Direct access to the two actions someone reaches for constantly on a
@@ -490,8 +607,8 @@ class _CardQuickActions extends StatelessWidget {
                   creditId: credit.id,
                   movementType: CardMovementType.charge,
                 ),
-                icon: const Icon(Icons.arrow_upward, size: KreditIconSize.small),
-                label: const Text('Cargo/Compra'),
+                icon: const Icon(Icons.shopping_bag_outlined, size: KreditIconSize.small),
+                label: const Text('Nueva compra'),
               ),
             ),
             const SizedBox(width: 10),
@@ -505,8 +622,8 @@ class _CardQuickActions extends StatelessWidget {
                   creditId: credit.id,
                   movementType: CardMovementType.payment,
                 ),
-                icon: const Icon(Icons.arrow_downward, size: KreditIconSize.small),
-                label: const Text('Registrar Pago'),
+                icon: const Icon(Icons.payments_outlined, size: KreditIconSize.small),
+                label: const Text('Pagar tarjeta'),
               ),
             ),
           ],

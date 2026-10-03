@@ -18,6 +18,7 @@ import '../../widgets/credit_detail/schedule_tab.dart';
 import '../../widgets/credit_detail/summary_tab.dart';
 import '../../domain/card_calculator.dart';
 import '../../domain/credit_calculator.dart';
+import '../../domain/date_utils.dart';
 import '../../utils/credit_display_utils.dart';
 import '../../widgets/credit_detail/stat_box.dart';
 import '../../widgets/demo_badge.dart';
@@ -526,13 +527,13 @@ class _CreditOverviewTiles extends StatelessWidget {
       rightIcon = Icons.checklist_outlined;
     } else {
       final card = credit as CardCredit;
-      final available = getCardAvailableLimit(card);
-      leftLabel = 'Disponible';
-      leftValue = card.creditLimit > 0 ? formatCOP(available) : 'Sin límite';
-      leftIcon = Icons.credit_score_outlined;
-      rightLabel = 'Saldo utilizado';
-      rightValue = formatCOP(card.currentBalance);
-      rightIcon = Icons.account_balance_wallet_outlined;
+      final dates = getCardCycleDates(card);
+      leftLabel = 'Fecha de corte';
+      leftValue = toDateStr(dates.nextCutoff);
+      leftIcon = Icons.event_repeat_outlined;
+      rightLabel = 'Límite de pago';
+      rightValue = toDateStr(dates.dueDate);
+      rightIcon = Icons.event_available_outlined;
     }
 
     return Container(
