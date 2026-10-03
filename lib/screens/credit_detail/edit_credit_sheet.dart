@@ -77,6 +77,8 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
   late String _color;
   CardDesign? _cardDesign;
   bool _saving = false;
+  bool _hasChanges = false;
+  bool? _oneInstallmentInterestPolicy;
   late String? _selectedLenderPreset =
       _presetLenders.contains(widget.credit.lender)
       ? widget.credit.lender
@@ -157,6 +159,10 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
     super.initState();
     _color = widget.credit.color ?? '#00F2FE';
     _cardDesign = CardDesign.fromKey(widget.credit.cardDesign);
+    if (widget.credit is CardCredit) {
+      _oneInstallmentInterestPolicy =
+          (widget.credit as CardCredit).oneInstallmentInterestPolicy;
+    }
   }
 
   @override
@@ -305,6 +311,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
           ) ??
           0;
       credit.managementFeeFrequency = _managementFeeFrequency;
+      credit.oneInstallmentInterestPolicy = _oneInstallmentInterestPolicy;
     } else if (credit is LoanCredit) {
       credit.location = _locationCtrl.text.trim();
       final newQuota = double.tryParse(
@@ -569,7 +576,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                             validator: (v) => (v == null || v.trim().isEmpty)
                                 ? 'Requerido'
                                 : null,
-                            onChanged: (_) => setState(() {}),
+                            onChanged: (_) => setState(() => _hasChanges = true),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -607,6 +614,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                             onChanged: (v) {
                               setState(() {
                                 _selectedLenderPreset = v;
+                                _hasChanges = true;
                                 if (v != null && v != 'Otro...') {
                                   _lenderCtrl.text = v;
                                   final lower = v.toLowerCase();
@@ -774,8 +782,9 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                     ],
                   ),
                 ] else ...[
+                  // ── CUPO Y SALDO ──────────────────────────────────────
                   KreditSectionCard(
-                    label: 'LÍMITE E INTERÉS',
+                    label: 'CUPO Y SALDO',
                     icon: Icons.credit_card_outlined,
                     children: [
                       TextFormField(
@@ -786,48 +795,31 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                           labelText: 'Límite Total (\$)',
                           isDense: true,
                         ),
-                        onChanged: (_) => setState(() {}),
+                        onChanged: (_) => setState(() => _hasChanges = true),
                       ),
                       if (_insufficientLimitWarning != null)
                         _EditInterestRateWarningHint(text: _insufficientLimitWarning!),
                       const SizedBox(height: 12),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: _interestCardCtrl,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              decoration: const InputDecoration(
-                                labelText: 'Interés (%)',
-                                isDense: true,
-                              ),
-                              onChanged: (_) => setState(() {}),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: InterestRateTypeField(
-                              value: _interestRateType,
-                              onChanged: (v) => setState(() => _interestRateType = v),
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (_interestRateWarning != null)
-                        _EditInterestRateWarningHint(
-                          text: _interestRateWarning!,
+                      _readOnlyField(
+                        'Saldo actual',
+                        CurrencyInputFormatter.format(
+                          (widget.credit as CardCredit).currentBalance,
                         ),
+                        Icons.account_balance_wallet_outlined,
+                        kredit,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
+                  // ── CICLO DE FACTURACIÓN ──────────────────────────────
                   KreditSectionCard(
-                    label: 'CORTE Y FECHA DE PAGO',
-                    icon: Icons.event_available_outlined,
+                    label: 'CICLO DE FACTURACIÓN',
+                    icon: Icons.event_repeat_rounded,
                     children: [
+                      _warningBanner(
+                        'Cambiar el día de corte afecta los extractos futuros. Los ya cerrados no se modifican.',
+                        kredit,
+                      ),
                       Row(
                         children: [
                           Expanded(
@@ -837,7 +829,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                                 fontSize: KreditTextSize.body,
                                 color: kredit.textPrimary,
                               ),
-                              value: (int.tryParse(_cutoffDayCtrl.text) ?? 15).clamp(1, 31),
+                              initialValue: (int.tryParse(_cutoffDayCtrl.text) ?? 15).clamp(1, 31),
                               decoration: const InputDecoration(
                                 labelText: 'Día de Corte',
                                 isDense: true,
@@ -858,9 +850,10 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                                   .toList(),
                               onChanged: (v) {
                                 if (v != null) {
-                                  setState(
-                                    () => _cutoffDayCtrl.text = v.toString(),
-                                  );
+                                  setState(() {
+                                    _cutoffDayCtrl.text = v.toString();
+                                    _hasChanges = true;
+                                  });
                                 }
                               },
                             ),
@@ -873,7 +866,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                                 fontSize: KreditTextSize.body,
                                 color: kredit.textPrimary,
                               ),
-                              value: (int.tryParse(_paymentOffsetCtrl.text) ?? 20).clamp(1, 30),
+                              initialValue: (int.tryParse(_paymentOffsetCtrl.text) ?? 20).clamp(1, 30),
                               decoration: const InputDecoration(
                                 labelText: 'Días para Pagar',
                                 isDense: true,
@@ -893,10 +886,10 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                                   .toList(),
                               onChanged: (v) {
                                 if (v != null) {
-                                  setState(
-                                    () =>
-                                        _paymentOffsetCtrl.text = v.toString(),
-                                  );
+                                  setState(() {
+                                    _paymentOffsetCtrl.text = v.toString();
+                                    _hasChanges = true;
+                                  });
                                 }
                               },
                             ),
@@ -906,10 +899,44 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                     ],
                   ),
                   const SizedBox(height: 16),
+                  // ── TASAS Y COBROS ────────────────────────────────────
                   KreditSectionCard(
-                    label: 'MANTENIMIENTO',
-                    icon: Icons.percent_outlined,
+                    label: 'TASAS Y COBROS',
+                    icon: Icons.percent_rounded,
                     children: [
+                      _warningBanner(
+                        'Los intereses ya acumulados no se recalculan. La nueva tasa aplica desde el siguiente extracto.',
+                        kredit,
+                      ),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _interestCardCtrl,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              decoration: const InputDecoration(
+                                labelText: 'Interés (%)',
+                                isDense: true,
+                              ),
+                              onChanged: (_) => setState(() => _hasChanges = true),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: InterestRateTypeField(
+                              value: _interestRateType,
+                              onChanged: (v) => setState(() {
+                                _interestRateType = v;
+                                _hasChanges = true;
+                              }),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_interestRateWarning != null)
+                        _EditInterestRateWarningHint(text: _interestRateWarning!),
+                      const SizedBox(height: 12),
                       Row(
                         children: [
                           Expanded(
@@ -921,6 +948,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                                 labelText: 'Cuota de Manejo (\$)',
                                 isDense: true,
                               ),
+                              onChanged: (_) => setState(() => _hasChanges = true),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -939,24 +967,56 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                               items: const [
                                 DropdownMenuItem(
                                   value: ManagementFeeFrequency.monthly,
-                                  child: Text(
-                                    'Mensual',
-                                    style: TextStyle(fontSize: KreditTextSize.body),
-                                  ),
+                                  child: Text('Mensual', style: TextStyle(fontSize: KreditTextSize.body)),
                                 ),
                                 DropdownMenuItem(
                                   value: ManagementFeeFrequency.annual,
-                                  child: Text(
-                                    'Anual',
-                                    style: TextStyle(fontSize: KreditTextSize.body),
-                                  ),
+                                  child: Text('Anual', style: TextStyle(fontSize: KreditTextSize.body)),
                                 ),
                               ],
-                              onChanged: (v) => setState(
-                                () => _managementFeeFrequency =
-                                    v ?? ManagementFeeFrequency.monthly,
-                              ),
+                              onChanged: (v) => setState(() {
+                                _managementFeeFrequency = v ?? ManagementFeeFrequency.monthly;
+                                _hasChanges = true;
+                              }),
                             ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'COMPRAS A 1 CUOTA',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.8,
+                              color: kredit.textTertiary,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          SegmentedButton<bool?>(
+                            showSelectedIcon: false,
+                            style: SegmentedButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              textStyle: const TextStyle(fontSize: 12),
+                            ),
+                            segments: const [
+                              ButtonSegment(value: null, label: Text('Desconocido')),
+                              ButtonSegment(value: true, label: Text('Sin interés')),
+                              ButtonSegment(value: false, label: Text('Con interés')),
+                            ],
+                            selected: {_oneInstallmentInterestPolicy},
+                            onSelectionChanged: (s) => setState(() {
+                              _oneInstallmentInterestPolicy = s.first;
+                              _hasChanges = true;
+                            }),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Si pagas a tiempo, ¿la tarjeta cobra interés en compras a 1 cuota?',
+                            style: TextStyle(fontSize: 11, color: kredit.textTertiary),
                           ),
                         ],
                       ),
@@ -982,7 +1042,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                 ),
                 const SizedBox(height: 24),
                 FilledButton.icon(
-                  onPressed: _saving ? null : _save,
+                  onPressed: (_hasChanges && !_saving) ? _save : null,
                   icon: _saving
                       ? const SizedBox(
                           width: 18,
@@ -990,7 +1050,11 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                           child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
                       : const Icon(Icons.check_circle_outline_rounded),
-                  label: Text(_saving ? 'Guardando...' : 'Guardar Cambios'),
+                  label: Text(_saving
+                      ? 'Guardando...'
+                      : _hasChanges
+                          ? 'Guardar Cambios'
+                          : 'Sin cambios'),
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(double.infinity, 52),
                   ),
@@ -1004,6 +1068,65 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
     );
   }
 }
+
+Widget _warningBanner(String message, KreditColors kredit) => Container(
+  margin: const EdgeInsets.only(bottom: 12),
+  padding: const EdgeInsets.all(12),
+  decoration: BoxDecoration(
+    color: Colors.amber.withValues(alpha: 0.12),
+    borderRadius: BorderRadius.circular(10),
+    border: Border.all(color: Colors.amber.withValues(alpha: 0.40)),
+  ),
+  child: Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 18),
+      const SizedBox(width: 10),
+      Expanded(
+        child: Text(
+          message,
+          style: TextStyle(fontSize: 12, color: kredit.textSecondary),
+        ),
+      ),
+    ],
+  ),
+);
+
+Widget _readOnlyField(
+  String label,
+  String value,
+  IconData icon,
+  KreditColors kredit,
+) =>
+    Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: kredit.bgCard.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: kredit.borderCard),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: kredit.textTertiary),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(fontSize: 11, color: kredit.textTertiary),
+              ),
+              Text(
+                value,
+                style: TextStyle(fontSize: 14, color: kredit.textSecondary),
+              ),
+            ],
+          ),
+          const Spacer(),
+          Icon(Icons.lock_outline, size: 14, color: kredit.textTertiary),
+        ],
+      ),
+    );
 
 /// informational — never blocks saving.
 class _EditInterestRateWarningHint extends StatelessWidget {
