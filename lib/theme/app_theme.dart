@@ -86,12 +86,16 @@ class KreditRadius {
 /// timeline (day-of-cut / payment-limit indicator), which is hardcoded at
 /// its call site because it is a one-off display treatment, not a role.
 class KreditTextSize {
+  /// Compact diagram labels, chart ticks, timeline day numbers, and any
+  /// text that is deliberately tiny (on a diagram, not in body copy).
+  static const caption = 12.0;
+
   /// Default for all body copy, section info, labels, eyebrows, metadata,
-  /// chart ticks, hints, and any text that is not a title or a number.
-  static const body = 14.0;
+  /// hints, and any readable text that is not a title or a number.
+  static const body = 16.0;
 
   /// Subtitles, secondary headings, prominent labels — one step above body.
-  static const heading = 16.0;
+  static const heading = 18.0;
 
   /// Screen-level titles: greeting headers ("Buenos días, Usuario"),
   /// view titles, stat call-outs that need prominence.

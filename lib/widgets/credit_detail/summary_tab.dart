@@ -508,7 +508,7 @@ class _BillingCycleTimeline extends StatelessWidget {
               child: Text(
                 'Nuevo extracto →',
                 style: TextStyle(
-                  fontSize: KreditTextSize.body,
+                  fontSize: KreditTextSize.caption,
                   fontWeight: FontWeight.w600,
                   color: spendColor,
                   letterSpacing: 0.2,
@@ -650,7 +650,7 @@ class _BillingCycleTimeline extends StatelessWidget {
               child: Text(
                 'Hoy',
                 style: TextStyle(
-                  fontSize: KreditTextSize.body,
+                  fontSize: KreditTextSize.caption,
                   fontWeight: FontWeight.w700,
                   color: todayColor,
                 ),
@@ -662,7 +662,7 @@ class _BillingCycleTimeline extends StatelessWidget {
               top: tickH + barH + 8,
               left: 0,
               child: Text('1',
-                  style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary)),
+                  style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary)),
             ),
             Positioned(
               top: tickH + barH + 8,
@@ -672,7 +672,7 @@ class _BillingCycleTimeline extends StatelessWidget {
                 'Corte\nDía $cutoffDay',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontSize: KreditTextSize.body,
+                    fontSize: KreditTextSize.caption,
                     fontWeight: FontWeight.w600,
                     color: spendColor,
                     height: 1.3),
@@ -686,7 +686,7 @@ class _BillingCycleTimeline extends StatelessWidget {
                 wraps ? 'Límite\n(mes sig.)' : 'Límite\nDía $paymentDueDay',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontSize: KreditTextSize.body,
+                    fontSize: KreditTextSize.caption,
                     fontWeight: FontWeight.w600,
                     color: payColor,
                     height: 1.3),
@@ -696,7 +696,7 @@ class _BillingCycleTimeline extends StatelessWidget {
               top: tickH + barH + 8,
               right: 0,
               child: Text('31',
-                  style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary)),
+                  style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary)),
             ),
           ],
         ),
