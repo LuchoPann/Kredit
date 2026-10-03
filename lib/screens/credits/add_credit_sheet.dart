@@ -3306,7 +3306,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               const nextGap   = 8.0;  // gap between dashed bar and main bar
               const tickH     = labelH + labelGap + nextH + nextGap; // total above main bar
               const dotR      = 5.5;
-              const totalH    = tickH + barH + 50.0;
+              const totalH    = tickH + barH + 68.0;
 
               return SizedBox(
                 height: totalH,
@@ -3455,6 +3455,58 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                       right: 0,
                       child: Text('31', style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary)),
                     ),
+                    // ── HOY marker ───────────────────────────────────────
+                    Builder(builder: (ctx) {
+                      final today = DateTime.now();
+                      final todayFrac = (today.day - 1) / 30.0;
+                      final todayX = w * todayFrac;
+                      final todayColor = Theme.of(ctx).colorScheme.onSurface;
+                      return Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          // Línea vertical
+                          Positioned(
+                            top: tickH - 2,
+                            left: todayX - 1,
+                            child: Container(
+                              width: 2,
+                              height: barH + 4,
+                              color: todayColor.withValues(alpha: 0.85),
+                            ),
+                          ),
+                          // Dot
+                          Positioned(
+                            top: tickH - dotR + barH / 2,
+                            left: todayX - dotR,
+                            child: Container(
+                              width: dotR * 2,
+                              height: dotR * 2,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: todayColor,
+                                border: Border.all(color: kredit.bgCard, width: 2),
+                              ),
+                            ),
+                          ),
+                          // Label "Hoy · Día X"
+                          Positioned(
+                            top: tickH + barH + 8,
+                            left: (todayX - 20).clamp(0, w - 44),
+                            width: 44,
+                            child: Text(
+                              'Hoy\nDía ${today.day}',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: KreditTextSize.caption,
+                                fontWeight: FontWeight.w700,
+                                color: todayColor,
+                                height: 1.3,
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    }),
                   ],
                 ),
               );
@@ -3482,7 +3534,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                   icon: Icons.shopping_cart_outlined,
                   color: spendColor,
                   title: 'Período de compras',
-                  desc: 'Todo lo que compres desde el día 1 hasta el día $_cutoffDayInt aparecerá en tu próximo extracto.',
+                  desc: 'Todo lo que compres desde el día $_cutoffDayInt del mes anterior hasta el día ${_cutoffDayInt > 1 ? _cutoffDayInt - 1 : 31} de este mes se incluye en tu extracto.',
                   kredit: kredit,
                 ),
                 const SizedBox(height: 10),
@@ -3598,7 +3650,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                       value: _cutoffDayInt.clamp(1, 31),
                       decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
                       items: List.generate(31, (i) => i + 1)
-                          .map((d) => DropdownMenuItem(value: d, child: Text('Día $d')))
+                          .map((d) => DropdownMenuItem(value: d, child: Text('Día $d', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textPrimary))))
                           .toList(),
                       onChanged: (v) {
                         if (v != null) setState(() { _cutoffDayInt = v; _cutoffDayCtrl.text = v.toString(); _cutoffDayTouched = true; });
@@ -3612,7 +3664,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('¿Cuántos días después del corte tienes para pagar?', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary)),
+                    Text('Días para pagar', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary)),
                     const SizedBox(height: 4),
                     DropdownButtonFormField<int>(
                       isExpanded: true,
@@ -3620,26 +3672,26 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                       value: _tarjetaPaymentOffsetDays.clamp(1, 30),
                       decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
                       items: List.generate(30, (i) => i + 1)
-                          .map((d) => DropdownMenuItem(value: d, child: Text('$d ${d == 1 ? 'día' : 'días'}')))
+                          .map((d) => DropdownMenuItem(value: d, child: Text('$d ${d == 1 ? 'día' : 'días'}', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textPrimary))))
                           .toList(),
                       onChanged: (v) {
                         if (v != null) setState(() { _tarjetaPaymentOffsetDays = v; _paymentOffsetTouched = true; });
                       },
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '→ límite día ${((_cutoffDayInt - 1 + _tarjetaPaymentOffsetDays) % 31) + 1} del mes',
-                      style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
-                    ),
-                    const SizedBox(height: 6),
-                    _eduHint(
-                      text: 'Lo encuentras en tu extracto como "Fecha límite de pago" o "Fecha de pago".',
-                      icon: Icons.receipt_outlined,
-                    ),
                   ],
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '→ límite día ${((_cutoffDayInt - 1 + _tarjetaPaymentOffsetDays) % 31) + 1} del mes',
+            style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+          ),
+          const SizedBox(height: 6),
+          _eduHint(
+            text: 'Lo encuentras en tu extracto como "Fecha límite de pago" o "Fecha de pago".',
+            icon: Icons.receipt_outlined,
           ),
           const SizedBox(height: 12),
           TextFormField(
@@ -3728,7 +3780,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
             if (limitVal > 0) (label: 'Disponible', value: formatCOP((limitVal - balanceVal).clamp(0, double.infinity))),
             (label: 'Corte', value: 'Día $_cutoffDayInt'),
             (label: 'Límite de pago', value: '${_tarjetaPaymentOffsetDays} días después (día ${((_cutoffDayInt - 1 + _tarjetaPaymentOffsetDays) % 31) + 1})'),
-            (label: 'Tasa', value: rateVal > 0 ? '${_interestCtrl.text}% $_interestRateType' : 'No especificada'),
+            (label: 'Tasa', value: rateVal > 0 ? '${_interestCtrl.text}% ${const {'effectiveAnnual': 'E.A.', 'effectiveMonthly': 'E.M.', 'nominalMonthly': 'N.M.'}[_interestRateType] ?? _interestRateType}' : 'No especificada'),
             (label: '1 cuota sin interés', value: _oneInstallmentInterestPolicy == null ? 'Sin configurar' : (_oneInstallmentInterestPolicy! ? 'Sí' : 'No')),
             if (feeVal > 0) (label: 'Cuota de manejo', value: '${formatCOP(feeVal)} / $_managementFeeFrequency'),
           ]),

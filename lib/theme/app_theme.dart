@@ -560,6 +560,7 @@ ThemeData buildAppTheme({
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
+        foregroundColor: textPrimary,
         textStyle: const TextStyle(fontFamily: 'SpaceGrotesk', fontWeight: FontWeight.w600),
       ),
     ),

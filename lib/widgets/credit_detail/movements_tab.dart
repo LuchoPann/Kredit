@@ -14,9 +14,11 @@ import '../../utils/credit_display_utils.dart';
 /// contains [movementDate], given [cutoffDay]. Used to group movements by
 /// extracto instead of calendar month.
 ///
-/// If the movement falls on or before [cutoffDay] of its month → the cycle
+/// Cutoff day opens the new period at 00:00, so a purchase on the cutoff day
+/// itself belongs to the NEW extracto (the one that just opened).
+/// If the movement falls strictly before [cutoffDay] of its month → the cycle
 /// closes on cutoffDay of that same month.
-/// If the movement falls after [cutoffDay] → the cycle closes on cutoffDay
+/// If the movement falls on or after [cutoffDay] → the cycle closes on cutoffDay
 /// of the FOLLOWING month.
 String _cycleKeyFor(String movementDate, int cutoffDay) {
   if (movementDate.length < 10) return movementDate;
@@ -24,7 +26,7 @@ String _cycleKeyFor(String movementDate, int cutoffDay) {
   if (d == null) return movementDate;
   final clampedCutoff = cutoffDay.clamp(1, 28);
   DateTime cycleEnd;
-  if (d.day <= clampedCutoff) {
+  if (d.day < clampedCutoff) {
     cycleEnd = DateTime(d.year, d.month, clampedCutoff);
   } else {
     final nextMonth = d.month == 12 ? 1 : d.month + 1;
@@ -164,17 +166,18 @@ const _monthsEs = [
 /// that ends on [cycleEnd], given [cutoffDay].
 String _cycleRangeLabel(DateTime cycleEnd, int cutoffDay) {
   final clampedCutoff = cutoffDay.clamp(1, 28);
-  // Cycle start = day after cutoffDay of the previous month.
+  // Cycle start = cutoffDay of the previous month (cutoff day opens the new
+  // period at 00:00; the prior period's last day is cutoffDay - 1).
   final prevMonth = cycleEnd.month == 1 ? 12 : cycleEnd.month - 1;
   final prevYear = cycleEnd.month == 1 ? cycleEnd.year - 1 : cycleEnd.year;
-  final startDay = clampedCutoff + 1;
+  final startDay = clampedCutoff;
+  final endDay = clampedCutoff > 1 ? clampedCutoff - 1 : 28;
   final startMonthLabel = _monthsEs[(prevMonth - 1).clamp(0, 11)];
   final endMonthLabel = _monthsEs[(cycleEnd.month - 1).clamp(0, 11)];
-  // If both sides fall in the same month label, use short form.
   if (prevMonth == cycleEnd.month && prevYear == cycleEnd.year) {
-    return '$startDay–$clampedCutoff $endMonthLabel ${cycleEnd.year}';
+    return '$startDay–$endDay $endMonthLabel ${cycleEnd.year}';
   }
-  return '$startDay $startMonthLabel – $clampedCutoff $endMonthLabel ${cycleEnd.year}';
+  return '$startDay $startMonthLabel – $endDay $endMonthLabel ${cycleEnd.year}';
 }
 
 class _CycleGroup extends StatefulWidget {
