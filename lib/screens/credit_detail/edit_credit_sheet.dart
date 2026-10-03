@@ -368,18 +368,68 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                   child: Container(
                     width: 40,
                     height: 4,
-                    margin: const EdgeInsets.only(bottom: 16),
+                    margin: const EdgeInsets.only(bottom: 20),
                     decoration: BoxDecoration(
                       color: kredit.borderCard,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
                 ),
-                Text(
-                  'Editar Información del Crédito',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 16),
+                // Header con identidad visual
+                Builder(builder: (context) {
+                  final accent = Theme.of(context).colorScheme.primary;
+                  final isVoucher = !isCard &&
+                      widget.credit is LoanCredit &&
+                      (widget.credit as LoanCredit).quotaId != null;
+                  final typeLabel = isCard
+                      ? 'Tarjeta de Crédito'
+                      : isVoucher
+                          ? 'Cupo de Tienda'
+                          : 'Crédito';
+                  final typeIcon = isCard
+                      ? Icons.credit_card_rounded
+                      : isVoucher
+                          ? Icons.storefront_rounded
+                          : Icons.account_balance_wallet_rounded;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Editar Crédito',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Icon(typeIcon, size: KreditIconSize.micro, color: accent),
+                          const SizedBox(width: 6),
+                          Text(
+                            typeLabel,
+                            style: TextStyle(
+                              fontSize: KreditTextSize.caption,
+                              color: accent,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(width: 1, height: 12, color: kredit.borderCard),
+                          const SizedBox(width: 8),
+                          Text(
+                            widget.credit.name,
+                            style: TextStyle(
+                              fontSize: KreditTextSize.caption,
+                              color: kredit.textTertiary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                }),
+                const SizedBox(height: 20),
                 // Live preview of the card as user edits lender/name
                 Builder(
                   builder: (context) {
@@ -452,26 +502,44 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                             movements: (widget.credit as CardCredit).movements,
                             cardDesign: _cardDesign?.name,
                           );
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.credit is LoanCredit &&
-                                  (widget.credit as LoanCredit).quotaId != null
-                              ? 'VISTA PREVIA DEL VOUCHER'
-                              : widget.credit is CardCredit
-                              ? 'VISTA PREVIA DE TARJETA'
-                              : 'VISTA PREVIA DEL CRÉDITO',
-                          style: const TextStyle(
-                            fontSize: KreditTextSize.body,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.8,
+                    final accent = Theme.of(context).colorScheme.primary;
+                    final previewLabel = widget.credit is LoanCredit &&
+                            (widget.credit as LoanCredit).quotaId != null
+                        ? 'VISTA PREVIA DEL VOUCHER'
+                        : widget.credit is CardCredit
+                        ? 'VISTA PREVIA DE TARJETA'
+                        : 'VISTA PREVIA DEL CRÉDITO';
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: accent.withValues(alpha: 0.15)),
+                      ),
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            previewLabel,
+                            style: TextStyle(
+                              fontSize: KreditTextSize.caption,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.8,
+                              color: accent,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        RepaintBoundary(child: WalletCard(credit: previewCredit)),
-                        const SizedBox(height: 16),
-                      ],
+                          const SizedBox(height: 2),
+                          Text(
+                            'Se actualiza en tiempo real mientras editas',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: kredit.textTertiary,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          RepaintBoundary(child: WalletCard(credit: previewCredit)),
+                        ],
+                      ),
                     );
                   },
                 ),
@@ -597,8 +665,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                     ],
                   ],
                 ),
-                const SizedBox(height: 12),
-                const SizedBox(height: 0),
+                const SizedBox(height: 16),
                 if (!isCard) ...[
                   KreditSectionCard(
                     label: widget.credit is LoanCredit &&
@@ -655,7 +722,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                       ],
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   KreditSectionCard(
                     label: 'MONTO Y CUOTA',
                     icon: Icons.request_quote_outlined,
@@ -756,7 +823,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   KreditSectionCard(
                     label: 'CORTE Y FECHA DE PAGO',
                     icon: Icons.event_available_outlined,
@@ -838,7 +905,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   KreditSectionCard(
                     label: 'MANTENIMIENTO',
                     icon: Icons.percent_outlined,
@@ -896,13 +963,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                     ],
                   ),
                 ],
-                const SizedBox(height: 12),
-                // Su propia tarjeta, como el resto del sheet — antes era un
-                // TextFormField suelto con el subrayado default de Material,
-                // que quedaba flotando sin relación clara con el texto
-                // arriba. Con la tarjeta como contenedor, el borde interno
-                // ya no hace falta (InputBorder.none): el propio cuadro
-                // cumple ese rol.
+                const SizedBox(height: 16),
                 KreditSectionCard(
                   label: 'NOTAS',
                   icon: Icons.sticky_note_2_outlined,
@@ -920,13 +981,21 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                   ],
                 ),
                 const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: _saving ? null : _save,
-                    child: Text(_saving ? 'Guardando...' : 'Guardar Cambios'),
+                FilledButton.icon(
+                  onPressed: _saving ? null : _save,
+                  icon: _saving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.check_circle_outline_rounded),
+                  label: Text(_saving ? 'Guardando...' : 'Guardar Cambios'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 52),
                   ),
                 ),
+                const SizedBox(height: 8),
               ],
             ),
           );
