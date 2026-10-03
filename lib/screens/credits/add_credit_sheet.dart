@@ -1566,7 +1566,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                     style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.bold, letterSpacing: 0.8),
                   ),
                   const SizedBox(height: 8),
-                  RepaintBoundary(child: WalletCard(credit: credit)),
+                  RepaintBoundary(child: WalletCard(credit: credit, previewPattern: _selectedVoucherPattern)),
                   const SizedBox(height: 16),
                 ],
                 Text(
@@ -1738,7 +1738,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         // realmente en _save(). Cualquier valor no nulo basta aquí: el
         // preview solo necesita saber que ES una compra de cupo, el id
         // real (nuevo o existente) se resuelve al guardar.
-        quotaId: (_selectedEntityId != null && _selectedEntityId != 'none') ? 'preview-quota' : null,
+        quotaId: _mode == 'tienda' ? 'preview-quota' : (_selectedEntityId != null && _selectedEntityId != 'none') ? 'preview-quota' : null,
         interestUnknown: _interestUnknown,
         earlyPaymentWaivesInterest: _earlyPaymentWaivesInterest,
         cardDesign: design?.name,
@@ -1889,6 +1889,11 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                 setState(() => _interestRateType = v);
                 _recalcSuggestedQuota();
               },
+            ),
+            _eduHint(
+              text: '¿Dónde encuentro la tasa?',
+              detail: 'Búscala en tu contrato de compra, en el extracto de la tienda, o en la app/web del almacén. Suele aparecer como "tasa de interés mensual" o "EA". Si no la tienes, activa "Tasa desconocida" en Opciones.',
+              icon: Icons.search_outlined,
             ),
           ],
           if (!hideSwitch)
@@ -2371,6 +2376,42 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     );
   }
 
+  Widget _eduHint({
+    required String text,
+    String? detail,
+    IconData icon = Icons.lightbulb_outline,
+  }) {
+    if (detail == null) {
+      return Builder(builder: (ctx) {
+        final kredit = Theme.of(ctx).extension<KreditColors>()!;
+        final accent = Theme.of(ctx).colorScheme.primary;
+        return Container(
+          margin: const EdgeInsets.only(top: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: accent.withValues(alpha: 0.07),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: accent.withValues(alpha: 0.15)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, size: KreditIconSize.small, color: accent),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  text,
+                  style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary, height: 1.45),
+                ),
+              ),
+            ],
+          ),
+        );
+      });
+    }
+    return _EduHintExpansion(text: text, detail: detail, icon: icon);
+  }
+
   Widget _heroStatCol(KreditColors kredit, String label, String value, Color valueColor) {
     return Expanded(
       child: Column(
@@ -2533,6 +2574,16 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text(
+                'VALOR FINANCIADO',
+                style: TextStyle(
+                  fontSize: KreditTextSize.caption,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.1,
+                  color: accent.withValues(alpha: 0.7),
+                ),
+              ),
+              const SizedBox(height: 2),
               Text(
                 formatCOP(amount),
                 style: TextStyle(
@@ -2708,6 +2759,34 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
             'La fecha del primer vencimiento — la ves en tu contrato o primer recibo.',
             style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
           ),
+          const SizedBox(height: 8),
+          Builder(builder: (ctx) {
+            final kredit2 = Theme.of(ctx).extension<KreditColors>()!;
+            if (_startDate != null) return const SizedBox.shrink();
+            return GestureDetector(
+              onTap: () => setState(() => _startDate = DateTime.now()),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                decoration: BoxDecoration(
+                  border: Border.all(color: kredit2.borderCard),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.today_outlined, size: KreditIconSize.small, color: kredit2.textTertiary),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'No recuerdo la fecha — usar fecha de hoy',
+                        style: TextStyle(fontSize: KreditTextSize.body, color: kredit2.textSecondary),
+                      ),
+                    ),
+                    Icon(Icons.arrow_forward_ios, size: KreditIconSize.micro, color: kredit2.textTertiary),
+                  ],
+                ),
+              ),
+            );
+          }),
           const SizedBox(height: 12),
           Divider(height: 1, color: kredit.borderCard.withValues(alpha: 0.6)),
           const SizedBox(height: 12),
@@ -3074,6 +3153,11 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               onChanged: (v) => setState(() => _interestRateType = v),
             ),
           ],
+          _eduHint(
+            text: '¿Dónde encuentro mi tasa?',
+            detail: 'Está en tu extracto bancario, en la app de tu banco, o en la carta de aprobación de la tarjeta. Suele llamarse "Tasa de interés corriente" o "Interés por mora". Puedes dejar este campo vacío si no la conoces.',
+            icon: Icons.search_outlined,
+          ),
         ],
       ),
       const SizedBox(height: 12),
@@ -3107,6 +3191,11 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                 activeColor: Theme.of(context).colorScheme.primary,
               ),
             ],
+          ),
+          _eduHint(
+            text: '¿Qué significa "a 1 cuota"?',
+            detail: 'Cuando diferidas a 1 cuota y pagas antes del límite, muchas tarjetas no cobran interés. Si tu tarjeta tiene esta condición, activa el switch. Así Kredit calculará correctamente tus cargos.',
+            icon: Icons.info_outline,
           ),
         ],
       ),
@@ -3523,7 +3612,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Días hasta el límite', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary)),
+                    Text('¿Cuántos días después del corte tienes para pagar?', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary)),
                     const SizedBox(height: 4),
                     DropdownButtonFormField<int>(
                       isExpanded: true,
@@ -3541,6 +3630,11 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                     Text(
                       '→ límite día ${((_cutoffDayInt - 1 + _tarjetaPaymentOffsetDays) % 31) + 1} del mes',
                       style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+                    ),
+                    const SizedBox(height: 6),
+                    _eduHint(
+                      text: 'Lo encuentras en tu extracto como "Fecha límite de pago" o "Fecha de pago".',
+                      icon: Icons.receipt_outlined,
                     ),
                   ],
                 ),
@@ -4983,6 +5077,78 @@ class _EntityPickerCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _EduHintExpansion extends StatefulWidget {
+  final String text;
+  final String detail;
+  final IconData icon;
+  const _EduHintExpansion({required this.text, required this.detail, required this.icon});
+  @override
+  State<_EduHintExpansion> createState() => _EduHintExpansionState();
+}
+
+class _EduHintExpansionState extends State<_EduHintExpansion> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accent = Theme.of(context).colorScheme.primary;
+    return GestureDetector(
+      onTap: () => setState(() => _expanded = !_expanded),
+      child: Container(
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: accent.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: accent.withValues(alpha: 0.15)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(widget.icon, size: KreditIconSize.small, color: accent),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.text,
+                    style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary, height: 1.45),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                AnimatedRotation(
+                  turns: _expanded ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 180),
+                  child: Icon(Icons.keyboard_arrow_down, size: KreditIconSize.small, color: accent),
+                ),
+              ],
+            ),
+            if (_expanded) ...[
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                height: 1,
+                color: accent.withValues(alpha: 0.15),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                widget.detail,
+                style: TextStyle(
+                  fontSize: KreditTextSize.body,
+                  color: kredit.textTertiary,
+                  height: 1.55,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

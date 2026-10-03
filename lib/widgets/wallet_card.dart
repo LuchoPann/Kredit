@@ -473,8 +473,9 @@ class VoucherWaveCornerPainter extends CustomPainter {
 /// mirroring #detail-wallet-card in legacy_pwa/index.html (~L358-379).
 class WalletCard extends ConsumerWidget {
   final Credit credit;
+  final VoucherPattern? previewPattern;
 
-  const WalletCard({super.key, required this.credit});
+  const WalletCard({super.key, required this.credit, this.previewPattern});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -498,16 +499,18 @@ class WalletCard extends ConsumerWidget {
 
     // Luminancia promedio cacheada — evita fold+computeLuminance por build.
     final avgLuminance = _avgLuminanceFor(bank.cssClass, credit.color);
-    // Patrón del voucher: select() para no reconstruir si cambia otra quota.
+    // Patrón del voucher: previewPattern tiene prioridad (para previews de
+    // confirmación donde quotaId es un placeholder que no existe en el provider).
     final quotaPattern = isQuotaVoucher
-        ? VoucherPattern.fromName(
-            ref.watch(commercialQuotasProvider.select(
-              (quotas) => quotas.valueOrNull
-                  ?.where((q) => q.id == (credit as LoanCredit).quotaId)
-                  .firstOrNull
-                  ?.voucherPattern,
-            )),
-          )
+        ? (previewPattern ??
+            VoucherPattern.fromName(
+              ref.watch(commercialQuotasProvider.select(
+                (quotas) => quotas.valueOrNull
+                    ?.where((q) => q.id == (credit as LoanCredit).quotaId)
+                    .firstOrNull
+                    ?.voucherPattern,
+              )),
+            ))
         : VoucherPattern.diagonalLines;
     final isLightFace = isBankVoucher ||
         (cardDesign?.isLightBackground ?? false) ||
