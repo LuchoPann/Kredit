@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../providers/notification_settings_provider.dart';
@@ -290,13 +291,7 @@ class AccountScreen extends ConsumerWidget {
                   ),
                 ),
                 _Divider(kredit),
-                _SettingsTile(
-                  icon: Icons.tag_rounded,
-                  title: 'Versión',
-                  subtitle: '1.0.0',
-                  showChevron: false,
-                  onTap: () {},
-                ),
+                const _VersionTile(),
 
                 // ── ZONA DE RIESGO ──
                 _SectionDivider(label: 'Zona de riesgo', kredit: kredit, danger: true),
@@ -515,6 +510,34 @@ class _SheetLabel extends StatelessWidget {
           letterSpacing: 0.8,
           color: kredit.textTertiary,
         ),
+      );
+}
+
+class _VersionTile extends StatefulWidget {
+  const _VersionTile();
+
+  @override
+  State<_VersionTile> createState() => _VersionTileState();
+}
+
+class _VersionTileState extends State<_VersionTile> {
+  String _version = '…';
+
+  @override
+  void initState() {
+    super.initState();
+    PackageInfo.fromPlatform().then((info) {
+      if (mounted) setState(() => _version = '${info.version} (build ${info.buildNumber})');
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => _SettingsTile(
+        icon: Icons.tag_rounded,
+        title: 'Versión',
+        subtitle: _version,
+        showChevron: false,
+        onTap: () {},
       );
 }
 
