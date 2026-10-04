@@ -346,62 +346,60 @@ class _DashboardBody extends ConsumerWidget {
           upcoming: upcoming,
         ),
 
-        // 5. Cartera compacta — scroll horizontal de mini-tarjetas por crédito.
+        // 5. Lista compacta de créditos activos.
         if (activeCredits.isNotEmpty) ...[
           const SizedBox(height: KreditSpacing.section),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
+          KreditSectionCard(
             children: [
-              const Text(
-                'Tus créditos',
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: KreditTextSize.heading,
-                ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  const Text(
+                    'Tus créditos',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: KreditTextSize.heading,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${activeCredits.length}',
+                    style: TextStyle(
+                      fontSize: KreditTextSize.body,
+                      fontWeight: FontWeight.w600,
+                      color: kredit.textTertiary,
+                    ),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    onPressed: () =>
+                        ref.read(navigationIndexProvider.notifier).state =
+                            AppNavTab.credits,
+                    child: const Text(
+                      'Ver todos',
+                      style: TextStyle(fontSize: KreditTextSize.body),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Text(
-                '${activeCredits.length}',
-                style: TextStyle(
-                  fontSize: KreditTextSize.body,
-                  fontWeight: FontWeight.w600,
-                  color: kredit.textTertiary,
+              const SizedBox(height: 8),
+              for (var i = 0; i < activeCredits.length; i++) ...[
+                if (i > 0) Divider(height: 1, color: kredit.borderCard),
+                _CreditListRow(
+                  credit: activeCredits[i],
+                  onTap: () => Navigator.of(context).pushNamed(
+                    '/credit-detail',
+                    arguments: activeCredits[i].id,
+                  ),
                 ),
-              ),
-              const Spacer(),
-              TextButton(
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                onPressed: () =>
-                    ref.read(navigationIndexProvider.notifier).state =
-                        AppNavTab.credits,
-                child: const Text(
-                  'Ver todos',
-                  style: TextStyle(fontSize: KreditTextSize.body),
-                ),
-              ),
+              ],
             ],
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 108,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.zero,
-              itemCount: activeCredits.length,
-              separatorBuilder: (_, i) => const SizedBox(width: 10),
-              itemBuilder: (context, i) => _CompactCreditCard(
-                credit: activeCredits[i],
-                onTap: () => Navigator.of(context).pushNamed(
-                  '/credit-detail',
-                  arguments: activeCredits[i].id,
-                ),
-              ),
-            ),
           ),
         ],
 
@@ -976,19 +974,18 @@ class _UpcomingRow extends StatelessWidget {
   }
 }
 
-/// Tarjeta compacta de crédito para el scroll horizontal del dashboard.
-/// Muestra el color/gradiente del banco, nombre del crédito, entidad y
-/// saldo/deuda disponible en un formato mini (160×108).
-class _CompactCreditCard extends StatelessWidget {
+/// Fila compacta de crédito para la lista del dashboard.
+/// Dot de color del banco · nombre + entidad · métrica clave + chevron.
+class _CreditListRow extends StatelessWidget {
   final Credit credit;
   final VoidCallback onTap;
 
-  const _CompactCreditCard({required this.credit, required this.onTap});
+  const _CreditListRow({required this.credit, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
     final bank = detectBank(lender: credit.lender);
-    // Parsear el accentColor hex del banco como color base.
     final hex = bank.accentColor.replaceFirst('#', '');
     final bankColor = hex.length == 6
         ? Color(int.parse('FF$hex', radix: 16))
@@ -997,97 +994,90 @@ class _CompactCreditCard extends StatelessWidget {
     final isCard = credit is CardCredit;
     final isLoan = credit is LoanCredit;
 
-    String balanceLabel;
-    String balanceValue;
+    final String metricValue;
+    final String metricLabel;
     if (isCard) {
       final c = credit as CardCredit;
-      balanceLabel = 'SALDO';
-      balanceValue = formatCOP(c.currentBalance);
+      metricValue = formatCOP(c.currentBalance);
+      metricLabel = 'saldo';
     } else {
       final l = credit as LoanCredit;
       final remaining = l.installments.where((i) => !i.paid).length;
-      balanceLabel = 'CUOTAS';
-      balanceValue = '$remaining restantes';
+      metricValue = '$remaining';
+      metricLabel = remaining == 1 ? 'cuota' : 'cuotas';
     }
 
-    return GestureDetector(
+    return InkWell(
       onTap: onTap,
-      child: Container(
-        width: 155,
-        height: 108,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(KreditRadius.card),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              bankColor,
-              bankColor.withValues(alpha: 0.72),
-            ],
-          ),
-        ),
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 11),
+        child: Row(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    bank.shortLabel,
+            // Dot de color del banco
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: bankColor,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Nombre + entidad
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    credit.name,
                     style: const TextStyle(
-                      color: Colors.white,
                       fontSize: KreditTextSize.body,
                       fontWeight: FontWeight.w700,
-                      letterSpacing: 0.3,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  const SizedBox(height: 1),
+                  Text(
+                    '${bank.shortLabel} · ${isCard ? 'Tarjeta' : isLoan ? 'Préstamo' : 'Crédito'}',
+                    style: TextStyle(
+                      fontSize: KreditTextSize.body,
+                      color: kredit.textTertiary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Métrica clave
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  metricValue,
+                  style: const TextStyle(
+                    fontSize: KreditTextSize.body,
+                    fontWeight: FontWeight.w800,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                  ),
                 ),
-                Icon(
-                  isCard
-                      ? Icons.credit_card_outlined
-                      : isLoan
-                      ? Icons.payments_outlined
-                      : Icons.account_balance_outlined,
-                  color: Colors.white.withValues(alpha: 0.7),
-                  size: 14,
+                Text(
+                  metricLabel,
+                  style: TextStyle(
+                    fontSize: KreditTextSize.body,
+                    color: kredit.textTertiary,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
-            const Spacer(),
-            Text(
-              credit.name,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.85),
-                fontSize: KreditTextSize.body,
-                fontWeight: FontWeight.w600,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              balanceLabel,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.6),
-                fontSize: 9,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.8,
-              ),
-            ),
-            Text(
-              balanceValue,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: KreditTextSize.body,
-                fontWeight: FontWeight.w800,
-                fontFeatures: [FontFeature.tabularFigures()],
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+            const SizedBox(width: 4),
+            Icon(Icons.chevron_right, size: 16, color: kredit.textTertiary),
           ],
         ),
       ),
