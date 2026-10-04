@@ -10,14 +10,29 @@ const _kBackupMode = 'backup_mode';
 const _kBackupHour = 'backup_hour';
 const _kBackupMinute = 'backup_minute';
 
-class BackupSettingsScreen extends StatefulWidget {
+/// Pantalla completa de respaldo (desde la lista principal de cuenta).
+class BackupSettingsScreen extends StatelessWidget {
   const BackupSettingsScreen({super.key});
 
   @override
-  State<BackupSettingsScreen> createState() => _BackupSettingsScreenState();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Respaldo automático')),
+      body: const BackupSettingsBody(),
+    );
+  }
 }
 
-class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
+/// Body embebible — funciona dentro del sheet de configuración Y como cuerpo
+/// de [BackupSettingsScreen]. Sin Scaffold ni AppBar.
+class BackupSettingsBody extends StatefulWidget {
+  const BackupSettingsBody({super.key});
+
+  @override
+  State<BackupSettingsBody> createState() => _BackupSettingsBodyState();
+}
+
+class _BackupSettingsBodyState extends State<BackupSettingsBody> {
   bool _enabled = false;
   String _frequency = 'weekly';
   String _mode = 'overwrite';
@@ -54,7 +69,7 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Configuración de respaldo guardada')),
       );
-      Navigator.of(context).pop();
+      Navigator.of(context).maybePop();
     }
   }
 
@@ -113,14 +128,10 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
     final accent = Theme.of(context).colorScheme.primary;
 
     if (_loading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Respaldo automático')),
-      body: ListView(
+    return ListView(
         padding: const EdgeInsets.all(KreditSpacing.card),
         children: [
           KreditSectionCard(
@@ -344,7 +355,6 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
           ),
           const SizedBox(height: KreditSpacing.section),
         ],
-      ),
     );
   }
 }

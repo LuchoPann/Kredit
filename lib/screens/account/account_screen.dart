@@ -37,34 +37,9 @@ class AccountScreen extends ConsumerWidget {
         initialChildSize: initial,
         minChildSize: 0.35,
         maxChildSize: 0.92,
-        builder: (ctx, scrollController) => ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          child: Material(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            child: Column(
-              children: [
-                // Handle
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).extension<KreditColors>()!.borderCard,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: ListView(
-                    controller: scrollController,
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                    children: [content],
-                  ),
-                ),
-              ],
-            ),
-          ),
+        builder: (ctx, scrollController) => _SheetNavHost(
+          scrollController: scrollController,
+          rootContent: content,
         ),
       ),
     );
@@ -258,12 +233,10 @@ class AccountScreen extends ConsumerWidget {
                             icon: Icons.backup_outlined,
                             title: 'Configurar respaldo automático',
                             subtitle: 'Frecuencia, hora y carpeta destino',
-                            onTap: () {
-                              Navigator.pop(ctx);
-                              Navigator.of(context).push(
-                                slidePageRoute((_) => const BackupSettingsScreen()),
-                              );
-                            },
+                            onTap: () => _SheetNav.of(ctx).push(
+                              'Respaldo automático',
+                              const BackupSettingsBody(),
+                            ),
                           ),
                           const SizedBox(height: 8),
                         ],
@@ -880,6 +853,154 @@ class _BackupAutoTileState extends State<_BackupAutoTile> {
         );
         _loadSubtitle(); // refresh after returning
       },
+    );
+  }
+}
+
+// ── Navegación interna de sheets ─────────────────────────────────────────────
+
+/// InheritedWidget que expone push/pop a cualquier descendiente del sheet.
+class _SheetNav extends InheritedWidget {
+  final void Function(String title, Widget page) push;
+  final VoidCallback pop;
+  final bool canPop;
+
+  const _SheetNav({
+    required this.push,
+    required this.pop,
+    required this.canPop,
+    required super.child,
+  });
+
+  static _SheetNav of(BuildContext context) {
+    final nav = context.dependOnInheritedWidgetOfExactType<_SheetNav>();
+    assert(nav != null, '_SheetNav no encontrado en el árbol');
+    return nav!;
+  }
+
+  @override
+  bool updateShouldNotify(_SheetNav old) =>
+      canPop != old.canPop;
+}
+
+/// Host del sheet que gestiona la pila de páginas con slide lateral.
+class _SheetNavHost extends StatefulWidget {
+  final ScrollController scrollController;
+  final Widget rootContent;
+
+  const _SheetNavHost({
+    required this.scrollController,
+    required this.rootContent,
+  });
+
+  @override
+  State<_SheetNavHost> createState() => _SheetNavHostState();
+}
+
+class _SheetNavHostState extends State<_SheetNavHost> {
+  final List<({String title, Widget page})> _stack = [];
+  int _direction = 1;
+
+  void _push(String title, Widget page) {
+    setState(() {
+      _direction = 1;
+      _stack.add((title: title, page: page));
+    });
+  }
+
+  void _pop() {
+    if (_stack.isEmpty) return;
+    setState(() {
+      _direction = -1;
+      _stack.removeLast();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final canPop = _stack.isNotEmpty;
+    final currentTitle = canPop ? _stack.last.title : null;
+
+    return _SheetNav(
+      push: _push,
+      pop: _pop,
+      canPop: canPop,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: Material(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: Column(
+            children: [
+              // Handle pill — siempre visible
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: kredit.borderCard,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              // Barra de título / back cuando hay sub-página
+              if (canPop)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 0, 16, 8),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+                        onPressed: _pop,
+                        tooltip: 'Volver',
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          currentTitle ?? '',
+                          style: const TextStyle(
+                            fontSize: KreditTextSize.heading,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              // Contenido animado
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 320),
+                  reverseDuration: const Duration(milliseconds: 260),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) {
+                    final entering =
+                        child.key == ValueKey(_stack.length);
+                    final sign = entering ? _direction : -_direction;
+                    final offset = Tween<Offset>(
+                      begin: Offset(sign.toDouble(), 0),
+                      end: Offset.zero,
+                    ).animate(animation);
+                    return SlideTransition(position: offset, child: child);
+                  },
+                  child: KeyedSubtree(
+                    key: ValueKey(_stack.length),
+                    child: ListView(
+                      controller: canPop ? null : widget.scrollController,
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                      children: [
+                        canPop ? _stack.last.page : widget.rootContent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
