@@ -1,5 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -75,7 +79,7 @@ class AccountScreen extends ConsumerWidget {
             expandedHeight: 220,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
-              background: _ProfileBanner(profileName: prefs.profileName, kredit: kredit),
+              background: const _ProfileBanner(),
               collapseMode: CollapseMode.parallax,
             ),
             title: Text(
@@ -312,58 +316,160 @@ class AccountScreen extends ConsumerWidget {
 
 // ── Widgets de apoyo ──────────────────────────────────────────────────────────
 
-class _ProfileBanner extends StatelessWidget {
-  final String profileName;
-  final KreditColors kredit;
+class _ProfileBanner extends ConsumerWidget {
+  const _ProfileBanner();
 
-  const _ProfileBanner({required this.profileName, required this.kredit});
+  Future<void> _pickImage(BuildContext context, WidgetRef ref, ImageSource source) async {
+    final picker = ImagePicker();
+    try {
+      final picked = await picker.pickImage(
+        source: source, maxWidth: 1024, maxHeight: 1024, imageQuality: 85,
+      );
+      if (picked == null) return;
+      if (!context.mounted) return;
+      final accent = Theme.of(context).colorScheme.primary;
+      final cropped = await ImageCropper().cropImage(
+        sourcePath: picked.path,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Recortar foto',
+            toolbarColor: Colors.black,
+            toolbarWidgetColor: Colors.white,
+            activeControlsWidgetColor: accent,
+            lockAspectRatio: true,
+          ),
+          IOSUiSettings(title: 'Recortar foto', aspectRatioLockEnabled: true),
+        ],
+      );
+      if (cropped == null) return;
+      await ref.read(themePreferencesProvider.notifier).setAvatarFromFile(cropped.path);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo cargar la imagen.')),
+        );
+      }
+    }
+  }
+
+  Future<void> _showAvatarOptions(BuildContext context, WidgetRef ref, bool hasAvatar) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Elegir de galería'),
+              onTap: () { Navigator.pop(ctx); _pickImage(context, ref, ImageSource.gallery); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Tomar foto'),
+              onTap: () { Navigator.pop(ctx); _pickImage(context, ref, ImageSource.camera); },
+            ),
+            if (hasAvatar)
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: AppColors.danger),
+                title: const Text('Quitar imagen', style: TextStyle(color: AppColors.danger)),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await ref.read(themePreferencesProvider.notifier).clearAvatar();
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _editName(BuildContext context, WidgetRef ref, String current) async {
+    final controller = TextEditingController(text: current);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Editar nombre de perfil'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'Tu nombre'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(ctx, controller.text), child: const Text('Guardar')),
+        ],
+      ),
+    );
+    if (result != null && result.trim().isNotEmpty) {
+      await ref.read(themePreferencesProvider.notifier).setProfileName(result);
+    }
+  }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final prefs = ref.watch(themePreferencesProvider);
+    final kredit = Theme.of(context).extension<KreditColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
+    final avatarPath = prefs.avatarPath;
+    final effectiveAvatarBg = applyBgToneToAccent(
+      resolveEffectiveAccent(prefs.accentColor, prefs.isDarkMode),
+      prefs.bgTone,
+      prefs.isDarkMode,
+    );
+
     return Container(
-      decoration: BoxDecoration(
-        color: kredit.bgCard,
-      ),
+      color: kredit.bgCard,
       child: SafeArea(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const SizedBox(height: 12),
-            // Avatar
-            Stack(
-              alignment: Alignment.bottomRight,
-              children: [
-                Container(
-                  width: 88,
-                  height: 88,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: accent.withValues(alpha: 0.15),
-                    border: Border.all(color: accent.withValues(alpha: 0.4), width: 2.5),
+            GestureDetector(
+              onTap: () => _showAvatarOptions(context, ref, avatarPath != null),
+              child: Stack(
+                alignment: Alignment.bottomRight,
+                children: [
+                  CircleAvatar(
+                    radius: 44,
+                    backgroundColor: effectiveAvatarBg,
+                    backgroundImage: avatarPath != null ? FileImage(File(avatarPath)) : null,
+                    child: avatarPath == null
+                        ? Icon(Icons.person_outline_rounded,
+                            size: 44, color: legibleForegroundOn(effectiveAvatarBg))
+                        : null,
                   ),
-                  child: Icon(Icons.person_outline_rounded,
-                      size: 44, color: accent.withValues(alpha: 0.7)),
-                ),
-                Container(
-                  width: 26,
-                  height: 26,
-                  decoration: BoxDecoration(
-                    color: accent,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: kredit.bgCard, width: 2),
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: accent,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: kredit.bgCard, width: 2),
+                    ),
+                    child: const Icon(Icons.camera_alt_outlined, size: 14, color: Colors.white),
                   ),
-                  child: const Icon(Icons.edit_outlined, size: 12, color: Colors.white),
-                ),
-              ],
+                ],
+              ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              profileName.isNotEmpty ? profileName : 'Mi perfil',
-              style: TextStyle(
-                fontSize: KreditTextSize.heading,
-                fontWeight: FontWeight.w700,
-                color: kredit.textPrimary,
+            const SizedBox(height: 10),
+            GestureDetector(
+              onTap: () => _editName(context, ref, prefs.profileName),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    prefs.profileName.isNotEmpty ? prefs.profileName : 'Mi perfil',
+                    style: TextStyle(
+                      fontSize: KreditTextSize.heading,
+                      fontWeight: FontWeight.w700,
+                      color: kredit.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(Icons.edit_outlined, size: 14, color: kredit.textTertiary),
+                ],
               ),
             ),
             const SizedBox(height: 2),
@@ -371,6 +477,7 @@ class _ProfileBanner extends StatelessWidget {
               'Kredit · Mis créditos',
               style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
             ),
+            const SizedBox(height: 8),
           ],
         ),
       ),
