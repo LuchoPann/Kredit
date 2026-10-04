@@ -15,12 +15,6 @@ import '../../widgets/interest_rate_type_field.dart';
 import '../../widgets/kredit_section_card.dart';
 import '../../widgets/wallet_card.dart';
 
-const List<String> _presetCardColors = [
-  '#00F2FE', '#1A3A8F', '#2d5be3', '#820AD1', '#DA0081',
-  '#E4032E', '#004481', '#1a7a3a', '#EC7000', '#FFD100',
-  '#00E28A', '#1a1a2e',
-];
-
 const List<String> _presetLenders = [
   'Bancolombia',
   'Nequi',
@@ -381,22 +375,6 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
 
   // ── shared helpers ───────────────────────────────────────────────────────
 
-  // Derives gradient stop colors from the current _color hex for design thumbnails.
-  List<Color> _cardColors() {
-    var h = _color.replaceFirst('#', '');
-    if (h.length == 6) h = 'FF$h';
-    final v = int.tryParse(h, radix: 16);
-    if (v != null) {
-      final c = Color(v);
-      return [
-        Color.lerp(c, Colors.black, 0.15)!,
-        Color.lerp(c, Colors.black, 0.65)!,
-        Colors.black,
-      ];
-    }
-    return const [Color(0xFF1a3a8f), Color(0xFF0a1a50), Colors.black];
-  }
-
   Widget _buildHandle(KreditColors kredit) => Center(
         child: Container(
           width: 40,
@@ -643,131 +621,6 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                 onChanged: (_) => setState(() => _hasChanges = true),
               ),
             ],
-            const SizedBox(height: 12),
-            // ── Color picker ──
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'COLOR DE TARJETA',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
-                    color: kredit.textTertiary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _presetCardColors.map((hex) {
-                    var h = hex.replaceFirst('#', '');
-                    if (h.length == 6) h = 'FF$h';
-                    final v = int.tryParse(h, radix: 16);
-                    final swatchColor = v != null ? Color(v) : Colors.grey;
-                    final isSelected =
-                        _color.toUpperCase() == hex.toUpperCase();
-                    return GestureDetector(
-                      onTap: () =>
-                          setState(() { _color = hex; _hasChanges = true; }),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        width: 30,
-                        height: 30,
-                        decoration: BoxDecoration(
-                          color: swatchColor,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isSelected
-                                ? kredit.textPrimary
-                                : Colors.transparent,
-                            width: 2.5,
-                          ),
-                          boxShadow: isSelected
-                              ? [
-                                  BoxShadow(
-                                    color: swatchColor.withValues(alpha: 0.5),
-                                    blurRadius: 6,
-                                  )
-                                ]
-                              : null,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            // ── Card design picker ──
-            Builder(builder: (ctx) {
-              final accent = Theme.of(ctx).colorScheme.primary;
-              final colors = _cardColors();
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'DISEÑO DE TARJETA',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.8,
-                      color: kredit.textTertiary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  GridView.count(
-                    crossAxisCount: 4,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                    childAspectRatio: 1.58,
-                    children: CardDesign.values.map((design) {
-                      final isSelected = _cardDesign == design;
-                      return GestureDetector(
-                        onTap: () => setState(
-                            () { _cardDesign = design; _hasChanges = true; }),
-                        child: Tooltip(
-                          message: design.label,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 150),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color: isSelected ? accent : kredit.borderCard,
-                                width: isSelected ? 2.5 : 1,
-                              ),
-                            ),
-                            clipBehavior: Clip.hardEdge,
-                            child: CustomPaint(
-                              painter: CardDesignPainter(
-                                design: design,
-                                c1: colors[0],
-                                c2: colors[1],
-                                c3: colors[2],
-                                isPreview: true,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  if (_cardDesign != null) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      _cardDesign!.label,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: kredit.textTertiary,
-                      ),
-                    ),
-                  ],
-                ],
-              );
-            }),
           ],
         ),
         const SizedBox(height: 16),
@@ -862,7 +715,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
               kredit,
             ),
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Expanded(
                   child: TextFormField(
@@ -885,6 +738,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
               _EditInterestRateWarningHint(text: _interestRateWarning!),
             const SizedBox(height: 12),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Expanded(
                   child: TextFormField(
@@ -920,43 +774,38 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                 ),
               ],
             ),
-            const SizedBox(height: 14),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'COMPRAS A 1 CUOTA',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
-                    color: kredit.textTertiary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SegmentedButton<bool?>(
-                  showSelectedIcon: false,
-                  style: SegmentedButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    textStyle: const TextStyle(fontSize: 12),
-                  ),
-                  segments: const [
-                    ButtonSegment(value: null, label: Text('Desconocido')),
-                    ButtonSegment(value: true, label: Text('Sin interés')),
-                    ButtonSegment(value: false, label: Text('Con interés')),
-                  ],
-                  selected: {_oneInstallmentInterestPolicy},
-                  onSelectionChanged: (s) => setState(() {
-                    _oneInstallmentInterestPolicy = s.first;
-                    _hasChanges = true;
-                  }),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Si pagas a tiempo, ¿la tarjeta cobra interés en compras a 1 cuota?',
-                  style: TextStyle(fontSize: 11, color: kredit.textTertiary),
-                ),
+            const SizedBox(height: 16),
+            Text(
+              'COMPRAS A 1 CUOTA',
+              style: TextStyle(
+                fontSize: KreditTextSize.caption,
+                fontWeight: FontWeight.w600,
+                color: kredit.textTertiary,
+              ),
+            ),
+            const SizedBox(height: 6),
+            SegmentedButton<bool?>(
+              showSelectedIcon: false,
+              style: SegmentedButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                textStyle: const TextStyle(fontSize: 12),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              segments: const [
+                ButtonSegment(value: null, label: Text('Desconocido')),
+                ButtonSegment(value: true, label: Text('Sin interés')),
+                ButtonSegment(value: false, label: Text('Con interés')),
               ],
+              selected: {_oneInstallmentInterestPolicy},
+              onSelectionChanged: (s) => setState(() {
+                _oneInstallmentInterestPolicy = s.first;
+                _hasChanges = true;
+              }),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Si pagas a tiempo, ¿la tarjeta cobra interés en compras a 1 cuota?',
+              style: TextStyle(fontSize: 11, color: kredit.textTertiary),
             ),
           ],
         ),
