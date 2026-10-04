@@ -410,15 +410,9 @@ ThemeData buildAppTheme({
   final bgSecondary = tone.bgSecondary;
   final bgCard = tone.bgCard;
   final borderCard = tone.borderCard;
-  // Dark mode: full-strength white for all levels (hierarchy via size/weight).
-  // Light mode: 3-level slate scale — primary=dark navy, secondary=medium
-  // slate, tertiary=lighter slate — mirrors the depth that dark-mode backgrounds
-  // provide naturally, giving both modes the same visual hierarchy.
-  final textPrimary = isDarkMode ? const Color(0xFFFFFFFF) : const Color(0xFF0F172A);
-  // Light mode: jerarquía más pronunciada — secondario más oscuro, terciario más claro
-  // para que la diferencia entre niveles sea legible (slate-600 vs slate-400).
-  final textSecondary = isDarkMode ? const Color(0xFFFFFFFF) : const Color(0xFF475569);
-  final textTertiary = isDarkMode ? const Color(0xFFFFFFFF) : const Color(0xFF94A3B8);
+  final textPrimary   = isDarkMode ? const Color(0xFFFFFFFF) : const Color(0xFF0F172A);
+  final textSecondary = isDarkMode ? const Color(0xFFB0B8CC) : const Color(0xFF475569);
+  final textTertiary  = isDarkMode ? const Color(0xFF6B7594) : const Color(0xFF94A3B8);
 
   final effectiveAccent = applyBgToneToAccent(
     resolveEffectiveAccent(accent, isDarkMode),
