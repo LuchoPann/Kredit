@@ -7,7 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../data/changelog.dart' show currentVersion;
+import '../../data/changelog.dart';
 import '../../providers/notification_settings_provider.dart';
 import '../../widgets/whats_new_sheet.dart';
 import '../../providers/theme_provider.dart';
@@ -27,31 +27,43 @@ import '../../widgets/kredit_bottom_dialogs.dart';
 class AccountScreen extends ConsumerWidget {
   const AccountScreen({super.key});
 
-  void _openSheet(BuildContext context, String title, Widget content) {
+  void _openSheet(BuildContext context, Widget content, {double initial = 0.6}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Handle
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(2),
+      backgroundColor: Colors.transparent,
+      builder: (_) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: initial,
+        minChildSize: 0.35,
+        maxChildSize: 0.92,
+        builder: (ctx, scrollController) => ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: Material(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            child: Column(
+              children: [
+                // Handle
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).extension<KreditColors>()!.borderCard,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              ),
-              content,
-            ],
+                Expanded(
+                  child: ListView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                    children: [content],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -105,45 +117,53 @@ class AccountScreen extends ConsumerWidget {
                   subtitle: '${prefs.isDarkMode ? 'Oscuro' : 'Claro'} · $bgToneLabel',
                   onTap: () => _openSheet(
                     context,
-                    'Apariencia',
                     Consumer(
                       builder: (ctx, ref, _) {
                         final p = ref.watch(themePreferencesProvider);
-                        final kredit2 = Theme.of(ctx).extension<KreditColors>()!;
+                        final accent = Theme.of(ctx).colorScheme.primary;
                         return Column(
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _SheetTitle('Apariencia', kredit2),
-                            const SizedBox(height: 20),
-                            _SheetLabel('MODO DE PANTALLA', kredit2),
-                            const SizedBox(height: 8),
-                            SwitchListTile(
-                              contentPadding: EdgeInsets.zero,
-                              secondary: Icon(
-                                p.isDarkMode ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
-                                color: kredit2.textSecondary,
-                              ),
-                              title: Text(
-                                p.isDarkMode ? 'Modo oscuro' : 'Modo claro',
-                                style: TextStyle(fontWeight: FontWeight.w600, color: kredit2.textPrimary),
-                              ),
-                              subtitle: Text(
-                                p.isDarkMode ? 'Tema oscuro activo' : 'Tema claro activo',
-                                style: TextStyle(color: kredit2.textTertiary),
-                              ),
-                              value: p.isDarkMode,
-                              onChanged: (v) =>
-                                  ref.read(themePreferencesProvider.notifier).setIsDarkMode(v),
+                            _SheetHeader(
+                              icon: Icons.palette_outlined,
+                              iconColor: accent,
+                              title: 'Apariencia',
+                              subtitle: 'Personaliza el aspecto visual de Kredit',
                             ),
-                            const SizedBox(height: 20),
-                            _SheetLabel('COLOR DE ACENTO', kredit2),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 24),
+                            _SheetLabel('MODO DE PANTALLA', Theme.of(ctx).extension<KreditColors>()!),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _ModeOption(
+                                    icon: Icons.light_mode_outlined,
+                                    label: 'Claro',
+                                    selected: !p.isDarkMode,
+                                    onTap: () => ref.read(themePreferencesProvider.notifier).setIsDarkMode(false),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: _ModeOption(
+                                    icon: Icons.dark_mode_outlined,
+                                    label: 'Oscuro',
+                                    selected: p.isDarkMode,
+                                    onTap: () => ref.read(themePreferencesProvider.notifier).setIsDarkMode(true),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+                            _SheetLabel('COLOR DE ACENTO', Theme.of(ctx).extension<KreditColors>()!),
+                            const SizedBox(height: 10),
                             const AccentColorPicker(),
-                            const SizedBox(height: 20),
-                            _SheetLabel('TONO DE FONDO', kredit2),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 24),
+                            _SheetLabel('TONO DE FONDO', Theme.of(ctx).extension<KreditColors>()!),
+                            const SizedBox(height: 10),
                             const BgTonePicker(),
+                            const SizedBox(height: 8),
                           ],
                         );
                       },
@@ -160,23 +180,30 @@ class AccountScreen extends ConsumerWidget {
                   subtitle: notifSubtitle,
                   onTap: () => _openSheet(
                     context,
-                    'Notificaciones',
                     Consumer(builder: (ctx, ref2, _) {
                       final kredit2 = Theme.of(ctx).extension<KreditColors>()!;
                       return Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _SheetTitle('Notificaciones', kredit2),
-                          const SizedBox(height: 8),
+                          _SheetHeader(
+                            icon: Icons.notifications_outlined,
+                            iconColor: Colors.amber.shade600,
+                            title: 'Notificaciones',
+                            subtitle: 'Recordatorios automáticos de vencimiento',
+                          ),
+                          const SizedBox(height: 24),
                           _SheetLabel('RECORDATORIOS DE PAGO', kredit2),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 10),
                           const NotificationSettingsTile(),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 24),
                           _SheetLabel('PRUEBA', kredit2),
-                          const SizedBox(height: 8),
-                          OutlinedButton.icon(
-                            onPressed: () async {
+                          const SizedBox(height: 10),
+                          _ActionTile(
+                            icon: Icons.send_outlined,
+                            title: 'Enviar notificación de prueba',
+                            subtitle: 'Verifica que las alertas funcionan',
+                            onTap: () async {
                               Navigator.pop(ctx);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('Enviando notificación de prueba…')),
@@ -192,14 +219,12 @@ class AccountScreen extends ConsumerWidget {
                                 }
                               }
                             },
-                            icon: const Icon(Icons.send_outlined, size: 18),
-                            label: const Text('Probar notificación ahora'),
-                            style: OutlinedButton.styleFrom(
-                                minimumSize: const Size(double.infinity, 46)),
                           ),
+                          const SizedBox(height: 8),
                         ],
                       );
                     }),
+                    initial: 0.65,
                   ),
                 ),
                 _Divider(kredit),
@@ -209,57 +234,42 @@ class AccountScreen extends ConsumerWidget {
                   subtitle: 'Exportar, importar y respaldo automático',
                   onTap: () => _openSheet(
                     context,
-                    'Datos y respaldos',
                     Consumer(builder: (ctx, ref2, _) {
                       final kredit2 = Theme.of(ctx).extension<KreditColors>()!;
+                      final accent = Theme.of(ctx).colorScheme.primary;
                       return Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _SheetTitle('Datos y respaldos', kredit2),
-                          const SizedBox(height: 16),
-                          const DataToolsCard(),
-                          const SizedBox(height: 20),
-                          _SheetLabel('RESPALDO AUTOMÁTICO', kredit2),
-                          const SizedBox(height: 8),
-                          Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(10),
-                              onTap: () {
-                                Navigator.pop(ctx);
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                      builder: (_) => const BackupSettingsScreen()),
-                                );
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-                                child: Row(children: [
-                                  Icon(Icons.backup_outlined,
-                                      size: 20, color: kredit2.textSecondary),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                      child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                        Text('Configurar respaldo automático',
-                                            style: TextStyle(
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 14,
-                                                color: kredit2.textPrimary)),
-                                        Text('Frecuencia, hora y carpeta destino',
-                                            style: TextStyle(
-                                                fontSize: 12, color: kredit2.textTertiary)),
-                                      ])),
-                                  Icon(Icons.chevron_right, size: 18, color: kredit2.textTertiary),
-                                ]),
-                              ),
-                            ),
+                          _SheetHeader(
+                            icon: Icons.storage_outlined,
+                            iconColor: accent,
+                            title: 'Datos y respaldos',
+                            subtitle: 'Tus datos viven solo en este dispositivo',
                           ),
+                          const SizedBox(height: 24),
+                          _SheetLabel('EXPORTAR E IMPORTAR', kredit2),
+                          const SizedBox(height: 10),
+                          const DataToolsCard(),
+                          const SizedBox(height: 24),
+                          _SheetLabel('RESPALDO AUTOMÁTICO', kredit2),
+                          const SizedBox(height: 10),
+                          _ActionTile(
+                            icon: Icons.backup_outlined,
+                            title: 'Configurar respaldo automático',
+                            subtitle: 'Frecuencia, hora y carpeta destino',
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const BackupSettingsScreen()),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 8),
                         ],
                       );
                     }),
+                    initial: 0.75,
                   ),
                 ),
                 _Divider(kredit),
@@ -269,18 +279,23 @@ class AccountScreen extends ConsumerWidget {
                   subtitle: 'Bloqueo con PIN o biometría',
                   onTap: () => _openSheet(
                     context,
-                    'Seguridad',
-                    Consumer(builder: (ctx, _, _) {
+                    Consumer(builder: (ctx, ref2, _) {
                       final kredit2 = Theme.of(ctx).extension<KreditColors>()!;
                       return Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _SheetTitle('Seguridad', kredit2),
-                          const SizedBox(height: 8),
+                          _SheetHeader(
+                            icon: Icons.lock_outline,
+                            iconColor: Colors.orange,
+                            title: 'Seguridad',
+                            subtitle: 'Protege el acceso a tus datos financieros',
+                          ),
+                          const SizedBox(height: 24),
                           _SheetLabel('BLOQUEO DE APP', kredit2),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 10),
                           const SecuritySettingsTile(),
+                          const SizedBox(height: 8),
                         ],
                       );
                     }),
@@ -581,6 +596,184 @@ class _SettingsTile extends StatelessWidget {
   }
 }
 
+class _SheetHeader extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+
+  const _SheetHeader({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: iconColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Icon(icon, color: iconColor, size: 24),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: KreditTextSize.emphasis,
+                  fontWeight: FontWeight.w800,
+                  color: kredit.textPrimary,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: KreditTextSize.caption,
+                  color: kredit.textTertiary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ActionTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _ActionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accent = Theme.of(context).colorScheme.primary;
+    return Material(
+      color: kredit.bgCard,
+      borderRadius: BorderRadius.circular(KreditRadius.tile),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(KreditRadius.tile),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, size: 18, color: accent),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: KreditTextSize.body,
+                        fontWeight: FontWeight.w600,
+                        color: kredit.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: KreditTextSize.caption,
+                        color: kredit.textTertiary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, size: KreditIconSize.small, color: kredit.textTertiary),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ModeOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ModeOption({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accent = Theme.of(context).colorScheme.primary;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: selected ? accent.withValues(alpha: 0.10) : kredit.bgCard,
+          borderRadius: BorderRadius.circular(KreditRadius.tile),
+          border: Border.all(
+            color: selected ? accent : kredit.borderCard,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              size: 26,
+              color: selected ? accent : kredit.textSecondary,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: KreditTextSize.body,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: selected ? accent : kredit.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _SheetTitle extends StatelessWidget {
   final String text;
   final KreditColors kredit;
@@ -628,9 +821,9 @@ class _VersionTileState extends State<_VersionTile> {
   void initState() {
     super.initState();
     PackageInfo.fromPlatform().then((info) {
-      if (mounted) setState(() => _version = info.version);
+      if (mounted) setState(() => _version = info.version.isNotEmpty ? info.version : changelog.first.version);
     }).catchError((_) {
-      if (mounted) setState(() => _version = currentVersion);
+      if (mounted) setState(() => _version = changelog.first.version);
     });
   }
 

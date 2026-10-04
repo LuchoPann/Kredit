@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/changelog.dart';
@@ -6,17 +7,28 @@ import '../theme/app_theme.dart';
 
 const _kLastSeenVersion = 'whats_new_last_seen_version';
 
+/// Versión actual leída desde pubspec (única fuente de verdad).
+/// Fallback al primer entry del changelog si PackageInfo falla.
+Future<String> _resolveCurrentVersion() async {
+  try {
+    final info = await PackageInfo.fromPlatform();
+    if (info.version.isNotEmpty) return info.version;
+  } catch (_) {}
+  return changelog.first.version;
+}
+
 /// Muestra el sheet de novedades si la versión cambió desde la última vez.
 /// No hace nada si el usuario ya vio esta versión.
 Future<void> showWhatsNewIfUpdated(BuildContext context) async {
+  final version = await _resolveCurrentVersion();
   final prefs = await SharedPreferences.getInstance();
   final lastSeen = prefs.getString(_kLastSeenVersion);
-  if (lastSeen == currentVersion) return;
+  if (lastSeen == version) return;
 
   if (!context.mounted) return;
   await showWhatsNewSheet(context);
 
-  await prefs.setString(_kLastSeenVersion, currentVersion);
+  await prefs.setString(_kLastSeenVersion, version);
 }
 
 /// Muestra el sheet de novedades siempre (llamado desde la pantalla de cuenta).

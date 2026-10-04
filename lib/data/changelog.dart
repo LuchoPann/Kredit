@@ -1,8 +1,10 @@
 /// Registro de cambios visible al usuario por versión.
-/// Agregar una entrada al inicio de [changelog] y actualizar [currentVersion] en cada release.
+/// Para añadir una release: insertar una nueva VersionEntry AL INICIO de [changelog].
+/// La versión de pubspec.yaml es la única fuente de verdad — no duplicar aquí.
+///
+/// Nota: versiones 0.1.0–0.8.0 son reconstrucciones retrospectivas
+/// (el proyecto no tenía versionado formal antes de 0.9.0).
 library changelog;
-
-const String currentVersion = '0.9.0';
 
 class VersionEntry {
   final String version;
