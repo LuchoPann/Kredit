@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.luchopan.kredit"
-    compileSdk = 36
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
