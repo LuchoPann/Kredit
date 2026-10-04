@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,7 +12,7 @@ import '../../providers/navigation_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/credit_display_utils.dart';
-import '../../widgets/credit_card_tile.dart';
+import '../../domain/bank_detector.dart';
 import '../../widgets/kredit_logo.dart';
 import '../../widgets/kredit_section_card.dart';
 import '../../widgets/progress_ring.dart';
@@ -162,9 +164,12 @@ class _DashboardBody extends ConsumerWidget {
     }
     final kredit = Theme.of(context).extension<KreditColors>()!;
 
-    // select() rebuilds only when profileName changes, not on every theme save.
+    // select() rebuilds only when these values change, not on every theme save.
     final profileName = ref.watch(
       themePreferencesProvider.select((p) => p.profileName),
+    );
+    final avatarPath = ref.watch(
+      themePreferencesProvider.select((p) => p.avatarPath),
     );
     final totalDebt = ref.watch(totalUnpaidProvider);
     // Pre-computed by dashboardDataProvider; returns null only transiently
@@ -187,11 +192,37 @@ class _DashboardBody extends ConsumerWidget {
         88,
       ),
       children: [
-        // 1. Greeting header — the main textual element now that the AppBar
-        // is collapsed, plus a small logo mark for brand continuity.
+        // 1. Greeting header: foto de perfil a la izquierda + saludo + logo.
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            // Avatar circular — si no hay foto, muestra inicial del nombre.
+            GestureDetector(
+              onTap: () => ref.read(navigationIndexProvider.notifier).state =
+                  AppNavTab.account,
+              child: CircleAvatar(
+                radius: 22,
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.18),
+                backgroundImage: avatarPath != null
+                    ? FileImage(File(avatarPath))
+                    : null,
+                child: avatarPath == null
+                    ? Text(
+                        (profileName.isNotEmpty
+                            ? profileName[0].toUpperCase()
+                            : '?'),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      )
+                    : null,
+              ),
+            ),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -216,18 +247,13 @@ class _DashboardBody extends ConsumerWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 12),
-            // Discreto — un acento de marca junto al saludo, no un segundo
-            // punto focal compitiendo con el título.
-            const KreditLogo(height: 30),
+            const SizedBox(width: 8),
+            const KreditLogo(height: 26),
           ],
         ),
         const SizedBox(height: 28),
 
-        // 2. Panel editorial de métricas: "Deuda total" lidera como cifra
-        // protagonista (con el anillo de progreso como acento orgánico que
-        // rompe la grilla), y las otras dos métricas quedan como datos
-        // secundarios separados por una única línea fina — sin cajas.
+        // 2. Panel de métricas con barra de progreso contextual bajo la cifra.
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -253,6 +279,28 @@ class _DashboardBody extends ConsumerWidget {
                       letterSpacing: -1.2,
                       height: 1.0,
                       fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // Barra de progreso: % pagado este mes según progressPct.
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(3),
+                    child: LinearProgressIndicator(
+                      value: (progressPct / 100).clamp(0.0, 1.0),
+                      minHeight: 5,
+                      backgroundColor: kredit.borderCard,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${progressPct.toStringAsFixed(0)}% pagado este mes',
+                    style: TextStyle(
+                      fontSize: KreditTextSize.body,
+                      color: kredit.textTertiary,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
@@ -298,63 +346,62 @@ class _DashboardBody extends ConsumerWidget {
           upcoming: upcoming,
         ),
 
-        // 5. Lista de créditos activos — misma tarjeta discreta.
+        // 5. Cartera compacta — scroll horizontal de mini-tarjetas por crédito.
         if (activeCredits.isNotEmpty) ...[
           const SizedBox(height: KreditSpacing.section),
-          KreditSectionCard(
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  const Text(
-                    'Tus créditos',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: KreditTextSize.heading,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${activeCredits.length}',
-                    style: TextStyle(
-                      fontSize: KreditTextSize.body,
-                      fontWeight: FontWeight.w600,
-                      color: kredit.textTertiary,
-                    ),
-                  ),
-                  const Spacer(),
-                  // Padding/tap-target por defecto de Material inflaban
-                  // esta fila más que la de "Próximos pagos" (que no
-                  // siempre tiene un TextButton en el header) — con
-                  // CrossAxisAlignment.baseline eso empujaba el título
-                  // hacia abajo, dejando más aire arriba en esta tarjeta
-                  // que en la otra pese a compartir el mismo padding del
-                  // Container. Encogido al tamaño de su propio texto.
-                  TextButton(
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    onPressed: () =>
-                        ref.read(navigationIndexProvider.notifier).state =
-                            AppNavTab.credits,
-                    child: const Text(
-                      'Ver todos',
-                      style: TextStyle(fontSize: KreditTextSize.body),
-                    ),
-                  ),
-                ],
+              const Text(
+                'Tus créditos',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: KreditTextSize.heading,
+                ),
               ),
-              const SizedBox(height: 6),
-              CreditCardTileList(
-                credits: activeCredits,
-                onTap: (c) => Navigator.of(
-                  context,
-                ).pushNamed('/credit-detail', arguments: c.id),
+              const SizedBox(width: 8),
+              Text(
+                '${activeCredits.length}',
+                style: TextStyle(
+                  fontSize: KreditTextSize.body,
+                  fontWeight: FontWeight.w600,
+                  color: kredit.textTertiary,
+                ),
+              ),
+              const Spacer(),
+              TextButton(
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                onPressed: () =>
+                    ref.read(navigationIndexProvider.notifier).state =
+                        AppNavTab.credits,
+                child: const Text(
+                  'Ver todos',
+                  style: TextStyle(fontSize: KreditTextSize.body),
+                ),
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 108,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: EdgeInsets.zero,
+              itemCount: activeCredits.length,
+              separatorBuilder: (_, i) => const SizedBox(width: 10),
+              itemBuilder: (context, i) => _CompactCreditCard(
+                credit: activeCredits[i],
+                onTap: () => Navigator.of(context).pushNamed(
+                  '/credit-detail',
+                  arguments: activeCredits[i].id,
+                ),
+              ),
+            ),
           ),
         ],
 
@@ -921,6 +968,125 @@ class _UpcomingRow extends StatelessWidget {
                     color: kredit.textTertiary,
                   ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Tarjeta compacta de crédito para el scroll horizontal del dashboard.
+/// Muestra el color/gradiente del banco, nombre del crédito, entidad y
+/// saldo/deuda disponible en un formato mini (160×108).
+class _CompactCreditCard extends StatelessWidget {
+  final Credit credit;
+  final VoidCallback onTap;
+
+  const _CompactCreditCard({required this.credit, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final bank = detectBank(lender: credit.lender);
+    // Parsear el accentColor hex del banco como color base.
+    final hex = bank.accentColor.replaceFirst('#', '');
+    final bankColor = hex.length == 6
+        ? Color(int.parse('FF$hex', radix: 16))
+        : Theme.of(context).colorScheme.primary;
+
+    final isCard = credit is CardCredit;
+    final isLoan = credit is LoanCredit;
+
+    String balanceLabel;
+    String balanceValue;
+    if (isCard) {
+      final c = credit as CardCredit;
+      balanceLabel = 'SALDO';
+      balanceValue = formatCOP(c.currentBalance);
+    } else {
+      final l = credit as LoanCredit;
+      final remaining = l.installments.where((i) => !i.paid).length;
+      balanceLabel = 'CUOTAS';
+      balanceValue = '$remaining restantes';
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 155,
+        height: 108,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(KreditRadius.card),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              bankColor,
+              bankColor.withValues(alpha: 0.72),
+            ],
+          ),
+        ),
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    bank.shortLabel,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: KreditTextSize.body,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.3,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Icon(
+                  isCard
+                      ? Icons.credit_card_outlined
+                      : isLoan
+                      ? Icons.payments_outlined
+                      : Icons.account_balance_outlined,
+                  color: Colors.white.withValues(alpha: 0.7),
+                  size: 14,
+                ),
+              ],
+            ),
+            const Spacer(),
+            Text(
+              credit.name,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.85),
+                fontSize: KreditTextSize.body,
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              balanceLabel,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.6),
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
+              ),
+            ),
+            Text(
+              balanceValue,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: KreditTextSize.body,
+                fontWeight: FontWeight.w800,
+                fontFeatures: [FontFeature.tabularFigures()],
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
