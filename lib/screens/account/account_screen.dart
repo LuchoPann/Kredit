@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../data/changelog.dart' show currentVersion;
 import '../../providers/notification_settings_provider.dart';
 import '../../widgets/whats_new_sheet.dart';
 import '../../providers/theme_provider.dart';
@@ -628,6 +629,8 @@ class _VersionTileState extends State<_VersionTile> {
     super.initState();
     PackageInfo.fromPlatform().then((info) {
       if (mounted) setState(() => _version = info.version);
+    }).catchError((_) {
+      if (mounted) setState(() => _version = currentVersion);
     });
   }
 
