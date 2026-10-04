@@ -21,6 +21,7 @@ import '../../widgets/notification_settings_tile.dart';
 import '../../widgets/security_settings_tile.dart';
 import 'backup_settings_screen.dart';
 import 'how_it_works_screen.dart';
+import '../../utils/nav_utils.dart';
 import '../../widgets/kredit_bottom_dialogs.dart';
 
 class AccountScreen extends ConsumerWidget {
@@ -260,7 +261,7 @@ class AccountScreen extends ConsumerWidget {
                             onTap: () {
                               Navigator.pop(ctx);
                               Navigator.of(context).push(
-                                MaterialPageRoute(builder: (_) => const BackupSettingsScreen()),
+                                slidePageRoute((_) => const BackupSettingsScreen()),
                               );
                             },
                           ),
@@ -308,7 +309,7 @@ class AccountScreen extends ConsumerWidget {
                   title: 'Cómo funciona Kredit',
                   subtitle: 'Guía rápida de la app',
                   onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const HowItWorksScreen()),
+                    slidePageRoute((_) => const HowItWorksScreen()),
                   ),
                 ),
                 _Divider(kredit),
@@ -875,7 +876,7 @@ class _BackupAutoTileState extends State<_BackupAutoTile> {
       subtitle: _subtitle,
       onTap: () async {
         await Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const BackupSettingsScreen()),
+          slidePageRoute((_) => const BackupSettingsScreen()),
         );
         _loadSubtitle(); // refresh after returning
       },

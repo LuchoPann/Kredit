@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/widget_privacy_provider.dart';
 import '../screens/lock/setup_lock_screen.dart';
 import '../theme/app_theme.dart';
+import '../utils/nav_utils.dart';
 
 /// "Seguridad" section for the Cuenta screen: the app-lock entry point
 /// (navigating to [SetupLockScreen]) plus the home screen widget privacy
@@ -29,7 +30,7 @@ class SecuritySettingsTile extends ConsumerWidget {
           trailing: Icon(Icons.chevron_right, size: KreditIconSize.small, color: kredit.textTertiary),
           onTap: () {
             Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SetupLockScreen()),
+              slidePageRoute((_) => const SetupLockScreen()),
             );
           },
         ),
