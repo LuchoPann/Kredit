@@ -37,7 +37,7 @@ class AccountScreen extends ConsumerWidget {
         initialChildSize: initial,
         minChildSize: 0.35,
         maxChildSize: 0.92,
-        builder: (ctx, scrollController) => _SheetNavHost(
+        builder: (ctx, scrollController) => SheetNavHost(
           scrollController: scrollController,
           rootContent: content,
         ),
@@ -233,7 +233,7 @@ class AccountScreen extends ConsumerWidget {
                             icon: Icons.backup_outlined,
                             title: 'Configurar respaldo automático',
                             subtitle: 'Frecuencia, hora y carpeta destino',
-                            onTap: () => _SheetNav.of(ctx).push(
+                            onTap: () => SheetNav.of(ctx).push(
                               'Respaldo automático',
                               const BackupSettingsBody(),
                             ),
@@ -860,44 +860,46 @@ class _BackupAutoTileState extends State<_BackupAutoTile> {
 // ── Navegación interna de sheets ─────────────────────────────────────────────
 
 /// InheritedWidget que expone push/pop a cualquier descendiente del sheet.
-class _SheetNav extends InheritedWidget {
+class SheetNav extends InheritedWidget {
   final void Function(String title, Widget page) push;
   final VoidCallback pop;
   final bool canPop;
 
-  const _SheetNav({
+  const SheetNav({
+    super.key,
     required this.push,
     required this.pop,
     required this.canPop,
     required super.child,
   });
 
-  static _SheetNav of(BuildContext context) {
-    final nav = context.dependOnInheritedWidgetOfExactType<_SheetNav>();
-    assert(nav != null, '_SheetNav no encontrado en el árbol');
+  static SheetNav of(BuildContext context) {
+    final nav = context.dependOnInheritedWidgetOfExactType<SheetNav>();
+    assert(nav != null, 'SheetNav no encontrado en el árbol');
     return nav!;
   }
 
   @override
-  bool updateShouldNotify(_SheetNav old) =>
+  bool updateShouldNotify(SheetNav old) =>
       canPop != old.canPop;
 }
 
 /// Host del sheet que gestiona la pila de páginas con slide lateral.
-class _SheetNavHost extends StatefulWidget {
+class SheetNavHost extends StatefulWidget {
   final ScrollController scrollController;
   final Widget rootContent;
 
-  const _SheetNavHost({
+  const SheetNavHost({
+    super.key,
     required this.scrollController,
     required this.rootContent,
   });
 
   @override
-  State<_SheetNavHost> createState() => _SheetNavHostState();
+  State<SheetNavHost> createState() => SheetNavHostState();
 }
 
-class _SheetNavHostState extends State<_SheetNavHost> {
+class SheetNavHostState extends State<SheetNavHost> {
   final List<({String title, Widget page})> _stack = [];
   int _direction = 1;
 
@@ -922,7 +924,7 @@ class _SheetNavHostState extends State<_SheetNavHost> {
     final canPop = _stack.isNotEmpty;
     final currentTitle = canPop ? _stack.last.title : null;
 
-    return _SheetNav(
+    return SheetNav(
       push: _push,
       pop: _pop,
       canPop: canPop,
