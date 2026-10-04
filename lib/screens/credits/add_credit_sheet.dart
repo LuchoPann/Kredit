@@ -21,7 +21,6 @@ import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/credit_display_utils.dart';
 import '../../widgets/account/voucher_pattern_picker.dart';
-import '../../widgets/card_design_painter.dart';
 import '../../widgets/interest_rate_type_field.dart';
 import '../../widgets/kredit_section_card.dart';
 import '../../widgets/voucher_pattern.dart';
@@ -61,8 +60,6 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   final _formKey = GlobalKey<FormState>();
 
   String _type = CreditType.loan;
-  String _color = '#00F2FE';
-  final _cardDesignNotifier = ValueNotifier<CardDesign?>(null);
   VoucherPattern _selectedVoucherPattern = VoucherPattern.diagonalLines;
   bool _saving = false;
 
@@ -188,7 +185,6 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
 
   @override
   void dispose() {
-    _cardDesignNotifier.dispose();
     for (final c in [
       _nameCtrl,
       _lenderCtrl,
@@ -680,25 +676,6 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     if (!isValid) return;
 
     if (_currentStep < _lastStep) {
-      // Pre-warm the card design picture cache for flows that show WalletCard
-      // on the next step. Runs after the FIRST transition frame (≈16ms), so
-      // the cache is ready long before the 420ms slide animation completes.
-      if (_mode == 'tarjeta' || _mode == 'prestamo') {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          final design = _cardDesignNotifier.value;
-          if (design == null) return;
-          final bank = detectBank(lender: _lenderCtrl.text.trim(), fallbackColor: _color);
-          final gradient = expandedGradientFor(bank.cssClass, _color);
-          final screenW = MediaQuery.of(context).size.width;
-          final cardW = screenW - 2 * KreditSpacing.card;
-          final cardH = cardW / 1.9;
-          prewarmDesignCache(
-            [(design: design, c1: gradient.first, c2: gradient[gradient.length ~/ 2], c3: gradient.last)],
-            Size(cardW, cardH),
-          );
-        });
-      }
       setState(() {
         _stepDirection = 1;
         _currentStep++;
@@ -823,7 +800,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         id: id,
         name: name,
         lender: lender,
-        color: _color,
+        color: null,
         notes: notes,
         creditLimit: creditLimit,
         currentBalance: currentBalance,
@@ -836,7 +813,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         managementFee: managementFee,
         managementFeeFrequency: _managementFeeFrequency,
         quotaId: quotaId,
-        cardDesign: _cardDesignNotifier.value?.name,
+        cardDesign: null,
         movements: currentBalance > 0
             ? [
                 CardMovement(
@@ -877,7 +854,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         id: id,
         name: name,
         lender: lender,
-        color: _color,
+        color: null,
         notes: notes,
         location: _locationCtrl.text.trim(),
         totalAmount: totalAmount,
@@ -891,7 +868,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         quotaId: quotaId,
         interestUnknown: _interestUnknown,
         earlyPaymentWaivesInterest: _earlyPaymentWaivesInterest,
-        cardDesign: _cardDesignNotifier.value?.name,
+        cardDesign: null,
       );
     }
 
@@ -1331,32 +1308,6 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                     _selectedSubEntityLabel = null;
                     if (v != null && v != 'Otro...') {
                       _lenderCtrl.text = v;
-                      final lower = v.toLowerCase();
-                      if (lower.contains('nequi')) {
-                        _color = '#DA0081';
-                      } else if (lower.contains('nu')) {
-                        _color = '#820AD1';
-                      } else if (lower.contains('bancolombia')) {
-                        _color = '#FFDD00';
-                      } else if (lower.contains('davivienda') || lower.contains('daviplata')) {
-                        _color = '#E4032E';
-                      } else if (lower.contains('bbva')) {
-                        _color = '#004481';
-                      } else if (lower.contains('rappi')) {
-                        _color = '#FE3F23';
-                      } else if (lower.contains('lulo')) {
-                        _color = '#00E28A';
-                      } else if (lower.contains('popular')) {
-                        _color = '#00875A';
-                      } else if (lower.contains('occidente')) {
-                        _color = '#00205B';
-                      } else if (lower.contains('villas')) {
-                        _color = '#0055A5';
-                      } else if (lower.contains('itaú') || lower.contains('itau')) {
-                        _color = '#EC7000';
-                      } else if (lower.contains('tuya') || lower.contains('exito')) {
-                        _color = '#FFD100';
-                      }
                     } else if (v == 'Otro...') {
                       _lenderCtrl.clear();
                     }
@@ -1556,7 +1507,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       if (_mode == 'tienda') ...[
         StatefulBuilder(
           builder: (context, setLocal) {
-            final credit = _buildPreviewCreditWith(null);
+            final credit = _buildPreviewCredit();
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -1601,55 +1552,6 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
             );
           },
         ),
-      ] else ...[
-        ValueListenableBuilder<CardDesign?>(
-          valueListenable: _cardDesignNotifier,
-          builder: (context, design, _) {
-            final credit = _buildPreviewCreditWith(design);
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (credit != null) ...[
-                  const Text(
-                    'VISTA PREVIA DE TARJETA',
-                    style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.bold, letterSpacing: 0.8),
-                  ),
-                  const SizedBox(height: 8),
-                  RepaintBoundary(child: WalletCard(credit: credit)),
-                  const SizedBox(height: 16),
-                ],
-                Text(
-                  'DISEÑO DE TARJETA',
-                  style: TextStyle(
-                    fontSize: KreditTextSize.body,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
-                    color: kredit.textTertiary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      final bank = detectBank(lender: _lenderCtrl.text.trim(), fallbackColor: _color);
-                      final g = expandedGradientFor(bank.cssClass, _color);
-                      showCardDesignPicker(
-                        context,
-                        current: design,
-                        c1: g.first, c2: g[g.length ~/ 2], c3: g.last,
-                        onSelected: (d) => _cardDesignNotifier.value = d,
-                      );
-                    },
-                    icon: const Icon(Icons.palette_outlined, size: KreditIconSize.small),
-                    label: Text(design == null ? 'Predeterminado' : design.label),
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-            );
-          },
-        ),
       ],
       Text(
         'DETALLES DEL CRÉDITO',
@@ -1670,7 +1572,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   // step-3 preview — never persisted. Returns null when the data isn't
   // complete/parseable enough to render a meaningful card (the real
   // validation/build happens in `_save`).
-  Credit? _buildPreviewCreditWith(CardDesign? design) {
+  Credit? _buildPreviewCredit() {
     final name = _nameCtrl.text.trim().isEmpty ? '(sin nombre)' : _nameCtrl.text.trim();
     final lender = _lenderCtrl.text.trim().isEmpty ? '(sin definir)' : _lenderCtrl.text.trim();
     try {
@@ -1686,7 +1588,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           id: 'preview',
           name: name,
           lender: lender,
-          color: _color,
+          color: null,
           notes: _notesCtrl.text.trim(),
           creditLimit: creditLimit,
           currentBalance: currentBalance,
@@ -1698,7 +1600,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           interestRateType: _interestRateType,
           managementFee: managementFee,
           managementFeeFrequency: _managementFeeFrequency,
-          cardDesign: design?.name,
+          cardDesign: null,
         );
       }
       if (_startDate == null) return null;
@@ -1722,7 +1624,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         id: 'preview',
         name: name,
         lender: lender,
-        color: _color,
+        color: null,
         notes: _notesCtrl.text.trim(),
         location: _locationCtrl.text.trim(),
         totalAmount: totalAmount,
@@ -1741,7 +1643,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         quotaId: _mode == 'tienda' ? 'preview-quota' : (_selectedEntityId != null && _selectedEntityId != 'none') ? 'preview-quota' : null,
         interestUnknown: _interestUnknown,
         earlyPaymentWaivesInterest: _earlyPaymentWaivesInterest,
-        cardDesign: design?.name,
+        cardDesign: null,
       );
     } catch (_) {
       return null;
@@ -3736,38 +3638,6 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.body, color: kredit.textPrimary),
       ),
       const SizedBox(height: 12),
-      ValueListenableBuilder<CardDesign?>(
-        valueListenable: _cardDesignNotifier,
-        builder: (context, design, _) {
-          final credit = _buildPreviewCreditWith(design);
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (credit != null) ...[
-                const Text('VISTA PREVIA', style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.bold, letterSpacing: 0.8)),
-                const SizedBox(height: 8),
-                RepaintBoundary(child: WalletCard(credit: credit)),
-                const SizedBox(height: 16),
-              ],
-              Text('DISEÑO DE TARJETA', style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w700, letterSpacing: 0.8, color: kredit.textTertiary)),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    final bank = detectBank(lender: _lenderCtrl.text.trim(), fallbackColor: _color);
-                    final g = expandedGradientFor(bank.cssClass, _color);
-                    showCardDesignPicker(context, current: design, c1: g.first, c2: g[g.length ~/ 2], c3: g.last, onSelected: (d) => _cardDesignNotifier.value = d);
-                  },
-                  icon: const Icon(Icons.palette_outlined, size: KreditIconSize.small),
-                  label: Text(design == null ? 'Predeterminado' : design.label),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-          );
-        },
-      ),
       KreditSectionCard(
         label: 'RESUMEN',
         icon: Icons.summarize_outlined,

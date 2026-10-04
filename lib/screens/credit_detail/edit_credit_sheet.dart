@@ -10,7 +10,6 @@ import '../../utils/currency_input_formatter.dart';
 import '../../domain/loan_calculator.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/card_design_painter.dart';
 import '../../widgets/interest_rate_type_field.dart';
 import '../../widgets/kredit_section_card.dart';
 import '../../widgets/kredit_bottom_dialogs.dart';
@@ -75,8 +74,6 @@ class EditCreditSheet extends ConsumerStatefulWidget {
 
 class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
   final _formKey = GlobalKey<FormState>();
-  late String _color;
-  CardDesign? _cardDesign;
   bool _saving = false;
   bool _hasChanges = false;
   bool? _oneInstallmentInterestPolicy;
@@ -158,8 +155,6 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
   @override
   void initState() {
     super.initState();
-    _color = widget.credit.color ?? '#00F2FE';
-    _cardDesign = CardDesign.fromKey(widget.credit.cardDesign);
     if (widget.credit is CardCredit) {
       _oneInstallmentInterestPolicy =
           (widget.credit as CardCredit).oneInstallmentInterestPolicy;
@@ -274,9 +269,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
 
     credit.name = _nameCtrl.text.trim();
     credit.lender = _lenderCtrl.text.trim();
-    credit.color = _color;
     credit.notes = _notesCtrl.text.trim();
-    credit.cardDesign = _cardDesign?.name;
 
     if (credit is CardCredit) {
       credit.creditLimit =
@@ -514,19 +507,6 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
             _hasChanges = true;
             if (v != null && v != 'Otro...') {
               _lenderCtrl.text = v;
-              final lower = v.toLowerCase();
-              if (lower.contains('nequi')) { _color = '#DA0081'; }
-              else if (lower.contains('nu')) { _color = '#820AD1'; }
-              else if (lower.contains('bancolombia')) { _color = '#FFDD00'; }
-              else if (lower.contains('davivienda') || lower.contains('daviplata')) { _color = '#E4032E'; }
-              else if (lower.contains('bbva')) { _color = '#004481'; }
-              else if (lower.contains('rappi')) { _color = '#FE3F23'; }
-              else if (lower.contains('lulo')) { _color = '#00E28A'; }
-              else if (lower.contains('popular')) { _color = '#00875A'; }
-              else if (lower.contains('occidente')) { _color = '#00205B'; }
-              else if (lower.contains('villas')) { _color = '#0055A5'; }
-              else if (lower.contains('itaú') || lower.contains('itau')) { _color = '#EC7000'; }
-              else if (lower.contains('tuya') || lower.contains('exito')) { _color = '#FFD100'; }
             } else if (v == 'Otro...') {
               _lenderCtrl.clear();
             }
@@ -558,9 +538,9 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
       cycleCount: card.cycleCount,
       lastAccrualCutoff: card.lastAccrualCutoff,
       quotaId: card.quotaId,
-      color: _color,
+      color: null,
       movements: card.movements,
-      cardDesign: _cardDesign?.name,
+      cardDesign: widget.credit.cardDesign,
     );
 
     return ListView(
@@ -831,14 +811,14 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
       totalInstallments: loan.totalInstallments,
       startDate: loan.startDate,
       frequency: loan.frequency,
-      color: _color,
+      color: null,
       location: _locationCtrl.text,
       installments: loan.installments,
       abonos: loan.abonos,
       quotaId: loan.quotaId,
       interestUnknown: loan.interestUnknown,
       earlyPaymentWaivesInterest: loan.earlyPaymentWaivesInterest,
-      cardDesign: _cardDesign?.name,
+      cardDesign: loan.cardDesign,
     );
 
     return ListView(
