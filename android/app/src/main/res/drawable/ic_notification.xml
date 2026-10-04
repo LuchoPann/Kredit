@@ -1,0 +1,47 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Palo vertical de la K (barra izquierda, trazo grueso con extremos redondeados) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+            M22,16
+            L22,92
+            Q22,96 26,96
+            L38,96
+            Q42,96 42,92
+            L42,16
+            Q42,12 38,12
+            L26,12
+            Q22,12 22,16
+            Z" />
+
+    <!-- Diagonal superior (brazo superior de la K, más delgado, inclinado) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+            M45,50
+            L82,16
+            Q85,13 89,15
+            L96,19
+            Q100,21 98,25
+            L58,62
+            Z" />
+
+    <!-- Diagonal inferior (brazo inferior de la K, más grueso, inclinado hacia abajo) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+            M45,58
+            L58,58
+            L98,91
+            Q101,94 98,97
+            L90,101
+            Q87,104 84,101
+            L45,66
+            Z" />
+
+</vector>

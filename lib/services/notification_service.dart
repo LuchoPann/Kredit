@@ -55,7 +55,7 @@ class NotificationService {
       // to if the fixed zone lookup ever fails.
     }
 
-    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidInit = AndroidInitializationSettings('@drawable/ic_notification');
     const darwinInit = DarwinInitializationSettings();
     const initSettings = InitializationSettings(
       android: androidInit,
@@ -113,6 +113,7 @@ class NotificationService {
             channelDescription: _channelDescription,
             importance: Importance.high,
             priority: Priority.high,
+            icon: '@drawable/ic_notification',
           ),
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
@@ -135,6 +136,7 @@ class NotificationService {
               channelDescription: _channelDescription,
               importance: Importance.high,
               priority: Priority.high,
+              icon: '@drawable/ic_notification',
             ),
           ),
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
@@ -255,6 +257,7 @@ class NotificationService {
           channelDescription: _channelDescription,
           importance: Importance.high,
           priority: Priority.high,
+          icon: '@drawable/ic_notification',
         ),
       ),
     );
