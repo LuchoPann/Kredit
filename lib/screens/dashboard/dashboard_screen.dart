@@ -281,28 +281,6 @@ class _DashboardBody extends ConsumerWidget {
                       fontFeatures: [FontFeature.tabularFigures()],
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  // Barra de progreso: % pagado este mes según progressPct.
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(3),
-                    child: LinearProgressIndicator(
-                      value: (progressPct / 100).clamp(0.0, 1.0),
-                      minHeight: 5,
-                      backgroundColor: kredit.borderCard,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${progressPct.toStringAsFixed(0)}% pagado este mes',
-                    style: TextStyle(
-                      fontSize: KreditTextSize.body,
-                      color: kredit.textTertiary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
                 ],
               ),
             ),
