@@ -430,9 +430,15 @@ ThemeData buildAppTheme({
     splashColor: (isDarkMode ? Colors.white : Colors.black).withValues(alpha: 0.05),
     colorScheme: base.colorScheme.copyWith(
       surface: bgCard,
+      surfaceContainer: bgCard,
+      surfaceContainerLow: bgCard,
+      surfaceContainerHigh: bgCard,
+      surfaceContainerLowest: bgPrimary,
+      surfaceContainerHighest: bgCard,
       primary: effectiveAccent,
       secondary: effectiveAccent,
       error: Colors.redAccent,
+      surfaceTint: Colors.transparent,
     ),
     // Dual typographic system:
     // 1. Display / Metrics / Headings: 'SpaceGrotesk' (aesthetic, geometric character)
@@ -581,7 +587,14 @@ ThemeData buildAppTheme({
     dividerColor: borderCard,
     canvasColor: bgCard,
     dialogTheme: DialogThemeData(backgroundColor: bgCard),
-    bottomSheetTheme: BottomSheetThemeData(backgroundColor: bgCard),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: bgPrimary,
+      modalBackgroundColor: bgPrimary,
+      surfaceTintColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+    ),
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith<Color?>((states) {
         if (states.contains(WidgetState.selected)) {
