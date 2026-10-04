@@ -240,6 +240,28 @@ class NotificationService {
   /// the simplest way to keep scheduled notifications in sync with the
   /// current credit list — call it whenever the credits list, or the
   /// notification settings, change.
+  /// Fires an immediate test notification so the user can verify that
+  /// notifications are working without waiting for a due date.
+  Future<void> showTestNotification() async {
+    await init();
+    await _plugin.show(
+      999999,
+      'Kredit · Prueba',
+      '¡Las notificaciones están funcionando correctamente! 🎉',
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _channelId,
+          _channelName,
+          channelDescription: _channelDescription,
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+        macOS: DarwinNotificationDetails(),
+      ),
+    );
+  }
+
   Future<void> rescheduleAll(
     List<Credit> credits,
     int daysBefore, {
