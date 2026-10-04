@@ -12,6 +12,7 @@ import '../../providers/commercial_quotas_provider.dart';
 import '../../providers/credits_provider.dart';
 import '../../providers/last_backup_provider.dart';
 import '../../services/backup_service.dart';
+import '../kredit_bottom_dialogs.dart';
 import '../../theme/app_theme.dart';
 
 /// Exportar/Importar datos card. Restructured (visual-only, same
@@ -30,28 +31,14 @@ class DataToolsCard extends ConsumerWidget {
   /// export flow hands it straight to the OS share sheet, so this is the
   /// only checkpoint before it could end up in a chat, email, etc.
   Future<bool> _confirmUnencryptedShare(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Compartir respaldo sin cifrar'),
-        content: const Text(
-          'Este archivo contiene tus datos financieros completos sin cifrar '
-          '(montos, tasas, nombres de crédito). Solo compártelo por canales '
-          'que confíes.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Continuar'),
-          ),
-        ],
-      ),
+    return showKreditConfirmSheet(
+      context,
+      title: 'Compartir respaldo sin cifrar',
+      message: 'Este archivo contiene tus datos financieros completos sin cifrar (montos, tasas, nombres de crédito). Solo compártelo por canales que confíes.',
+      confirmLabel: 'Continuar',
+      isDanger: false,
+      icon: Icons.lock_open_outlined,
     );
-    return confirmed == true;
   }
 
   Future<void> _exportData(BuildContext context, WidgetRef ref) async {
@@ -131,26 +118,13 @@ class DataToolsCard extends ConsumerWidget {
     }
 
     if (!context.mounted) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Importar datos'),
-        content: Text(
-          'Se encontraron ${imported.credits.length} créditos en el archivo. '
-          'Esto reemplazará TODOS tus datos actuales. ¿Deseas continuar?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Reemplazar'),
-          ),
-        ],
-      ),
+    final confirmed = await showKreditConfirmSheet(
+      context,
+      title: 'Importar datos',
+      message: 'Se encontraron ${imported.credits.length} créditos en el archivo. Esto reemplazará TODOS tus datos actuales. ¿Deseas continuar?',
+      confirmLabel: 'Reemplazar',
+      isDanger: true,
+      icon: Icons.download_outlined,
     );
     if (confirmed == true) {
       try {

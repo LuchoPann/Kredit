@@ -8,6 +8,7 @@ import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
 import '../card_movement_sheet.dart';
 import '../../utils/credit_display_utils.dart';
+import '../kredit_bottom_dialogs.dart';
 
 
 /// Returns the closing cutoff date (YYYY-MM-DD) of the billing cycle that
@@ -349,28 +350,14 @@ class _MovementTile extends ConsumerWidget {
   });
 
   Future<bool> _confirmDelete(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Eliminar movimiento'),
-        content: Text(
-          '¿Eliminar "${_labelFor(movement.type)}" por ${formatCOP(movement.amount)}? '
-          'El saldo de la tarjeta se recalculará. Esta acción no se puede deshacer.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: Theme.of(ctx).colorScheme.error),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
+    return showKreditConfirmSheet(
+      context,
+      title: 'Eliminar movimiento',
+      message: '¿Eliminar "${_labelFor(movement.type)}" por ${formatCOP(movement.amount)}? El saldo de la tarjeta se recalculará. Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      isDanger: true,
+      icon: Icons.delete_outline,
     );
-    return confirmed == true;
   }
 
   @override

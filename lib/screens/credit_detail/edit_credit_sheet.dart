@@ -13,6 +13,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/card_design_painter.dart';
 import '../../widgets/interest_rate_type_field.dart';
 import '../../widgets/kredit_section_card.dart';
+import '../../widgets/kredit_bottom_dialogs.dart';
 import '../../widgets/wallet_card.dart';
 
 const List<String> _presetLenders = [
@@ -234,24 +235,14 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
   }
 
   Future<bool> _confirmQuotaTooLow(String message) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Cuota insuficiente'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Guardar de todas formas'),
-          ),
-        ],
-      ),
+    return showKreditConfirmSheet(
+      context,
+      title: 'Cuota insuficiente',
+      message: message,
+      confirmLabel: 'Guardar de todas formas',
+      isDanger: false,
+      icon: Icons.warning_amber_rounded,
     );
-    return confirmed ?? false;
   }
 
   Future<void> _save() async {

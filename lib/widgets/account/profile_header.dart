@@ -7,33 +7,19 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../providers/theme_provider.dart';
 import '../../theme/app_theme.dart';
+import '../kredit_bottom_dialogs.dart';
 
 class ProfileHeader extends ConsumerWidget {
   final String profileName;
   const ProfileHeader({super.key, required this.profileName});
 
   Future<void> _editName(BuildContext context, WidgetRef ref) async {
-    final controller = TextEditingController(text: profileName);
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Editar nombre de perfil'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: 'Tu nombre'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, controller.text),
-            child: const Text('Guardar'),
-          ),
-        ],
-      ),
+    final result = await showKreditInputSheet(
+      context,
+      title: 'Nombre de perfil',
+      initialValue: profileName,
+      hint: 'Tu nombre',
+      confirmLabel: 'Guardar',
     );
     if (result != null && result.trim().isNotEmpty) {
       await ref.read(themePreferencesProvider.notifier).setProfileName(result);

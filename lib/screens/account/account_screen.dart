@@ -8,6 +8,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../providers/notification_settings_provider.dart';
+import '../../widgets/whats_new_sheet.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/notification_service.dart';
 import '../../theme/app_theme.dart';
@@ -20,6 +21,7 @@ import '../../widgets/notification_settings_tile.dart';
 import '../../widgets/security_settings_tile.dart';
 import 'backup_settings_screen.dart';
 import 'how_it_works_screen.dart';
+import '../../widgets/kredit_bottom_dialogs.dart';
 
 class AccountScreen extends ConsumerWidget {
   const AccountScreen({super.key});
@@ -386,21 +388,12 @@ class _ProfileBanner extends ConsumerWidget {
   }
 
   Future<void> _editName(BuildContext context, WidgetRef ref, String current) async {
-    final controller = TextEditingController(text: current);
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Editar nombre de perfil'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: 'Tu nombre'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
-          TextButton(onPressed: () => Navigator.pop(ctx, controller.text), child: const Text('Guardar')),
-        ],
-      ),
+    final result = await showKreditInputSheet(
+      context,
+      title: 'Nombre de perfil',
+      initialValue: current,
+      hint: 'Tu nombre',
+      confirmLabel: 'Guardar',
     );
     if (result != null && result.trim().isNotEmpty) {
       await ref.read(themePreferencesProvider.notifier).setProfileName(result);
@@ -634,7 +627,7 @@ class _VersionTileState extends State<_VersionTile> {
   void initState() {
     super.initState();
     PackageInfo.fromPlatform().then((info) {
-      if (mounted) setState(() => _version = '${info.version} (build ${info.buildNumber})');
+      if (mounted) setState(() => _version = info.version);
     });
   }
 
@@ -644,7 +637,7 @@ class _VersionTileState extends State<_VersionTile> {
         title: 'Versión',
         subtitle: _version,
         showChevron: false,
-        onTap: () {},
+        onTap: () => showWhatsNewSheet(context),
       );
 }
 

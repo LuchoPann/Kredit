@@ -23,6 +23,7 @@ import '../../utils/credit_display_utils.dart';
 import '../../widgets/credit_detail/stat_box.dart';
 import '../../widgets/demo_badge.dart';
 import 'edit_credit_sheet.dart';
+import '../../widgets/kredit_bottom_dialogs.dart';
 
 /// Detail screen for a single credit, with 2 tabs mirroring
 /// #view-credit-detail in legacy_pwa/index.html (~L340-489): Resumen (which
@@ -61,25 +62,13 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
   }
 
   Future<void> _confirmDelete(BuildContext context, Credit credit) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Eliminar Crédito'),
-        content: Text(
-          '¿Eliminar "${credit.name}" y todo su historial? Esta acción no se puede deshacer.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
+    final confirmed = await showKreditConfirmSheet(
+      context,
+      title: 'Eliminar crédito',
+      message: '¿Eliminar "${credit.name}" y todo su historial? Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      isDanger: true,
+      icon: Icons.delete_outline,
     );
     if (confirmed != true) return;
     try {

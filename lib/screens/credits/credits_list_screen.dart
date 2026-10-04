@@ -11,6 +11,7 @@ import '../../providers/commercial_quotas_provider.dart';
 import '../../providers/credits_filter_provider.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/kredit_bottom_dialogs.dart';
 import '../../utils/credit_display_utils.dart';
 import '../../widgets/credits/commercial_quota_card.dart';
 import '../../widgets/wallet_card.dart';
@@ -519,22 +520,13 @@ class _FilteredListState extends ConsumerState<_FilteredList> {
   /// the user.
   Future<void> _confirmDeleteQuota(
       BuildContext context, WidgetRef ref, CommercialQuota quota) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('¿Eliminar "${quota.brand}"?'),
-        content: const Text('Esta acción no se puede deshacer.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
+    final confirmed = await showKreditConfirmSheet(
+      context,
+      title: '¿Eliminar "${quota.brand}"?',
+      message: 'Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      isDanger: true,
+      icon: Icons.delete_outline,
     );
     if (confirmed != true) return;
 

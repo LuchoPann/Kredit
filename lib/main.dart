@@ -11,6 +11,7 @@ import 'screens/credits/credits_list_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/stats/stats_screen.dart';
 import 'widgets/kredit_logo.dart';
+import 'widgets/whats_new_sheet.dart';
 import 'providers/app_lock_provider.dart';
 import 'data/models/credit.dart';
 import 'providers/credits_provider.dart';
@@ -159,6 +160,10 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _syncNotifications();
+      // Muestra novedades una vez por versión, después de que la UI esté lista
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (mounted) showWhatsNewIfUpdated(context);
+      });
       // Listeners registered once here instead of inside build() — avoids
       // re-registering on every rebuild (Riverpod still deduplicates but
       // registering in initState is zero-cost on subsequent builds).

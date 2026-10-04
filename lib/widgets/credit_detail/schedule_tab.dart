@@ -13,6 +13,7 @@ import '../loan_abono_sheet.dart';
 import '../../utils/credit_display_utils.dart';
 import '../../utils/currency_input_formatter.dart';
 import 'status_badge.dart';
+import '../kredit_bottom_dialogs.dart';
 
 /// Cronograma de cuotas, grouped by urgency instead of a flat chronological
 /// list — with many installments a plain list becomes a monotonous scroll
@@ -279,29 +280,13 @@ class _AbonoTile extends ConsumerWidget {
   const _AbonoTile({required this.creditId, required this.abono, this.impact});
 
   Future<void> _confirmAndDelete(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Eliminar abono'),
-        content: Text(
-          '¿Eliminar el abono de ${formatCOP(abono.amount)}? Las cuotas que este '
-          'abono adelantó volverán a marcarse como pendientes. Esta acción no se '
-          'puede deshacer.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(ctx).colorScheme.error,
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
+    final confirmed = await showKreditConfirmSheet(
+      context,
+      title: 'Eliminar abono',
+      message: '¿Eliminar el abono de ${formatCOP(abono.amount)}? Las cuotas que este abono adelantó volverán a marcarse como pendientes. Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      isDanger: true,
+      icon: Icons.delete_outline,
     );
     if (confirmed != true || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
