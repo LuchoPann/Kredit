@@ -284,28 +284,28 @@ class KreditColors extends ThemeExtension<KreditColors> {
 // relationship dark mode has (bgCard #121212 on bgPrimary #000000).
 // bgPrimary is never pure white so cards have a surface to elevate from.
 
-// Blanco Puro — neutral light gray bg, white cards
+// Blanco Puro — slate-100 bg, pure-white cards (máximo contraste bg↔card)
 const _bgToneLightPure = _BgToneColors(
-  bgPrimary: Color(0xFFF0F4F8),
-  bgSecondary: Color(0xFFE2E8F0),
-  bgCard: Color(0xFFFFFFFF),
-  borderCard: Color(0xFFCAD2DD),
+  bgPrimary: Color(0xFFF1F5F9),   // slate-100: más fresco que gris genérico
+  bgSecondary: Color(0xFFE2E8F0), // slate-200
+  bgCard: Color(0xFFFFFFFF),      // blanco puro — las cards elevan claramente
+  borderCard: Color(0xFFCBD5E1),  // slate-300: más definido que el anterior
 );
 
-// Nube — cool blue-tinted bg (analogous to dark Medianoche's subtle blue)
+// Nube — cool blue-tinted bg, bgCard con toque azul (no blanco neutro)
 const _bgToneLightCool = _BgToneColors(
-  bgPrimary: Color(0xFFE8F0FB),
-  bgSecondary: Color(0xFFD5E3F5),
-  bgCard: Color(0xFFFFFFFF),
-  borderCard: Color(0xFFB8CEE8),
+  bgPrimary: Color(0xFFE4EEFA),   // azul pálido más saturado
+  bgSecondary: Color(0xFFCFE2F5), // un escalón más azulado
+  bgCard: Color(0xFFF4F8FF),      // blanco-azulado: card distinta del fondo
+  borderCard: Color(0xFFAAC6E4),  // borde azul-grisáceo con presencia
 );
 
-// Arena — warm cream-tinted bg (analogous to dark Ámbar's subtle warm)
+// Arena — warm cream-tinted bg, bgCard cálido (no frío)
 const _bgToneLightWarm = _BgToneColors(
-  bgPrimary: Color(0xFFF5EDE0),
-  bgSecondary: Color(0xFFEDD9C4),
-  bgCard: Color(0xFFFFFFFF),
-  borderCard: Color(0xFFD4BEA0),
+  bgPrimary: Color(0xFFF6EDE2),   // crema más pronunciada
+  bgSecondary: Color(0xFFEDD9C4), // naranja muy desaturado
+  bgCard: Color(0xFFFFFAF3),      // blanco-cálido: distinguible del fondo crema
+  borderCard: Color(0xFFD8C0A0),  // borde cálido con presencia real
 );
 
 _BgToneColors _resolveBgTone(String bgTone, bool isDarkMode) {
@@ -347,14 +347,14 @@ Color resolveEffectiveAccent(Color accent, bool isDarkMode) {
 // Warm: ámbar (naranja suave) — Cool: azul cielo.
 const _warmTintRef = Color(0xFFFFA040);
 const _coolTintRef = Color(0xFF4090FF);
-// Factor 0.25 → cambio visible (~25% mezcla) pero no tan extremo
-// que el color pierda su identidad.
-const _toneLerpFactor = 0.25;
+// Factor oscuro 0.25 → cambio visible (~25% mezcla) sin perder identidad.
+// Factor claro 0.15 → acentos vibrantes no se apagan sobre fondos blancos/crema.
+const _toneLerpFactorDark = 0.25;
+const _toneLerpFactorLight = 0.15;
 
 /// Desplaza [accent] hacia la temperatura del [bgTone] seleccionado:
-/// 'warm' → mezcla 25% hacia ámbar, 'cool' → 25% hacia azul claro.
-/// Todos los acentos reciben exactamente el mismo grado de desplazamiento,
-/// así la diferencia entre tonos se percibe de forma consistente.
+/// 'warm' → mezcla hacia ámbar, 'cool' → mezcla hacia azul claro.
+/// El factor es menor en claro para que los acentos saturados no se apaguen.
 /// El neutro blanco/negro queda excluido — siempre pasa sin cambio.
 Color applyBgToneToAccent(Color accent, String bgTone, bool isDarkMode) {
   final isNeutral = accent == AppColors.accentPrimaryDefault ||
@@ -362,11 +362,12 @@ Color applyBgToneToAccent(Color accent, String bgTone, bool isDarkMode) {
       accent == const Color(0xFF0F172A);
   if (isNeutral || bgTone == 'pure') return accent;
 
+  final factor = isDarkMode ? _toneLerpFactorDark : _toneLerpFactorLight;
   switch (bgTone) {
     case 'warm':
-      return Color.lerp(accent, _warmTintRef, _toneLerpFactor)!;
+      return Color.lerp(accent, _warmTintRef, factor)!;
     case 'cool':
-      return Color.lerp(accent, _coolTintRef, _toneLerpFactor)!;
+      return Color.lerp(accent, _coolTintRef, factor)!;
     default:
       return accent;
   }
@@ -414,8 +415,10 @@ ThemeData buildAppTheme({
   // slate, tertiary=lighter slate — mirrors the depth that dark-mode backgrounds
   // provide naturally, giving both modes the same visual hierarchy.
   final textPrimary = isDarkMode ? const Color(0xFFFFFFFF) : const Color(0xFF0F172A);
-  final textSecondary = isDarkMode ? const Color(0xFFFFFFFF) : const Color(0xFF334155);
-  final textTertiary = isDarkMode ? const Color(0xFFFFFFFF) : const Color(0xFF64748B);
+  // Light mode: jerarquía más pronunciada — secondario más oscuro, terciario más claro
+  // para que la diferencia entre niveles sea legible (slate-600 vs slate-400).
+  final textSecondary = isDarkMode ? const Color(0xFFFFFFFF) : const Color(0xFF475569);
+  final textTertiary = isDarkMode ? const Color(0xFFFFFFFF) : const Color(0xFF94A3B8);
 
   final effectiveAccent = applyBgToneToAccent(
     resolveEffectiveAccent(accent, isDarkMode),
