@@ -116,15 +116,15 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
       }
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: Material(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        child: Padding(
       padding: EdgeInsets.only(
         left: 20,
         right: 20,
-        top: 12,
+        top: 0,
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
       child: Form(
@@ -136,9 +136,9 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
             // Drag handle
             Center(
               child: Container(
-                width: 40,
+                width: 36,
                 height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
+                margin: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
                   color: kredit.borderCard,
                   borderRadius: BorderRadius.circular(2),
@@ -345,6 +345,8 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
               ),
             ),
           ],
+        ),
+      ),
         ),
       ),
     );

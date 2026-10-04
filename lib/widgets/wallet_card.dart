@@ -875,15 +875,21 @@ void showCardDesignPicker(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (_) => _DesignPickerSheet(
-      current: current,
-      c1: c1,
-      c2: c2,
-      c3: c3,
-      onSelected: (d) {
-        Navigator.of(context).pop();
-        onSelected(d);
-      },
+    builder: (_) => ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: Material(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        child: _DesignPickerSheet(
+          current: current,
+          c1: c1,
+          c2: c2,
+          c3: c3,
+          onSelected: (d) {
+            Navigator.of(context).pop();
+            onSelected(d);
+          },
+        ),
+      ),
     ),
   );
 }
@@ -909,12 +915,9 @@ class _DesignPickerSheet extends StatelessWidget {
       ...CardDesign.values.map((d) => (d, d.label)),
     ];
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.75,
@@ -922,13 +925,15 @@ class _DesignPickerSheet extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.max,
           children: [
-            Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: scheme.outlineVariant,
-                borderRadius: BorderRadius.circular(2),
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: kredit.borderCard,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
             Text(

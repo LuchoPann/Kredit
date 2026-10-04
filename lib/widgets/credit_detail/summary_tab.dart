@@ -747,10 +747,14 @@ class _CardQuickActions extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      backgroundColor: Colors.transparent,
+      builder: (_) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: Material(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: _PaymentTypeSheet(credit: credit),
+        ),
       ),
-      builder: (ctx) => _PaymentTypeSheet(credit: credit),
     );
   }
 
@@ -828,20 +832,22 @@ class _PaymentTypeSheetState extends State<_PaymentTypeSheet> {
 
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(0, 12, 0, 16),
+        padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Handle bar
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: kredit.borderCard,
-                borderRadius: BorderRadius.circular(2),
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: kredit.borderCard,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 4),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(

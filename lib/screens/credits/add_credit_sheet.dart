@@ -458,14 +458,18 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      showDragHandle: true,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModal) => Padding(
+      backgroundColor: Colors.transparent,
+      builder: (_) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: Material(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: StatefulBuilder(
+            builder: (ctx, setModal) => Padding(
           padding: EdgeInsets.only(
             left: 20,
             right: 20,
             bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-            top: 4,
+            top: 0,
           ),
           child: Form(
             key: formKey,
@@ -473,6 +477,17 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Theme.of(ctx).extension<KreditColors>()!.borderCard,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
                 Text('Nueva entidad',
                     style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
                 const SizedBox(height: 16),
@@ -579,6 +594,8 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                 ),
               ],
             ),
+          ),
+        ),
           ),
         ),
       ),

@@ -89,6 +89,111 @@ Future<bool> showKreditConfirmSheet(
   return result == true;
 }
 
+/// Abre un bottom sheet con el estilo visual estándar de Kredit:
+/// fondo transparente, DraggableScrollableSheet, borde r=24, handle pill.
+Future<T?> showKreditSheet<T>({
+  required BuildContext context,
+  required Widget Function(BuildContext ctx, ScrollController scrollController) builder,
+  double initialSize = 0.6,
+  double minSize = 0.35,
+  double maxSize = 0.92,
+}) {
+  return showModalBottomSheet<T>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: initialSize,
+      minChildSize: minSize,
+      maxChildSize: maxSize,
+      builder: (ctx, scrollController) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: Material(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).extension<KreditColors>()!.borderCard,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: builder(ctx, scrollController),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// Header estándar para bottom sheets de Kredit.
+/// Ícono con fondo translúcido + título + subtítulo.
+class KreditSheetHeader extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+
+  const KreditSheetHeader({
+    super.key,
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: iconColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Icon(icon, color: iconColor, size: 24),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: KreditTextSize.emphasis,
+                  fontWeight: FontWeight.w800,
+                  color: kredit.textPrimary,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: KreditTextSize.caption,
+                  color: kredit.textTertiary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 /// Bottom sheet de entrada de texto (reemplaza AlertDialog con String).
 /// Retorna el texto ingresado o null si canceló.
 Future<String?> showKreditInputSheet(

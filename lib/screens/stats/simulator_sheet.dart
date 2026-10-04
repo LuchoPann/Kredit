@@ -37,10 +37,14 @@ void openSimulatorSheet(BuildContext context, {String? initialCreditId}) {
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    backgroundColor: Colors.transparent,
+    builder: (_) => ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: Material(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        child: SimulatorSheet(initialCreditId: initialCreditId),
+      ),
     ),
-    builder: (_) => SimulatorSheet(initialCreditId: initialCreditId),
   );
 }
 

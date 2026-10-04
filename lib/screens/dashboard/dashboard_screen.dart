@@ -982,7 +982,13 @@ void _showAllUpcomingSheet(BuildContext context, List<PendingPayment> items) {
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (ctx) => _AllUpcomingPaymentsSheet(items: items),
+    builder: (_) => ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: Material(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        child: _AllUpcomingPaymentsSheet(items: items),
+      ),
+    ),
   );
 }
 
@@ -995,27 +1001,24 @@ class _AllUpcomingPaymentsSheet extends ConsumerWidget {
     final kredit = Theme.of(context).extension<KreditColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
 
-    return Container(
+    return ConstrainedBox(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.85,
-      ),
-      decoration: BoxDecoration(
-        color: kredit.bgPrimary,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border.all(color: kredit.borderCard),
       ),
       child: SafeArea(
         top: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: kredit.borderCard,
-                borderRadius: BorderRadius.circular(2),
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: kredit.borderCard,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
             Padding(

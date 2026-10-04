@@ -101,39 +101,60 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
     // never re-evaluates it without local state driving a rebuild).
     showModalBottomSheet(
       context: context,
-      showDragHandle: true,
       isScrollControlled: true,
-      builder: (ctx) {
+      backgroundColor: Colors.transparent,
+      builder: (_) {
         var current = VoucherPattern.fromName(quota.voucherPattern);
-        return StatefulBuilder(
-          builder: (ctx, setModalState) => Padding(
-            padding: EdgeInsets.only(
-              left: KreditSpacing.card,
-              right: KreditSpacing.card,
-              bottom: MediaQuery.of(ctx).viewInsets.bottom + KreditSpacing.card,
-            ),
-            child: SingleChildScrollView(
-              child: VoucherPatternPicker(
-                selected: current,
-                accent: accent,
-                onSelect: (pattern) {
-                  setModalState(() => current = pattern);
-                  ref.read(commercialQuotasProvider.notifier).upsert(
-                    CommercialQuota(
-                      id: quota.id,
-                      brand: quota.brand,
-                      limit: quota.limit,
-                      notes: quota.notes,
-                      voucherPattern: pattern.name,
-                      entityType: quota.entityType,
-                      cutoffDay: quota.cutoffDay,
-                      paymentOffsetDays: quota.paymentOffsetDays,
-                      managementFee: quota.managementFee,
-                      managementFeeFrequency: quota.managementFeeFrequency,
+        return ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: Material(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Container(
+                    width: 36, height: 4,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).extension<KreditColors>()!.borderCard,
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                  );
-                },
-              ),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.only(
+                    left: KreditSpacing.card,
+                    right: KreditSpacing.card,
+                    bottom: MediaQuery.of(context).viewInsets.bottom + KreditSpacing.card,
+                  ),
+                  child: StatefulBuilder(
+                    builder: (ctx, setModalState) => SingleChildScrollView(
+                      child: VoucherPatternPicker(
+                        selected: current,
+                        accent: accent,
+                        onSelect: (pattern) {
+                          setModalState(() => current = pattern);
+                          ref.read(commercialQuotasProvider.notifier).upsert(
+                            CommercialQuota(
+                              id: quota.id,
+                              brand: quota.brand,
+                              limit: quota.limit,
+                              notes: quota.notes,
+                              voucherPattern: pattern.name,
+                              entityType: quota.entityType,
+                              cutoffDay: quota.cutoffDay,
+                              paymentOffsetDays: quota.paymentOffsetDays,
+                              managementFee: quota.managementFee,
+                              managementFeeFrequency: quota.managementFeeFrequency,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -150,9 +171,26 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
 
     showModalBottomSheet(
       context: context,
-      showDragHandle: true,
       isScrollControlled: true,
-      builder: (ctx) => Padding(
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: Material(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Container(
+                  width: 36, height: 4,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).extension<KreditColors>()!.borderCard,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+        Padding(
         padding: EdgeInsets.only(
           left: KreditSpacing.card,
           right: KreditSpacing.card,
@@ -221,6 +259,10 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
                 },
                 child: const Text('Guardar cambios'),
               ),
+            ],
+          ),
+        ),
+        ),
             ],
           ),
         ),
