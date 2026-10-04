@@ -245,10 +245,10 @@ class NotificationService {
   Future<void> showTestNotification() async {
     await init();
     await _plugin.show(
-      999999,
-      'Kredit · Prueba',
-      '¡Las notificaciones están funcionando correctamente! 🎉',
-      const NotificationDetails(
+      id: 999999,
+      title: 'Kredit · Prueba',
+      body: '¡Las notificaciones están funcionando correctamente! 🎉',
+      notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(
           _channelId,
           _channelName,
@@ -256,8 +256,6 @@ class NotificationService {
           importance: Importance.high,
           priority: Priority.high,
         ),
-        iOS: DarwinNotificationDetails(),
-        macOS: DarwinNotificationDetails(),
       ),
     );
   }
