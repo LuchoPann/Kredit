@@ -388,9 +388,14 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   Future<bool> _confirmDiscard() async {
     final discard = await showModalBottomSheet<bool>(
       context: context,
+      backgroundColor: Colors.transparent,
       builder: (ctx) {
         final kredit = Theme.of(ctx).extension<KreditColors>()!;
-        return SafeArea(
+        return ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: Material(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
             child: Column(
@@ -439,7 +444,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               ],
             ),
           ),
-        );
+        ));
       },
     );
     return discard ?? false;

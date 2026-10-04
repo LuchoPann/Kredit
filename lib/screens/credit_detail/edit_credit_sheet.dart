@@ -64,7 +64,14 @@ class EditCreditSheet extends ConsumerStatefulWidget {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (_) => EditCreditSheet(credit: credit),
+      backgroundColor: Colors.transparent,
+      builder: (_) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: Material(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: EditCreditSheet(credit: credit),
+        ),
+      ),
     );
   }
 
