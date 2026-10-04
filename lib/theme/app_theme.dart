@@ -410,9 +410,12 @@ ThemeData buildAppTheme({
   final bgSecondary = tone.bgSecondary;
   final bgCard = tone.bgCard;
   final borderCard = tone.borderCard;
+  // Dark mode: blanco puro en los 3 niveles — la jerarquía se logra con
+  // peso tipográfico (bold = importante) e italic (avisos / texto secundario),
+  // no con variación de color. Light mode mantiene escala de grises slate.
   final textPrimary   = isDarkMode ? const Color(0xFFFFFFFF) : const Color(0xFF0F172A);
-  final textSecondary = isDarkMode ? const Color(0xFFB0B8CC) : const Color(0xFF475569);
-  final textTertiary  = isDarkMode ? const Color(0xFF6B7594) : const Color(0xFF94A3B8);
+  final textSecondary = isDarkMode ? const Color(0xFFFFFFFF) : const Color(0xFF475569);
+  final textTertiary  = isDarkMode ? const Color(0xFFFFFFFF) : const Color(0xFF94A3B8);
 
   final effectiveAccent = applyBgToneToAccent(
     resolveEffectiveAccent(accent, isDarkMode),
