@@ -17,7 +17,6 @@ import '../../widgets/account/accent_color_picker.dart';
 import '../../widgets/account/bg_tone_picker.dart';
 import '../../widgets/account/danger_zone_card.dart';
 import '../../widgets/account/data_tools_card.dart';
-import '../../widgets/account/profile_header.dart';
 import '../../widgets/notification_settings_tile.dart';
 import '../../widgets/security_settings_tile.dart';
 import 'backup_settings_screen.dart';
@@ -774,21 +773,6 @@ class _ModeOption extends StatelessWidget {
   }
 }
 
-class _SheetTitle extends StatelessWidget {
-  final String text;
-  final KreditColors kredit;
-  const _SheetTitle(this.text, this.kredit);
-
-  @override
-  Widget build(BuildContext context) => Text(
-        text,
-        style: TextStyle(
-          fontSize: KreditTextSize.heading,
-          fontWeight: FontWeight.w700,
-          color: kredit.textPrimary,
-        ),
-      );
-}
 
 class _SheetLabel extends StatelessWidget {
   final String text;
