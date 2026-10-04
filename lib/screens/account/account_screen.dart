@@ -115,71 +115,86 @@ class AccountScreen extends ConsumerWidget {
             icon: Icons.palette_outlined,
             children: [
               navTile(
-                icon: prefs.isDarkMode ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
-                title: 'Modo de pantalla',
-                subtitle: prefs.isDarkMode ? 'Oscuro' : 'Claro',
+                icon: Icons.palette_outlined,
+                title: 'Apariencia',
+                subtitle: '${prefs.isDarkMode ? 'Oscuro' : 'Claro'} · $bgToneLabel',
                 onTap: () => _openSheet(
                   context,
                   Consumer(
                     builder: (ctx, ref, _) {
                       final p = ref.watch(themePreferencesProvider);
+                      final kredit2 = Theme.of(ctx).extension<KreditColors>()!;
                       return Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Modo de pantalla',
-                              style: TextStyle(fontSize: KreditTextSize.heading, fontWeight: FontWeight.w700)),
-                          const SizedBox(height: 16),
+                          Text(
+                            'Apariencia',
+                            style: TextStyle(
+                              fontSize: KreditTextSize.heading,
+                              fontWeight: FontWeight.w700,
+                              color: kredit2.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          // Modo claro/oscuro
+                          Text(
+                            'MODO DE PANTALLA',
+                            style: TextStyle(
+                              fontSize: KreditTextSize.caption,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.8,
+                              color: kredit2.textTertiary,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
                           SwitchListTile(
                             contentPadding: EdgeInsets.zero,
-                            secondary: Icon(p.isDarkMode ? Icons.dark_mode_outlined : Icons.light_mode_outlined),
-                            title: const Text('Modo oscuro'),
-                            subtitle: Text(p.isDarkMode ? 'Tema oscuro activo' : 'Tema claro activo'),
+                            secondary: Icon(
+                              p.isDarkMode ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+                              color: kredit2.textSecondary,
+                            ),
+                            title: Text(
+                              p.isDarkMode ? 'Modo oscuro' : 'Modo claro',
+                              style: TextStyle(fontWeight: FontWeight.w600, color: kredit2.textPrimary),
+                            ),
+                            subtitle: Text(
+                              p.isDarkMode ? 'Tema oscuro activo' : 'Tema claro activo',
+                              style: TextStyle(color: kredit2.textTertiary),
+                            ),
                             value: p.isDarkMode,
                             onChanged: (v) =>
                                 ref.read(themePreferencesProvider.notifier).setIsDarkMode(v),
                           ),
+                          const SizedBox(height: 20),
+                          // Acento
+                          Text(
+                            'COLOR DE ACENTO',
+                            style: TextStyle(
+                              fontSize: KreditTextSize.caption,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.8,
+                              color: kredit2.textTertiary,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const AccentColorPicker(),
+                          const SizedBox(height: 20),
+                          // Tono de fondo
+                          Text(
+                            'TONO DE FONDO',
+                            style: TextStyle(
+                              fontSize: KreditTextSize.caption,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.8,
+                              color: kredit2.textTertiary,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const BgTonePicker(),
                         ],
                       );
                     },
-                  ),
-                ),
-              ),
-              divider(),
-              navTile(
-                icon: Icons.color_lens_outlined,
-                title: 'Color de acento',
-                subtitle: 'Personaliza el color principal',
-                onTap: () => _openSheet(
-                  context,
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Color de acento',
-                          style: TextStyle(fontSize: KreditTextSize.heading, fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 16),
-                      const AccentColorPicker(),
-                    ],
-                  ),
-                ),
-              ),
-              divider(),
-              navTile(
-                icon: Icons.layers_outlined,
-                title: 'Tono de fondo',
-                subtitle: bgToneLabel,
-                onTap: () => _openSheet(
-                  context,
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Tono de fondo',
-                          style: TextStyle(fontSize: KreditTextSize.heading, fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 16),
-                      const BgTonePicker(),
-                    ],
                   ),
                 ),
               ),
@@ -193,46 +208,55 @@ class AccountScreen extends ConsumerWidget {
             icon: Icons.notifications_outlined,
             children: [
               navTile(
-                icon: Icons.notifications_active_outlined,
-                title: 'Recordatorios de pago',
+                icon: Icons.notifications_outlined,
+                title: 'Notificaciones',
                 subtitle: notifSubtitle,
                 onTap: () => _openSheet(
                   context,
-                  SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Recordatorios de pago',
-                            style: TextStyle(
-                                fontSize: KreditTextSize.heading, fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 16),
-                        const NotificationSettingsTile(),
-                      ],
-                    ),
-                  ),
+                  Consumer(builder: (ctx, ref2, _) {
+                    final kredit2 = Theme.of(ctx).extension<KreditColors>()!;
+                    return SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Notificaciones',
+                              style: TextStyle(fontSize: KreditTextSize.heading, fontWeight: FontWeight.w700, color: kredit2.textPrimary)),
+                          const SizedBox(height: 8),
+                          Text('RECORDATORIOS DE PAGO',
+                              style: TextStyle(fontSize: KreditTextSize.caption, fontWeight: FontWeight.w700, letterSpacing: 0.8, color: kredit2.textTertiary)),
+                          const SizedBox(height: 8),
+                          const NotificationSettingsTile(),
+                          const SizedBox(height: 20),
+                          Text('PRUEBA',
+                              style: TextStyle(fontSize: KreditTextSize.caption, fontWeight: FontWeight.w700, letterSpacing: 0.8, color: kredit2.textTertiary)),
+                          const SizedBox(height: 8),
+                          OutlinedButton.icon(
+                            onPressed: () async {
+                              Navigator.pop(ctx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Enviando notificación de prueba…')),
+                              );
+                              try {
+                                final service = ref2.read(notificationServiceProvider);
+                                await service.showTestNotification();
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Error: $e')),
+                                  );
+                                }
+                              }
+                            },
+                            icon: const Icon(Icons.send_outlined, size: 18),
+                            label: const Text('Probar notificación ahora'),
+                            style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 46)),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
                 ),
-              ),
-              divider(),
-              navTile(
-                icon: Icons.send_outlined,
-                title: 'Probar notificación',
-                subtitle: 'Envía una notificación de prueba ahora',
-                onTap: () async {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Enviando notificación de prueba…')),
-                  );
-                  try {
-                    final service = ref.read(notificationServiceProvider);
-                    await service.showTestNotification();
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error al enviar notificación: $e')),
-                      );
-                    }
-                  }
-                },
               ),
             ],
           ),
@@ -243,55 +267,55 @@ class AccountScreen extends ConsumerWidget {
             label: 'DATOS Y RESPALDOS',
             icon: Icons.storage_outlined,
             children: [
-              Consumer(
-                builder: (ctx, ref, _) => Column(
-                  children: [
-                    navTile(
-                      icon: Icons.upload_file_outlined,
-                      title: 'Exportar datos',
-                      subtitle: 'Comparte tu respaldo JSON',
-                      onTap: () => _openSheet(
-                        ctx,
-                        Consumer(
-                          builder: (innerCtx, innerRef, _) => Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Datos',
-                                  style: TextStyle(
-                                      fontSize: KreditTextSize.heading, fontWeight: FontWeight.w700)),
-                              const SizedBox(height: 16),
-                              const DataToolsCard(),
-                            ],
+              navTile(
+                icon: Icons.storage_outlined,
+                title: 'Datos y respaldos',
+                subtitle: 'Exportar, importar y respaldo automático',
+                onTap: () => _openSheet(
+                  context,
+                  Consumer(builder: (ctx, ref2, _) {
+                    final kredit2 = Theme.of(ctx).extension<KreditColors>()!;
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Datos y respaldos',
+                            style: TextStyle(fontSize: KreditTextSize.heading, fontWeight: FontWeight.w700, color: kredit2.textPrimary)),
+                        const SizedBox(height: 16),
+                        const DataToolsCard(),
+                        const SizedBox(height: 20),
+                        Text('RESPALDO AUTOMÁTICO',
+                            style: TextStyle(fontSize: KreditTextSize.caption, fontWeight: FontWeight.w700, letterSpacing: 0.8, color: kredit2.textTertiary)),
+                        const SizedBox(height: 8),
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(10),
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const BackupSettingsScreen()),
+                              );
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                              child: Row(children: [
+                                Icon(Icons.backup_outlined, size: 20, color: kredit2.textSecondary),
+                                const SizedBox(width: 14),
+                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                  Text('Configurar respaldo automático',
+                                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kredit2.textPrimary)),
+                                  Text('Frecuencia, modo y próximo respaldo',
+                                      style: TextStyle(fontSize: 12, color: kredit2.textTertiary)),
+                                ])),
+                                Icon(Icons.chevron_right, size: 18, color: kredit2.textTertiary),
+                              ]),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                    divider(),
-                    navTile(
-                      icon: Icons.download_outlined,
-                      title: 'Importar datos',
-                      subtitle: 'Restaura desde un archivo',
-                      onTap: () => _openSheet(
-                        ctx,
-                        Consumer(
-                          builder: (innerCtx, innerRef, _) => Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Datos',
-                                  style: TextStyle(
-                                      fontSize: KreditTextSize.heading, fontWeight: FontWeight.w700)),
-                              const SizedBox(height: 16),
-                              const DataToolsCard(),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    divider(),
-                    _BackupAutoTile(navTile: navTile),
-                  ],
+                      ],
+                    );
+                  }),
                 ),
               ),
             ],
@@ -304,21 +328,27 @@ class AccountScreen extends ConsumerWidget {
             icon: Icons.security_outlined,
             children: [
               navTile(
-                icon: Icons.lock_outline,
-                title: 'Bloqueo de app',
-                subtitle: 'PIN o biometría',
+                icon: Icons.security_outlined,
+                title: 'Seguridad',
+                subtitle: 'Bloqueo con PIN o biometría',
                 onTap: () => _openSheet(
                   context,
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Seguridad',
-                          style: TextStyle(fontSize: KreditTextSize.heading, fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 16),
-                      const SecuritySettingsTile(),
-                    ],
-                  ),
+                  Consumer(builder: (ctx, _, _) {
+                    final kredit2 = Theme.of(ctx).extension<KreditColors>()!;
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Seguridad',
+                            style: TextStyle(fontSize: KreditTextSize.heading, fontWeight: FontWeight.w700, color: kredit2.textPrimary)),
+                        const SizedBox(height: 8),
+                        Text('BLOQUEO DE APP',
+                            style: TextStyle(fontSize: KreditTextSize.caption, fontWeight: FontWeight.w700, letterSpacing: 0.8, color: kredit2.textTertiary)),
+                        const SizedBox(height: 8),
+                        const SecuritySettingsTile(),
+                      ],
+                    );
+                  }),
                 ),
               ),
             ],
