@@ -11,6 +11,7 @@ import '../../domain/export_import.dart';
 import '../../providers/commercial_quotas_provider.dart';
 import '../../providers/credits_provider.dart';
 import '../../providers/last_backup_provider.dart';
+import '../../services/backup_service.dart';
 import '../../theme/app_theme.dart';
 
 /// Exportar/Importar datos card. Restructured (visual-only, same
@@ -61,11 +62,31 @@ class DataToolsCard extends ConsumerWidget {
       final credits = ref.read(creditsProvider).value ?? [];
       final quotas = ref.read(commercialQuotasProvider).value ?? [];
       final json = exportStateToJson(credits, quotas);
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/kredit_backup_${DateTime.now().millisecondsSinceEpoch}.json');
-      await file.writeAsString(json);
-      await Share.shareXFiles([XFile(file.path)], text: 'Respaldo de Kredit');
-      await ref.read(lastBackupProvider.notifier).markBackedUpNow();
+
+      // Intentar guardar en Kredit/backups/ (almacenamiento principal)
+      File? savedFile = await BackupService.saveBackup(json, newFile: true);
+
+      if (savedFile != null) {
+        await ref.read(lastBackupProvider.notifier).markBackedUpNow();
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Respaldo guardado en Kredit/backups/${savedFile.uri.pathSegments.last}'),
+              action: SnackBarAction(
+                label: 'Compartir',
+                onPressed: () => Share.shareXFiles([XFile(savedFile.path)], text: 'Respaldo de Kredit'),
+              ),
+            ),
+          );
+        }
+      } else {
+        // Fallback: share vía hoja de compartir si no hay permiso de almacenamiento
+        final dir = await getTemporaryDirectory();
+        final tempFile = File('${dir.path}/kredit_backup_${DateTime.now().millisecondsSinceEpoch}.json');
+        await tempFile.writeAsString(json);
+        await Share.shareXFiles([XFile(tempFile.path)], text: 'Respaldo de Kredit');
+        await ref.read(lastBackupProvider.notifier).markBackedUpNow();
+      }
     } catch (e) {
       debugPrint('exportData failed: $e');
       if (context.mounted) {

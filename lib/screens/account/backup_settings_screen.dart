@@ -7,6 +7,8 @@ import '../../widgets/kredit_section_card.dart';
 const _kBackupEnabled = 'backup_enabled';
 const _kBackupFrequency = 'backup_frequency';
 const _kBackupMode = 'backup_mode';
+const _kBackupHour = 'backup_hour';
+const _kBackupMinute = 'backup_minute';
 
 class BackupSettingsScreen extends StatefulWidget {
   const BackupSettingsScreen({super.key});
@@ -19,6 +21,8 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
   bool _enabled = false;
   String _frequency = 'weekly';
   String _mode = 'overwrite';
+  int _hour = 2;
+  int _minute = 0;
   bool _loading = true;
 
   @override
@@ -33,6 +37,8 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
       _enabled = prefs.getBool(_kBackupEnabled) ?? false;
       _frequency = prefs.getString(_kBackupFrequency) ?? 'weekly';
       _mode = prefs.getString(_kBackupMode) ?? 'overwrite';
+      _hour = prefs.getInt(_kBackupHour) ?? 2;
+      _minute = prefs.getInt(_kBackupMinute) ?? 0;
       _loading = false;
     });
   }
@@ -42,6 +48,8 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
     await prefs.setBool(_kBackupEnabled, _enabled);
     await prefs.setString(_kBackupFrequency, _frequency);
     await prefs.setString(_kBackupMode, _mode);
+    await prefs.setInt(_kBackupHour, _hour);
+    await prefs.setInt(_kBackupMinute, _minute);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Configuración de respaldo guardada')),
@@ -50,17 +58,33 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
     }
   }
 
-  String get _frequencyLabel {
-    switch (_frequency) {
-      case 'daily':
-        return 'Diario';
-      case 'biweekly':
-        return 'Quincenal';
-      case 'monthly':
-        return 'Mensual';
-      default:
-        return 'Semanal';
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: _hour, minute: _minute),
+      helpText: 'Hora del respaldo automático',
+    );
+    if (picked != null) {
+      setState(() {
+        _hour = picked.hour;
+        _minute = picked.minute;
+      });
     }
+  }
+
+  String get _frequencyLabel {
+    return switch (_frequency) {
+      'daily' => 'Diario',
+      'biweekly' => 'Quincenal',
+      'monthly' => 'Mensual',
+      _ => 'Semanal',
+    };
+  }
+
+  String get _timeLabel {
+    final h = _hour.toString().padLeft(2, '0');
+    final m = _minute.toString().padLeft(2, '0');
+    return '$h:$m';
   }
 
   String get _nextBackupLabel {
@@ -80,16 +104,16 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
       '', 'ene', 'feb', 'mar', 'abr', 'may', 'jun',
       'jul', 'ago', 'sep', 'oct', 'nov', 'dic'
     ];
-    return '${next.day} ${months[next.month]} ${next.year}';
+    return '${next.day} ${months[next.month]} ${next.year} · $_timeLabel';
   }
 
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accent = Theme.of(context).colorScheme.primary;
 
     if (_loading) {
       return const Scaffold(
-        appBar: null,
         body: Center(child: CircularProgressIndicator()),
       );
     }
@@ -107,9 +131,7 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
                 contentPadding: EdgeInsets.zero,
                 secondary: Icon(
                   Icons.cloud_sync_outlined,
-                  color: _enabled
-                      ? Theme.of(context).colorScheme.primary
-                      : kredit.textTertiary,
+                  color: _enabled ? accent : kredit.textTertiary,
                 ),
                 title: const Text('Activar respaldo automático'),
                 subtitle: Text(
@@ -124,6 +146,51 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
             ],
           ),
           const SizedBox(height: KreditSpacing.section),
+
+          // Carpeta de destino (informativa)
+          KreditSectionCard(
+            label: 'CARPETA DE DESTINO',
+            icon: Icons.folder_outlined,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.folder_open_outlined, size: KreditIconSize.small, color: kredit.textSecondary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Almacenamiento principal del teléfono',
+                          style: TextStyle(
+                            fontSize: KreditTextSize.body,
+                            fontWeight: FontWeight.w600,
+                            color: kredit.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Kredit/backups/',
+                          style: TextStyle(
+                            fontSize: KreditTextSize.caption,
+                            fontFamily: 'monospace',
+                            color: kredit.textTertiary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Al mismo nivel que Descargas y Documentos',
+                          style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: KreditSpacing.section),
+
           if (_enabled) ...[
             KreditSectionCard(
               label: 'FRECUENCIA',
@@ -160,9 +227,58 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
               ],
             ),
             const SizedBox(height: KreditSpacing.section),
+
+            KreditSectionCard(
+              label: 'HORA DEL RESPALDO',
+              icon: Icons.access_time_outlined,
+              children: [
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(KreditRadius.tile),
+                    onTap: _pickTime,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                      child: Row(
+                        children: [
+                          Icon(Icons.access_time_outlined,
+                              size: KreditIconSize.small, color: kredit.textSecondary),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _timeLabel,
+                                  style: TextStyle(
+                                    fontSize: KreditTextSize.emphasis,
+                                    fontWeight: FontWeight.w700,
+                                    color: kredit.textPrimary,
+                                  ),
+                                ),
+                                Text(
+                                  'Toca para cambiar la hora',
+                                  style: TextStyle(
+                                      fontSize: KreditTextSize.caption,
+                                      color: kredit.textTertiary),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(Icons.edit_outlined,
+                              size: KreditIconSize.small, color: kredit.textTertiary),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: KreditSpacing.section),
+
             KreditSectionCard(
               label: 'MODO DE ARCHIVO',
-              icon: Icons.folder_outlined,
+              icon: Icons.storage_outlined,
               children: [
                 _RadioOption(
                   value: 'overwrite',
@@ -181,13 +297,15 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
               ],
             ),
             const SizedBox(height: KreditSpacing.section),
+
             KreditSectionCard(
               label: 'PRÓXIMO RESPALDO',
               icon: Icons.event_outlined,
               children: [
                 Row(
                   children: [
-                    Icon(Icons.calendar_today_outlined, size: KreditIconSize.small, color: kredit.textTertiary),
+                    Icon(Icons.calendar_today_outlined,
+                        size: KreditIconSize.small, color: kredit.textTertiary),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
@@ -203,7 +321,8 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
                           ),
                           Text(
                             'Frecuencia: $_frequencyLabel · Modo: ${_mode == 'overwrite' ? 'Sobreescribir' : 'Archivo nuevo'}',
-                            style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+                            style: TextStyle(
+                                fontSize: KreditTextSize.body, color: kredit.textTertiary),
                           ),
                         ],
                       ),
@@ -214,6 +333,7 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
             ),
             const SizedBox(height: KreditSpacing.section),
           ],
+
           FilledButton.icon(
             onPressed: _save,
             icon: const Icon(Icons.check_circle_outline, size: 18),

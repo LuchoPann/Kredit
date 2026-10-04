@@ -65,6 +65,7 @@ dependencies:
   animations: ^2.2.0
   image_picker: ^1.1.2
   image_cropper: ^12.2.1
+  permission_handler: ^13.0.2
 
 dev_dependencies:
   flutter_test:
