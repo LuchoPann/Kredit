@@ -37,7 +37,6 @@ class StatsScreen extends ConsumerWidget {
                 totalPaidHistorico: statsData.totalPaidHistorico,
                 progressPct: statsData.progressPct,
                 activeCount: statsData.activeCount,
-                abonoCount: statsData.abonoCount,
                 installmentsAdvanced: statsData.installmentsAdvanced,
                 risks: statsData.risks,
               ),
@@ -72,7 +71,6 @@ class StatsScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   _PayoffTimeline(entries: statsData.payoffProjections),
-                  _InsightLine(text: statsData.bestPrepayment),
                 ],
               ),
               const SizedBox(height: 28),
@@ -123,7 +121,6 @@ class _ResumenPanel extends StatelessWidget {
   final double totalPaidHistorico;
   final double progressPct;
   final int activeCount;
-  final int abonoCount;
   final int installmentsAdvanced;
   final List<FinancialRecommendation> risks;
 
@@ -133,7 +130,6 @@ class _ResumenPanel extends StatelessWidget {
     required this.totalPaidHistorico,
     required this.progressPct,
     required this.activeCount,
-    required this.abonoCount,
     required this.installmentsAdvanced,
     required this.risks,
   });
@@ -208,14 +204,6 @@ class _ResumenPanel extends StatelessWidget {
                 value: '$activeCount',
                 label: 'Créditos\nactivos',
                 color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _StatChip(
-                value: '$abonoCount',
-                label: 'Abonos\nextra',
-                color: kredit.success,
               ),
             ),
             const SizedBox(width: 8),
