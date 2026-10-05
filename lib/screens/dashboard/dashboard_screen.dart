@@ -321,19 +321,12 @@ class _DashboardBody extends ConsumerWidget {
         // y ofrece la acción natural para resolverlo.
         _PaymentCoachCard(
           recommendation: recommendation,
+          credits: activeCredits,
+          upcoming: upcoming,
+          onSeeAll: () =>
+              ref.read(navigationIndexProvider.notifier).state =
+                  AppNavTab.credits,
         ),
-
-        // 5. Lista unificada de créditos activos con pago próximo integrado.
-        if (activeCredits.isNotEmpty) ...[
-          const SizedBox(height: KreditSpacing.section),
-          _CreditsSectionCard(
-            credits: activeCredits,
-            upcoming: upcoming,
-            onSeeAll: () =>
-                ref.read(navigationIndexProvider.notifier).state =
-                    AppNavTab.credits,
-          ),
-        ],
 
         // Fase 6 del roadmap: el simulador tambien accesible desde el
         // dashboard, no solo desde detalle del credito y Estadisticas —
@@ -426,9 +419,15 @@ class _SecondaryStat extends StatelessWidget {
 
 class _PaymentCoachCard extends ConsumerWidget {
   final FinancialRecommendation recommendation;
+  final List<Credit> credits;
+  final List<PendingPayment> upcoming;
+  final VoidCallback onSeeAll;
 
   const _PaymentCoachCard({
     required this.recommendation,
+    required this.credits,
+    required this.upcoming,
+    required this.onSeeAll,
   });
 
   @override
@@ -446,43 +445,53 @@ class _PaymentCoachCard extends ConsumerWidget {
           borderRadius: BorderRadius.circular(KreditRadius.card),
           border: Border.all(color: kredit.borderCard),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: kredit.success.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(KreditRadius.tile),
-              ),
-              child: Icon(
-                Icons.check_circle_outline,
-                size: KreditIconSize.small,
-                color: kredit.success,
-              ),
+            Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: kredit.success.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(KreditRadius.tile),
+                  ),
+                  child: Icon(
+                    Icons.check_circle_outline,
+                    size: KreditIconSize.small,
+                    color: kredit.success,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Prioridad de hoy',
+                        style: TextStyle(
+                          fontSize: KreditTextSize.body,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        'No tienes pagos pendientes por resolver.',
+                        style: TextStyle(
+                          fontSize: KreditTextSize.body,
+                          color: kredit.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Prioridad de hoy',
-                    style: TextStyle(
-                      fontSize: KreditTextSize.body,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    'No tienes pagos pendientes por resolver.',
-                    style: TextStyle(
-                      fontSize: KreditTextSize.body,
-                      color: kredit.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
+            _CreditsListSection(
+              credits: credits,
+              upcoming: upcoming,
+              onSeeAll: onSeeAll,
             ),
           ],
         ),
@@ -631,6 +640,11 @@ class _PaymentCoachCard extends ConsumerWidget {
               ],
             ],
           ),
+          _CreditsListSection(
+            credits: credits,
+            upcoming: upcoming,
+            onSeeAll: onSeeAll,
+          ),
         ],
       ),
     );
@@ -707,13 +721,11 @@ class _CreditListRow extends StatelessWidget {
       }
     }
 
-    final typeLabel = isCard ? 'Tarjeta' : isLoan ? 'Préstamo' : 'Crédito';
-
-    // Subtítulo: "Banco · Tipo · N cuotas" o "Banco · Tipo · $Xk saldo"
+    // Subtítulo: "Banco · N cuotas" o "Banco · $Xk saldo"
     final int? remaining = isLoan
         ? (credit as LoanCredit).installments.where((i) => !i.paid).length
         : null;
-    final subtitleParts = [bank.shortLabel, typeLabel];
+    final subtitleParts = [bank.shortLabel];
     if (remaining != null) {
       subtitleParts.add('$remaining ${remaining == 1 ? 'cuota' : 'cuotas'}');
     } else if (isCard) {
@@ -859,14 +871,13 @@ class _CreditListRow extends StatelessWidget {
   }
 }
 
-/// Sección unificada: encabezado "Tus créditos" + filas ordenadas por urgencia
-/// de pago, con chip "Marcar pago" integrado en cada fila de préstamo.
-class _CreditsSectionCard extends ConsumerWidget {
+/// Lista de créditos ordenada por urgencia — vive dentro del coach card.
+class _CreditsListSection extends ConsumerWidget {
   final List<Credit> credits;
   final List<PendingPayment> upcoming;
   final VoidCallback onSeeAll;
 
-  const _CreditsSectionCard({
+  const _CreditsListSection({
     required this.credits,
     required this.upcoming,
     required this.onSeeAll,
@@ -875,6 +886,8 @@ class _CreditsSectionCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
+
+    if (credits.isEmpty) return const SizedBox.shrink();
 
     PendingPayment? nextFor(Credit c) =>
         upcoming.where((p) => p.credit.id == c.id).firstOrNull;
@@ -888,8 +901,12 @@ class _CreditsSectionCard extends ConsumerWidget {
       return pa.daysUntilDue().compareTo(pb.daysUntilDue());
     });
 
-    return KreditSectionCard(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const SizedBox(height: 16),
+        Divider(height: 1, color: kredit.borderCard),
+        const SizedBox(height: 12),
         Row(
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
@@ -925,7 +942,7 @@ class _CreditsSectionCard extends ConsumerWidget {
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         for (var i = 0; i < sorted.length; i++) ...[
           if (i > 0) Divider(height: 1, color: kredit.borderCard),
           _CreditListRow(
