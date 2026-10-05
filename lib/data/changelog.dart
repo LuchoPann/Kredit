@@ -29,6 +29,16 @@ enum ChangeType { nuevo, mejora, correccion }
 
 const List<VersionEntry> changelog = [
   VersionEntry(
+    version: '0.9.1',
+    date: 'Octubre 2026',
+    changes: [
+      ChangeItem(ChangeType.correccion,
+          'Corregido crash al abrir las sub-vistas de "Respaldo automático" y "Seguridad" dentro del panel deslizable de configuración.'),
+      ChangeItem(ChangeType.mejora,
+          'Las sub-vistas de configuración ahora deslizan internamente dentro del panel, sin abrir una pantalla completa.'),
+    ],
+  ),
+  VersionEntry(
     version: '0.9.0',
     date: 'Octubre 2026',
     changes: [
