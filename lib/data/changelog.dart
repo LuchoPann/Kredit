@@ -29,6 +29,22 @@ enum ChangeType { nuevo, mejora, correccion }
 
 const List<VersionEntry> changelog = [
   VersionEntry(
+    version: '0.9.2',
+    date: 'Octubre 2026',
+    changes: [
+      ChangeItem(ChangeType.nuevo,
+          'Puedes deshacer un abono registrado por accidente: aparece un botón "DESHACER" durante 5 segundos en el mensaje de confirmación.'),
+      ChangeItem(ChangeType.nuevo,
+          'Los créditos de préstamo ahora permiten editar la fecha de inicio directamente desde la pantalla de edición.'),
+      ChangeItem(ChangeType.mejora,
+          'La sección de abonos se expande automáticamente al registrar uno nuevo, y el último abono recibe la etiqueta "Reciente".'),
+      ChangeItem(ChangeType.correccion,
+          'Corregido: el gráfico "Cuándo termina cada crédito" ahora muestra el progreso real de cuotas pagadas, no un estimado incorrecto.'),
+      ChangeItem(ChangeType.mejora,
+          'Los textos informativos y de advertencia en toda la app ahora tienen un estilo visual consistente (cursiva, tamaño uniforme, borde).'),
+    ],
+  ),
+  VersionEntry(
     version: '0.9.1',
     date: 'Octubre 2026',
     changes: [
