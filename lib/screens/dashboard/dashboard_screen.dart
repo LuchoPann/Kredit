@@ -321,63 +321,17 @@ class _DashboardBody extends ConsumerWidget {
         // y ofrece la acción natural para resolverlo.
         _PaymentCoachCard(
           recommendation: recommendation,
-          upcoming: upcoming,
         ),
 
-        // 5. Lista compacta de créditos activos.
+        // 5. Lista unificada de créditos activos con pago próximo integrado.
         if (activeCredits.isNotEmpty) ...[
           const SizedBox(height: KreditSpacing.section),
-          KreditSectionCard(
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  const Text(
-                    'Tus créditos',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: KreditTextSize.heading,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${activeCredits.length}',
-                    style: TextStyle(
-                      fontSize: KreditTextSize.body,
-                      fontWeight: FontWeight.w600,
-                      color: kredit.textTertiary,
-                    ),
-                  ),
-                  const Spacer(),
-                  TextButton(
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    onPressed: () =>
-                        ref.read(navigationIndexProvider.notifier).state =
-                            AppNavTab.credits,
-                    child: const Text(
-                      'Ver todos',
-                      style: TextStyle(fontSize: KreditTextSize.body),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              for (var i = 0; i < activeCredits.length; i++) ...[
-                if (i > 0) Divider(height: 1, color: kredit.borderCard),
-                _CreditListRow(
-                  credit: activeCredits[i],
-                  onTap: () => Navigator.of(context).pushNamed(
-                    '/credit-detail',
-                    arguments: activeCredits[i].id,
-                  ),
-                ),
-              ],
-            ],
+          _CreditsSectionCard(
+            credits: activeCredits,
+            upcoming: upcoming,
+            onSeeAll: () =>
+                ref.read(navigationIndexProvider.notifier).state =
+                    AppNavTab.credits,
           ),
         ],
 
@@ -472,11 +426,9 @@ class _SecondaryStat extends StatelessWidget {
 
 class _PaymentCoachCard extends ConsumerWidget {
   final FinancialRecommendation recommendation;
-  final List<PendingPayment> upcoming;
 
   const _PaymentCoachCard({
     required this.recommendation,
-    required this.upcoming,
   });
 
   @override
@@ -485,12 +437,6 @@ class _PaymentCoachCard extends ConsumerWidget {
     final accent = Theme.of(context).colorScheme.primary;
     final fgOnAccent = legibleForegroundOn(accent);
     final item = recommendation.payment;
-    final nextItems = item == null
-        ? upcoming.take(3).toList()
-        : upcoming
-              .where((p) => !_samePendingPayment(p, item))
-              .take(3)
-              .toList();
 
     if (item == null) {
       return Container(
@@ -685,82 +631,10 @@ class _PaymentCoachCard extends ConsumerWidget {
               ],
             ],
           ),
-          if (nextItems.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Divider(height: 1, color: kredit.borderCard),
-            const SizedBox(height: 12),
-            _UpcomingInlineHeader(
-              total: upcoming.length,
-              onSeeAll: upcoming.length > 4
-                  ? () => _showAllUpcomingSheet(context, upcoming)
-                  : null,
-            ),
-            const SizedBox(height: 4),
-            _UpcomingList(items: nextItems),
-          ],
         ],
       ),
     );
   }
-}
-
-class _UpcomingInlineHeader extends StatelessWidget {
-  final int total;
-  final VoidCallback? onSeeAll;
-
-  const _UpcomingInlineHeader({
-    required this.total,
-    required this.onSeeAll,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
-    return Row(
-      children: [
-        Text(
-          'Después',
-          style: TextStyle(
-            fontSize: KreditTextSize.body,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.7,
-            color: kredit.textTertiary,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          '$total pagos',
-          style: TextStyle(
-            fontSize: KreditTextSize.body,
-            fontWeight: FontWeight.w600,
-            color: kredit.textTertiary,
-          ),
-        ),
-        const Spacer(),
-        if (onSeeAll != null)
-          TextButton(
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.zero,
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            onPressed: onSeeAll,
-            child: const Text(
-              'Ver todos',
-              style: TextStyle(fontSize: KreditTextSize.body),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-bool _samePendingPayment(PendingPayment a, PendingPayment b) {
-  return a.credit.id == b.credit.id &&
-      a.dueDate.year == b.dueDate.year &&
-      a.dueDate.month == b.dueDate.month &&
-      a.dueDate.day == b.dueDate.day &&
-      a.installment?.number == b.installment?.number;
 }
 
 Color _severityColor(
@@ -777,188 +651,20 @@ Color _severityColor(
   };
 }
 
-/// The "Próximos pagos" list: rows separated by a hairline divider instead
-/// of stacked bordered cards — urgency lives in the text color and a small
-/// circular accent dot, not in a boxed container.
-class _UpcomingList extends ConsumerWidget {
-  final List<PendingPayment> items;
-  const _UpcomingList({required this.items});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
-    final notifier = ref.read(creditsProvider.notifier);
-    return Column(
-      children: [
-        for (var i = 0; i < items.length; i++) ...[
-          _UpcomingRow(
-            item: items[i],
-            onTogglePaid: notifier.toggleInstallmentPaid,
-          ),
-          if (i != items.length - 1)
-            Divider(height: 1, color: kredit.borderCard),
-        ],
-      ],
-    );
-  }
-}
-
-/// A single "Próximos pagos" entry: entity name, amount, due date, and an
-/// urgency dot (overdue = red, due soon = amber, otherwise neutral) — no
-/// surrounding card.
-class _UpcomingRow extends StatelessWidget {
-  final PendingPayment item;
-  final void Function(String creditId, int installmentNumber) onTogglePaid;
-  const _UpcomingRow({required this.item, required this.onTogglePaid});
-
-  @override
-  Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
-    final isLoan = item.installment != null;
-    final daysLeft = item.daysUntilDue();
-
-    final Color urgencyColor;
-    final String urgencyLabel;
-
-    if (daysLeft < 0) {
-      urgencyColor = AppColors.danger;
-      urgencyLabel = 'Vencido hace ${daysLeft.abs()}d';
-    } else if (daysLeft == 0) {
-      urgencyColor = Colors.orange;
-      urgencyLabel = '¡Vence hoy!';
-    } else if (daysLeft <= 3) {
-      urgencyColor = Colors.amber;
-      urgencyLabel = 'En $daysLeft días';
-    } else {
-      urgencyColor = kredit.textTertiary;
-      urgencyLabel = 'En $daysLeft días';
-    }
-
-    final amountStr = isLoan
-        ? formatCOP(item.installment!.amount)
-        : (item.credit is CardCredit
-              ? formatCOP((item.credit as CardCredit).currentBalance)
-              : '');
-
-    return InkWell(
-      onTap: () => Navigator.of(
-        context,
-      ).pushNamed('/credit-detail', arguments: item.credit.id),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 6),
-        child: Row(
-          children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: urgencyColor,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.credit.name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: KreditTextSize.body,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${item.credit.lender} · $urgencyLabel',
-                    style: TextStyle(
-                      fontSize: KreditTextSize.body,
-                      color: urgencyColor,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  amountStr,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: KreditTextSize.body,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                if (isLoan)
-                  Builder(
-                    builder: (context) {
-                      // Luminance-based foreground so the button stays
-                      // legible on any accent color — same pattern used
-                      // for the FABs.
-                      final accentColor = Theme.of(context).colorScheme.primary;
-                      final fgColor = legibleForegroundOn(accentColor);
-                      return InkWell(
-                        onTap: () {
-                          HapticFeedback.mediumImpact();
-                          onTogglePaid(item.credit.id, item.installment!.number);
-                        },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: item.installment!.paid
-                                ? kredit.success.withValues(alpha: 0.16)
-                                : accentColor,
-                            borderRadius: BorderRadius.circular(
-                              KreditRadius.chip,
-                            ),
-                          ),
-                          child: Text(
-                            item.installment!.paid ? 'Pagado' : 'Marcar pago',
-                            style: TextStyle(
-                              fontSize: KreditTextSize.body,
-                              fontWeight: FontWeight.w700,
-                              color: item.installment!.paid
-                                  ? kredit.success
-                                  : fgColor,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  )
-                else
-                  Icon(
-                    Icons.chevron_right,
-                    size: KreditIconSize.small,
-                    color: kredit.textTertiary,
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Fila compacta de crédito para la lista del dashboard.
-/// Dot de color del banco · nombre + entidad · métrica clave + chevron.
+/// Fila unificada de crédito: dot del banco · nombre + entidad + urgencia ·
+/// métrica clave + chip "Marcar pago" (préstamos con pago próximo).
 class _CreditListRow extends StatelessWidget {
   final Credit credit;
   final VoidCallback onTap;
+  final PendingPayment? nextPayment;
+  final void Function(String creditId, int installmentNumber)? onTogglePaid;
 
-  const _CreditListRow({required this.credit, required this.onTap});
+  const _CreditListRow({
+    required this.credit,
+    required this.onTap,
+    this.nextPayment,
+    this.onTogglePaid,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -973,17 +679,42 @@ class _CreditListRow extends StatelessWidget {
     final isLoan = credit is LoanCredit;
 
     final String metricValue;
-    final String metricLabel;
     if (isCard) {
-      final c = credit as CardCredit;
-      metricValue = formatCOP(c.currentBalance);
-      metricLabel = 'saldo';
+      metricValue = formatCOP((credit as CardCredit).currentBalance);
     } else {
-      final l = credit as LoanCredit;
-      final remaining = l.installments.where((i) => !i.paid).length;
+      final remaining =
+          (credit as LoanCredit).installments.where((i) => !i.paid).length;
       metricValue = '$remaining';
-      metricLabel = remaining == 1 ? 'cuota' : 'cuotas';
     }
+
+    // Urgencia del próximo pago
+    Color? urgencyColor;
+    String? urgencyLabel;
+    if (nextPayment != null) {
+      final daysLeft = nextPayment!.daysUntilDue();
+      if (daysLeft < 0) {
+        urgencyColor = AppColors.danger;
+        urgencyLabel = 'Vencido hace ${daysLeft.abs()}d';
+      } else if (daysLeft == 0) {
+        urgencyColor = Colors.orange;
+        urgencyLabel = '¡Vence hoy!';
+      } else if (daysLeft <= 3) {
+        urgencyColor = Colors.amber;
+        urgencyLabel = 'En $daysLeft días';
+      } else {
+        urgencyColor = kredit.textTertiary;
+        urgencyLabel = 'En $daysLeft días';
+      }
+    }
+
+    final typeLabel = isCard ? 'Tarjeta' : isLoan ? 'Préstamo' : 'Crédito';
+    final subtitleParts = [bank.shortLabel, typeLabel];
+    if (urgencyLabel != null) subtitleParts.add(urgencyLabel);
+
+    final showMarkPaid = isLoan &&
+        nextPayment != null &&
+        nextPayment!.installment != null &&
+        onTogglePaid != null;
 
     return InkWell(
       onTap: onTap,
@@ -991,7 +722,6 @@ class _CreditListRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 11),
         child: Row(
           children: [
-            // Dot de color del banco
             Container(
               width: 10,
               height: 10,
@@ -1001,7 +731,6 @@ class _CreditListRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            // Nombre + entidad
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1018,11 +747,13 @@ class _CreditListRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 1),
                   Text(
-                    '${bank.shortLabel} · ${isCard ? 'Tarjeta' : isLoan ? 'Préstamo' : 'Crédito'}',
+                    subtitleParts.join(' · '),
                     style: TextStyle(
                       fontSize: KreditTextSize.body,
-                      color: kredit.textTertiary,
-                      fontWeight: FontWeight.w500,
+                      color: urgencyColor ?? kredit.textTertiary,
+                      fontWeight: urgencyLabel != null
+                          ? FontWeight.w600
+                          : FontWeight.w500,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1031,7 +762,6 @@ class _CreditListRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            // Métrica clave
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisSize: MainAxisSize.min,
@@ -1044,21 +774,140 @@ class _CreditListRow extends StatelessWidget {
                     fontFeatures: [FontFeature.tabularFigures()],
                   ),
                 ),
-                Text(
-                  metricLabel,
-                  style: TextStyle(
-                    fontSize: KreditTextSize.body,
+                const SizedBox(height: 4),
+                if (showMarkPaid)
+                  Builder(builder: (ctx) {
+                    final accentColor = Theme.of(ctx).colorScheme.primary;
+                    final fgColor = legibleForegroundOn(accentColor);
+                    final paid = nextPayment!.installment!.paid;
+                    return InkWell(
+                      onTap: () {
+                        HapticFeedback.mediumImpact();
+                        onTogglePaid!(
+                          credit.id,
+                          nextPayment!.installment!.number,
+                        );
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: paid
+                              ? kredit.success.withValues(alpha: 0.16)
+                              : accentColor,
+                          borderRadius:
+                              BorderRadius.circular(KreditRadius.chip),
+                        ),
+                        child: Text(
+                          paid ? 'Pagado' : 'Marcar pago',
+                          style: TextStyle(
+                            fontSize: KreditTextSize.body,
+                            fontWeight: FontWeight.w700,
+                            color: paid ? kredit.success : fgColor,
+                          ),
+                        ),
+                      ),
+                    );
+                  })
+                else
+                  Icon(
+                    Icons.chevron_right,
+                    size: 16,
                     color: kredit.textTertiary,
-                    fontWeight: FontWeight.w500,
                   ),
-                ),
               ],
             ),
-            const SizedBox(width: 4),
-            Icon(Icons.chevron_right, size: 16, color: kredit.textTertiary),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Sección unificada: encabezado "Tus créditos" + filas ordenadas por urgencia
+/// de pago, con chip "Marcar pago" integrado en cada fila de préstamo.
+class _CreditsSectionCard extends ConsumerWidget {
+  final List<Credit> credits;
+  final List<PendingPayment> upcoming;
+  final VoidCallback onSeeAll;
+
+  const _CreditsSectionCard({
+    required this.credits,
+    required this.upcoming,
+    required this.onSeeAll,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+
+    PendingPayment? nextFor(Credit c) =>
+        upcoming.where((p) => p.credit.id == c.id).firstOrNull;
+
+    final sorted = [...credits]..sort((a, b) {
+      final pa = nextFor(a);
+      final pb = nextFor(b);
+      if (pa == null && pb == null) return 0;
+      if (pa == null) return 1;
+      if (pb == null) return -1;
+      return pa.daysUntilDue().compareTo(pb.daysUntilDue());
+    });
+
+    return KreditSectionCard(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            const Text(
+              'Tus créditos',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: KreditTextSize.heading,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '${credits.length}',
+              style: TextStyle(
+                fontSize: KreditTextSize.body,
+                fontWeight: FontWeight.w600,
+                color: kredit.textTertiary,
+              ),
+            ),
+            const Spacer(),
+            TextButton(
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              onPressed: onSeeAll,
+              child: const Text(
+                'Ver todos',
+                style: TextStyle(fontSize: KreditTextSize.body),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        for (var i = 0; i < sorted.length; i++) ...[
+          if (i > 0) Divider(height: 1, color: kredit.borderCard),
+          _CreditListRow(
+            credit: sorted[i],
+            nextPayment: nextFor(sorted[i]),
+            onTogglePaid:
+                ref.read(creditsProvider.notifier).toggleInstallmentPaid,
+            onTap: () => Navigator.of(context).pushNamed(
+              '/credit-detail',
+              arguments: sorted[i].id,
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
@@ -1111,124 +960,3 @@ class _EmptyDashboard extends StatelessWidget {
   }
 }
 
-void _showAllUpcomingSheet(BuildContext context, List<PendingPayment> items) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (_) => ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      child: Material(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        child: _AllUpcomingPaymentsSheet(items: items),
-      ),
-    ),
-  );
-}
-
-class _AllUpcomingPaymentsSheet extends ConsumerWidget {
-  final List<PendingPayment> items;
-  const _AllUpcomingPaymentsSheet({required this.items});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
-    final accent = Theme.of(context).colorScheme.primary;
-
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.85,
-      ),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                margin: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  color: kredit.borderCard,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 12, 12),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.calendar_month_outlined,
-                    color: accent,
-                    size: KreditIconSize.small,
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Todos los próximos pagos',
-                    style: TextStyle(
-                      fontSize: KreditTextSize.heading,
-                      fontWeight: FontWeight.w700,
-                      color: kredit.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '(${items.length})',
-                    style: TextStyle(
-                      fontSize: KreditTextSize.body,
-                      fontWeight: FontWeight.w600,
-                      color: kredit.textTertiary,
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.close, size: KreditIconSize.small),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-            ),
-            Divider(height: 1, color: kredit.borderCard),
-            Flexible(
-              child: ListView.separated(
-                shrinkWrap: true,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                itemCount: items.length,
-                separatorBuilder: (context, index) =>
-                    Divider(height: 1, color: kredit.borderCard),
-                itemBuilder: (context, i) => _UpcomingRow(
-                  item: items[i],
-                  onTogglePaid: ref.read(creditsProvider.notifier).toggleInstallmentPaid,
-                ),
-              ),
-            ),
-            Divider(height: 1, color: kredit.borderCard),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  ref.read(navigationIndexProvider.notifier).state =
-                      AppNavTab.credits;
-                },
-                icon: const Icon(
-                  Icons.credit_card_outlined,
-                  size: KreditIconSize.small,
-                ),
-                label: const Text('Ver en lista de créditos'),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(44),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
