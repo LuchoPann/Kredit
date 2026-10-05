@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../theme/app_theme.dart' show KreditColors, KreditSpacing, KreditTextSize;
+import '../../theme/app_theme.dart';
 
-/// Static help content ported from legacy_pwa/INFO.md — lenguaje visual
-/// "sin cajas": jerarquía tipográfica (título de sección con más peso,
-/// cuerpo normal) y un Divider fino entre secciones, sin Container/Card con
-/// borde decorativo. Mismo patrón que dashboard_screen.dart.
 class HowItWorksScreen extends StatelessWidget {
   const HowItWorksScreen({super.key});
 
@@ -17,139 +13,219 @@ class HowItWorksScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(KreditSpacing.card),
         children: [
+          // ── Introducción ─────────────────────────────────────────────────
           const _Lead(
-            'Kredit es una aplicación 100% local para llevar el control de tus créditos '
-            '— tarjetas de crédito y préstamos — sin cuentas, sin nube y sin '
-            'servidores externos. Todos los datos se almacenan en tu dispositivo (SQLite local vía Drift).',
+            'Kredit es una aplicación 100 % local para llevar el control de tus '
+            'créditos — tarjetas, préstamos y cupos de tienda — sin cuentas, sin '
+            'nube y sin servidores externos. Todos los datos viven en tu dispositivo.',
           ),
           Divider(height: 1, color: kredit.borderCard),
-          _Section(
-            title: 'Los dos tipos de crédito',
+
+          // ── Tipos de crédito ─────────────────────────────────────────────
+          const _Section(
+            icon: Icons.credit_card_outlined,
+            title: 'Los tres tipos de crédito',
             body:
-                'Préstamo / Cuotas fijas: compras algo y pagas cuotas iguales con fecha '
-                'de finalización definida. El interés se incluye en la cuota; si pagas '
-                'una cuota antes de tiempo, esa cuota no genera intereses adicionales.\n\n'
-                'Tarjeta de crédito: saldo variable, con fecha de corte (cierre del ciclo) '
-                'y fecha límite de pago, intereses calculados diariamente sobre el saldo '
-                'y cuota de mantenimiento opcional.\n\n'
-                'La aplicación reconoce automáticamente múltiples entidades bancarias '
-                'y les aplica el diseño visual correspondiente.',
+                'Préstamo / Cuotas fijas: compraste algo y pagas cuotas iguales '
+                'hasta una fecha de terminación. El interés está incluido en la cuota; '
+                'si pagas antes de tiempo, esa cuota no genera intereses adicionales.\n\n'
+                'Tarjeta de crédito: saldo variable con fecha de corte y fecha límite '
+                'de pago. Los intereses se calculan diariamente sobre el saldo y existe '
+                'opción de cuota de mantenimiento mensual.\n\n'
+                'Cupo de tienda: funciona como un crédito rotativo en una tienda '
+                'específica (Alkosto, Falabella, Éxito, etc.). Registras compras '
+                'como "cargos" y abonos como "pagos"; Kredit genera un voucher visual '
+                'por cada movimiento para que tengas el comprobante a mano.',
           ),
           Divider(height: 1, color: kredit.borderCard),
-          _Section(
-            title: 'Una aproximación, no el número exacto del banco',
+
+          // ── Pantallas ────────────────────────────────────────────────────
+          const _Section(
+            icon: Icons.grid_view_outlined,
+            title: 'Las tres pantallas principales',
             body:
-                'Kredit calcula el cronograma de un préstamo con el sistema de '
-                'amortización francesa estándar (cuota fija, interés decreciente, '
-                'capital creciente) — el modelo matemático de referencia que usan la '
-                'mayoría de bancos y entidades de crédito. Es una muy buena '
-                'aproximación, pero no es una copia exacta del sistema interno de tu '
-                'banco.\n\n'
-                'Cada entidad puede aplicar sus propias reglas de redondeo, comisiones, '
-                'seguros o políticas de causación de intereses, así que tu cuota real '
-                'puede diferir en unos pesos de la que ves aquí. Esto es esperado y '
-                'normal — no significa que algo esté mal calculado.\n\n'
-                'La fuente de verdad siempre es el estado de cuenta o la app oficial de '
-                'tu banco. Usa Kredit para llevar el control y la planeación general de '
-                'tu deuda, y confirma cifras exactas (saldos a pagar, total de intereses, '
-                'fecha de terminación) directamente con tu entidad.',
+                'Dashboard: resumen de tu deuda total, ProgressRing con el porcentaje '
+                'pagado del mes, próximos vencimientos urgentes (resaltados en rojo '
+                'si vencen en 3 días o menos) y lista compacta de tus créditos '
+                'activos con el banco o tienda de cada uno.\n\n'
+                'Créditos: lista completa con buscador, ordenamiento y pestañas '
+                'Activos / Pagados. Toca cualquier crédito para ver su detalle.\n\n'
+                'Cuenta: foto de perfil editable, estadísticas generales, '
+                'personalización visual, herramientas de datos y acceso a configuración '
+                'de seguridad y respaldo.',
           ),
           Divider(height: 1, color: kredit.borderCard),
-          _Section(
-            title: 'Detector de tasa de usura',
+
+          // ── Registrar crédito ────────────────────────────────────────────
+          const _Section(
+            icon: Icons.add_circle_outline,
+            title: 'Registrar un crédito',
             body:
-                'Al registrar la tasa de interés de un crédito, Kredit la compara con '
-                'los rangos habituales del mercado colombiano y con el límite legal '
-                'de la tasa de usura vigente. Si el valor ingresado parece '
-                'inconsistente (por ejemplo, una tasa mensual escrita en el campo '
-                'anual, o un valor que supera el techo legal), la aplicación muestra '
-                'una advertencia — sin bloquear el guardado — para que puedas '
-                'verificar el dato.',
+                'Toca el botón "+" en la pantalla de Créditos. Kredit te pide primero '
+                'que elijas el tipo (préstamo, tarjeta o cupo de tienda) y luego la '
+                'entidad bancaria o tienda — esto define el diseño visual y los campos '
+                'disponibles.\n\n'
+                'Préstamo: ingresa el monto total, tasa de interés, número de cuotas '
+                'y fecha del primer pago. Kredit calcula el cronograma completo con '
+                'amortización francesa.\n\n'
+                'Tarjeta: ingresa el cupo total, saldo actual, tasa de interés, fecha '
+                'de corte y fecha límite de pago.\n\n'
+                'Cupo de tienda: ingresa el cupo máximo y el saldo actual disponible. '
+                'Puedes indicar el día de pago mensual.',
           ),
           Divider(height: 1, color: kredit.borderCard),
-          _Section(
+
+          // ── Registrar movimientos ────────────────────────────────────────
+          const _Section(
+            icon: Icons.swap_horiz_outlined,
+            title: 'Registrar pagos y movimientos',
+            body:
+                'Préstamo: en el detalle del crédito, abre la pestaña "Cronograma" '
+                'y marca la cuota como pagada. Si el monto que pagaste difiere del '
+                'calculado, puedes ingresar el valor real; la diferencia se abona '
+                'automáticamente a la siguiente cuota.\n\n'
+                'Tarjeta: abre el detalle y usa "Registrar movimiento" para agregar '
+                'un cargo (compra) o un pago. La aplicación recalcula el saldo e '
+                'intereses al instante.\n\n'
+                'Cupo de tienda: en la pestaña de movimientos registra compras y '
+                'abonos. Cada movimiento genera un voucher descargable con el detalle '
+                'de la transacción.',
+          ),
+          Divider(height: 1, color: kredit.borderCard),
+
+          // ── Abonos extra ─────────────────────────────────────────────────
+          const _Section(
+            icon: Icons.trending_down_outlined,
             title: 'Abonos extra a capital',
             body:
-                'En cualquier préstamo puedes registrar abonos extraordinarios, además '
-                'de las cuotas normales. Un abono se aplica directamente al capital '
-                'pendiente, reduciendo el saldo y adelantando cuotas futuras; si el '
-                'monto ingresado supera la deuda restante, se ajusta automáticamente '
-                'para que el préstamo quede saldado en cero sin perder el excedente. '
-                'El nuevo cronograma que resulta es un recálculo estimado — confirma '
-                'con tu banco el valor exacto de las próximas cuotas.\n\n'
-                'Si lo que pagaste en una cuota no coincide con el valor calculado por '
-                'Kredit, puedes registrar el monto real al marcarla como pagada: la '
-                'diferencia se aplica a la siguiente cuota pendiente, igual que un '
-                'abono.\n\n'
-                'Al registrar el abono puedes elegir entre "reducir cuota" (mismo número '
-                'de cuotas restantes, cada una más barata) o "reducir plazo" (misma '
-                'cuota, el crédito termina antes) — las dos estrategias reales que ofrece '
-                'un banco.',
+                'En cualquier préstamo puedes registrar un abono extraordinario desde '
+                'el menú del detalle. El monto se aplica directamente al capital '
+                'pendiente y Kredit recalcula el cronograma.\n\n'
+                'Al abonar puedes elegir entre dos estrategias:\n'
+                '• Reducir cuota: el préstamo termina en la misma fecha pero cada '
+                'cuota es más barata.\n'
+                '• Reducir plazo: la cuota se mantiene igual pero el préstamo '
+                'termina antes.\n\n'
+                'Si el monto del abono supera la deuda restante, Kredit lo ajusta '
+                'automáticamente para saldar el crédito en cero.',
           ),
           Divider(height: 1, color: kredit.borderCard),
-          _Section(
+
+          // ── Simulador ────────────────────────────────────────────────────
+          const _Section(
+            icon: Icons.calculate_outlined,
+            title: 'Simulador financiero',
+            body:
+                'Disponible en el detalle de cualquier crédito activo. Te permite '
+                'calcular el impacto de una acción futura sin afectar los datos reales:\n\n'
+                '• Compra adicional: ¿cuánto cambiaría la cuota si hago una compra '
+                'de X pesos?\n'
+                '• Abono extra: ¿cuánto ahorro en intereses si abono Y pesos hoy?\n\n'
+                'Los resultados son proyecciones estimadas — no modifican el crédito '
+                'hasta que confirmes la operación real.',
+          ),
+          Divider(height: 1, color: kredit.borderCard),
+
+          // ── Mora estimada ────────────────────────────────────────────────
+          const _Section(
+            icon: Icons.warning_amber_outlined,
             title: 'Mora estimada',
             body:
-                'Cuando una cuota queda vencida, Kredit muestra junto a ella un interés '
-                'moratorio ESTIMADO (interés simple diario sobre el saldo vencido) para '
-                'darte una idea de cuánto puede estar costando el atraso. Es un cálculo '
-                'simplificado, no la cifra real de tu banco — cada entidad tiene sus '
-                'propias reglas de mora (algunas la componen, otras cobran cargos fijos de '
-                'cobranza) y esta estimación no se suma al total de deuda mostrado en el '
-                'resto de la app. Confirma el valor real de la mora directamente con tu '
-                'banco.',
+                'Cuando una cuota queda vencida, Kredit muestra junto a ella un '
+                'interés moratorio estimado (interés simple diario sobre el saldo '
+                'vencido). Es una aproximación informativa — cada banco tiene sus '
+                'propias reglas de mora y este valor no se suma al total de deuda '
+                'mostrado en el resto de la app.',
           ),
           Divider(height: 1, color: kredit.borderCard),
-          _Section(
-            title: 'Las 3 pantallas principales',
+
+          // ── Detector usura ───────────────────────────────────────────────
+          const _Section(
+            icon: Icons.policy_outlined,
+            title: 'Detector de tasa de usura',
             body:
-                '1. Dashboard: resumen de deuda total, carrusel de tus tarjetas activas '
-                'y próximos vencimientos.\n\n'
-                '2. Créditos: lista completa con búsqueda, ordenamiento y pestañas de '
-                'Activos/Pagados.\n\n'
-                '3. Cuenta: perfil, estadísticas generales, personalización (color de '
-                'acento y tono de fondo) y herramientas de datos (exportar/importar '
-                'JSON, borrar todo).',
+                'Al registrar la tasa de interés, Kredit la compara con los rangos '
+                'habituales del mercado colombiano y con el límite legal vigente. Si '
+                'el valor parece inconsistente (por ejemplo, una tasa mensual escrita '
+                'en el campo anual), la app muestra una advertencia sin bloquear el '
+                'guardado. Siempre puedes confirmar la tasa directamente con tu entidad.',
           ),
           Divider(height: 1, color: kredit.borderCard),
-          _Section(
-            title: 'Flujo típico',
+
+          // ── Respaldo ─────────────────────────────────────────────────────
+          const _Section(
+            icon: Icons.backup_outlined,
+            title: 'Respaldo de datos',
             body:
-                'Agregar un crédito: presionas el botón "+" → eliges el tipo de crédito → '
-                'completas los datos → se guarda localmente.\n\n'
-                'Pagar: en un préstamo, seleccionas la cuota correspondiente (o usas "Registrar pago '
-                'total"); en una tarjeta, registras un "Cargo/Compra" o un "Pago" desde '
-                'su detalle — la aplicación recalcula el saldo y los intereses automáticamente.\n\n'
-                'Detalle de un crédito: Resumen (tarjeta visual y cifras clave), Notas '
-                '(dónde se compró, con qué cuenta se paga) y Cronograma (préstamos) / '
-                'Movimientos (tarjetas).',
+                'Kredit ofrece dos formas de respaldar tus datos:\n\n'
+                'Manual: desde Cuenta → Datos y respaldos, exporta un archivo JSON '
+                'con toda la información. Puedes importarlo en cualquier momento para '
+                'restaurar — la app pide confirmación antes de reemplazar los datos '
+                'actuales.\n\n'
+                'Automático: configura la frecuencia (diaria, semanal, quincenal o '
+                'mensual) y la hora del respaldo. Los archivos se guardan en la '
+                'carpeta Kredit/backups/ del almacenamiento interno del teléfono, al '
+                'mismo nivel que Descargas y Documentos. Puedes elegir entre '
+                'sobreescribir siempre el mismo archivo o crear uno nuevo por cada '
+                'respaldo.',
           ),
           Divider(height: 1, color: kredit.borderCard),
-          _Section(
-            title: 'Datos',
-            body:
-                'Puedes exportar todo a un archivo JSON de respaldo e importarlo '
-                'posteriormente (solicita confirmación antes de reemplazar los datos actuales). '
-                '"Borrar base de datos" en Zona de Peligro elimina todo de forma '
-                'permanente, previa confirmación.',
-          ),
-          Divider(height: 1, color: kredit.borderCard),
-          _Section(
+
+          // ── Seguridad ────────────────────────────────────────────────────
+          const _Section(
+            icon: Icons.security_outlined,
             title: 'Seguridad y privacidad',
             body:
-                'Puedes proteger la app con un PIN; tras varios intentos fallidos, '
-                'Kredit aplica un tiempo de espera progresivo antes de dejarte '
-                'intentar de nuevo. El widget de inicio también respeta tu '
-                'privacidad: los montos aparecen ocultos por defecto hasta que '
-                'decides mostrarlos.',
+                'Puedes proteger la apertura de Kredit con:\n'
+                '• PIN: código numérico de 4 a 6 dígitos.\n'
+                '• Biometría: huella dactilar o reconocimiento facial (si el '
+                'dispositivo lo soporta).\n\n'
+                'Tras varios intentos fallidos, la app aplica un tiempo de espera '
+                'progresivo antes de dejarte intentar de nuevo.\n\n'
+                'El widget de pantalla de inicio respeta tu privacidad: los montos '
+                'aparecen ocultos por defecto. Puedes activar su visibilidad desde '
+                'Cuenta → Seguridad.',
           ),
           Divider(height: 1, color: kredit.borderCard),
-          _Section(
-            title: 'Sin conexión',
+
+          // ── Personalización ──────────────────────────────────────────────
+          const _Section(
+            icon: Icons.palette_outlined,
+            title: 'Personalización',
             body:
-                'Al no depender de un servidor externo ni de la nube, Kredit funciona '
-                'completamente sin conexión a internet: todos tus datos permanecen guardados en el '
-                'dispositivo.',
+                'Desde Cuenta → Apariencia puedes ajustar:\n'
+                '• Tema: claro (Puro, Nube o Arena) u oscuro.\n'
+                '• Color de acento: el color principal de botones, iconos y '
+                'elementos destacados en toda la app.\n'
+                '• Foto y nombre de perfil: visibles en el header de la pantalla '
+                'de cuenta y en el dashboard.',
+          ),
+          Divider(height: 1, color: kredit.borderCard),
+
+          // ── Aproximación ─────────────────────────────────────────────────
+          const _Section(
+            icon: Icons.info_outline,
+            title: 'Una aproximación, no el número exacto del banco',
+            body:
+                'Kredit usa amortización francesa estándar (cuota fija, interés '
+                'decreciente, capital creciente) — el modelo de referencia de la '
+                'mayoría de entidades. Tu cuota real puede diferir en unos pesos '
+                'por redondeos, seguros o comisiones propias de cada banco.\n\n'
+                'La fuente de verdad es siempre el estado de cuenta o la app oficial '
+                'de tu entidad. Usa Kredit para planear y controlar tu deuda; '
+                'confirma las cifras exactas directamente con el banco.',
+          ),
+          Divider(height: 1, color: kredit.borderCard),
+
+          // ── Sin conexión ─────────────────────────────────────────────────
+          const _Section(
+            icon: Icons.wifi_off_outlined,
+            title: 'Sin conexión, sin cuentas',
+            body:
+                'Kredit no requiere internet ni registro. Todos los datos se '
+                'almacenan localmente en tu dispositivo mediante SQLite (Drift). '
+                'La app funciona completamente sin conexión y ninguna información '
+                'tuya sale del teléfono.',
           ),
           const SizedBox(height: KreditSpacing.section),
         ],
@@ -172,7 +248,7 @@ class _Lead extends StatelessWidget {
         style: TextStyle(
           fontSize: KreditTextSize.heading,
           fontWeight: FontWeight.w600,
-          height: 1.5,
+          height: 1.55,
           color: kredit.textPrimary,
         ),
       ),
@@ -181,33 +257,43 @@ class _Lead extends StatelessWidget {
 }
 
 class _Section extends StatelessWidget {
+  final IconData icon;
   final String title;
   final String body;
-  const _Section({required this.title, required this.body});
+  const _Section({required this.icon, required this.title, required this.body});
 
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accent = Theme.of(context).colorScheme.primary;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: KreditTextSize.heading,
-              fontWeight: FontWeight.w700,
-              color: kredit.textPrimary,
-              letterSpacing: 0.1,
-            ),
+          Row(
+            children: [
+              Icon(icon, size: KreditIconSize.small, color: accent),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: KreditTextSize.heading,
+                    fontWeight: FontWeight.w700,
+                    color: kredit.textPrimary,
+                    letterSpacing: 0.1,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Text(
             body,
             style: TextStyle(
               fontSize: KreditTextSize.body,
-              height: 1.5,
+              height: 1.55,
               color: kredit.textSecondary,
             ),
           ),
