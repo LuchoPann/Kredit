@@ -60,7 +60,7 @@ Future<void> _markAllPaid(
 
 class _ScheduleTabState extends ConsumerState<ScheduleTab> {
   bool _paidExpanded = false;
-  bool _abonosExpanded = false;
+  bool _abonosExpanded = true;
 
   @override
   Widget build(BuildContext context) {
@@ -377,13 +377,35 @@ class _AbonoTile extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Text(
-            '-${formatCOP(abono.amount)}',
-            style: TextStyle(
-              fontWeight: FontWeight.w800,
-              fontSize: KreditTextSize.body,
-              color: accent,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (impact != null)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: kredit.success.withValues(alpha: 0.13),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    'Reciente',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: kredit.success,
+                    ),
+                  ),
+                ),
+              Text(
+                '-${formatCOP(abono.amount)}',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: KreditTextSize.body,
+                  color: accent,
+                ),
+              ),
+            ],
           ),
           IconButton(
             icon: Icon(

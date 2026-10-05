@@ -882,7 +882,24 @@ class _ExtraPaymentTabState extends ConsumerState<_ExtraPaymentTab> {
             : 'Abono de \$${abono.amount.toStringAsFixed(0)} registrado'
                 '${skipped > 0 ? ' — $skipped cuota(s) adelantada(s)' : ''}';
         navigator.pop();
-        messenger.showSnackBar(SnackBar(content: Text(message)));
+        final creditId = result.credit.id;
+        final capturedAbono = abono;
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(message),
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: 'DESHACER',
+              onPressed: () async {
+                try {
+                  await ref
+                      .read(creditsProvider.notifier)
+                      .deleteLoanAbono(creditId, capturedAbono);
+                } catch (_) {}
+              },
+            ),
+          ),
+        );
       } else {
         await ref.read(creditsProvider.notifier).registerMovement(
               result.credit.id,
