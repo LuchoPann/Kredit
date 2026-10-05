@@ -1518,7 +1518,9 @@ class _StrategySelectorState extends State<_StrategySelector> {
                     'Pueden existir otras variables que esta app no contempla. '
                     'Consulta siempre con tu entidad financiera antes de actuar.',
                     style: TextStyle(
-                        fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+                        fontSize: KreditTextSize.caption,
+                        fontStyle: FontStyle.italic,
+                        color: kredit.textTertiary),
                   ),
                 ),
               ],
@@ -2690,23 +2692,29 @@ class _FreedomResultCard extends StatelessWidget {
                   ),
                 ),
               ] else ...[
-                Divider(height: 1, color: kredit.borderCard),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: kredit.bgCard,
+                    borderRadius: BorderRadius.circular(KreditRadius.tile),
+                    border: Border.all(color: kredit.borderCard),
+                  ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Icon(Icons.info_outline,
-                          size: KreditIconSize.small,
+                          size: 14,
                           color: kredit.textTertiary),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'Con ese monto el impacto es marginal. Aumenta el abono extra para ver una diferencia mayor.',
                           style: TextStyle(
-                            fontSize: KreditTextSize.body,
-                            color: kredit.textSecondary,
+                            fontSize: KreditTextSize.caption,
+                            fontStyle: FontStyle.italic,
+                            color: kredit.textTertiary,
                           ),
                         ),
                       ),
@@ -2719,21 +2727,31 @@ class _FreedomResultCard extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         // Nota de estimación
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(Icons.info_outline,
-                size: 13, color: kredit.textTertiary),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                'Proyección estimada. Sujeta a cambios según los pagos reales realizados.',
-                style: TextStyle(
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 12),
+          decoration: BoxDecoration(
+            color: kredit.bgCard,
+            borderRadius: BorderRadius.circular(KreditRadius.tile),
+            border: Border.all(color: kredit.borderCard),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.info_outline, size: 14, color: kredit.textTertiary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Proyección estimada. Sujeta a cambios según los pagos reales realizados.',
+                  style: TextStyle(
                     fontSize: KreditTextSize.caption,
-                    color: kredit.textTertiary),
+                    fontStyle: FontStyle.italic,
+                    color: kredit.textTertiary,
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         const SizedBox(height: 10),
         // ── Orden de pago ─────────────────────────────────────────────────
@@ -3046,16 +3064,31 @@ class _InfoBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, color: kredit.textTertiary, size: KreditIconSize.small),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(text,
-              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary)),
-        ),
-      ],
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 12),
+      decoration: BoxDecoration(
+        color: kredit.bgCard,
+        borderRadius: BorderRadius.circular(KreditRadius.tile),
+        border: Border.all(color: kredit.borderCard),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: kredit.textTertiary, size: 14),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: KreditTextSize.caption,
+                fontStyle: FontStyle.italic,
+                color: kredit.textTertiary,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -3066,19 +3099,32 @@ class _DisclaimerBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(Icons.info_outline, size: KreditIconSize.small, color: kredit.textTertiary),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Text(
-            'Simulación aproximada con base en los datos registrados. '
-            'Consulta con tu entidad financiera para información oficial.',
-            style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 12),
+      decoration: BoxDecoration(
+        color: kredit.bgCard,
+        borderRadius: BorderRadius.circular(KreditRadius.tile),
+        border: Border.all(color: kredit.borderCard),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, size: 14, color: kredit.textTertiary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Simulación aproximada con base en los datos registrados. '
+              'Consulta con tu entidad financiera para información oficial.',
+              style: TextStyle(
+                fontSize: KreditTextSize.caption,
+                fontStyle: FontStyle.italic,
+                color: kredit.textTertiary,
+              ),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

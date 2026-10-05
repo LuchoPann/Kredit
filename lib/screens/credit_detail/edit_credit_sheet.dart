@@ -1093,7 +1093,7 @@ Widget _warningBanner(String message, KreditColors kredit) => Container(
       Expanded(
         child: Text(
           message,
-          style: TextStyle(fontSize: 12, color: kredit.textSecondary),
+          style: TextStyle(fontSize: KreditTextSize.caption, fontStyle: FontStyle.italic, color: kredit.textSecondary),
         ),
       ),
     ],

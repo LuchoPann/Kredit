@@ -822,31 +822,41 @@ class _RegisterPaymentSheetState extends ConsumerState<_RegisterPaymentSheet> {
             ),
             if (_diff.abs() >= 0.5) ...[
               const SizedBox(height: 10),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    size: KreditIconSize.small,
-                    color: kredit.textTertiary,
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      _diff > 0
-                          ? 'Pagaste ${formatCOP(_diff)} menos de lo calculado — ese '
-                                'faltante (estimado) se sumará al capital de la siguiente '
-                                'cuota pendiente.'
-                          : 'Pagaste ${formatCOP(-_diff)} más de lo calculado — ese '
-                                'excedente (estimado) se restará del capital de la '
-                                'siguiente cuota pendiente.',
-                      style: TextStyle(
-                        fontSize: KreditTextSize.body,
-                        color: kredit.textTertiary,
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: kredit.bgCard,
+                  borderRadius: BorderRadius.circular(KreditRadius.tile),
+                  border: Border.all(color: kredit.borderCard),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 14,
+                      color: kredit.textTertiary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _diff > 0
+                            ? 'Pagaste ${formatCOP(_diff)} menos de lo calculado — ese '
+                                  'faltante (estimado) se sumará al capital de la siguiente '
+                                  'cuota pendiente.'
+                            : 'Pagaste ${formatCOP(-_diff)} más de lo calculado — ese '
+                                  'excedente (estimado) se restará del capital de la '
+                                  'siguiente cuota pendiente.',
+                        style: TextStyle(
+                          fontSize: KreditTextSize.caption,
+                          fontStyle: FontStyle.italic,
+                          color: kredit.textTertiary,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
             const SizedBox(height: 20),
