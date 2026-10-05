@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/models/card_movement.dart';
 import '../../data/models/credit.dart';
 import '../../domain/date_utils.dart';
+import '../../domain/interest_rate.dart';
 import '../../domain/loan_calculator.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
@@ -26,6 +27,106 @@ String _fmtCOP(double v) {
     buf.write(s[i]);
   }
   return '\$${buf.toString()}';
+}
+
+// ── Freedom tab helpers ───────────────────────────────────────────────────────
+
+String _monthsToDateStr(int months) {
+  if (months <= 0) return 'Ya saldado';
+  if (months >= 600) return 'Más de 50 años';
+  final date = DateTime.now().add(Duration(days: months * 30));
+  const names = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  return '${names[date.month - 1]} ${date.year}';
+}
+
+String _monthsLabel(int months) {
+  if (months <= 0) return 'saldado';
+  if (months == 1) return '1 mes';
+  return '$months meses';
+}
+
+double _remainingBalanceOf(Credit credit) {
+  if (credit is LoanCredit) return getLoanRemainingPrincipal(credit);
+  if (credit is CardCredit) return credit.currentBalance;
+  return 0;
+}
+
+double _remainingInterestOf(Credit credit) {
+  if (credit is LoanCredit) {
+    return credit.installments
+        .where((i) => !i.paid)
+        .fold(0.0, (s, i) => s + i.interest);
+  }
+  if (credit is CardCredit) {
+    final dailyRate =
+        credit.interestRate > 0 ? credit.interestRate / 100 / 365 : 0.0;
+    final monthlyRate = dailyRate * 30;
+    var balance = credit.currentBalance;
+    var totalInterest = 0.0;
+    var months = 0;
+    while (balance > 0 && months < 600) {
+      final interest = balance * monthlyRate;
+      totalInterest += interest;
+      final minPay = math.max(balance * 0.02, 50000.0);
+      if (minPay >= balance + interest) break;
+      balance = balance + interest - minPay;
+      months++;
+    }
+    return totalInterest;
+  }
+  return 0;
+}
+
+double _monthlyBaseOf(Credit credit) {
+  if (credit is LoanCredit) return credit.quotaAmount;
+  if (credit is CardCredit) return math.max(credit.currentBalance * 0.02, 50000.0);
+  return 0;
+}
+
+double _interestRateOf(Credit c) {
+  if (c is LoanCredit) return c.interestRate;
+  if (c is CardCredit) return c.interestRate;
+  return 0;
+}
+
+int _monthsWithPayment(Credit credit, double monthlyPayment) {
+  if (monthlyPayment <= 0) return 600;
+  if (credit is LoanCredit) {
+    final unpaid = credit.installments.where((i) => !i.paid).toList();
+    if (unpaid.isEmpty) return 0;
+    final balance = unpaid.fold(0.0, (s, i) => s + i.principal);
+    if (balance <= 0) return 0;
+    final periodRate = periodicRateFrom(
+        credit.interestRate, credit.interestRateType, credit.frequency);
+    if (periodRate <= 0) return (balance / monthlyPayment).ceil().clamp(1, 600);
+    if (monthlyPayment <= balance * periodRate) return 600;
+    final n =
+        math.log(monthlyPayment / (monthlyPayment - balance * periodRate)) /
+            math.log(1 + periodRate);
+    if (n.isNaN || n.isInfinite || n < 0) return 600;
+    return n.ceil().clamp(1, 600);
+  }
+  if (credit is CardCredit) {
+    var balance = credit.currentBalance;
+    if (balance <= 0) return 0;
+    final dailyRate =
+        credit.interestRate > 0 ? credit.interestRate / 100 / 365 : 0.0;
+    final monthlyRate = dailyRate * 30;
+    var months = 0;
+    while (balance > 0 && months < 600) {
+      final interest = balance * monthlyRate;
+      final payment =
+          math.max(monthlyPayment, math.max(balance * 0.02, 50000.0));
+      if (payment >= balance + interest) {
+        months++;
+        break;
+      }
+      balance = balance + interest - payment;
+      months++;
+    }
+    return months;
+  }
+  return 0;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -81,7 +182,7 @@ class _SimulatorSheetState extends ConsumerState<SimulatorSheet>
             return 0;
           }()
         : 0;
-    _tabCtrl = TabController(length: 2, vsync: this, initialIndex: initialIndex);
+    _tabCtrl = TabController(length: 3, vsync: this, initialIndex: initialIndex);
   }
 
   @override
@@ -149,6 +250,7 @@ class _SimulatorSheetState extends ConsumerState<SimulatorSheet>
             tabs: const [
               Tab(icon: Icon(Icons.shopping_cart_outlined, size: KreditIconSize.small), text: 'Simular compra'),
               Tab(icon: Icon(Icons.payments_outlined, size: KreditIconSize.small), text: 'Abonar extra'),
+              Tab(icon: Icon(Icons.rocket_launch_outlined, size: KreditIconSize.small), text: 'Libertad'),
             ],
           ),
           // Content
@@ -162,6 +264,7 @@ class _SimulatorSheetState extends ConsumerState<SimulatorSheet>
                   scrollController: scrollController,
                   initialCreditId: widget.initialCreditId,
                 ),
+                _FreedomTab(credits: credits, scrollController: scrollController),
               ],
             ),
           ),
@@ -804,6 +907,83 @@ class _PaymentResult {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Freedom tab data model
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _FreedomRow {
+  final Credit credit;
+  final double monthlyBase;
+  final double monthlyExtra;
+  final int baseMonths;
+  final int newMonths;
+  final double baseInterest;
+
+  const _FreedomRow({
+    required this.credit,
+    required this.monthlyBase,
+    required this.monthlyExtra,
+    required this.baseMonths,
+    required this.newMonths,
+    required this.baseInterest,
+  });
+
+  int get monthsSaved => (baseMonths - newMonths).clamp(0, 600);
+
+  double get interestSaved {
+    if (monthlyExtra <= 0 || baseMonths <= 0) return 0;
+    return baseInterest * (monthsSaved / baseMonths);
+  }
+}
+
+class _FreedomResult {
+  final List<_FreedomRow> rows;
+  final double totalBaseInterest;
+
+  const _FreedomResult({required this.rows, required this.totalBaseInterest});
+
+  int get baseMonthsTotal =>
+      rows.isEmpty ? 0 : rows.map((r) => r.baseMonths).reduce(math.max);
+
+  double get totalInterestSaved => rows.fold(0.0, (s, r) => s + r.interestSaved);
+}
+
+_FreedomResult _computeFreedom(
+    List<Credit> credits, double extraMonthly, bool isAvalanche) {
+  final active = credits.where((c) {
+    if (c is LoanCredit) return c.installments.any((i) => !i.paid);
+    if (c is CardCredit) return c.currentBalance > 0;
+    return false;
+  }).toList();
+  if (active.isEmpty) {
+    return const _FreedomResult(rows: [], totalBaseInterest: 0);
+  }
+  active.sort((a, b) => isAvalanche
+      ? _interestRateOf(b).compareTo(_interestRateOf(a))
+      : _remainingBalanceOf(a).compareTo(_remainingBalanceOf(b)));
+  final rows = <_FreedomRow>[];
+  double totalBaseInterest = 0;
+  for (var i = 0; i < active.length; i++) {
+    final credit = active[i];
+    final base = _monthlyBaseOf(credit);
+    final extra = i == 0 ? extraMonthly : 0.0;
+    final baseMonths = _monthsWithPayment(credit, base);
+    final newMonths =
+        extra > 0 ? _monthsWithPayment(credit, base + extra) : baseMonths;
+    final baseInterest = _remainingInterestOf(credit);
+    totalBaseInterest += baseInterest;
+    rows.add(_FreedomRow(
+      credit: credit,
+      monthlyBase: base,
+      monthlyExtra: extra,
+      baseMonths: baseMonths,
+      newMonths: newMonths,
+      baseInterest: baseInterest,
+    ));
+  }
+  return _FreedomResult(rows: rows, totalBaseInterest: totalBaseInterest);
+}
+
 /// Fila de chips con montos típicos ($50k/$100k/$200k) para no tener que
 /// escribir el número a mano cada vez — pedido explícito de la Tarea 2 del
 /// roadmap ("Simulador fuerte").
@@ -1231,6 +1411,495 @@ class _PaymentResultCardState extends ConsumerState<_PaymentResultCard> {
           style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
         ),
       ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TAB C — Libertad financiera
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _FreedomTab extends StatefulWidget {
+  final List<Credit> credits;
+  final ScrollController scrollController;
+  const _FreedomTab({required this.credits, required this.scrollController});
+
+  @override
+  State<_FreedomTab> createState() => _FreedomTabState();
+}
+
+class _FreedomTabState extends State<_FreedomTab> {
+  final _extraCtrl = TextEditingController();
+  bool _isAvalanche = true;
+  _FreedomResult? _result;
+
+  @override
+  void dispose() {
+    _extraCtrl.dispose();
+    super.dispose();
+  }
+
+  void _simulate() {
+    final extra =
+        double.tryParse(CurrencyInputFormatter.unformat(_extraCtrl.text)) ?? 0;
+    setState(() {
+      _result = _computeFreedom(widget.credits, extra, _isAvalanche);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accent = Theme.of(context).colorScheme.primary;
+
+    final active = widget.credits.where((c) {
+      if (c is LoanCredit) return c.installments.any((i) => !i.paid);
+      if (c is CardCredit) return c.currentBalance > 0;
+      return false;
+    }).toList();
+
+    if (active.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(24),
+        child: _InfoBanner(
+          kredit: kredit,
+          icon: Icons.celebration_outlined,
+          text: '¡No tienes deudas activas! Aquí verás tu proyección de libertad financiera cuando registres créditos.',
+        ),
+      );
+    }
+
+    final baseline = _computeFreedom(active, 0, _isAvalanche);
+
+    return ListView(
+      controller: widget.scrollController,
+      padding: const EdgeInsets.all(20),
+      children: [
+        _BaselineCard(baseline: baseline, kredit: kredit, accent: accent),
+        const SizedBox(height: 20),
+        Text(
+          '¿Cuánto extra puedes pagar al mes?',
+          style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: KreditTextSize.body,
+              color: kredit.textPrimary),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _extraCtrl,
+          keyboardType: TextInputType.number,
+          inputFormatters: const [CurrencyInputFormatter()],
+          decoration: const InputDecoration(
+            labelText: 'Abono extra mensual (\$)',
+            prefixText: '\$ ',
+          ),
+          onChanged: (_) => setState(() => _result = null),
+        ),
+        const SizedBox(height: 10),
+        _QuickAmountRow(
+          kredit: kredit,
+          onPick: (amount) => setState(() {
+            _extraCtrl.text = CurrencyInputFormatter.format(amount);
+            _result = null;
+          }),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Estrategia de pago',
+          style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: KreditTextSize.body,
+              color: kredit.textPrimary),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Avalanche: mayor tasa primero (ahorra más). Snowball: menor saldo primero (motivación más rápida).',
+          style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+        ),
+        const SizedBox(height: 8),
+        _StrategyToggle(
+          isAvalanche: _isAvalanche,
+          onChanged: (v) => setState(() {
+            _isAvalanche = v;
+            _result = null;
+          }),
+          kredit: kredit,
+          accent: accent,
+        ),
+        const SizedBox(height: 20),
+        FilledButton.icon(
+          onPressed: _simulate,
+          icon: const Icon(Icons.auto_graph_outlined),
+          label: const Text('Proyectar libertad'),
+        ),
+        if (_result != null) ...[
+          const SizedBox(height: 24),
+          _FreedomResultCard(result: _result!, kredit: kredit, accent: accent),
+        ],
+        const SizedBox(height: 16),
+        _DisclaimerBanner(kredit: kredit),
+      ],
+    );
+  }
+}
+
+class _BaselineCard extends StatelessWidget {
+  final _FreedomResult baseline;
+  final KreditColors kredit;
+  final Color accent;
+  const _BaselineCard(
+      {required this.baseline, required this.kredit, required this.accent});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: _withDividers(kredit, [
+        _ResultRow(
+          icon: Icons.event_outlined,
+          label: 'Fecha estimada libre de deuda',
+          value: _monthsToDateStr(baseline.baseMonthsTotal),
+          valueColor: kredit.textPrimary,
+          kredit: kredit,
+        ),
+        _ResultRow(
+          icon: Icons.trending_up_outlined,
+          label: 'Intereses pendientes totales',
+          value: _fmtCOP(baseline.totalBaseInterest),
+          valueColor: Colors.redAccent,
+          kredit: kredit,
+        ),
+        _ResultRow(
+          icon: Icons.credit_card_outlined,
+          label: 'Créditos activos',
+          value: '${baseline.rows.length} crédito${baseline.rows.length == 1 ? '' : 's'}',
+          valueColor: kredit.textPrimary,
+          kredit: kredit,
+        ),
+      ]),
+    );
+  }
+}
+
+class _FreedomResultCard extends StatelessWidget {
+  final _FreedomResult result;
+  final KreditColors kredit;
+  final Color accent;
+  const _FreedomResultCard(
+      {required this.result, required this.kredit, required this.accent});
+
+  @override
+  Widget build(BuildContext context) {
+    final first = result.rows.first;
+    final monthsSaved = first.monthsSaved;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (monthsSaved > 0) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(KreditRadius.card),
+              border: Border.all(color: accent.withValues(alpha: 0.25)),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  '$monthsSaved meses antes',
+                  style: TextStyle(
+                    fontSize: KreditTextSize.emphasis,
+                    fontWeight: FontWeight.w800,
+                    color: accent,
+                  ),
+                ),
+                Text(
+                  'terminarías ${first.credit.name}',
+                  style: TextStyle(
+                      fontSize: KreditTextSize.body, color: kredit.textSecondary),
+                  textAlign: TextAlign.center,
+                ),
+                if (result.totalInterestSaved > 0) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.savings_outlined,
+                          size: KreditIconSize.small, color: kredit.success),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Ahorras ${_fmtCOP(result.totalInterestSaved)} en intereses',
+                        style: TextStyle(
+                          fontSize: KreditTextSize.body,
+                          fontWeight: FontWeight.w600,
+                          color: kredit.success,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+        ] else ...[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.info_outline,
+                  size: KreditIconSize.small, color: kredit.textTertiary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Con ese monto el ahorro es marginal. Aumenta el abono extra para ver un impacto mayor.',
+                  style: TextStyle(
+                      fontSize: KreditTextSize.body, color: kredit.textTertiary),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+        ],
+        Text(
+          'Orden de pago recomendado',
+          style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: KreditTextSize.body,
+              color: kredit.textPrimary),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: kredit.borderCard.withValues(alpha: 0.78)),
+            borderRadius: BorderRadius.circular(KreditRadius.card),
+          ),
+          child: Column(
+            children: [
+              for (var i = 0; i < result.rows.length; i++)
+                _FreedomCreditTile(
+                  row: result.rows[i],
+                  index: i,
+                  isLast: i == result.rows.length - 1,
+                  kredit: kredit,
+                  accent: accent,
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FreedomCreditTile extends StatelessWidget {
+  final _FreedomRow row;
+  final int index;
+  final bool isLast;
+  final KreditColors kredit;
+  final Color accent;
+  const _FreedomCreditTile({
+    required this.row,
+    required this.index,
+    required this.isLast,
+    required this.kredit,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isPriority = index == 0 && row.monthlyExtra > 0;
+    final saved = row.monthsSaved;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isPriority ? accent.withValues(alpha: 0.06) : null,
+        border: isLast
+            ? null
+            : Border(
+                bottom:
+                    BorderSide(color: kredit.borderCard.withValues(alpha: 0.5))),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              color: isPriority
+                  ? accent
+                  : kredit.borderCard.withValues(alpha: 0.5),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                '${index + 1}',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: isPriority ? Colors.white : kredit.textTertiary,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  row.credit.name,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: KreditTextSize.body,
+                    color: kredit.textPrimary,
+                  ),
+                ),
+                Text(
+                  isPriority
+                      ? '${_fmtCOP(row.monthlyBase + row.monthlyExtra)}/mes · terminas en ${_monthsLabel(row.newMonths)}'
+                      : '${_fmtCOP(row.monthlyBase)}/mes · ${_monthsLabel(row.baseMonths)}',
+                  style: TextStyle(
+                      fontSize: KreditTextSize.body, color: kredit.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          if (saved > 0) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: kredit.success.withValues(alpha: 0.13),
+                borderRadius: BorderRadius.circular(KreditRadius.chip),
+              ),
+              child: Text(
+                '-$saved m',
+                style: TextStyle(
+                  color: kredit.success,
+                  fontWeight: FontWeight.w700,
+                  fontSize: KreditTextSize.caption,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _StrategyToggle extends StatelessWidget {
+  final bool isAvalanche;
+  final ValueChanged<bool> onChanged;
+  final KreditColors kredit;
+  final Color accent;
+  const _StrategyToggle({
+    required this.isAvalanche,
+    required this.onChanged,
+    required this.kredit,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: kredit.borderCard.withValues(alpha: 0.78)),
+        borderRadius: BorderRadius.circular(KreditRadius.card),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _StrategyOption(
+              label: 'Avalanche',
+              description: 'Mayor tasa primero',
+              icon: Icons.local_fire_department_outlined,
+              selected: isAvalanche,
+              onTap: () => onChanged(true),
+              kredit: kredit,
+              accent: accent,
+              isLeft: true,
+            ),
+          ),
+          Container(width: 1, color: kredit.borderCard),
+          Expanded(
+            child: _StrategyOption(
+              label: 'Snowball',
+              description: 'Menor saldo primero',
+              icon: Icons.ac_unit_outlined,
+              selected: !isAvalanche,
+              onTap: () => onChanged(false),
+              kredit: kredit,
+              accent: accent,
+              isLeft: false,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StrategyOption extends StatelessWidget {
+  final String label;
+  final String description;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+  final KreditColors kredit;
+  final Color accent;
+  final bool isLeft;
+  const _StrategyOption({
+    required this.label,
+    required this.description,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+    required this.kredit,
+    required this.accent,
+    required this.isLeft,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.horizontal(
+      left: isLeft ? Radius.circular(KreditRadius.card - 1) : Radius.zero,
+      right: isLeft ? Radius.zero : Radius.circular(KreditRadius.card - 1),
+    );
+    return InkWell(
+      onTap: onTap,
+      borderRadius: radius,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: BoxDecoration(
+          color: selected ? accent.withValues(alpha: 0.1) : null,
+          borderRadius: radius,
+        ),
+        child: Column(
+          children: [
+            Icon(icon,
+                color: selected ? accent : kredit.textTertiary,
+                size: KreditIconSize.small),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: KreditTextSize.body,
+                color: selected ? accent : kredit.textPrimary,
+              ),
+            ),
+            Text(
+              description,
+              style: TextStyle(
+                  fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -29,6 +29,16 @@ enum ChangeType { nuevo, mejora, correccion }
 
 const List<VersionEntry> changelog = [
   VersionEntry(
+    version: '0.9.2',
+    date: 'Octubre 2026',
+    changes: [
+      ChangeItem(ChangeType.nuevo,
+          'Simulador: nuevo tab "Libertad" que proyecta tu fecha libre de deuda y cuánto ahorras en intereses si pagas un monto extra al mes.'),
+      ChangeItem(ChangeType.nuevo,
+          'Estrategias Avalanche y Snowball en el simulador: elige si prefieres pagar primero la deuda de mayor tasa (ahorra más) o la de menor saldo (motivación más rápida).'),
+    ],
+  ),
+  VersionEntry(
     version: '0.9.1',
     date: 'Octubre 2026',
     changes: [
