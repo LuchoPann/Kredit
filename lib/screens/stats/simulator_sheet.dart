@@ -1193,13 +1193,13 @@ class _ThreeScenariosCard extends StatelessWidget {
                       ? 'Tu cuota baja de ${_fmtCOP(baseline.quota)} a '
                           '${_fmtCOP(others[i].quota)} — sigues pagando '
                           '${others[i].remainingInstallments} cuota(s), pero '
-                          'cada una más liviana. Ahorras aprox. '
-                          '${_fmtCOP(others[i].interestSaved)} en intereses.'
+                          'cada una más liviana.'
+                          '${others[i].interestSaved > 0 ? ' Ahorras aprox. ${_fmtCOP(others[i].interestSaved)} en intereses.' : ' No hay ahorro en intereses.'}'
                       : 'Terminas ${others[i].installmentsSaved} cuota(s) antes '
                           '(${formatDate(others[i].payoffDate)} en vez de '
                           '${formatDate(baseline.payoffDate)}) — misma cuota de '
-                          '${_fmtCOP(others[i].quota)}. Ahorras aprox. '
-                          '${_fmtCOP(others[i].interestSaved)} en intereses.',
+                          '${_fmtCOP(others[i].quota)}.'
+                          '${others[i].interestSaved > 0 ? ' Ahorras aprox. ${_fmtCOP(others[i].interestSaved)} en intereses.' : ' No hay ahorro en intereses.'}',
                   highlight: true,
                   isFirst: false,
                   isLast: i == others.length - 1,
@@ -1338,7 +1338,9 @@ class _ScenarioComparisonTable extends StatelessWidget {
                         child: Text(
                           scenarios[i].isCard
                               ? '${_fmtCOP(scenarios[i].newBalance)} restante'
-                              : '${_fmtCOP(scenarios[i].interestSaving)} ahorrados',
+                              : scenarios[i].interestSaving > 0
+                                  ? '${_fmtCOP(scenarios[i].interestSaving)} ahorrados'
+                                  : 'Sin ahorro en intereses',
                           textAlign: TextAlign.right,
                           style: TextStyle(
                             fontSize: KreditTextSize.body,
