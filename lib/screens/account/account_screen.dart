@@ -210,7 +210,6 @@ class AccountScreen extends ConsumerWidget {
                   onTap: () => _openSheet(
                     context,
                     Consumer(builder: (ctx, ref2, _) {
-                      final kredit2 = Theme.of(ctx).extension<KreditColors>()!;
                       final accent = Theme.of(ctx).colorScheme.primary;
                       return Column(
                         mainAxisSize: MainAxisSize.min,
@@ -222,22 +221,8 @@ class AccountScreen extends ConsumerWidget {
                             title: 'Datos y respaldos',
                             subtitle: 'Tus datos viven solo en este dispositivo',
                           ),
-                          const SizedBox(height: 24),
-                          _SheetLabel('EXPORTAR E IMPORTAR', kredit2),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 16),
                           const DataToolsCard(),
-                          const SizedBox(height: 24),
-                          _SheetLabel('RESPALDO AUTOMÁTICO', kredit2),
-                          const SizedBox(height: 10),
-                          _ActionTile(
-                            icon: Icons.backup_outlined,
-                            title: 'Configurar respaldo automático',
-                            subtitle: 'Frecuencia, hora y carpeta destino',
-                            onTap: () => SheetNav.of(ctx).push(
-                              'Respaldo automático',
-                              const BackupSettingsBody(),
-                            ),
-                          ),
                           const SizedBox(height: 8),
                         ],
                       );
