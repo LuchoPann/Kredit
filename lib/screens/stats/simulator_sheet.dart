@@ -13,6 +13,7 @@ import '../../domain/loan_calculator.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/currency_input_formatter.dart';
+import '../../widgets/kredit_bottom_dialogs.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Formateo de moneda (reutiliza la misma lógica que stats_screen.dart)
@@ -1468,7 +1469,27 @@ class _StrategySelectorState extends State<_StrategySelector> {
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
-              onPressed: widget.registering ? null : widget.onRegister,
+              onPressed: widget.registering
+                  ? null
+                  : () async {
+                      final items = _buildItems();
+                      final sel = _selectedIdx;
+                      if (sel == null) return;
+                      final confirmed = await showKreditConfirmSheet(
+                        context,
+                        title: 'Confirmar registro',
+                        message:
+                            'Vas a registrar un abono con la estrategia '
+                            '"${items[sel].title}". Recuerda contactar a tu '
+                            'entidad financiera para aplicarla. ¿Continuar?',
+                        confirmLabel: 'Registrar',
+                        isDanger: false,
+                        icon: Icons.check_circle_outline,
+                      );
+                      if (confirmed == true && context.mounted) {
+                        widget.onRegister?.call();
+                      }
+                    },
               icon: const Icon(Icons.check_circle_outline),
               label: Text(
                 widget.registering
@@ -2171,14 +2192,17 @@ class _FreedomTabState extends State<_FreedomTab> {
                 kredit: kredit,
                 accent: accent,
               ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _simulate,
+                  icon: const Icon(Icons.auto_graph_outlined),
+                  label: const Text('Proyectar libertad'),
+                ),
+              ),
             ],
           ),
-        ),
-        const SizedBox(height: 10),
-        FilledButton.icon(
-          onPressed: _simulate,
-          icon: const Icon(Icons.auto_graph_outlined),
-          label: const Text('Proyectar libertad'),
         ),
         if (_result != null) ...[
           const SizedBox(height: 14),
@@ -2200,33 +2224,232 @@ class _BaselineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final creditsLabel =
-        '${baseline.rows.length} crédito${baseline.rows.length == 1 ? '' : 's'}';
-    return _SimSectionCard(
-      title: 'Tu situación actual',
-      rows: [
-        _StatRow(
-          left: _StatTileData(
-            label: 'Libre de deuda en',
-            value: _monthsToDateStr(baseline.baseMonthsTotal),
-            icon: Icons.event_outlined,
-            valueColor: accent,
+    final totalMonthlyBase =
+        baseline.rows.fold(0.0, (s, r) => r.monthlyBase > 0 ? s + r.monthlyBase : s);
+    final totalBalance =
+        baseline.rows.fold(0.0, (s, r) => s + _remainingBalanceOf(r.credit));
+    final maxMonths = baseline.baseMonthsTotal;
+    // Tasa promedio ponderada por saldo (solo créditos con tasa > 0)
+    double weightedRate = 0;
+    double rateWeight = 0;
+    for (final r in baseline.rows) {
+      final rate = _interestRateOf(r.credit);
+      final bal = _remainingBalanceOf(r.credit);
+      if (rate > 0 && bal > 0) {
+        weightedRate += rate * bal;
+        rateWeight += bal;
+      }
+    }
+    final avgRate = rateWeight > 0 ? weightedRate / rateWeight : 0.0;
+    final creditsCount = baseline.rows.length;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: kredit.bgCard,
+        borderRadius: BorderRadius.circular(KreditRadius.card),
+        border: Border.all(color: kredit.borderCard),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Cabecera ─────────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+            child: Row(
+              children: [
+                Icon(Icons.account_balance_outlined,
+                    size: KreditIconSize.small, color: kredit.textTertiary),
+                const SizedBox(width: 8),
+                Text(
+                  'TU SITUACIÓN ACTUAL',
+                  style: TextStyle(
+                    fontSize: KreditTextSize.caption,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                    color: kredit.textTertiary,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: kredit.borderCard.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '$creditsCount crédito${creditsCount == 1 ? '' : 's'}',
+                    style: TextStyle(
+                      fontSize: KreditTextSize.caption,
+                      fontWeight: FontWeight.w600,
+                      color: kredit.textTertiary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          right: _StatTileData(
-            label: 'Intereses pendientes',
-            value: _fmtCOP(baseline.totalBaseInterest),
-            icon: Icons.trending_up_outlined,
-            valueColor: Colors.redAccent,
+          Divider(height: 1, color: kredit.borderCard),
+          // ── Fila 1: Cuota total y Tasa ────────────────────────────────────
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'CUOTA MENSUAL',
+                          style: TextStyle(
+                            fontSize: KreditTextSize.caption,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.4,
+                            color: kredit.textTertiary,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          totalMonthlyBase > 0 ? _fmtCOP(totalMonthlyBase) : '—',
+                          style: TextStyle(
+                            fontSize: KreditTextSize.heading,
+                            fontWeight: FontWeight.w700,
+                            color: kredit.textPrimary,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Container(width: 1, color: kredit.borderCard),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'TASA PROM.',
+                          style: TextStyle(
+                            fontSize: KreditTextSize.caption,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.4,
+                            color: kredit.textTertiary,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          avgRate > 0
+                              ? '${avgRate.toStringAsFixed(2)}%'
+                              : '—',
+                          style: TextStyle(
+                            fontSize: KreditTextSize.heading,
+                            fontWeight: FontWeight.w700,
+                            color: avgRate > 30 ? Colors.redAccent : kredit.textPrimary,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        _StatTile(
-          data: _StatTileData(
-            label: 'Créditos activos incluidos',
-            value: creditsLabel,
-            icon: Icons.credit_card_outlined,
+          Divider(height: 1, color: kredit.borderCard),
+          // ── Fila 2: Saldo y Tiempo restante ──────────────────────────────
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'SALDO PENDIENTE',
+                          style: TextStyle(
+                            fontSize: KreditTextSize.caption,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.4,
+                            color: kredit.textTertiary,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          _fmtCOP(totalBalance),
+                          style: TextStyle(
+                            fontSize: KreditTextSize.heading,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.redAccent,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Container(width: 1, color: kredit.borderCard),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'TIEMPO RESTANTE',
+                          style: TextStyle(
+                            fontSize: KreditTextSize.caption,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.4,
+                            color: kredit.textTertiary,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          _monthsLabel(maxMonths),
+                          style: TextStyle(
+                            fontSize: KreditTextSize.heading,
+                            fontWeight: FontWeight.w700,
+                            color: kredit.textPrimary,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+          Divider(height: 1, color: kredit.borderCard),
+          // ── Línea de insight: fecha estimada ─────────────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+            child: Row(
+              children: [
+                Icon(Icons.flag_outlined, size: KreditIconSize.small, color: accent),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Sin deudas estimado para ${_monthsToDateStr(maxMonths)}',
+                    style: TextStyle(
+                      fontSize: KreditTextSize.body,
+                      fontWeight: FontWeight.w600,
+                      color: accent,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -2242,93 +2465,278 @@ class _FreedomResultCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final first = result.rows.first;
     final monthsSaved = first.monthsSaved;
+    // Meses con abono extra = newMonths del primer crédito (al que se aplica el extra)
+    final newMonthsTotal = first.monthlyExtra > 0
+        ? result.rows.map((r) => r.newMonths).reduce(math.max)
+        : result.baseMonthsTotal;
+    final freedomDate = _monthsToDateStr(newMonthsTotal);
+    final cuotasRestantes = result.rows.fold(0, (s, r) {
+      if (r.credit is LoanCredit) {
+        return s + (r.credit as LoanCredit).installments.where((i) => !i.paid).length;
+      }
+      return s;
+    });
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (monthsSaved > 0) ...[
-          _SimSectionCard(
-            highlightColor: accent,
-            rows: [
+        // ── Card de proyección ────────────────────────────────────────────
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: kredit.bgCard,
+            borderRadius: BorderRadius.circular(KreditRadius.card),
+            border: Border.all(
+              color: monthsSaved > 0
+                  ? accent.withValues(alpha: 0.4)
+                  : kredit.borderCard,
+              width: monthsSaved > 0 ? 1.5 : 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Cabecera
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                child: Row(
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Text(
-                          '$monthsSaved',
-                          style: TextStyle(
-                            fontSize: KreditTextSize.emphasis,
-                            fontWeight: FontWeight.w800,
-                            color: accent,
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'meses antes terminarías ${first.credit.name}',
-                          style: TextStyle(
-                            fontSize: KreditTextSize.body,
-                            fontWeight: FontWeight.w600,
-                            color: kredit.textPrimary,
-                          ),
-                        ),
-                      ],
+                    Icon(Icons.rocket_launch_outlined,
+                        size: KreditIconSize.small,
+                        color: monthsSaved > 0 ? accent : kredit.textTertiary),
+                    const SizedBox(width: 8),
+                    Text(
+                      'PROYECCIÓN DE LIBERTAD',
+                      style: TextStyle(
+                        fontSize: KreditTextSize.caption,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.8,
+                        color: monthsSaved > 0 ? accent : kredit.textTertiary,
+                      ),
                     ),
-                    if (result.totalInterestSaved > 0) ...[
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Icon(Icons.savings_outlined,
-                              size: KreditIconSize.small, color: kredit.success),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Ahorras ${_fmtCOP(result.totalInterestSaved)} en intereses',
-                            style: TextStyle(
-                              fontSize: KreditTextSize.body,
-                              fontWeight: FontWeight.w600,
-                              color: kredit.success,
-                            ),
+                    if (monthsSaved > 0) ...[
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: kredit.success.withValues(alpha: 0.13),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '−$monthsSaved mes${monthsSaved == 1 ? '' : 'es'}',
+                          style: TextStyle(
+                            fontSize: KreditTextSize.caption,
+                            fontWeight: FontWeight.w700,
+                            color: kredit.success,
                           ),
-                        ],
+                        ),
                       ),
                     ],
                   ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 10),
-        ] else ...[
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: kredit.bgCard,
-              borderRadius: BorderRadius.circular(KreditRadius.card),
-              border: Border.all(color: kredit.borderCard),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.info_outline,
-                    size: KreditIconSize.small, color: kredit.textTertiary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Con ese monto el ahorro es marginal. Aumenta el abono extra para ver un impacto mayor.',
-                    style: TextStyle(
-                        fontSize: KreditTextSize.body, color: kredit.textSecondary),
+              Divider(height: 1, color: kredit.borderCard),
+              // Fecha de libertad prominente
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'SIN DEUDAS EL',
+                      style: TextStyle(
+                        fontSize: KreditTextSize.caption,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.4,
+                        color: kredit.textTertiary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      freedomDate,
+                      style: TextStyle(
+                        fontSize: KreditTextSize.emphasis,
+                        fontWeight: FontWeight.w800,
+                        color: accent,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Divider(height: 1, color: kredit.borderCard),
+              // Stats secundarios
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 10, horizontal: 14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'TIEMPO TOTAL',
+                              style: TextStyle(
+                                fontSize: KreditTextSize.caption,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.4,
+                                color: kredit.textTertiary,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              _monthsLabel(newMonthsTotal),
+                              style: TextStyle(
+                                fontSize: KreditTextSize.body,
+                                fontWeight: FontWeight.w700,
+                                color: kredit.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (result.totalInterestSaved > 0) ...[
+                      Container(width: 1, color: kredit.borderCard),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 10, horizontal: 14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'AHORRO TOTAL',
+                                style: TextStyle(
+                                  fontSize: KreditTextSize.caption,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.4,
+                                  color: kredit.textTertiary,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                _fmtCOP(result.totalInterestSaved),
+                                style: TextStyle(
+                                  fontSize: KreditTextSize.body,
+                                  fontWeight: FontWeight.w700,
+                                  color: kredit.success,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ] else if (cuotasRestantes > 0) ...[
+                      Container(width: 1, color: kredit.borderCard),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 10, horizontal: 14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'CUOTAS TOTALES',
+                                style: TextStyle(
+                                  fontSize: KreditTextSize.caption,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.4,
+                                  color: kredit.textTertiary,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                '$cuotasRestantes pendientes',
+                                style: TextStyle(
+                                  fontSize: KreditTextSize.body,
+                                  fontWeight: FontWeight.w700,
+                                  color: kredit.textPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (monthsSaved > 0) ...[
+                Divider(height: 1, color: kredit.borderCard),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                  child: Row(
+                    children: [
+                      Icon(Icons.savings_outlined,
+                          size: KreditIconSize.small, color: kredit.success),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '$monthsSaved mes${monthsSaved == 1 ? '' : 'es'} antes libres con este abono extra mensual',
+                          style: TextStyle(
+                            fontSize: KreditTextSize.body,
+                            fontWeight: FontWeight.w600,
+                            color: kredit.success,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else ...[
+                Divider(height: 1, color: kredit.borderCard),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.info_outline,
+                          size: KreditIconSize.small,
+                          color: kredit.textTertiary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Con ese monto el impacto es marginal. Aumenta el abono extra para ver una diferencia mayor.',
+                          style: TextStyle(
+                            fontSize: KreditTextSize.body,
+                            color: kredit.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
-            ),
+            ],
           ),
-          const SizedBox(height: 10),
-        ],
+        ),
+        const SizedBox(height: 6),
+        // Nota de estimación
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.info_outline,
+                size: 13, color: kredit.textTertiary),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                'Proyección estimada. Sujeta a cambios según los pagos reales realizados.',
+                style: TextStyle(
+                    fontSize: KreditTextSize.caption,
+                    color: kredit.textTertiary),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        // ── Orden de pago ─────────────────────────────────────────────────
         Text(
           'Orden de pago recomendado',
           style: TextStyle(
