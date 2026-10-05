@@ -708,8 +708,17 @@ class _CreditListRow extends StatelessWidget {
     }
 
     final typeLabel = isCard ? 'Tarjeta' : isLoan ? 'Préstamo' : 'Crédito';
+
+    // Subtítulo: "Banco · Tipo · N cuotas" o "Banco · Tipo · $Xk saldo"
+    final int? remaining = isLoan
+        ? (credit as LoanCredit).installments.where((i) => !i.paid).length
+        : null;
     final subtitleParts = [bank.shortLabel, typeLabel];
-    if (urgencyLabel != null) subtitleParts.add(urgencyLabel);
+    if (remaining != null) {
+      subtitleParts.add('$remaining ${remaining == 1 ? 'cuota' : 'cuotas'}');
+    } else if (isCard) {
+      subtitleParts.add(metricValue);
+    }
 
     final showMarkPaid = isLoan &&
         nextPayment != null &&
@@ -719,106 +728,129 @@ class _CreditListRow extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 11),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 10,
-              height: 10,
-              decoration: BoxDecoration(
-                color: bankColor,
-                shape: BoxShape.circle,
+            // Dot alineado a la primera línea de texto
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: bankColor,
+                  shape: BoxShape.circle,
+                ),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    credit.name,
-                    style: const TextStyle(
-                      fontSize: KreditTextSize.body,
-                      fontWeight: FontWeight.w700,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  // Línea 1: nombre + badge de urgencia
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          credit.name,
+                          style: const TextStyle(
+                            fontSize: KreditTextSize.body,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (urgencyLabel != null) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: urgencyColor!.withValues(alpha: 0.13),
+                            borderRadius: BorderRadius.circular(KreditRadius.chip),
+                          ),
+                          child: Text(
+                            urgencyLabel,
+                            style: TextStyle(
+                              fontSize: KreditTextSize.caption,
+                              fontWeight: FontWeight.w700,
+                              color: urgencyColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  const SizedBox(height: 1),
-                  Text(
-                    subtitleParts.join(' · '),
-                    style: TextStyle(
-                      fontSize: KreditTextSize.body,
-                      color: urgencyColor ?? kredit.textTertiary,
-                      fontWeight: urgencyLabel != null
-                          ? FontWeight.w600
-                          : FontWeight.w500,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  const SizedBox(height: 5),
+                  // Línea 2: subtítulo + acción
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          subtitleParts.join(' · '),
+                          style: TextStyle(
+                            fontSize: KreditTextSize.body,
+                            color: kredit.textTertiary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (showMarkPaid)
+                        Builder(builder: (ctx) {
+                          final accentColor = Theme.of(ctx).colorScheme.primary;
+                          final fgColor = legibleForegroundOn(accentColor);
+                          final paid = nextPayment!.installment!.paid;
+                          return InkWell(
+                            onTap: () {
+                              HapticFeedback.mediumImpact();
+                              onTogglePaid!(
+                                credit.id,
+                                nextPayment!.installment!.number,
+                              );
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: paid
+                                    ? kredit.success.withValues(alpha: 0.16)
+                                    : accentColor,
+                                borderRadius: BorderRadius.circular(KreditRadius.chip),
+                              ),
+                              child: Text(
+                                paid ? 'Pagado' : 'Marcar pago',
+                                style: TextStyle(
+                                  fontSize: KreditTextSize.body,
+                                  fontWeight: FontWeight.w700,
+                                  color: paid ? kredit.success : fgColor,
+                                ),
+                              ),
+                            ),
+                          );
+                        })
+                      else
+                        Icon(
+                          Icons.chevron_right,
+                          size: 16,
+                          color: kredit.textTertiary,
+                        ),
+                    ],
                   ),
                 ],
               ),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  metricValue,
-                  style: const TextStyle(
-                    fontSize: KreditTextSize.body,
-                    fontWeight: FontWeight.w800,
-                    fontFeatures: [FontFeature.tabularFigures()],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                if (showMarkPaid)
-                  Builder(builder: (ctx) {
-                    final accentColor = Theme.of(ctx).colorScheme.primary;
-                    final fgColor = legibleForegroundOn(accentColor);
-                    final paid = nextPayment!.installment!.paid;
-                    return InkWell(
-                      onTap: () {
-                        HapticFeedback.mediumImpact();
-                        onTogglePaid!(
-                          credit.id,
-                          nextPayment!.installment!.number,
-                        );
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: paid
-                              ? kredit.success.withValues(alpha: 0.16)
-                              : accentColor,
-                          borderRadius:
-                              BorderRadius.circular(KreditRadius.chip),
-                        ),
-                        child: Text(
-                          paid ? 'Pagado' : 'Marcar pago',
-                          style: TextStyle(
-                            fontSize: KreditTextSize.body,
-                            fontWeight: FontWeight.w700,
-                            color: paid ? kredit.success : fgColor,
-                          ),
-                        ),
-                      ),
-                    );
-                  })
-                else
-                  Icon(
-                    Icons.chevron_right,
-                    size: 16,
-                    color: kredit.textTertiary,
-                  ),
-              ],
             ),
           ],
         ),
