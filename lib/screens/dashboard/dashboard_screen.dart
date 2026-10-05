@@ -437,17 +437,63 @@ class _PaymentCoachCard extends ConsumerWidget {
     final fgOnAccent = legibleForegroundOn(accent);
     final item = recommendation.payment;
 
-    if (item == null) {
-      return Container(
-        padding: const EdgeInsets.all(KreditSpacing.card),
-        decoration: BoxDecoration(
-          color: kredit.bgCard,
-          borderRadius: BorderRadius.circular(KreditRadius.card),
-          border: Border.all(color: kredit.borderCard),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    final urgencyColor =
+        item == null ? kredit.borderCard : _severityColor(context, recommendation.severity);
+    final borderColor =
+        item == null ? kredit.borderCard : urgencyColor.withValues(alpha: 0.28);
+
+    return Container(
+      padding: const EdgeInsets.all(KreditSpacing.card),
+      decoration: BoxDecoration(
+        color: kredit.bgCard,
+        borderRadius: BorderRadius.circular(KreditRadius.card),
+        border: Border.all(color: borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Título del card ──────────────────────────────────────────────
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              const Text(
+                'Tus créditos',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: KreditTextSize.heading,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${credits.length}',
+                style: TextStyle(
+                  fontSize: KreditTextSize.body,
+                  fontWeight: FontWeight.w600,
+                  color: kredit.textTertiary,
+                ),
+              ),
+              const Spacer(),
+              TextButton(
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                onPressed: onSeeAll,
+                child: const Text(
+                  'Ver todos',
+                  style: TextStyle(fontSize: KreditTextSize.body),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Divider(height: 1, color: kredit.borderCard),
+          const SizedBox(height: 12),
+
+          // ── Siguiente compromiso ─────────────────────────────────────────
+          if (item == null) ...[
             Row(
               children: [
                 Container(
@@ -488,165 +534,174 @@ class _PaymentCoachCard extends ConsumerWidget {
                 ),
               ],
             ),
-            _CreditsListSection(
-              credits: credits,
-              upcoming: upcoming,
-              onSeeAll: onSeeAll,
+          ] else ...[
+            _NextPaymentBlock(
+              item: item,
+              recommendation: recommendation,
+              urgencyColor: urgencyColor,
+              accent: accent,
+              fgOnAccent: fgOnAccent,
+              onTogglePaid: (item.installment != null)
+                  ? () {
+                      HapticFeedback.mediumImpact();
+                      ref.read(creditsProvider.notifier).toggleInstallmentPaid(
+                            item.credit.id,
+                            item.installment!.number,
+                          );
+                    }
+                  : null,
             ),
           ],
-        ),
-      );
-    }
 
-    final daysLeft = item.daysUntilDue();
-    final isLoan = item.installment != null;
-    final urgencyColor = _severityColor(
-      context,
-      recommendation.severity,
-    );
-    final urgencyBg = urgencyColor.withValues(alpha: 0.14);
-    final relativeLabel = formatRelativeDate(item.dueDate);
-
-    return Container(
-      padding: const EdgeInsets.all(KreditSpacing.card),
-      decoration: BoxDecoration(
-        color: kredit.bgCard,
-        borderRadius: BorderRadius.circular(KreditRadius.card),
-        border: Border.all(color: urgencyColor.withValues(alpha: 0.28)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: urgencyBg,
-                  borderRadius: BorderRadius.circular(KreditRadius.tile),
-                ),
-                child: Icon(
-                  daysLeft < 0
-                      ? Icons.priority_high_rounded
-                      : Icons.payments_outlined,
-                  size: KreditIconSize.small,
-                  color: urgencyColor,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      recommendation.title.toUpperCase(),
-                      style: TextStyle(
-                        fontSize: KreditTextSize.body,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.7,
-                        color: kredit.textTertiary,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      item.credit.name,
-                      style: const TextStyle(
-                        fontSize: KreditTextSize.heading,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.3,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    formatCOP(item.amount),
-                    style: const TextStyle(
-                      fontSize: KreditTextSize.heading,
-                      fontWeight: FontWeight.w800,
-                      fontFeatures: [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    relativeLabel,
-                    style: TextStyle(
-                      fontSize: KreditTextSize.body,
-                      fontWeight: FontWeight.w700,
-                      color: urgencyColor,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            recommendation.description,
-            style: TextStyle(
-              fontSize: KreditTextSize.body,
-              color: kredit.textSecondary,
-              height: 1.35,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: () => Navigator.of(
-                    context,
-                  ).pushNamed('/credit-detail', arguments: item.credit.id),
-                  icon: const Icon(
-                    Icons.open_in_new,
-                    size: KreditIconSize.small,
-                  ),
-                  label: const Text('Ver detalle'),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(42),
-                    backgroundColor: accent,
-                    foregroundColor: fgOnAccent,
-                  ),
-                ),
-              ),
-              if (isLoan) ...[
-                const SizedBox(width: 10),
-                IconButton.outlined(
-                  tooltip: 'Marcar cuota como pagada',
-                  onPressed: () {
-                    HapticFeedback.mediumImpact();
-                    ref
-                        .read(creditsProvider.notifier)
-                        .toggleInstallmentPaid(
-                          item.credit.id,
-                          item.installment!.number,
-                        );
-                  },
-                  icon: const Icon(Icons.done, size: KreditIconSize.small),
-                  style: IconButton.styleFrom(
-                    minimumSize: const Size(42, 42),
-                    foregroundColor: kredit.textPrimary,
-                    side: BorderSide(color: kredit.borderCard),
-                  ),
-                ),
-              ],
-            ],
-          ),
+          // ── Lista de créditos (sin el crédito ya mostrado arriba) ────────
           _CreditsListSection(
             credits: credits,
             upcoming: upcoming,
-            onSeeAll: onSeeAll,
+            priorityCreditId: item?.credit.id,
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Bloque visual del pago prioritario dentro del card unificado.
+class _NextPaymentBlock extends StatelessWidget {
+  final PendingPayment item;
+  final FinancialRecommendation recommendation;
+  final Color urgencyColor;
+  final Color accent;
+  final Color fgOnAccent;
+  final VoidCallback? onTogglePaid;
+
+  const _NextPaymentBlock({
+    required this.item,
+    required this.recommendation,
+    required this.urgencyColor,
+    required this.accent,
+    required this.fgOnAccent,
+    this.onTogglePaid,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final daysLeft = item.daysUntilDue();
+    final relativeLabel = formatRelativeDate(item.dueDate);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: urgencyColor.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(KreditRadius.tile),
+              ),
+              child: Icon(
+                daysLeft < 0 ? Icons.priority_high_rounded : Icons.payments_outlined,
+                size: KreditIconSize.small,
+                color: urgencyColor,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    recommendation.title.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: KreditTextSize.body,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.7,
+                      color: kredit.textTertiary,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    item.credit.name,
+                    style: const TextStyle(
+                      fontSize: KreditTextSize.heading,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  formatCOP(item.amount),
+                  style: const TextStyle(
+                    fontSize: KreditTextSize.heading,
+                    fontWeight: FontWeight.w800,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  relativeLabel,
+                  style: TextStyle(
+                    fontSize: KreditTextSize.body,
+                    fontWeight: FontWeight.w700,
+                    color: urgencyColor,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(
+          recommendation.description,
+          style: TextStyle(
+            fontSize: KreditTextSize.body,
+            color: kredit.textSecondary,
+            height: 1.35,
+          ),
+        ),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: () => Navigator.of(context)
+                    .pushNamed('/credit-detail', arguments: item.credit.id),
+                icon: const Icon(Icons.open_in_new, size: KreditIconSize.small),
+                label: const Text('Ver detalle'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(42),
+                  backgroundColor: accent,
+                  foregroundColor: fgOnAccent,
+                ),
+              ),
+            ),
+            if (onTogglePaid != null) ...[
+              const SizedBox(width: 10),
+              IconButton.outlined(
+                tooltip: 'Marcar cuota como pagada',
+                onPressed: onTogglePaid,
+                icon: const Icon(Icons.done, size: KreditIconSize.small),
+                style: IconButton.styleFrom(
+                  minimumSize: const Size(42, 42),
+                  foregroundColor: kredit.textPrimary,
+                  side: BorderSide(color: kredit.borderCard),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
     );
   }
 }
@@ -872,27 +927,33 @@ class _CreditListRow extends StatelessWidget {
 }
 
 /// Lista de créditos ordenada por urgencia — vive dentro del coach card.
+/// [priorityCreditId]: ID del crédito ya mostrado en "Siguiente compromiso";
+/// se excluye de esta lista para evitar duplicados.
 class _CreditsListSection extends ConsumerWidget {
   final List<Credit> credits;
   final List<PendingPayment> upcoming;
-  final VoidCallback onSeeAll;
+  final String? priorityCreditId;
 
   const _CreditsListSection({
     required this.credits,
     required this.upcoming,
-    required this.onSeeAll,
+    this.priorityCreditId,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
 
-    if (credits.isEmpty) return const SizedBox.shrink();
+    final displayCredits = priorityCreditId == null
+        ? credits
+        : credits.where((c) => c.id != priorityCreditId).toList();
+
+    if (displayCredits.isEmpty) return const SizedBox.shrink();
 
     PendingPayment? nextFor(Credit c) =>
         upcoming.where((p) => p.credit.id == c.id).firstOrNull;
 
-    final sorted = [...credits]..sort((a, b) {
+    final sorted = [...displayCredits]..sort((a, b) {
       final pa = nextFor(a);
       final pb = nextFor(b);
       if (pa == null && pb == null) return 0;
@@ -906,43 +967,6 @@ class _CreditsListSection extends ConsumerWidget {
       children: [
         const SizedBox(height: 16),
         Divider(height: 1, color: kredit.borderCard),
-        const SizedBox(height: 12),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            const Text(
-              'Tus créditos',
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: KreditTextSize.heading,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              '${credits.length}',
-              style: TextStyle(
-                fontSize: KreditTextSize.body,
-                fontWeight: FontWeight.w600,
-                color: kredit.textTertiary,
-              ),
-            ),
-            const Spacer(),
-            TextButton(
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-              onPressed: onSeeAll,
-              child: const Text(
-                'Ver todos',
-                style: TextStyle(fontSize: KreditTextSize.body),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
         for (var i = 0; i < sorted.length; i++) ...[
           if (i > 0) Divider(height: 1, color: kredit.borderCard),
           _CreditListRow(
