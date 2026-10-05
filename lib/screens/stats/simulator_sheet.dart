@@ -432,10 +432,18 @@ class _PurchaseTabState extends State<_PurchaseTab> {
   }
 
   void _simulate() {
-    final amount = double.tryParse(CurrencyInputFormatter.unformat(_amountCtrl.text));
+    final raw = CurrencyInputFormatter.unformat(_amountCtrl.text);
+    final amount = double.tryParse(raw);
     final quotas = int.tryParse(_quotasCtrl.text);
     final card = _selectedCard;
-    if (amount == null || amount <= 0 || quotas == null || quotas <= 0 || card == null) return;
+    if (card == null) return;
+    if (amount == null || amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ingresa el monto de la compra para simular.')),
+      );
+      return;
+    }
+    if (quotas == null || quotas <= 0) return;
 
     final newBalance = card.currentBalance + amount;
     final available = math.max(0.0, card.creditLimit - newBalance);
@@ -479,7 +487,6 @@ class _PurchaseTabState extends State<_PurchaseTab> {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       children: [
-        // Tarjeta selector
         if (_cards.isEmpty)
           _InfoBanner(
             kredit: kredit,
@@ -487,64 +494,89 @@ class _PurchaseTabState extends State<_PurchaseTab> {
             text: 'No tienes tarjetas de crédito registradas. Agrega una primero.',
           )
         else ...[
-          Text('¿Con qué tarjeta harías la compra?',
-              style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: KreditTextSize.body,
-                  color: kredit.textPrimary)),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<CardCredit>(
-            initialValue: _selectedCard,
-            decoration: const InputDecoration(labelText: 'Seleccionar tarjeta'),
-            items: _cards
-                .map((c) => DropdownMenuItem(
-                      value: c,
-                      child: Text(
-                        '${c.name} — ${_fmtCOP(math.max(0, c.creditLimit - c.currentBalance))} disponible',
-                        overflow: TextOverflow.ellipsis,
+          // ── Bloque de entrada ─────────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+            decoration: BoxDecoration(
+              color: kredit.bgCard,
+              borderRadius: BorderRadius.circular(KreditRadius.card),
+              border: Border.all(color: kredit.borderCard),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'DATOS DE LA COMPRA',
+                  style: TextStyle(
+                    fontSize: KreditTextSize.caption,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                    color: kredit.textTertiary,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<CardCredit>(
+                  initialValue: _selectedCard,
+                  decoration: const InputDecoration(
+                    labelText: 'Tarjeta',
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  ),
+                  items: _cards
+                      .map((c) => DropdownMenuItem(
+                            value: c,
+                            child: Text(
+                              '${c.name} — ${_fmtCOP(math.max(0, c.creditLimit - c.currentBalance))} disp.',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ))
+                      .toList(),
+                  onChanged: (v) => setState(() {
+                    _selectedCard = v;
+                    _result = null;
+                  }),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: TextFormField(
+                        controller: _amountCtrl,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: const [CurrencyInputFormatter()],
+                        decoration: const InputDecoration(
+                          labelText: 'Valor',
+                          prefixText: '\$ ',
+                          isDense: true,
+                          contentPadding:
+                              EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        ),
+                        onChanged: (_) => setState(() => _result = null),
                       ),
-                    ))
-                .toList(),
-            onChanged: (v) => setState(() {
-              _selectedCard = v;
-              _result = null;
-            }),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 2,
+                      child: TextFormField(
+                        controller: _quotasCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Cuotas',
+                          isDense: true,
+                          contentPadding:
+                              EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        ),
+                        onChanged: (_) => setState(() => _result = null),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 10),
-          Text('¿Cuánto vale la compra?',
-              style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: KreditTextSize.body,
-                  color: kredit.textPrimary)),
-          const SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 2,
-                child: TextFormField(
-                  controller: _amountCtrl,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: const [CurrencyInputFormatter()],
-                  decoration: const InputDecoration(
-                    labelText: 'Valor de la compra (\$)',
-                    prefixText: '\$ ',
-                  ),
-                  onChanged: (_) => setState(() => _result = null),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextFormField(
-                  controller: _quotasCtrl,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Cuotas'),
-                  onChanged: (_) => setState(() => _result = null),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
           FilledButton.icon(
             onPressed: _simulate,
             icon: const Icon(Icons.play_arrow_outlined),
@@ -830,7 +862,13 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
   void _simulate() {
     final amount = double.tryParse(CurrencyInputFormatter.unformat(_paymentCtrl.text));
     final credit = _selectedCredit;
-    if (amount == null || amount <= 0 || credit == null) return;
+    if (credit == null) return;
+    if (amount == null || amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ingresa el monto del abono para simular.')),
+      );
+      return;
+    }
 
     if (credit is LoanCredit) {
       _simulateLoan(credit, amount);
@@ -935,64 +973,79 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       children: [
-        Text('¿A qué crédito harías el abono?',
-            style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: KreditTextSize.body,
-                color: kredit.textPrimary)),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<Credit>(
-          initialValue: _selectedCredit,
-          decoration: const InputDecoration(labelText: 'Seleccionar crédito'),
-          items: widget.credits
-              .map((c) => DropdownMenuItem(
-                    value: c,
-                    child: Text(
-                      c.name,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ))
-              .toList(),
-          onChanged: (v) {
-            setState(() {
-              _selectedCredit = v;
-              _result = null;
-              _scenarios.clear();
-              _threeScenarios = [];
-            });
-            if (v != null) _loadScenarios(v);
-          },
-        ),
-        const SizedBox(height: 10),
-        Text('¿Cuánto abonarías?',
-            style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: KreditTextSize.body,
-                color: kredit.textPrimary)),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: _paymentCtrl,
-          keyboardType: TextInputType.number,
-          inputFormatters: const [CurrencyInputFormatter()],
-          decoration: const InputDecoration(
-            labelText: 'Monto del abono (\$)',
-            prefixText: '\$ ',
+        // ── Bloque de entrada ───────────────────────────────────────────────
+        Container(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+          decoration: BoxDecoration(
+            color: kredit.bgCard,
+            borderRadius: BorderRadius.circular(KreditRadius.card),
+            border: Border.all(color: kredit.borderCard),
           ),
-          onChanged: (_) => setState(() {
-            _result = null;
-            _threeScenarios = [];
-          }),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'DATOS DEL ABONO',
+                style: TextStyle(
+                  fontSize: KreditTextSize.caption,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                  color: kredit.textTertiary,
+                ),
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<Credit>(
+                initialValue: _selectedCredit,
+                decoration: const InputDecoration(
+                  labelText: 'Crédito',
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+                items: widget.credits
+                    .map((c) => DropdownMenuItem(
+                          value: c,
+                          child: Text(c.name, overflow: TextOverflow.ellipsis),
+                        ))
+                    .toList(),
+                onChanged: (v) {
+                  setState(() {
+                    _selectedCredit = v;
+                    _result = null;
+                    _scenarios.clear();
+                    _threeScenarios = [];
+                  });
+                  if (v != null) _loadScenarios(v);
+                },
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: _paymentCtrl,
+                keyboardType: TextInputType.number,
+                inputFormatters: const [CurrencyInputFormatter()],
+                decoration: const InputDecoration(
+                  labelText: 'Monto del abono (\$)',
+                  prefixText: '\$ ',
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+                onChanged: (_) => setState(() {
+                  _result = null;
+                  _threeScenarios = [];
+                }),
+              ),
+              const SizedBox(height: 8),
+              _QuickAmountRow(
+                kredit: kredit,
+                onPick: (amount) => setState(() {
+                  _paymentCtrl.text = CurrencyInputFormatter.format(amount);
+                  _result = null;
+                  _threeScenarios = [];
+                }),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 10),
-        _QuickAmountRow(
-          kredit: kredit,
-          onPick: (amount) => setState(() {
-            _paymentCtrl.text = CurrencyInputFormatter.format(amount);
-            _result = null;
-            _threeScenarios = [];
-          }),
-        ),
-        const SizedBox(height: 8),
         FilledButton.icon(
           onPressed: _simulate,
           icon: const Icon(Icons.play_arrow_outlined),
@@ -1648,10 +1701,16 @@ class _FreedomTabState extends State<_FreedomTab> {
   }
 
   void _simulate() {
-    final extra =
-        double.tryParse(CurrencyInputFormatter.unformat(_extraCtrl.text)) ?? 0;
+    final parsed = double.tryParse(CurrencyInputFormatter.unformat(_extraCtrl.text));
+    if (parsed == null || parsed <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Ingresa el monto extra mensual para proyectar tu libertad financiera.')),
+      );
+      return;
+    }
     setState(() {
-      _result = _computeFreedom(widget.credits, extra, _isAvalanche);
+      _result = _computeFreedom(widget.credits, parsed, _isAvalanche);
     });
   }
 
@@ -1683,57 +1742,88 @@ class _FreedomTabState extends State<_FreedomTab> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       children: [
         _BaselineCard(baseline: baseline, kredit: kredit, accent: accent),
-        const SizedBox(height: 8),
-        Text(
-          '¿Cuánto extra puedes pagar al mes?',
-          style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: KreditTextSize.body,
-              color: kredit.textPrimary),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: _extraCtrl,
-          keyboardType: TextInputType.number,
-          inputFormatters: const [CurrencyInputFormatter()],
-          decoration: const InputDecoration(
-            labelText: 'Abono extra mensual (\$)',
-            prefixText: '\$ ',
+        const SizedBox(height: 10),
+        // ── Bloque de entrada ───────────────────────────────────────────────
+        Container(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+          decoration: BoxDecoration(
+            color: kredit.bgCard,
+            borderRadius: BorderRadius.circular(KreditRadius.card),
+            border: Border.all(color: kredit.borderCard),
           ),
-          onChanged: (_) => setState(() => _result = null),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'CONFIGURAR PROYECCIÓN',
+                style: TextStyle(
+                  fontSize: KreditTextSize.caption,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                  color: kredit.textTertiary,
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: _extraCtrl,
+                keyboardType: TextInputType.number,
+                inputFormatters: const [CurrencyInputFormatter()],
+                decoration: const InputDecoration(
+                  labelText: 'Abono extra mensual (\$)',
+                  prefixText: '\$ ',
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+                onChanged: (_) => setState(() => _result = null),
+              ),
+              const SizedBox(height: 8),
+              _QuickAmountRow(
+                kredit: kredit,
+                onPick: (amount) => setState(() {
+                  _extraCtrl.text = CurrencyInputFormatter.format(amount);
+                  _result = null;
+                }),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Estrategia',
+                          style: TextStyle(
+                            fontSize: KreditTextSize.caption,
+                            fontWeight: FontWeight.w600,
+                            color: kredit.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          _isAvalanche
+                              ? 'Avalanche · mayor tasa primero'
+                              : 'Snowball · menor saldo primero',
+                          style: TextStyle(
+                              fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _StrategyToggle(
+                    isAvalanche: _isAvalanche,
+                    onChanged: (v) => setState(() {
+                      _isAvalanche = v;
+                      _result = null;
+                    }),
+                    kredit: kredit,
+                    accent: accent,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 10),
-        _QuickAmountRow(
-          kredit: kredit,
-          onPick: (amount) => setState(() {
-            _extraCtrl.text = CurrencyInputFormatter.format(amount);
-            _result = null;
-          }),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          'Estrategia de pago',
-          style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: KreditTextSize.body,
-              color: kredit.textPrimary),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Avalanche: mayor tasa primero (ahorra más). Snowball: menor saldo primero (motivación más rápida).',
-          style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
-        ),
-        const SizedBox(height: 8),
-        _StrategyToggle(
-          isAvalanche: _isAvalanche,
-          onChanged: (v) => setState(() {
-            _isAvalanche = v;
-            _result = null;
-          }),
-          kredit: kredit,
-          accent: accent,
-        ),
-        const SizedBox(height: 8),
         FilledButton.icon(
           onPressed: _simulate,
           icon: const Icon(Icons.auto_graph_outlined),
