@@ -259,7 +259,7 @@ class _SimulatorSheetState extends ConsumerState<SimulatorSheet>
               ),
             ),
           ],
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           // Tabs
           TabBar(
             controller: _tabCtrl,
@@ -477,7 +477,7 @@ class _PurchaseTabState extends State<_PurchaseTab> {
     final accent = Theme.of(context).colorScheme.primary;
 
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       children: [
         // Tarjeta selector
         if (_cards.isEmpty)
@@ -510,7 +510,7 @@ class _PurchaseTabState extends State<_PurchaseTab> {
               _result = null;
             }),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           Text('¿Cuánto vale la compra?',
               style: TextStyle(
                   fontWeight: FontWeight.w600,
@@ -544,17 +544,17 @@ class _PurchaseTabState extends State<_PurchaseTab> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 8),
           FilledButton.icon(
             onPressed: _simulate,
             icon: const Icon(Icons.play_arrow_outlined),
             label: const Text('Simular compra'),
           ),
           if (_result != null) ...[
-            const SizedBox(height: 24),
+            const SizedBox(height: 14),
             _PurchaseResultCard(result: _result!, kredit: kredit, accent: accent),
           ],
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           _DisclaimerBanner(kredit: kredit),
         ],
       ],
@@ -604,7 +604,7 @@ class _PurchaseResultCard extends StatelessWidget {
         // ── Cuota hero ────────────────────────────────────────────────────
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           decoration: BoxDecoration(
             color: accentColor.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(KreditRadius.card),
@@ -621,7 +621,7 @@ class _PurchaseResultCard extends StatelessWidget {
                   color: accentColor,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 3),
               Text(
                 _fmtCOP(result.monthlyInstallment),
                 style: TextStyle(
@@ -640,7 +640,7 @@ class _PurchaseResultCard extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
 
         // ── Grid de stats ─────────────────────────────────────────────────
         _SimSectionCard(
@@ -687,7 +687,7 @@ class _PurchaseResultCard extends StatelessWidget {
               ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
 
         // ── Barra de utilización ──────────────────────────────────────────
         _UtilizationBar(
@@ -696,7 +696,7 @@ class _PurchaseResultCard extends StatelessWidget {
           highUtilization: highUtilization,
         ),
         if (highUtilization) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           _WarningBanner(
             text:
                 'Alta utilización (${result.utilizationPct.round()}%). Se recomienda mantenerla por debajo del 80%.',
@@ -933,7 +933,7 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
     }
 
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       children: [
         Text('¿A qué crédito harías el abono?',
             style: TextStyle(
@@ -963,7 +963,7 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
             if (v != null) _loadScenarios(v);
           },
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
         Text('¿Cuánto abonarías?',
             style: TextStyle(
                 fontWeight: FontWeight.w600,
@@ -992,25 +992,25 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
             _threeScenarios = [];
           }),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 8),
         FilledButton.icon(
           onPressed: _simulate,
           icon: const Icon(Icons.play_arrow_outlined),
           label: const Text('Simular abono'),
         ),
         if (_result != null) ...[
-          const SizedBox(height: 24),
+          const SizedBox(height: 14),
           _PaymentResultCard(result: _result!, kredit: kredit, accent: accent),
         ],
         if (_threeScenarios.isNotEmpty) ...[
-          const SizedBox(height: 20),
+          const SizedBox(height: 8),
           _ThreeScenariosCard(scenarios: _threeScenarios, kredit: kredit, accent: accent),
         ],
         if (_scenarios.length > 1) ...[
-          const SizedBox(height: 20),
+          const SizedBox(height: 8),
           _ScenarioComparisonTable(scenarios: _scenarios, kredit: kredit),
         ],
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
         _DisclaimerBanner(kredit: kredit),
       ],
     );
@@ -1216,7 +1216,7 @@ class _ThreeScenariosCard extends StatelessWidget {
           '¿Qué prefieres hacer con el abono?',
           style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         // Seguir igual — opción neutra
         _StrategyOptionCard(
           icon: Icons.pause_circle_outline,
@@ -1320,7 +1320,7 @@ class _StrategyOptionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+            padding: const EdgeInsets.fromLTRB(12, 9, 12, 6),
             child: Row(
               children: [
                 Icon(icon,
@@ -1603,7 +1603,7 @@ class _PaymentResultCardState extends ConsumerState<_PaymentResultCard> {
             ],
           ),
         ],
-        const SizedBox(height: 20),
+        const SizedBox(height: 8),
         SizedBox(
           width: double.infinity,
           child: FilledButton.icon(
@@ -1680,10 +1680,10 @@ class _FreedomTabState extends State<_FreedomTab> {
     final baseline = _computeFreedom(active, 0, _isAvalanche);
 
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       children: [
         _BaselineCard(baseline: baseline, kredit: kredit, accent: accent),
-        const SizedBox(height: 20),
+        const SizedBox(height: 8),
         Text(
           '¿Cuánto extra puedes pagar al mes?',
           style: TextStyle(
@@ -1710,7 +1710,7 @@ class _FreedomTabState extends State<_FreedomTab> {
             _result = null;
           }),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
         Text(
           'Estrategia de pago',
           style: TextStyle(
@@ -1733,17 +1733,17 @@ class _FreedomTabState extends State<_FreedomTab> {
           kredit: kredit,
           accent: accent,
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 8),
         FilledButton.icon(
           onPressed: _simulate,
           icon: const Icon(Icons.auto_graph_outlined),
           label: const Text('Proyectar libertad'),
         ),
         if (_result != null) ...[
-          const SizedBox(height: 24),
+          const SizedBox(height: 14),
           _FreedomResultCard(result: _result!, kredit: kredit, accent: accent),
         ],
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
         _DisclaimerBanner(kredit: kredit),
       ],
     );
@@ -1810,7 +1810,7 @@ class _FreedomResultCard extends StatelessWidget {
             highlightColor: accent,
             rows: [
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 14),
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1861,7 +1861,7 @@ class _FreedomResultCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
         ] else ...[
           Container(
             padding: const EdgeInsets.all(14),
@@ -1886,7 +1886,7 @@ class _FreedomResultCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
         ],
         Text(
           'Orden de pago recomendado',
@@ -1947,7 +1947,7 @@ class _FreedomCreditTile extends StatelessWidget {
     final barColor = isPriority ? accent : kredit.textTertiary.withValues(alpha: 0.5);
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
       decoration: BoxDecoration(
         color: isPriority ? accent.withValues(alpha: 0.06) : null,
         border: isLast
@@ -2263,13 +2263,13 @@ class _StatTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
     return Padding(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (data.icon != null) ...[
-            Icon(data.icon, size: 13, color: kredit.textTertiary),
-            const SizedBox(height: 5),
+            Icon(data.icon, size: 12, color: kredit.textTertiary),
+            const SizedBox(height: 3),
           ],
           Text(
             data.label.toUpperCase(),
@@ -2280,11 +2280,11 @@ class _StatTile extends StatelessWidget {
               color: kredit.textTertiary,
             ),
           ),
-          const SizedBox(height: 3),
+          const SizedBox(height: 2),
           Text(
             data.value,
             style: TextStyle(
-              fontSize: KreditTextSize.heading,
+              fontSize: KreditTextSize.body,
               fontWeight: FontWeight.w700,
               color: data.valueColor ?? kredit.textPrimary,
               fontFeatures: const [FontFeature.tabularFigures()],
@@ -2353,7 +2353,7 @@ class _SimSectionCard extends StatelessWidget {
         children: [
           if (title != null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 3),
               child: Text(
                 title!.toUpperCase(),
                 style: TextStyle(
