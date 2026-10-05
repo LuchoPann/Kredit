@@ -168,20 +168,18 @@ class _SimulatorSheetState extends ConsumerState<SimulatorSheet>
   @override
   void initState() {
     super.initState();
-    // La pestaña "Simular compra" solo aplica a tarjetas (CardCredit); si el
-    // crédito inicial es un préstamo (LoanCredit), abrimos directamente en
-    // "Abonar extra", que sí aplica a ambos tipos.
+    // Sin crédito específico → abrir en Libertad (tab 2) para mostrar visión global.
+    // Con crédito específico → Abonar extra (1) para préstamos, Simular compra (0) para tarjetas.
     final initialIndex = widget.initialCreditId != null
         ? () {
             final credits =
                 ref.read(creditsProvider).valueOrNull ?? const <Credit>[];
-            final match = credits
-                .where((c) => c.id == widget.initialCreditId)
-                .toList();
+            final match =
+                credits.where((c) => c.id == widget.initialCreditId).toList();
             if (match.isNotEmpty && match.first is LoanCredit) return 1;
             return 0;
           }()
-        : 0;
+        : 2;
     _tabCtrl = TabController(length: 3, vsync: this, initialIndex: initialIndex);
   }
 
@@ -197,12 +195,21 @@ class _SimulatorSheetState extends ConsumerState<SimulatorSheet>
     final creditsAsync = ref.watch(creditsProvider);
     final credits = creditsAsync.valueOrNull ?? [];
 
+    final accent = Theme.of(context).colorScheme.primary;
+    final activeCredits = credits.where((c) {
+      if (c is LoanCredit) return c.installments.any((i) => !i.paid);
+      if (c is CardCredit) return c.currentBalance > 0;
+      return false;
+    }).toList();
+    final baseline =
+        activeCredits.isNotEmpty ? _computeFreedom(activeCredits, 0, true) : null;
+
     return DraggableScrollableSheet(
       expand: false,
       initialChildSize: 0.92,
       minChildSize: 0.5,
       maxChildSize: 0.95,
-      builder: (_, scrollController) => Column(
+      builder: (_, sc) => Column(
         children: [
           // Handle
           Padding(
@@ -222,27 +229,36 @@ class _SimulatorSheetState extends ConsumerState<SimulatorSheet>
             child: Row(
               children: [
                 Icon(Icons.calculate_outlined,
-                    size: KreditIconSize.small, color: Theme.of(context).colorScheme.primary),
+                    size: KreditIconSize.small, color: accent),
                 const SizedBox(width: 10),
-                Text(
-                  'Simulador financiero',
-                  style: TextStyle(
-                    fontSize: KreditTextSize.heading,
-                    fontWeight: FontWeight.w700,
-                    color: kredit.textPrimary,
+                Expanded(
+                  child: Text(
+                    'Simulador financiero',
+                    style: TextStyle(
+                      fontSize: KreditTextSize.heading,
+                      fontWeight: FontWeight.w700,
+                      color: kredit.textPrimary,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 4),
-          Padding(
-            padding: const EdgeInsets.only(left: 52, right: 20),
-            child: Text(
-              '¿Qué pasaría si…? Resultados aproximados.',
-              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+          // Stat strip: snapshot rápido de toda la deuda activa
+          if (baseline != null && baseline.rows.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            _DebtSnapshotStrip(baseline: baseline, kredit: kredit, accent: accent),
+          ] else ...[
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.only(left: 52, right: 20),
+              child: Text(
+                '¿Qué pasaría si…? Resultados aproximados.',
+                style: TextStyle(
+                    fontSize: KreditTextSize.body, color: kredit.textTertiary),
+              ),
             ),
-          ),
+          ],
           const SizedBox(height: 12),
           // Tabs
           TabBar(
@@ -253,18 +269,19 @@ class _SimulatorSheetState extends ConsumerState<SimulatorSheet>
               Tab(icon: Icon(Icons.rocket_launch_outlined, size: KreditIconSize.small), text: 'Libertad'),
             ],
           ),
-          // Content
+          // Content — cada tab maneja su propio ScrollController para evitar
+          // el error de AccessibilityBridge al compartir un mismo controller
+          // entre múltiples ListView montados simultáneamente en TabBarView.
           Expanded(
             child: TabBarView(
               controller: _tabCtrl,
               children: [
-                _PurchaseTab(credits: credits, scrollController: scrollController),
+                _PurchaseTab(credits: credits),
                 _ExtraPaymentTab(
                   credits: credits,
-                  scrollController: scrollController,
                   initialCreditId: widget.initialCreditId,
                 ),
-                _FreedomTab(credits: credits, scrollController: scrollController),
+                _FreedomTab(credits: credits),
               ],
             ),
           ),
@@ -275,13 +292,124 @@ class _SimulatorSheetState extends ConsumerState<SimulatorSheet>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Header: snapshot rápido de la deuda activa
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _DebtSnapshotStrip extends StatelessWidget {
+  final _FreedomResult baseline;
+  final KreditColors kredit;
+  final Color accent;
+  const _DebtSnapshotStrip(
+      {required this.baseline, required this.kredit, required this.accent});
+
+  @override
+  Widget build(BuildContext context) {
+    final totalDebt = baseline.rows
+        .fold(0.0, (s, r) => s + _remainingBalanceOf(r.credit));
+    final monthlyInterest = baseline.rows.fold(0.0, (s, r) {
+      if (r.credit is LoanCredit) {
+        final unpaid =
+            (r.credit as LoanCredit).installments.where((i) => !i.paid).toList();
+        if (unpaid.isEmpty) return s;
+        return s + unpaid.first.interest;
+      }
+      if (r.credit is CardCredit) {
+        final c = r.credit as CardCredit;
+        final dailyRate = c.interestRate > 0 ? c.interestRate / 100 / 365 : 0.0;
+        return s + c.currentBalance * dailyRate * 30;
+      }
+      return s;
+    });
+    final freeDate = _monthsToDateStr(baseline.baseMonthsTotal);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: [
+          _SnapStat(
+            label: 'Deuda total',
+            value: _fmtCOP(totalDebt),
+            kredit: kredit,
+          ),
+          _SnapDivider(kredit: kredit),
+          _SnapStat(
+            label: 'Interés/mes',
+            value: _fmtCOP(monthlyInterest),
+            valueColor: Colors.redAccent,
+            kredit: kredit,
+          ),
+          _SnapDivider(kredit: kredit),
+          _SnapStat(
+            label: 'Libre en',
+            value: freeDate,
+            valueColor: accent,
+            kredit: kredit,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SnapStat extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color? valueColor;
+  final KreditColors kredit;
+  const _SnapStat(
+      {required this.label,
+      required this.value,
+      this.valueColor,
+      required this.kredit});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+                fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: KreditTextSize.body,
+              fontWeight: FontWeight.w700,
+              color: valueColor ?? kredit.textPrimary,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SnapDivider extends StatelessWidget {
+  final KreditColors kredit;
+  const _SnapDivider({required this.kredit});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 32,
+      margin: const EdgeInsets.symmetric(horizontal: 10),
+      color: kredit.borderCard,
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // TAB A — Simulador de Compra
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _PurchaseTab extends StatefulWidget {
   final List<Credit> credits;
-  final ScrollController scrollController;
-  const _PurchaseTab({required this.credits, required this.scrollController});
+  const _PurchaseTab({required this.credits});
 
   @override
   State<_PurchaseTab> createState() => _PurchaseTabState();
@@ -349,7 +477,6 @@ class _PurchaseTabState extends State<_PurchaseTab> {
     final accent = Theme.of(context).colorScheme.primary;
 
     return ListView(
-      controller: widget.scrollController,
       padding: const EdgeInsets.all(20),
       children: [
         // Tarjeta selector
@@ -584,12 +711,8 @@ class _UtilizationBar extends StatelessWidget {
 
 class _ExtraPaymentTab extends StatefulWidget {
   final List<Credit> credits;
-  final ScrollController scrollController;
   final String? initialCreditId;
-  const _ExtraPaymentTab(
-      {required this.credits,
-      required this.scrollController,
-      this.initialCreditId});
+  const _ExtraPaymentTab({required this.credits, this.initialCreditId});
 
   @override
   State<_ExtraPaymentTab> createState() => _ExtraPaymentTabState();
@@ -765,7 +888,6 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
     }
 
     return ListView(
-      controller: widget.scrollController,
       padding: const EdgeInsets.all(20),
       children: [
         Text('¿A qué crédito harías el abono?',
@@ -1421,8 +1543,7 @@ class _PaymentResultCardState extends ConsumerState<_PaymentResultCard> {
 
 class _FreedomTab extends StatefulWidget {
   final List<Credit> credits;
-  final ScrollController scrollController;
-  const _FreedomTab({required this.credits, required this.scrollController});
+  const _FreedomTab({required this.credits});
 
   @override
   State<_FreedomTab> createState() => _FreedomTabState();
@@ -1472,7 +1593,6 @@ class _FreedomTabState extends State<_FreedomTab> {
     final baseline = _computeFreedom(active, 0, _isAvalanche);
 
     return ListView(
-      controller: widget.scrollController,
       padding: const EdgeInsets.all(20),
       children: [
         _BaselineCard(baseline: baseline, kredit: kredit, accent: accent),
