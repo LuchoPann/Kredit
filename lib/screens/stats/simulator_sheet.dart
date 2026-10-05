@@ -786,19 +786,20 @@ class _UtilizationBar extends StatelessWidget {
 // TAB B — Simulador de Abono Extra
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _ExtraPaymentTab extends StatefulWidget {
+class _ExtraPaymentTab extends ConsumerStatefulWidget {
   final List<Credit> credits;
   final String? initialCreditId;
   const _ExtraPaymentTab({required this.credits, this.initialCreditId});
 
   @override
-  State<_ExtraPaymentTab> createState() => _ExtraPaymentTabState();
+  ConsumerState<_ExtraPaymentTab> createState() => _ExtraPaymentTabState();
 }
 
-class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
+class _ExtraPaymentTabState extends ConsumerState<_ExtraPaymentTab> {
   final _paymentCtrl = TextEditingController();
   Credit? _selectedCredit;
   _PaymentResult? _result;
+  bool _registering = false;
 
   // Tarea 2 del roadmap ("comparativas" + "guardar escenarios"): guarda los
   // últimos escenarios simulados por crédito en SharedPreferences (clave
@@ -857,6 +858,50 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
   void dispose() {
     _paymentCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _registerNow() async {
+    final result = _result;
+    if (result == null) return;
+    setState(() => _registering = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    try {
+      if (!result.isCard) {
+        final abono = await ref.read(creditsProvider.notifier).registerLoanAbono(
+              result.credit.id,
+              result.extraPayment,
+              note: 'Registrado desde el simulador',
+            );
+        if (!mounted) return;
+        final skipped = abono.installmentsSkipped;
+        final message = abono.wasCapped
+            ? 'Se aplicaron \$${abono.amount.toStringAsFixed(0)} de los '
+                '\$${abono.requestedAmount.toStringAsFixed(0)} solicitados — '
+                '¡crédito saldado por completo!'
+            : 'Abono de \$${abono.amount.toStringAsFixed(0)} registrado'
+                '${skipped > 0 ? ' — $skipped cuota(s) adelantada(s)' : ''}';
+        navigator.pop();
+        messenger.showSnackBar(SnackBar(content: Text(message)));
+      } else {
+        await ref.read(creditsProvider.notifier).registerMovement(
+              result.credit.id,
+              CardMovementType.payment,
+              result.extraPayment,
+              'Registrado desde el simulador',
+            );
+        if (!mounted) return;
+        navigator.pop();
+        messenger.showSnackBar(const SnackBar(content: Text('Pago registrado')));
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _registering = false);
+        messenger.showSnackBar(
+          SnackBar(content: Text('No se pudo registrar el abono: $e')),
+        );
+      }
+    }
   }
 
   void _simulate() {
@@ -1042,14 +1087,17 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
                   _threeScenarios = [];
                 }),
               ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _simulate,
+                  icon: const Icon(Icons.play_arrow_outlined),
+                  label: const Text('Simular abono'),
+                ),
+              ),
             ],
           ),
-        ),
-        const SizedBox(height: 10),
-        FilledButton.icon(
-          onPressed: _simulate,
-          icon: const Icon(Icons.play_arrow_outlined),
-          label: const Text('Simular abono'),
         ),
         if (_result != null) ...[
           const SizedBox(height: 14),
@@ -1062,6 +1110,26 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
         if (_scenarios.length > 1) ...[
           const SizedBox(height: 8),
           _ScenarioComparisonTable(scenarios: _scenarios, kredit: kredit),
+        ],
+        if (_result != null) ...[
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: _result!.newBalance == 0 ? kredit.success : accent,
+              ),
+              onPressed: _registering ? null : _registerNow,
+              icon: const Icon(Icons.check_circle_outline),
+              label: Text(_registering ? 'Registrando...' : 'Registrar este abono'),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Esto aplicará el abono de forma permanente sobre ${_result!.creditName}.',
+            style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+            textAlign: TextAlign.center,
+          ),
         ],
         const SizedBox(height: 10),
         _DisclaimerBanner(kredit: kredit),
@@ -1502,7 +1570,7 @@ class _ScenarioComparisonTable extends StatelessWidget {
   }
 }
 
-class _PaymentResultCard extends ConsumerStatefulWidget {
+class _PaymentResultCard extends StatelessWidget {
   final _PaymentResult result;
   final KreditColors kredit;
   final Color accent;
@@ -1510,168 +1578,196 @@ class _PaymentResultCard extends ConsumerStatefulWidget {
       {required this.result, required this.kredit, required this.accent});
 
   @override
-  ConsumerState<_PaymentResultCard> createState() => _PaymentResultCardState();
-}
-
-class _PaymentResultCardState extends ConsumerState<_PaymentResultCard> {
-  bool _registering = false;
-
-  Future<void> _registerNow() async {
-    final result = widget.result;
-    setState(() => _registering = true);
-    final messenger = ScaffoldMessenger.of(context);
-    final navigator = Navigator.of(context);
-    try {
-      if (!result.isCard) {
-        final abono = await ref.read(creditsProvider.notifier).registerLoanAbono(
-              result.credit.id,
-              result.extraPayment,
-              note: 'Registrado desde el simulador',
-            );
-        if (!mounted) return;
-        final skipped = abono.installmentsSkipped;
-        final message = abono.wasCapped
-            ? 'Se aplicaron \$${abono.amount.toStringAsFixed(0)} de los '
-                '\$${abono.requestedAmount.toStringAsFixed(0)} solicitados — '
-                '¡crédito saldado por completo! 🎉'
-            : 'Abono de \$${abono.amount.toStringAsFixed(0)} registrado'
-                '${skipped > 0 ? ' — $skipped cuota(s) adelantada(s)' : ''}';
-        navigator.pop(); // cierra el sheet del simulador
-        messenger.showSnackBar(SnackBar(content: Text(message)));
-      } else {
-        await ref.read(creditsProvider.notifier).registerMovement(
-              result.credit.id,
-              CardMovementType.payment,
-              result.extraPayment,
-              'Registrado desde el simulador',
-            );
-        if (!mounted) return;
-        navigator.pop(); // cierra el sheet del simulador
-        messenger.showSnackBar(
-          const SnackBar(content: Text('Pago registrado')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _registering = false);
-        messenger.showSnackBar(
-          SnackBar(content: Text('No se pudo registrar el abono: $e')),
-        );
-      }
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final result = widget.result;
-    final kredit = widget.kredit;
-    final accent = widget.accent;
     final isSaldado = result.newBalance == 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // ── Antes → Después ───────────────────────────────────────────────
-        _SimSectionCard(
-          title: 'Impacto del abono',
-          highlightColor: isSaldado ? kredit.success : null,
-          rows: [
-            _StatRow(
-              left: _StatTileData(
-                label: 'Saldo antes',
-                value: _fmtCOP(result.currentBalance),
-                icon: Icons.account_balance_wallet_outlined,
-                valueColor: kredit.textSecondary,
-              ),
-              right: _StatTileData(
-                label: 'Saldo después',
-                value: isSaldado ? 'Saldado' : _fmtCOP(result.newBalance),
-                icon: Icons.trending_down_outlined,
-                valueColor: isSaldado ? kredit.success : kredit.textPrimary,
-              ),
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: kredit.bgCard,
+            borderRadius: BorderRadius.circular(KreditRadius.card),
+            border: Border.all(
+              color: isSaldado
+                  ? kredit.success.withValues(alpha: 0.4)
+                  : kredit.borderCard,
             ),
-            if (!result.isCard) ...[
-              _StatRow(
-                left: _StatTileData(
-                  label: result.quotasSkipped > 0
-                      ? 'Cuotas adelantadas'
-                      : 'Abono aplicado',
-                  value: result.quotasSkipped > 0
-                      ? '~${result.quotasSkipped} cuota${result.quotasSkipped == 1 ? '' : 's'}'
-                      : _fmtCOP(result.extraPayment),
-                  icon: Icons.fast_forward_outlined,
-                  valueColor: accent,
-                ),
-                right: _StatTileData(
-                  label: result.interestSaving > 0
-                      ? 'Ahorro en intereses'
-                      : 'En intereses',
-                  value: result.interestSaving > 0
-                      ? _fmtCOP(result.interestSaving)
-                      : 'Sin ahorro',
-                  icon: Icons.savings_outlined,
-                  valueColor:
-                      result.interestSaving > 0 ? kredit.success : kredit.textTertiary,
-                ),
-              ),
-            ] else ...[
-              _StatRow(
-                left: _StatTileData(
-                  label: 'Cupo disponible',
-                  value: result.newAvailable != null
-                      ? _fmtCOP(result.newAvailable!)
-                      : '—',
-                  icon: Icons.credit_card_outlined,
-                ),
-                right: _StatTileData(
-                  label: 'Meses para saldar',
-                  value: result.monthsToPayoff > 0
-                      ? '~${result.monthsToPayoff} mes${result.monthsToPayoff == 1 ? '' : 'es'}'
-                      : '¡Saldado!',
-                  icon: Icons.schedule_outlined,
-                  valueColor:
-                      result.monthsToPayoff == 0 ? kredit.success : kredit.textPrimary,
-                ),
-              ),
-            ],
-          ],
-        ),
-        if (isSaldado) ...[
-          const SizedBox(height: 10),
-          Row(
+          ),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.celebration_outlined,
-                  color: kredit.success, size: KreditIconSize.small),
-              const SizedBox(width: 8),
-              Expanded(
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
                 child: Text(
-                  '¡Con este abono saldarías por completo este crédito!',
+                  'IMPACTO DEL ABONO',
                   style: TextStyle(
-                      fontSize: KreditTextSize.body,
-                      color: kredit.success,
-                      fontWeight: FontWeight.w600),
+                    fontSize: KreditTextSize.caption,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                    color: isSaldado ? kredit.success : kredit.textTertiary,
+                  ),
                 ),
               ),
+              Divider(height: 1, color: kredit.borderCard),
+              // Strip Antes → Después
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 10, horizontal: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'ANTES',
+                              style: TextStyle(
+                                fontSize: KreditTextSize.caption,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
+                                color: kredit.textTertiary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              _fmtCOP(result.currentBalance),
+                              style: TextStyle(
+                                fontSize: KreditTextSize.body,
+                                fontWeight: FontWeight.w700,
+                                color: kredit.textSecondary,
+                                fontFeatures: const [FontFeature.tabularFigures()],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Container(width: 1, color: kredit.borderCard),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: Icon(
+                        Icons.arrow_forward_outlined,
+                        size: KreditIconSize.small,
+                        color: isSaldado ? kredit.success : accent,
+                      ),
+                    ),
+                    Container(width: 1, color: kredit.borderCard),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 10, horizontal: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'DESPUÉS',
+                              style: TextStyle(
+                                fontSize: KreditTextSize.caption,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
+                                color: kredit.textTertiary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              isSaldado ? '¡Saldado!' : _fmtCOP(result.newBalance),
+                              style: TextStyle(
+                                fontSize: KreditTextSize.body,
+                                fontWeight: FontWeight.w800,
+                                color: isSaldado ? kredit.success : kredit.textPrimary,
+                                fontFeatures: const [FontFeature.tabularFigures()],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Divider(height: 1, color: kredit.borderCard),
+              // Stats secundarios
+              if (!result.isCard)
+                _StatRow(
+                  left: _StatTileData(
+                    label: result.quotasSkipped > 0
+                        ? 'Cuotas adelantadas'
+                        : 'Abono aplicado',
+                    value: result.quotasSkipped > 0
+                        ? '~${result.quotasSkipped} cuota${result.quotasSkipped == 1 ? '' : 's'}'
+                        : _fmtCOP(result.extraPayment),
+                    icon: Icons.fast_forward_outlined,
+                    valueColor: accent,
+                  ),
+                  right: _StatTileData(
+                    label: 'En intereses',
+                    value: result.interestSaving > 0
+                        ? 'Ahorras ${_fmtCOP(result.interestSaving)}'
+                        : 'Sin ahorro',
+                    icon: Icons.savings_outlined,
+                    valueColor: result.interestSaving > 0
+                        ? kredit.success
+                        : kredit.textTertiary,
+                  ),
+                )
+              else
+                _StatRow(
+                  left: _StatTileData(
+                    label: 'Cupo disponible',
+                    value: result.newAvailable != null
+                        ? _fmtCOP(result.newAvailable!)
+                        : '—',
+                    icon: Icons.credit_card_outlined,
+                  ),
+                  right: _StatTileData(
+                    label: 'Meses para saldar',
+                    value: result.monthsToPayoff > 0
+                        ? '~${result.monthsToPayoff} mes${result.monthsToPayoff == 1 ? '' : 'es'}'
+                        : '¡Saldado!',
+                    icon: Icons.schedule_outlined,
+                    valueColor: result.monthsToPayoff == 0
+                        ? kredit.success
+                        : kredit.textPrimary,
+                  ),
+                ),
             ],
           ),
-        ],
-        const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton.icon(
-            onPressed: _registering ? null : _registerNow,
-            icon: const Icon(Icons.check_circle_outline),
-            label: Text(_registering
-                ? 'Registrando...'
-                : 'Registrar este abono ahora'),
+        ),
+        // ── Alerta saldado ────────────────────────────────────────────────
+        if (isSaldado) ...[
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            decoration: BoxDecoration(
+              color: kredit.success.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(KreditRadius.card),
+              border: Border.all(color: kredit.success.withValues(alpha: 0.35)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.celebration_outlined,
+                    color: kredit.success, size: KreditIconSize.small),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '¡Con este abono saldarías por completo este crédito!',
+                    style: TextStyle(
+                      fontSize: KreditTextSize.body,
+                      color: kredit.success,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Esto aplicará el abono de forma permanente sobre ${result.creditName}.',
-          style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
-        ),
+        ],
       ],
     );
   }
