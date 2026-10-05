@@ -592,58 +592,32 @@ class _PayoffTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
-
     if (entries.isEmpty) {
       return const _InlineEmptyCard(text: 'No hay créditos con cuotas pendientes.');
     }
 
-    final maxMonths = entries.map((e) => e.monthsFromNow).reduce((a, b) => a > b ? a : b);
-    if (maxMonths <= 0) {
-      return const _InlineEmptyCard(text: 'Todos los créditos terminan este mes.');
-    }
-
-    final latestEntry = entries.reduce((a, b) => a.monthsFromNow > b.monthsFromNow ? a : b);
-
     return Column(
       children: [
-        Row(
-          children: [
-            const SizedBox(width: 92),
-            Expanded(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('HOY', style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600, color: kredit.textTertiary, letterSpacing: 0.5)),
-                  if (maxMonths > 3)
-                    Text(
-                      '${maxMonths ~/ 2} meses',
-                      style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600, color: kredit.textTertiary, letterSpacing: 0.5),
-                    ),
-                  Text(
-                    formatDate(toDateStr(latestEntry.endDate)),
-                    style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600, color: kredit.textTertiary, letterSpacing: 0.5),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
         for (var i = 0; i < entries.length; i++) ...[
-          if (i > 0) const SizedBox(height: 12),
-          _TimelineRow(entry: entries[i], maxMonths: maxMonths),
+          if (i > 0) const SizedBox(height: 14),
+          _TimelineRow(entry: entries[i]),
         ],
-        const SizedBox(height: 12),
-        Divider(height: 1, color: kredit.borderCard),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            _LegendItem(color: kredit.borderCard, label: 'Pagado'),
-            const SizedBox(width: 16),
-            _LegendItem(color: kredit.textSecondary, label: 'Restante'),
-          ],
-        ),
+        const SizedBox(height: 14),
+        _TimelineLegend(),
+      ],
+    );
+  }
+}
+
+class _TimelineLegend extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    return Row(
+      children: [
+        _LegendItem(color: kredit.success.withValues(alpha: 0.5), label: 'Pagado'),
+        const SizedBox(width: 16),
+        _LegendItem(color: kredit.textTertiary.withValues(alpha: 0.4), label: 'Pendiente'),
       ],
     );
   }
@@ -651,59 +625,71 @@ class _PayoffTimeline extends StatelessWidget {
 
 class _TimelineRow extends StatelessWidget {
   final PayoffEntry entry;
-  final int maxMonths;
-  const _TimelineRow({required this.entry, required this.maxMonths});
+  const _TimelineRow({required this.entry});
 
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
     final color = _payoffUrgencyColor(kredit, entry.monthsFromNow);
-    final remainFraction = maxMonths > 0 ? (entry.monthsFromNow / maxMonths).clamp(0.0, 1.0) : 0.0;
-    final paidFraction = 1.0 - remainFraction;
+    final paidFraction = entry.paidFraction.clamp(0.0, 1.0);
+    final remainFraction = 1.0 - paidFraction;
+    final paidLabel = '${entry.paidInstallments}/${entry.totalInstallments}';
+    final pct = (paidFraction * 100).round();
 
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: 84,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
+        Row(
+          children: [
+            Expanded(
+              child: Text(
                 entry.name,
                 style: const TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 2),
-              Text(
-                formatDate(toDateStr(entry.endDate)),
-                style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600, color: color),
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '$paidLabel cuotas · $pct%',
+              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+            ),
+          ],
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(5),
-            child: SizedBox(
-              height: 10,
-              child: Row(
-                children: [
-                  if (paidFraction > 0)
-                    Flexible(
-                      flex: (paidFraction * 100).round(),
-                      child: Container(color: color.withValues(alpha: 0.22)),
-                    ),
-                  if (remainFraction > 0)
-                    Flexible(
-                      flex: (remainFraction * 100).round(),
-                      child: Container(color: color),
-                    ),
-                ],
-              ),
+        const SizedBox(height: 5),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(5),
+          child: SizedBox(
+            height: 8,
+            child: Row(
+              children: [
+                if (paidFraction > 0)
+                  Flexible(
+                    flex: (paidFraction * 100).round().clamp(1, 99),
+                    child: Container(color: kredit.success.withValues(alpha: 0.55)),
+                  ),
+                if (remainFraction > 0)
+                  Flexible(
+                    flex: (remainFraction * 100).round().clamp(1, 99),
+                    child: Container(color: kredit.textTertiary.withValues(alpha: 0.25)),
+                  ),
+              ],
             ),
           ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Text(
+              'Termina ${formatDate(toDateStr(entry.endDate))}',
+              style: TextStyle(fontSize: KreditTextSize.caption, color: color, fontWeight: FontWeight.w600),
+            ),
+            const Spacer(),
+            Text(
+              'Resta ${formatCOP(entry.remainingAmount)}',
+              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+            ),
+          ],
         ),
       ],
     );
