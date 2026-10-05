@@ -296,24 +296,21 @@ class _DataToolsCardState extends ConsumerState<DataToolsCard> {
         ),
         if (_autoBackupEnabled) ...[
           const SizedBox(height: 4),
-          // Chips de frecuencia
-          Wrap(
-            spacing: 8,
-            children: [
-              for (final entry in const [
-                ('daily', 'Diario'),
-                ('weekly', 'Semanal'),
-                ('monthly', 'Mensual'),
-              ])
-                ChoiceChip(
-                  label: Text(entry.$2),
-                  selected: _autoFrequency == entry.$1,
-                  onSelected: (_) {
-                    setState(() => _autoFrequency = entry.$1);
-                    _savePrefs();
-                  },
-                ),
-            ],
+          // Frecuencia — SegmentedButton que ocupa todo el ancho
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(value: 'daily', label: Text('Diario')),
+                ButtonSegment(value: 'weekly', label: Text('Semanal')),
+                ButtonSegment(value: 'monthly', label: Text('Mensual')),
+              ],
+              selected: {_autoFrequency},
+              onSelectionChanged: (s) {
+                setState(() => _autoFrequency = s.first);
+                _savePrefs();
+              },
+            ),
           ),
           const SizedBox(height: 4),
           // Hora del respaldo
@@ -394,38 +391,66 @@ class _DataToolsCardState extends ConsumerState<DataToolsCard> {
             }
           },
         ),
-        // Modo de archivo
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: Icon(Icons.file_copy_outlined, size: KreditIconSize.small, color: kredit.textTertiary),
-          title: Text('Modo de archivo',
-              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textPrimary)),
-          subtitle: Text(
-            _backupMode == 'replace' ? 'Reemplazar archivo existente' : 'Un archivo por fecha',
-            style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+        // Modo de archivo — SegmentedButton interactivo
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.file_copy_outlined,
+                      size: KreditIconSize.small, color: kredit.textTertiary),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Modo de archivo',
+                    style: TextStyle(
+                        fontSize: KreditTextSize.body,
+                        fontWeight: FontWeight.w600,
+                        color: kredit.textPrimary),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(
+                      value: 'append',
+                      label: Text('Por fecha'),
+                      icon: Icon(Icons.calendar_today_outlined),
+                    ),
+                    ButtonSegment(
+                      value: 'replace',
+                      label: Text('Reemplazar'),
+                      icon: Icon(Icons.sync_outlined),
+                    ),
+                  ],
+                  selected: {_backupMode},
+                  onSelectionChanged: (s) {
+                    setState(() => _backupMode = s.first);
+                    _savePrefs();
+                  },
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _backupMode == 'replace'
+                    ? 'Siempre sobreescribe el mismo archivo'
+                    : 'Crea un archivo nuevo por cada respaldo',
+                style: TextStyle(
+                    fontSize: KreditTextSize.caption,
+                    color: kredit.textTertiary),
+              ),
+            ],
           ),
-          trailing: Icon(Icons.swap_horiz_outlined, size: KreditIconSize.small, color: kredit.textTertiary),
-          onTap: () {
-            setState(() => _backupMode = _backupMode == 'replace' ? 'append' : 'replace');
-            _savePrefs();
-          },
         ),
         const SizedBox(height: 16),
 
-        // ── Botones Exportar / Importar ──────────────────────────────────
+        // ── Botones Importar (izq.) / Exportar (der.) ────────────────────
         Row(
           children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _exportData,
-                icon: const Icon(Icons.upload_file_outlined),
-                label: const Text('Exportar'),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(0, 50),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: _importData,
@@ -433,8 +458,17 @@ class _DataToolsCardState extends ConsumerState<DataToolsCard> {
                 label: const Text('Importar'),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(0, 50),
-                  foregroundColor: kredit.danger,
-                  side: BorderSide(color: kredit.danger.withValues(alpha: 0.5)),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: _exportData,
+                icon: const Icon(Icons.upload_file_outlined),
+                label: const Text('Exportar'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 50),
                 ),
               ),
             ),
