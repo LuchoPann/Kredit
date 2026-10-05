@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/credit.dart';
 import '../../domain/card_calculator.dart';
+import '../../domain/date_utils.dart';
 import '../../domain/interest_rate.dart';
 import '../../utils/currency_input_formatter.dart';
 import '../../domain/loan_calculator.dart';
@@ -159,12 +160,18 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
       ? (widget.credit as LoanCredit).interestRateType
       : InterestRateType.effectiveAnnual;
 
+  // Fecha de inicio — solo para LoanCredit
+  late DateTime _startDate;
+
   @override
   void initState() {
     super.initState();
     if (widget.credit is CardCredit) {
       _oneInstallmentInterestPolicy =
           (widget.credit as CardCredit).oneInstallmentInterestPolicy;
+    }
+    if (widget.credit is LoanCredit) {
+      _startDate = parseDateStr((widget.credit as LoanCredit).startDate);
     }
   }
 
@@ -305,6 +312,38 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
       credit.oneInstallmentInterestPolicy = _oneInstallmentInterestPolicy;
     } else if (credit is LoanCredit) {
       credit.location = _locationCtrl.text.trim();
+
+      // Fecha de inicio: si cambió, aplicar con advertencia si hay abonos
+      final newDateStr = toDateStr(_startDate);
+      if (newDateStr != credit.startDate) {
+        if (credit.abonos.isNotEmpty) {
+          final ok = await showKreditConfirmSheet(
+            context,
+            title: 'Cambiar fecha de inicio',
+            message: 'Este crédito tiene abonos registrados. '
+                'Cambiar la fecha de inicio actualizará el registro, pero el '
+                'cronograma de cuotas no se recalculará automáticamente para '
+                'preservar el historial de abonos. Los valores mostrados serán '
+                'estimados y pueden no coincidir exactamente con lo que indica '
+                'tu banco.',
+            confirmLabel: 'Cambiar de todas formas',
+            isDanger: false,
+            icon: Icons.warning_amber_outlined,
+          );
+          if (!mounted || ok != true) {
+            setState(() => _saving = false);
+            return;
+          }
+          credit.startDate = newDateStr;
+          // No tocamos scheduleManuallyAdjusted — el recompute no aplica
+        } else {
+          credit.startDate = newDateStr;
+          // Sin abonos: permitir recompute limpiando la bandera manual
+          credit.scheduleManuallyAdjusted = false;
+        }
+        loanReprorated = true;
+      }
+
       final newQuota = double.tryParse(
         CurrencyInputFormatter.unformat(_quotaCtrl.text),
       );
@@ -941,6 +980,47 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
           ),
           const SizedBox(height: 16),
         ],
+
+        // ── FECHA DE INICIO ────────────────────────────────────────────────
+        KreditSectionCard(
+          label: 'FECHA DE INICIO',
+          icon: Icons.calendar_today_outlined,
+          children: [
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _startDate,
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+                );
+                if (picked != null) {
+                  setState(() {
+                    _startDate = picked;
+                    _hasChanges = true;
+                  });
+                }
+              },
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  labelText: 'Fecha de inicio del crédito',
+                  prefixIcon: const Icon(Icons.calendar_today_outlined),
+                  helperText: loan.abonos.isNotEmpty
+                      ? 'Este crédito tiene abonos — cambiar la fecha no recalculará el cronograma'
+                      : 'Cambiar regenerará el cronograma estimado de cuotas',
+                  helperMaxLines: 2,
+                  isDense: true,
+                ),
+                child: Text(
+                  formatDate(toDateStr(_startDate)),
+                  style: const TextStyle(fontSize: KreditTextSize.body),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
 
         // ── MONTO Y CUOTA ──────────────────────────────────────────────────
         KreditSectionCard(
