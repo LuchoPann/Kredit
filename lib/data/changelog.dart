@@ -29,19 +29,15 @@ enum ChangeType { nuevo, mejora, correccion }
 
 const List<VersionEntry> changelog = [
   VersionEntry(
-    version: '0.9.2',
+    version: '0.9.1',
     date: 'Octubre 2026',
     changes: [
       ChangeItem(ChangeType.nuevo,
           'Simulador: nuevo tab "Libertad" que proyecta tu fecha libre de deuda y cuánto ahorras en intereses si pagas un monto extra al mes.'),
       ChangeItem(ChangeType.nuevo,
-          'Estrategias Avalanche y Snowball en el simulador: elige si prefieres pagar primero la deuda de mayor tasa (ahorra más) o la de menor saldo (motivación más rápida).'),
-    ],
-  ),
-  VersionEntry(
-    version: '0.9.1',
-    date: 'Octubre 2026',
-    changes: [
+          'Estrategias Avalanche y Snowball en el simulador: elige la que mejor se adapte a tu perfil.'),
+      ChangeItem(ChangeType.mejora,
+          'El simulador muestra tu deuda total, interés mensual estimado y fecha libre de deuda desde que lo abres, sin necesidad de simular nada.'),
       ChangeItem(ChangeType.correccion,
           'Corregido crash al abrir las sub-vistas de "Respaldo automático" y "Seguridad" dentro del panel deslizable de configuración.'),
       ChangeItem(ChangeType.mejora,
