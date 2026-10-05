@@ -17,18 +17,30 @@ Future<String> _resolveCurrentVersion() async {
   return changelog.first.version;
 }
 
+/// Flag en memoria: evita que dos llamadas concurrentes muestren dos sheets.
+bool _whatsNewShowing = false;
+
 /// Muestra el sheet de novedades si la versión cambió desde la última vez.
-/// No hace nada si el usuario ya vio esta versión.
+/// No hace nada si el usuario ya vio esta versión o si ya hay un sheet abierto.
 Future<void> showWhatsNewIfUpdated(BuildContext context) async {
+  if (_whatsNewShowing) return;
   final version = await _resolveCurrentVersion();
   final prefs = await SharedPreferences.getInstance();
   final lastSeen = prefs.getString(_kLastSeenVersion);
   if (lastSeen == version) return;
+  if (_whatsNewShowing) return; // re-check después del await
 
-  if (!context.mounted) return;
-  await showWhatsNewSheet(context);
-
+  _whatsNewShowing = true;
+  // Guardar antes de mostrar: si la app se mata mientras el sheet está abierto,
+  // no volvemos a mostrarlo la próxima vez.
   await prefs.setString(_kLastSeenVersion, version);
+
+  if (!context.mounted) {
+    _whatsNewShowing = false;
+    return;
+  }
+  await showWhatsNewSheet(context);
+  _whatsNewShowing = false;
 }
 
 /// Muestra el sheet de novedades siempre (llamado desde la pantalla de cuenta).

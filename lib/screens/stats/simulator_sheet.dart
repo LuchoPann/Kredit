@@ -1881,40 +1881,24 @@ class _FreedomTabState extends State<_FreedomTab> {
                 }),
               ),
               const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Estrategia',
-                          style: TextStyle(
-                            fontSize: KreditTextSize.caption,
-                            fontWeight: FontWeight.w600,
-                            color: kredit.textSecondary,
-                          ),
-                        ),
-                        Text(
-                          _isAvalanche
-                              ? 'Avalanche · mayor tasa primero'
-                              : 'Snowball · menor saldo primero',
-                          style: TextStyle(
-                              fontSize: KreditTextSize.caption, color: kredit.textTertiary),
-                        ),
-                      ],
-                    ),
-                  ),
-                  _StrategyToggle(
-                    isAvalanche: _isAvalanche,
-                    onChanged: (v) => setState(() {
-                      _isAvalanche = v;
-                      _result = null;
-                    }),
-                    kredit: kredit,
-                    accent: accent,
-                  ),
-                ],
+              Text(
+                'ESTRATEGIA DE PAGO',
+                style: TextStyle(
+                  fontSize: KreditTextSize.caption,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                  color: kredit.textTertiary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              _StrategyToggle(
+                isAvalanche: _isAvalanche,
+                onChanged: (v) => setState(() {
+                  _isAvalanche = v;
+                  _result = null;
+                }),
+                kredit: kredit,
+                accent: accent,
               ),
             ],
           ),
