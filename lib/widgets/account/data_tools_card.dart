@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../domain/date_utils.dart';
 import '../../domain/export_import.dart';
@@ -23,14 +24,51 @@ import '../../theme/app_theme.dart';
 /// (which is fully safe). Mirrors the option-row language used by
 /// `notification_settings_tile.dart`'s `_FrequencyOption`, kept local here
 /// since the two aren't quite the same shape (no "selected" state).
-class DataToolsCard extends ConsumerWidget {
+class DataToolsCard extends ConsumerStatefulWidget {
   const DataToolsCard({super.key});
+
+  @override
+  ConsumerState<DataToolsCard> createState() => _DataToolsCardState();
+}
+
+class _DataToolsCardState extends ConsumerState<DataToolsCard> {
+  bool _autoBackupEnabled = false;
+  String _autoFrequency = 'weekly';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAutoBackupPrefs();
+  }
+
+  Future<void> _loadAutoBackupPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _autoBackupEnabled = prefs.getBool('backup_enabled') ?? false;
+        _autoFrequency = prefs.getString('backup_frequency') ?? 'weekly';
+      });
+    }
+  }
+
+  Future<void> _toggleAutoBackup(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('backup_enabled', value);
+    if (mounted) setState(() => _autoBackupEnabled = value);
+  }
+
+  String get _frequencyLabel => switch (_autoFrequency) {
+        'daily' => 'diario',
+        'biweekly' => 'quincenal',
+        'monthly' => 'mensual',
+        _ => 'semanal',
+      };
 
   /// Warns before sharing the plain-text backup: the JSON contains full
   /// financial details (amounts, rates, credit names) unencrypted, and the
   /// export flow hands it straight to the OS share sheet, so this is the
   /// only checkpoint before it could end up in a chat, email, etc.
-  Future<bool> _confirmUnencryptedShare(BuildContext context) async {
+  Future<bool> _confirmUnencryptedShare() async {
     return showKreditConfirmSheet(
       context,
       title: 'Compartir respaldo sin cifrar',
@@ -41,10 +79,10 @@ class DataToolsCard extends ConsumerWidget {
     );
   }
 
-  Future<void> _exportData(BuildContext context, WidgetRef ref) async {
-    final confirmed = await _confirmUnencryptedShare(context);
+  Future<void> _exportData() async {
+    final confirmed = await _confirmUnencryptedShare();
     if (!confirmed) return;
-    if (!context.mounted) return;
+    if (!mounted) return;
     try {
       final credits = ref.read(creditsProvider).value ?? [];
       final quotas = ref.read(commercialQuotasProvider).value ?? [];
@@ -55,7 +93,7 @@ class DataToolsCard extends ConsumerWidget {
 
       if (savedFile != null) {
         await ref.read(lastBackupProvider.notifier).markBackedUpNow();
-        if (context.mounted) {
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Respaldo guardado en Kredit/backups/${savedFile.uri.pathSegments.last}'),
@@ -76,7 +114,7 @@ class DataToolsCard extends ConsumerWidget {
       }
     } catch (e) {
       debugPrint('exportData failed: $e');
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('No se pudo exportar el respaldo.')),
         );
@@ -84,7 +122,7 @@ class DataToolsCard extends ConsumerWidget {
     }
   }
 
-  Future<void> _importData(BuildContext context, WidgetRef ref) async {
+  Future<void> _importData() async {
     String content;
     try {
       final result = await FilePicker.platform.pickFiles(
@@ -149,11 +187,34 @@ class DataToolsCard extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accent = Theme.of(context).colorScheme.primary;
     final lastBackup = ref.watch(lastBackupProvider);
     final backupOk = lastBackup != null;
-    final statusColor = backupOk ? kredit.success : AppColors.warning;
+
+    // Color por antigüedad: verde <24h, ámbar <7d, rojo ≥7d
+    Color statusColor;
+    String statusLabel;
+    if (!backupOk) {
+      statusColor = AppColors.warning;
+      statusLabel = 'Sin respaldo — se recomienda exportar una copia ahora.';
+    } else {
+      final age = DateTime.now().difference(lastBackup);
+      if (age.inHours < 24) {
+        statusColor = kredit.success;
+        statusLabel = age.inHours < 1
+            ? 'Último respaldo: hace menos de una hora.'
+            : 'Último respaldo: hace ${age.inHours}h.';
+      } else if (age.inDays < 7) {
+        statusColor = AppColors.warning;
+        statusLabel = 'Último respaldo: ${formatDate(toDateStr(lastBackup))}.';
+      } else {
+        statusColor = kredit.error;
+        statusLabel = 'Último respaldo: ${formatDate(toDateStr(lastBackup))} — considera hacer uno nuevo.';
+      }
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -171,6 +232,7 @@ class DataToolsCard extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 10),
+        // Estado del respaldo con color semántico por antigüedad
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -189,9 +251,7 @@ class DataToolsCard extends ConsumerWidget {
               const SizedBox(width: 7),
               Expanded(
                 child: Text(
-                  backupOk
-                      ? 'Último respaldo: ${formatDate(toDateStr(lastBackup))}.'
-                      : 'Sin respaldo — se recomienda exportar una copia ahora.',
+                  statusLabel,
                   style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600, color: statusColor),
                 ),
               ),
@@ -204,7 +264,7 @@ class DataToolsCard extends ConsumerWidget {
           title: 'Exportar datos',
           subtitle: 'Guarda un respaldo JSON de todos tus créditos',
           tag: 'No modifica nada',
-          onTap: () => _exportData(context, ref),
+          onTap: _exportData,
         ),
         Divider(height: 16, color: kredit.borderCard),
         _DataToolOption(
@@ -213,8 +273,72 @@ class DataToolsCard extends ConsumerWidget {
           subtitle: 'Carga un respaldo JSON y reemplaza tus datos actuales',
           tag: 'Reemplaza tus datos',
           tagIsWarning: true,
-          onTap: () => _importData(context, ref),
+          onTap: _importData,
         ),
+        Divider(height: 16, color: kredit.borderCard),
+        // Respaldo automático inline con toggle
+        Row(
+          children: [
+            Icon(
+              Icons.backup_outlined,
+              size: KreditIconSize.small,
+              color: _autoBackupEnabled ? accent : kredit.textSecondary,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Respaldo automático',
+                    style: TextStyle(
+                      color: kredit.textPrimary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: KreditTextSize.body,
+                    ),
+                  ),
+                  Text(
+                    _autoBackupEnabled
+                        ? 'Activo · $_frequencyLabel · al abrir la app'
+                        : 'Desactivado — solo respaldos manuales',
+                    style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+                  ),
+                ],
+              ),
+            ),
+            Switch(
+              value: _autoBackupEnabled,
+              onChanged: _toggleAutoBackup,
+            ),
+          ],
+        ),
+        if (_autoBackupEnabled) ...[
+          const SizedBox(height: 4),
+          InkWell(
+            borderRadius: BorderRadius.circular(KreditRadius.tile),
+            onTap: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const BackupSettingsScreen()),
+              );
+              _loadAutoBackupPrefs();
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+              child: Row(
+                children: [
+                  Icon(Icons.settings_outlined, size: 16, color: kredit.textTertiary),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Configurar frecuencia, hora y carpeta',
+                    style: TextStyle(fontSize: KreditTextSize.body, color: accent),
+                  ),
+                  const Spacer(),
+                  Icon(Icons.chevron_right, size: KreditIconSize.small, color: kredit.textTertiary),
+                ],
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
