@@ -596,65 +596,110 @@ class _PurchaseResultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final highUtilization = result.utilizationPct > 80;
+    final accentColor = Theme.of(context).colorScheme.primary;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Resultado de la simulación',
-          style: TextStyle(
-              fontSize: KreditTextSize.body,
-              fontWeight: FontWeight.w700,
-              color: kredit.textPrimary),
-        ),
-        const SizedBox(height: 4),
-        Column(
-          children: _withDividers(
-            kredit,
-            [
-              _ResultRow(
-                icon: Icons.receipt_long_outlined,
-                label: 'Cuota mensual estimada',
-                value: _fmtCOP(result.monthlyInstallment),
-                valueColor: accent,
-                kredit: kredit,
-              ),
-              _ResultRow(
-                icon: Icons.account_balance_wallet_outlined,
-                label: 'Nuevo saldo total en ${result.cardName}',
-                value: _fmtCOP(result.newTotalBalance),
-                valueColor: kredit.textPrimary,
-                kredit: kredit,
-              ),
-              _ResultRow(
-                icon: Icons.credit_card_outlined,
-                label: 'Cupo disponible tras la compra',
-                value: _fmtCOP(result.availableCredit),
-                valueColor: kredit.textPrimary,
-                kredit: kredit,
-              ),
-              if (result.estimatedInterestCost > 0)
-                _ResultRow(
-                  icon: Icons.trending_up_outlined,
-                  label: 'Costo estimado en intereses (${result.quotas} cuotas)',
-                  value: _fmtCOP(result.estimatedInterestCost),
-                  valueColor: Colors.redAccent,
-                  kredit: kredit,
+        // ── Cuota hero ────────────────────────────────────────────────────
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+          decoration: BoxDecoration(
+            color: accentColor.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(KreditRadius.card),
+            border: Border.all(color: accentColor.withValues(alpha: 0.25)),
+          ),
+          child: Column(
+            children: [
+              Text(
+                'CUOTA MENSUAL ESTIMADA',
+                style: TextStyle(
+                  fontSize: KreditTextSize.caption,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                  color: accentColor,
                 ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _fmtCOP(result.monthlyInstallment),
+                style: TextStyle(
+                  fontSize: KreditTextSize.emphasis,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                  color: accentColor,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+              Text(
+                'por ${result.quotas} cuota${result.quotas == 1 ? '' : 's'}',
+                style: TextStyle(
+                    fontSize: KreditTextSize.body, color: kredit.textSecondary),
+              ),
             ],
           ),
         ),
-        // Barra de utilización
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
+
+        // ── Grid de stats ─────────────────────────────────────────────────
+        _SimSectionCard(
+          title: 'Impacto en tu tarjeta',
+          rows: [
+            _StatRow(
+              left: _StatTileData(
+                label: 'Nuevo saldo',
+                value: _fmtCOP(result.newTotalBalance),
+                icon: Icons.account_balance_wallet_outlined,
+              ),
+              right: _StatTileData(
+                label: 'Cupo disponible',
+                value: _fmtCOP(result.availableCredit),
+                icon: Icons.credit_card_outlined,
+                valueColor: result.availableCredit < result.cardLimit * 0.2
+                    ? Colors.redAccent
+                    : kredit.textPrimary,
+              ),
+            ),
+            if (result.estimatedInterestCost > 0)
+              _StatRow(
+                left: _StatTileData(
+                  label: 'Costo en intereses',
+                  value: _fmtCOP(result.estimatedInterestCost),
+                  icon: Icons.trending_up_outlined,
+                  valueColor: Colors.redAccent,
+                ),
+                right: _StatTileData(
+                  label: 'Utilización del cupo',
+                  value: '${result.utilizationPct.toStringAsFixed(1)}%',
+                  icon: Icons.donut_small_outlined,
+                  valueColor: highUtilization ? Colors.redAccent : kredit.success,
+                ),
+              )
+            else
+              _StatTile(
+                data: _StatTileData(
+                  label: 'Utilización del cupo',
+                  value: '${result.utilizationPct.toStringAsFixed(1)}%',
+                  icon: Icons.donut_small_outlined,
+                  valueColor: highUtilization ? Colors.redAccent : kredit.success,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+
+        // ── Barra de utilización ──────────────────────────────────────────
         _UtilizationBar(
           pct: result.utilizationPct,
           kredit: kredit,
           highUtilization: highUtilization,
         ),
         if (highUtilization) ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           _WarningBanner(
             text:
-                'Alta utilización del crédito (${result.utilizationPct.round()}%). Se recomienda mantenerla por debajo del 80% para no afectar tu perfil crediticio.',
+                'Alta utilización (${result.utilizationPct.round()}%). Se recomienda mantenerla por debajo del 80%.',
           ),
         ],
       ],
@@ -1159,112 +1204,156 @@ class _ThreeScenariosCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Compara tus 3 opciones',
+          'Elige tu estrategia',
           style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: KreditTextSize.body,
+            fontWeight: FontWeight.w700,
+            fontSize: KreditTextSize.heading,
             color: kredit.textPrimary,
           ),
         ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: kredit.borderCard.withValues(alpha: 0.78)),
-            borderRadius: BorderRadius.circular(KreditRadius.card),
-          ),
-          child: Column(
-            children: [
-              _ScenarioTile(
-                title: 'Seguir igual',
-                description: 'Sin abonar, terminas en '
-                    '${formatDate(baseline.payoffDate)} — '
-                    '${_fmtCOP(baseline.totalInterestRemaining)} en interés '
-                    'restante por pagar.',
-                highlight: false,
-                isFirst: true,
-                isLast: false,
-              ),
-              for (var i = 0; i < others.length; i++)
-                _ScenarioTile(
-                  title: others[i].strategy == AbonoStrategy.reducirCuota
-                      ? 'Reducir cuota'
-                      : 'Reducir plazo',
-                  description: others[i].strategy == AbonoStrategy.reducirCuota
-                      ? 'Tu cuota baja de ${_fmtCOP(baseline.quota)} a '
-                          '${_fmtCOP(others[i].quota)} — sigues pagando '
-                          '${others[i].remainingInstallments} cuota(s), pero '
-                          'cada una más liviana.'
-                          '${others[i].interestSaved > 0 ? ' Ahorras aprox. ${_fmtCOP(others[i].interestSaved)} en intereses.' : ' No hay ahorro en intereses.'}'
-                      : 'Terminas ${others[i].installmentsSaved} cuota(s) antes '
-                          '(${formatDate(others[i].payoffDate)} en vez de '
-                          '${formatDate(baseline.payoffDate)}) — misma cuota de '
-                          '${_fmtCOP(others[i].quota)}.'
-                          '${others[i].interestSaved > 0 ? ' Ahorras aprox. ${_fmtCOP(others[i].interestSaved)} en intereses.' : ' No hay ahorro en intereses.'}',
-                  highlight: true,
-                  isFirst: false,
-                  isLast: i == others.length - 1,
-                ),
-            ],
-          ),
+        const SizedBox(height: 4),
+        Text(
+          '¿Qué prefieres hacer con el abono?',
+          style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
         ),
+        const SizedBox(height: 12),
+        // Seguir igual — opción neutra
+        _StrategyOptionCard(
+          icon: Icons.pause_circle_outline,
+          title: 'Seguir igual',
+          subtitle: 'Sin abonar extra',
+          stats: [
+            _StatTileData(label: 'Terminas en', value: formatDate(baseline.payoffDate)),
+            _StatTileData(
+              label: 'Interés restante',
+              value: _fmtCOP(baseline.totalInterestRemaining),
+              valueColor: Colors.redAccent,
+            ),
+          ],
+          isHighlight: false,
+          kredit: kredit,
+          accent: kredit.textTertiary,
+        ),
+        const SizedBox(height: 8),
+        for (final s in others) ...[
+          _StrategyOptionCard(
+            icon: s.strategy == AbonoStrategy.reducirCuota
+                ? Icons.compress_outlined
+                : Icons.fast_forward_outlined,
+            title: s.strategy == AbonoStrategy.reducirCuota
+                ? 'Reducir cuota'
+                : 'Reducir plazo',
+            subtitle: s.strategy == AbonoStrategy.reducirCuota
+                ? 'Pagas menos cada mes'
+                : 'Terminas antes',
+            stats: s.strategy == AbonoStrategy.reducirCuota
+                ? [
+                    _StatTileData(
+                      label: 'Nueva cuota',
+                      value: _fmtCOP(s.quota),
+                      valueColor: accent,
+                    ),
+                    _StatTileData(
+                      label: s.interestSaved > 0 ? 'Ahorras en intereses' : 'Cuotas restantes',
+                      value: s.interestSaved > 0
+                          ? _fmtCOP(s.interestSaved)
+                          : '${s.remainingInstallments}',
+                      valueColor: s.interestSaved > 0 ? kredit.success : kredit.textPrimary,
+                    ),
+                  ]
+                : [
+                    _StatTileData(
+                      label: 'Terminas en',
+                      value: formatDate(s.payoffDate),
+                      valueColor: accent,
+                    ),
+                    _StatTileData(
+                      label: s.interestSaved > 0 ? 'Ahorras en intereses' : 'Cuotas adelantadas',
+                      value: s.interestSaved > 0
+                          ? _fmtCOP(s.interestSaved)
+                          : '${s.installmentsSaved}',
+                      valueColor: s.interestSaved > 0 ? kredit.success : kredit.textPrimary,
+                    ),
+                  ],
+            isHighlight: true,
+            kredit: kredit,
+            accent: accent,
+          ),
+          const SizedBox(height: 8),
+        ],
       ],
     );
   }
 }
 
-class _ScenarioTile extends StatelessWidget {
+class _StrategyOptionCard extends StatelessWidget {
+  final IconData icon;
   final String title;
-  final String description;
-  final bool highlight;
-  final bool isFirst;
-  final bool isLast;
-  const _ScenarioTile({
+  final String subtitle;
+  final List<_StatTileData> stats;
+  final bool isHighlight;
+  final KreditColors kredit;
+  final Color accent;
+
+  const _StrategyOptionCard({
+    required this.icon,
     required this.title,
-    required this.description,
-    required this.highlight,
-    required this.isFirst,
-    required this.isLast,
+    required this.subtitle,
+    required this.stats,
+    required this.isHighlight,
+    required this.kredit,
+    required this.accent,
   });
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final bg = isHighlight ? accent.withValues(alpha: 0.07) : kredit.bgCard;
+    final border = isHighlight ? accent.withValues(alpha: 0.3) : kredit.borderCard;
+
     return Container(
-      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        border: isLast
-            ? null
-            : Border(bottom: BorderSide(color: kredit.borderCard.withValues(alpha: 0.5))),
+        color: bg,
+        borderRadius: BorderRadius.circular(KreditRadius.card),
+        border: Border.all(color: border),
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            highlight ? Icons.trending_down_outlined : Icons.remove_circle_outline,
-            size: KreditIconSize.small,
-            color: highlight ? kredit.success : kredit.textTertiary,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+            child: Row(
               children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: KreditTextSize.body,
-                    color: kredit.textPrimary,
+                Icon(icon,
+                    size: KreditIconSize.small,
+                    color: isHighlight ? accent : kredit.textTertiary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: KreditTextSize.body,
+                          color: isHighlight ? accent : kredit.textSecondary,
+                        ),
+                      ),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: KreditTextSize.caption,
+                          color: kredit.textTertiary,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  description,
-                  style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary, height: 1.4),
                 ),
               ],
             ),
           ),
+          Divider(height: 1, color: kredit.borderCard),
+          _StatRow(left: stats[0], right: stats[1]),
         ],
       ),
     );
@@ -1424,94 +1513,90 @@ class _PaymentResultCardState extends ConsumerState<_PaymentResultCard> {
     final result = widget.result;
     final kredit = widget.kredit;
     final accent = widget.accent;
+    final isSaldado = result.newBalance == 0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Resultado del abono',
-          style: TextStyle(
-              fontSize: KreditTextSize.body,
-              fontWeight: FontWeight.w700,
-              color: kredit.textPrimary),
-        ),
-        const SizedBox(height: 4),
-        Column(
-          children: _withDividers(
-            kredit,
-            [
-              _ResultRow(
-                icon: Icons.savings_outlined,
-                label: 'Abono aplicado a ${result.creditName}',
-                value: _fmtCOP(result.extraPayment),
-                valueColor: Colors.green,
-                kredit: kredit,
-              ),
-              _ResultRow(
-                icon: Icons.trending_down_outlined,
-                label: 'Saldo anterior',
+        // ── Antes → Después ───────────────────────────────────────────────
+        _SimSectionCard(
+          title: 'Impacto del abono',
+          highlightColor: isSaldado ? kredit.success : null,
+          rows: [
+            _StatRow(
+              left: _StatTileData(
+                label: 'Saldo antes',
                 value: _fmtCOP(result.currentBalance),
-                valueColor: kredit.textSecondary,
-                kredit: kredit,
-              ),
-              _ResultRow(
                 icon: Icons.account_balance_wallet_outlined,
-                label: 'Nuevo saldo',
-                value: _fmtCOP(result.newBalance),
-                valueColor:
-                    result.newBalance == 0 ? Colors.green : kredit.textPrimary,
-                kredit: kredit,
+                valueColor: kredit.textSecondary,
               ),
-              if (!result.isCard && result.quotasSkipped > 0)
-                _ResultRow(
+              right: _StatTileData(
+                label: 'Saldo después',
+                value: isSaldado ? 'Saldado' : _fmtCOP(result.newBalance),
+                icon: Icons.trending_down_outlined,
+                valueColor: isSaldado ? kredit.success : kredit.textPrimary,
+              ),
+            ),
+            if (!result.isCard) ...[
+              _StatRow(
+                left: _StatTileData(
+                  label: result.quotasSkipped > 0
+                      ? 'Cuotas adelantadas'
+                      : 'Abono aplicado',
+                  value: result.quotasSkipped > 0
+                      ? '~${result.quotasSkipped} cuota${result.quotasSkipped == 1 ? '' : 's'}'
+                      : _fmtCOP(result.extraPayment),
                   icon: Icons.fast_forward_outlined,
-                  label: 'Cuotas adelantadas',
-                  value:
-                      '~${result.quotasSkipped} cuota${result.quotasSkipped == 1 ? '' : 's'}',
                   valueColor: accent,
-                  kredit: kredit,
                 ),
-              if (!result.isCard && result.interestSaving > 0)
-                _ResultRow(
-                  icon: Icons.attach_money_outlined,
-                  label: 'Ahorro estimado en intereses',
-                  value: _fmtCOP(result.interestSaving),
-                  valueColor: Colors.green,
-                  kredit: kredit,
+                right: _StatTileData(
+                  label: result.interestSaving > 0
+                      ? 'Ahorro en intereses'
+                      : 'En intereses',
+                  value: result.interestSaving > 0
+                      ? _fmtCOP(result.interestSaving)
+                      : 'Sin ahorro',
+                  icon: Icons.savings_outlined,
+                  valueColor:
+                      result.interestSaving > 0 ? kredit.success : kredit.textTertiary,
                 ),
-              if (result.isCard && result.newAvailable != null)
-                _ResultRow(
+              ),
+            ] else ...[
+              _StatRow(
+                left: _StatTileData(
+                  label: 'Cupo disponible',
+                  value: result.newAvailable != null
+                      ? _fmtCOP(result.newAvailable!)
+                      : '—',
                   icon: Icons.credit_card_outlined,
-                  label: 'Nuevo cupo disponible',
-                  value: _fmtCOP(result.newAvailable!),
-                  valueColor: kredit.textPrimary,
-                  kredit: kredit,
                 ),
-              if (result.isCard && result.monthsToPayoff > 0)
-                _ResultRow(
+                right: _StatTileData(
+                  label: 'Meses para saldar',
+                  value: result.monthsToPayoff > 0
+                      ? '~${result.monthsToPayoff} mes${result.monthsToPayoff == 1 ? '' : 'es'}'
+                      : '¡Saldado!',
                   icon: Icons.schedule_outlined,
-                  label: 'Meses estimados para saldar (pago mínimo)',
-                  value:
-                      '~${result.monthsToPayoff} mes${result.monthsToPayoff == 1 ? '' : 'es'}',
-                  valueColor: kredit.textSecondary,
-                  kredit: kredit,
+                  valueColor:
+                      result.monthsToPayoff == 0 ? kredit.success : kredit.textPrimary,
                 ),
+              ),
             ],
-          ),
+          ],
         ),
-        if (result.newBalance == 0) ...[
-          const SizedBox(height: 16),
+        if (isSaldado) ...[
+          const SizedBox(height: 10),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.celebration_outlined,
-                  color: Colors.green, size: KreditIconSize.small),
+              Icon(Icons.celebration_outlined,
+                  color: kredit.success, size: KreditIconSize.small),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   '¡Con este abono saldarías por completo este crédito!',
                   style: TextStyle(
                       fontSize: KreditTextSize.body,
-                      color: kredit.textPrimary,
+                      color: kredit.success,
                       fontWeight: FontWeight.w600),
                 ),
               ),
@@ -1531,7 +1616,7 @@ class _PaymentResultCardState extends ConsumerState<_PaymentResultCard> {
         ),
         const SizedBox(height: 6),
         Text(
-          'Esto aplicará el abono real de forma permanente sobre ${result.creditName}.',
+          'Esto aplicará el abono de forma permanente sobre ${result.creditName}.',
           style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
         ),
       ],
@@ -1674,30 +1759,33 @@ class _BaselineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: _withDividers(kredit, [
-        _ResultRow(
-          icon: Icons.event_outlined,
-          label: 'Fecha estimada libre de deuda',
-          value: _monthsToDateStr(baseline.baseMonthsTotal),
-          valueColor: kredit.textPrimary,
-          kredit: kredit,
+    final creditsLabel =
+        '${baseline.rows.length} crédito${baseline.rows.length == 1 ? '' : 's'}';
+    return _SimSectionCard(
+      title: 'Tu situación actual',
+      rows: [
+        _StatRow(
+          left: _StatTileData(
+            label: 'Libre de deuda en',
+            value: _monthsToDateStr(baseline.baseMonthsTotal),
+            icon: Icons.event_outlined,
+            valueColor: accent,
+          ),
+          right: _StatTileData(
+            label: 'Intereses pendientes',
+            value: _fmtCOP(baseline.totalBaseInterest),
+            icon: Icons.trending_up_outlined,
+            valueColor: Colors.redAccent,
+          ),
         ),
-        _ResultRow(
-          icon: Icons.trending_up_outlined,
-          label: 'Intereses pendientes totales',
-          value: _fmtCOP(baseline.totalBaseInterest),
-          valueColor: Colors.redAccent,
-          kredit: kredit,
+        _StatTile(
+          data: _StatTileData(
+            label: 'Créditos activos incluidos',
+            value: creditsLabel,
+            icon: Icons.credit_card_outlined,
+          ),
         ),
-        _ResultRow(
-          icon: Icons.credit_card_outlined,
-          label: 'Créditos activos',
-          value: '${baseline.rows.length} crédito${baseline.rows.length == 1 ? '' : 's'}',
-          valueColor: kredit.textPrimary,
-          kredit: kredit,
-        ),
-      ]),
+      ],
     );
   }
 }
@@ -1718,68 +1806,85 @@ class _FreedomResultCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (monthsSaved > 0) ...[
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(KreditRadius.card),
-              border: Border.all(color: accent.withValues(alpha: 0.25)),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  '$monthsSaved meses antes',
-                  style: TextStyle(
-                    fontSize: KreditTextSize.emphasis,
-                    fontWeight: FontWeight.w800,
-                    color: accent,
-                  ),
-                ),
-                Text(
-                  'terminarías ${first.credit.name}',
-                  style: TextStyle(
-                      fontSize: KreditTextSize.body, color: kredit.textSecondary),
-                  textAlign: TextAlign.center,
-                ),
-                if (result.totalInterestSaved > 0) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.savings_outlined,
-                          size: KreditIconSize.small, color: kredit.success),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Ahorras ${_fmtCOP(result.totalInterestSaved)} en intereses',
-                        style: TextStyle(
-                          fontSize: KreditTextSize.body,
-                          fontWeight: FontWeight.w600,
-                          color: kredit.success,
+          _SimSectionCard(
+            highlightColor: accent,
+            rows: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          '$monthsSaved',
+                          style: TextStyle(
+                            fontSize: KreditTextSize.emphasis,
+                            fontWeight: FontWeight.w800,
+                            color: accent,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
                         ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'meses antes terminarías ${first.credit.name}',
+                          style: TextStyle(
+                            fontSize: KreditTextSize.body,
+                            fontWeight: FontWeight.w600,
+                            color: kredit.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (result.totalInterestSaved > 0) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Icon(Icons.savings_outlined,
+                              size: KreditIconSize.small, color: kredit.success),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Ahorras ${_fmtCOP(result.totalInterestSaved)} en intereses',
+                            style: TextStyle(
+                              fontSize: KreditTextSize.body,
+                              fontWeight: FontWeight.w600,
+                              color: kredit.success,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-        ] else ...[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(Icons.info_outline,
-                  size: KreditIconSize.small, color: kredit.textTertiary),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Con ese monto el ahorro es marginal. Aumenta el abono extra para ver un impacto mayor.',
-                  style: TextStyle(
-                      fontSize: KreditTextSize.body, color: kredit.textTertiary),
+                  ],
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 16),
+        ] else ...[
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: kredit.bgCard,
+              borderRadius: BorderRadius.circular(KreditRadius.card),
+              border: Border.all(color: kredit.borderCard),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline,
+                    size: KreditIconSize.small, color: kredit.textTertiary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Con ese monto el ahorro es marginal. Aumenta el abono extra para ver un impacto mayor.',
+                    style: TextStyle(
+                        fontSize: KreditTextSize.body, color: kredit.textSecondary),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
         ],
@@ -1803,6 +1908,7 @@ class _FreedomResultCard extends StatelessWidget {
                   row: result.rows[i],
                   index: i,
                   isLast: i == result.rows.length - 1,
+                  maxMonths: result.baseMonthsTotal,
                   kredit: kredit,
                   accent: accent,
                 ),
@@ -1818,12 +1924,14 @@ class _FreedomCreditTile extends StatelessWidget {
   final _FreedomRow row;
   final int index;
   final bool isLast;
+  final int maxMonths; // para escalar la barra de progreso
   final KreditColors kredit;
   final Color accent;
   const _FreedomCreditTile({
     required this.row,
     required this.index,
     required this.isLast,
+    required this.maxMonths,
     required this.kredit,
     required this.accent,
   });
@@ -1832,80 +1940,98 @@ class _FreedomCreditTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isPriority = index == 0 && row.monthlyExtra > 0;
     final saved = row.monthsSaved;
+    final displayMonths = isPriority ? row.newMonths : row.baseMonths;
+    final progressFraction = maxMonths > 0
+        ? (displayMonths / maxMonths).clamp(0.0, 1.0)
+        : 0.0;
+    final barColor = isPriority ? accent : kredit.textTertiary.withValues(alpha: 0.5);
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: isPriority ? accent.withValues(alpha: 0.06) : null,
         border: isLast
             ? null
-            : Border(
-                bottom:
-                    BorderSide(color: kredit.borderCard.withValues(alpha: 0.5))),
+            : Border(bottom: BorderSide(color: kredit.borderCard.withValues(alpha: 0.5))),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 26,
-            height: 26,
-            decoration: BoxDecoration(
-              color: isPriority
-                  ? accent
-                  : kredit.borderCard.withValues(alpha: 0.5),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                '${index + 1}',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: isPriority ? Colors.white : kredit.textTertiary,
+          Row(
+            children: [
+              // Número de orden
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: isPriority ? accent : kredit.borderCard.withValues(alpha: 0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    '${index + 1}',
+                    style: TextStyle(
+                      fontSize: KreditTextSize.caption,
+                      fontWeight: FontWeight.w700,
+                      color: isPriority ? Colors.white : kredit.textTertiary,
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
                   row.credit.name,
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: KreditTextSize.body,
                     color: kredit.textPrimary,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                Text(
-                  isPriority
-                      ? '${_fmtCOP(row.monthlyBase + row.monthlyExtra)}/mes · terminas en ${_monthsLabel(row.newMonths)}'
-                      : '${_fmtCOP(row.monthlyBase)}/mes · ${_monthsLabel(row.baseMonths)}',
-                  style: TextStyle(
-                      fontSize: KreditTextSize.body, color: kredit.textSecondary),
+              ),
+              if (saved > 0) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: kredit.success.withValues(alpha: 0.13),
+                    borderRadius: BorderRadius.circular(KreditRadius.chip),
+                  ),
+                  child: Text(
+                    '-$saved m',
+                    style: TextStyle(
+                      color: kredit.success,
+                      fontWeight: FontWeight.w700,
+                      fontSize: KreditTextSize.caption,
+                    ),
+                  ),
                 ),
               ],
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Barra de tiempo restante
+          ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: LinearProgressIndicator(
+              value: progressFraction,
+              backgroundColor: kredit.borderCard,
+              valueColor: AlwaysStoppedAnimation<Color>(barColor),
+              minHeight: 5,
             ),
           ),
-          if (saved > 0) ...[
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: kredit.success.withValues(alpha: 0.13),
-                borderRadius: BorderRadius.circular(KreditRadius.chip),
-              ),
-              child: Text(
-                '-$saved m',
-                style: TextStyle(
-                  color: kredit.success,
-                  fontWeight: FontWeight.w700,
-                  fontSize: KreditTextSize.caption,
-                ),
-              ),
+          const SizedBox(height: 5),
+          Text(
+            isPriority
+                ? '${_fmtCOP(row.monthlyBase + row.monthlyExtra)}/mes · ${_monthsLabel(displayMonths)}'
+                : '${_fmtCOP(row.monthlyBase)}/mes · ${_monthsLabel(displayMonths)}',
+            style: TextStyle(
+              fontSize: KreditTextSize.body,
+              color: isPriority ? accent : kredit.textSecondary,
             ),
-          ],
+          ),
         ],
       ),
     );
@@ -2030,59 +2156,6 @@ class _StrategyOption extends StatelessWidget {
 // Widgets de apoyo reutilizables
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Intercala un `Divider` fino entre cada elemento de [rows], siguiendo el
-/// lenguaje "sin cajas" del dashboard: las filas de resultado se separan por
-/// líneas, no por tarjetas o fondos.
-List<Widget> _withDividers(KreditColors kredit, List<Widget> rows) {
-  final divider = Divider(height: 1, color: kredit.borderCard);
-  final result = <Widget>[];
-  for (var i = 0; i < rows.length; i++) {
-    if (i > 0) {
-      result.add(Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: divider,
-      ));
-    }
-    result.add(rows[i]);
-  }
-  return result;
-}
-
-class _ResultRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color valueColor;
-  final KreditColors kredit;
-
-  const _ResultRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.valueColor,
-    required this.kredit,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: KreditIconSize.small, color: kredit.textTertiary),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(label,
-              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary)),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-              fontSize: KreditTextSize.body, fontWeight: FontWeight.w700, color: valueColor),
-        ),
-      ],
-    );
-  }
-}
-
 /// Alerta de utilización alta: solo tipografía + ícono en el color de
 /// advertencia del tema, sin fondo relleno ni borde — la distinción frente
 /// al texto informativo vive en el color, no en una caja.
@@ -2157,6 +2230,146 @@ class _DisclaimerBanner extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Widgets de stat grid — reemplazan _ResultRow (horizontal) con un layout
+// vertical que nunca trunca el label ni aprieta el valor.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _StatTileData {
+  final String label;
+  final String value;
+  final Color? valueColor;
+  final IconData? icon;
+
+  const _StatTileData({
+    required this.label,
+    required this.value,
+    this.valueColor,
+    this.icon,
+  });
+}
+
+/// Celda de stat: etiqueta en caption arriba, valor en heading bold abajo.
+/// Nunca pierde información porque label y valor tienen su propio espacio.
+class _StatTile extends StatelessWidget {
+  final _StatTileData data;
+  const _StatTile({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    return Padding(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (data.icon != null) ...[
+            Icon(data.icon, size: 13, color: kredit.textTertiary),
+            const SizedBox(height: 5),
+          ],
+          Text(
+            data.label.toUpperCase(),
+            style: TextStyle(
+              fontSize: KreditTextSize.caption,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+              color: kredit.textTertiary,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            data.value,
+            style: TextStyle(
+              fontSize: KreditTextSize.heading,
+              fontWeight: FontWeight.w700,
+              color: data.valueColor ?? kredit.textPrimary,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Dos stat tiles lado a lado, separados por línea vertical.
+class _StatRow extends StatelessWidget {
+  final _StatTileData left;
+  final _StatTileData right;
+
+  const _StatRow({required this.left, required this.right});
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: _StatTile(data: left)),
+          Container(width: 1, color: kredit.borderCard),
+          Expanded(child: _StatTile(data: right)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Contenedor de sección de resultado: fondo suave + borde + separadores entre filas.
+class _SimSectionCard extends StatelessWidget {
+  final String? title;
+  final List<Widget> rows;
+  final Color? highlightColor;
+
+  const _SimSectionCard({
+    this.title,
+    required this.rows,
+    this.highlightColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final bg = highlightColor != null
+        ? highlightColor!.withValues(alpha: 0.07)
+        : kredit.bgCard;
+    final borderColor = highlightColor != null
+        ? highlightColor!.withValues(alpha: 0.3)
+        : kredit.borderCard;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(KreditRadius.card),
+        border: Border.all(color: borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (title != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
+              child: Text(
+                title!.toUpperCase(),
+                style: TextStyle(
+                  fontSize: KreditTextSize.caption,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                  color: highlightColor ?? kredit.textTertiary,
+                ),
+              ),
+            ),
+          for (var i = 0; i < rows.length; i++) ...[
+            if (i > 0) Divider(height: 1, color: kredit.borderCard),
+            rows[i],
+          ],
+        ],
+      ),
     );
   }
 }
