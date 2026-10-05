@@ -1,6 +1,8 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../services/backup_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/kredit_section_card.dart';
 
@@ -39,6 +41,7 @@ class _BackupSettingsBodyState extends State<BackupSettingsBody> {
   int _hour = 2;
   int _minute = 0;
   bool _loading = true;
+  String? _customPath;
 
   @override
   void initState() {
@@ -54,6 +57,7 @@ class _BackupSettingsBodyState extends State<BackupSettingsBody> {
       _mode = prefs.getString(_kBackupMode) ?? 'overwrite';
       _hour = prefs.getInt(_kBackupHour) ?? 2;
       _minute = prefs.getInt(_kBackupMinute) ?? 0;
+      _customPath = prefs.getString(kBackupCustomPathPref);
       _loading = false;
     });
   }
@@ -65,11 +69,25 @@ class _BackupSettingsBodyState extends State<BackupSettingsBody> {
     await prefs.setString(_kBackupMode, _mode);
     await prefs.setInt(_kBackupHour, _hour);
     await prefs.setInt(_kBackupMinute, _minute);
+    if (_customPath != null && _customPath!.isNotEmpty) {
+      await prefs.setString(kBackupCustomPathPref, _customPath!);
+    } else {
+      await prefs.remove(kBackupCustomPathPref);
+    }
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Configuración de respaldo guardada')),
       );
       Navigator.of(context).maybePop();
+    }
+  }
+
+  Future<void> _pickFolder() async {
+    final path = await FilePicker.platform.getDirectoryPath(
+      dialogTitle: 'Elige la carpeta de destino',
+    );
+    if (path != null) {
+      setState(() => _customPath = path);
     }
   }
 
@@ -160,46 +178,73 @@ class _BackupSettingsBodyState extends State<BackupSettingsBody> {
           ),
           const SizedBox(height: KreditSpacing.section),
 
-          // Carpeta de destino (informativa)
+          // Carpeta de destino (configurable)
           KreditSectionCard(
             label: 'CARPETA DE DESTINO',
             icon: Icons.folder_outlined,
             children: [
-              Row(
-                children: [
-                  Icon(Icons.folder_open_outlined, size: KreditIconSize.small, color: kredit.textSecondary),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(KreditRadius.tile),
+                  onTap: _pickFolder,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                    child: Row(
                       children: [
-                        Text(
-                          'Almacenamiento principal del teléfono',
-                          style: TextStyle(
-                            fontSize: KreditTextSize.body,
-                            fontWeight: FontWeight.w600,
-                            color: kredit.textPrimary,
+                        Icon(
+                          _customPath != null ? Icons.folder_open_outlined : Icons.folder_outlined,
+                          size: KreditIconSize.small,
+                          color: _customPath != null ? accent : kredit.textSecondary,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _customPath != null ? 'Carpeta personalizada' : 'Predeterminada',
+                                style: TextStyle(
+                                  fontSize: KreditTextSize.body,
+                                  fontWeight: FontWeight.w600,
+                                  color: kredit.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _customPath != null
+                                    ? '$_customPath/Kredit/backups/'
+                                    : 'Kredit/backups/ (almacenamiento principal)',
+                                style: TextStyle(
+                                  fontSize: KreditTextSize.caption,
+                                  fontFamily: 'monospace',
+                                  color: kredit.textTertiary,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Kredit/backups/',
-                          style: TextStyle(
-                            fontSize: KreditTextSize.caption,
-                            fontFamily: 'monospace',
-                            color: kredit.textTertiary,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Al mismo nivel que Descargas y Documentos',
-                          style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
-                        ),
+                        const SizedBox(width: 8),
+                        Icon(Icons.edit_outlined, size: KreditIconSize.small, color: kredit.textTertiary),
                       ],
                     ),
                   ),
-                ],
+                ),
               ),
+              if (_customPath != null) ...[
+                const SizedBox(height: 4),
+                TextButton.icon(
+                  onPressed: () => setState(() => _customPath = null),
+                  icon: const Icon(Icons.restore_outlined, size: 16),
+                  label: const Text('Restablecer carpeta predeterminada'),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: KreditSpacing.section),

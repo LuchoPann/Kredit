@@ -3,9 +3,13 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+const kBackupCustomPathPref = 'backup_custom_path';
 
 class BackupService {
-  /// Ruta destino: /storage/emulated/0/Kredit/backups/
+  /// Ruta destino: configurable por el usuario via [kBackupCustomPathPref].
+  /// Si no hay ruta custom: /storage/emulated/0/Kredit/backups/ (por defecto).
   /// Retorna null si no se otorga permiso o no hay almacenamiento externo.
   static Future<Directory?> getBackupDirectory() async {
     if (Platform.isAndroid) {
@@ -27,6 +31,15 @@ class BackupService {
       }
 
       if (!granted) return null;
+    }
+
+    // Carpeta configurable por el usuario
+    final prefs = await SharedPreferences.getInstance();
+    final customPath = prefs.getString(kBackupCustomPathPref);
+    if (customPath != null && customPath.isNotEmpty) {
+      final backupDir = Directory('$customPath/Kredit/backups');
+      await backupDir.create(recursive: true);
+      return backupDir;
     }
 
     final externalDir = await getExternalStorageDirectory();

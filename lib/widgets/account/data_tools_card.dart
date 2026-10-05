@@ -12,6 +12,7 @@ import '../../domain/export_import.dart';
 import '../../providers/commercial_quotas_provider.dart';
 import '../../providers/credits_provider.dart';
 import '../../providers/last_backup_provider.dart';
+import '../../screens/account/backup_settings_screen.dart';
 import '../../services/backup_service.dart';
 import '../kredit_bottom_dialogs.dart';
 import '../../theme/app_theme.dart';
@@ -210,7 +211,7 @@ class _DataToolsCardState extends ConsumerState<DataToolsCard> {
         statusColor = AppColors.warning;
         statusLabel = 'Último respaldo: ${formatDate(toDateStr(lastBackup))}.';
       } else {
-        statusColor = kredit.error;
+        statusColor = kredit.danger;
         statusLabel = 'Último respaldo: ${formatDate(toDateStr(lastBackup))} — considera hacer uno nuevo.';
       }
     }
