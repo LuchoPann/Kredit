@@ -409,6 +409,15 @@ class _DataToolsCardState extends ConsumerState<DataToolsCard> {
                         fontWeight: FontWeight.w600,
                         color: kredit.textPrimary),
                   ),
+                  const Spacer(),
+                  Text(
+                    _backupMode == 'replace'
+                        ? 'Sobreescribe el mismo'
+                        : 'Uno por cada respaldo',
+                    style: TextStyle(
+                        fontSize: KreditTextSize.caption,
+                        color: kredit.textTertiary),
+                  ),
                 ],
               ),
               const SizedBox(height: 6),
@@ -433,15 +442,6 @@ class _DataToolsCardState extends ConsumerState<DataToolsCard> {
                     _savePrefs();
                   },
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _backupMode == 'replace'
-                    ? 'Siempre sobreescribe el mismo archivo'
-                    : 'Crea un archivo nuevo por cada respaldo',
-                style: TextStyle(
-                    fontSize: KreditTextSize.caption,
-                    color: kredit.textTertiary),
               ),
             ],
           ),
