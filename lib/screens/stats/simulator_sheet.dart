@@ -1105,31 +1105,17 @@ class _ExtraPaymentTabState extends ConsumerState<_ExtraPaymentTab> {
         ],
         if (_threeScenarios.isNotEmpty) ...[
           const SizedBox(height: 8),
-          _ThreeScenariosCard(scenarios: _threeScenarios, kredit: kredit, accent: accent),
+          _StrategySelector(
+            scenarios: _threeScenarios,
+            kredit: kredit,
+            accent: accent,
+            onRegister: _registering ? null : _registerNow,
+            registering: _registering,
+          ),
         ],
         if (_scenarios.length > 1) ...[
           const SizedBox(height: 8),
           _ScenarioComparisonTable(scenarios: _scenarios, kredit: kredit),
-        ],
-        if (_result != null) ...[
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              style: FilledButton.styleFrom(
-                backgroundColor: _result!.newBalance == 0 ? kredit.success : accent,
-              ),
-              onPressed: _registering ? null : _registerNow,
-              icon: const Icon(Icons.check_circle_outline),
-              label: Text(_registering ? 'Registrando...' : 'Registrar este abono'),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Esto aplicará el abono de forma permanente sobre ${_result!.creditName}.',
-            style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
-            textAlign: TextAlign.center,
-          ),
         ],
         const SizedBox(height: 10),
         _DisclaimerBanner(kredit: kredit),
@@ -1299,183 +1285,441 @@ class _QuickAmountRow extends StatelessWidget {
   }
 }
 
-/// Fase 6 del roadmap: compara automáticamente los 3 escenarios fijos para
-/// el monto recién simulado — "seguir igual" (baseline), "reducir cuota" y
-/// "reducir plazo" — en el mismo lenguaje humano que pide el roadmap
-/// ("Terminas X meses antes", "Tu cuota baja de $X a $Y"). A diferencia de
-/// `_ScenarioComparisonTable` (que compara MONTOS distintos elegidos por el
-/// usuario), esta tarjeta compara ESTRATEGIAS para el mismo monto.
-class _ThreeScenariosCard extends StatelessWidget {
+class _StrategySelector extends StatefulWidget {
   final List<AbonoScenarioResult> scenarios;
   final KreditColors kredit;
   final Color accent;
-  const _ThreeScenariosCard({
+  final VoidCallback? onRegister;
+  final bool registering;
+
+  const _StrategySelector({
     required this.scenarios,
     required this.kredit,
     required this.accent,
+    required this.onRegister,
+    required this.registering,
   });
 
   @override
-  Widget build(BuildContext context) {
+  State<_StrategySelector> createState() => _StrategySelectorState();
+}
+
+class _StrategySelectorState extends State<_StrategySelector> {
+  int? _selectedIdx;
+
+  List<_StrategyItem> _buildItems() {
+    final kredit = widget.kredit;
+    final accent = widget.accent;
+    final scenarios = widget.scenarios;
+
     final baseline = scenarios.firstWhere((s) => s.strategy == null);
-    final others = scenarios.where((s) => s.strategy != null).toList();
-    if (others.isEmpty) return const SizedBox.shrink();
+    final reducirPlazo =
+        scenarios.where((s) => s.strategy == AbonoStrategy.reducirPlazo).firstOrNull;
+    final reducirCuota =
+        scenarios.where((s) => s.strategy == AbonoStrategy.reducirCuota).firstOrNull;
+
+    final items = <_StrategyItem>[];
+
+    if (reducirPlazo != null) {
+      final saved = reducirPlazo.interestSaved;
+      items.add(_StrategyItem(
+        icon: Icons.rocket_launch_outlined,
+        title: 'Reducir el plazo',
+        tagline: 'Terminas antes · mayor ahorro en intereses',
+        statLine: saved > 0
+            ? 'Terminas ${formatDate(reducirPlazo.payoffDate)} · Ahorras ${_fmtCOP(saved)}'
+            : 'Terminas ${formatDate(reducirPlazo.payoffDate)}',
+        statColor: accent,
+        description:
+            'El abono va directo al capital. Sigues pagando la misma cuota mensual pero el préstamo termina antes. '
+            'Es la opción que más intereses te ahorra a largo plazo.',
+        steps: const [
+          'Contacta tu banco o entidad financiera (presencial, app o línea de atención)',
+          'Solicita un "abono extraordinario a capital con reducción de plazo"',
+          'Pide confirmación escrita de la nueva fecha de terminación del crédito',
+        ],
+        recommended: true,
+      ));
+    }
+
+    if (reducirCuota != null) {
+      final saved = reducirCuota.interestSaved;
+      items.add(_StrategyItem(
+        icon: Icons.compress_outlined,
+        title: 'Reducir la cuota mensual',
+        tagline: 'Pagas menos cada mes · más alivio en tu flujo de caja',
+        statLine:
+            'Nueva cuota: ${_fmtCOP(reducirCuota.quota)}${saved > 0 ? ' · Ahorras ${_fmtCOP(saved)}' : ''}',
+        statColor: kredit.textPrimary,
+        description:
+            'El abono reduce el capital y tu cuota mensual baja. Útil si necesitas liberar presupuesto mensual. '
+            'Ahorras menos en intereses que con reducción de plazo.',
+        steps: const [
+          'Contacta tu banco o entidad financiera',
+          'Solicita un "abono extraordinario a capital con reducción de cuota"',
+          'Verifica y guarda el comprobante con el nuevo valor de la cuota',
+        ],
+        recommended: false,
+      ));
+    }
+
+    items.add(_StrategyItem(
+      icon: Icons.schedule_send_outlined,
+      title: 'Cuota anticipada',
+      tagline: 'Paga la próxima cuota ahora · tranquilidad garantizada',
+      statLine: baseline.installmentsSaved > 0
+          ? '~${baseline.installmentsSaved} cuota${baseline.installmentsSaved == 1 ? '' : 's'} adelantada${baseline.installmentsSaved == 1 ? '' : 's'}'
+          : 'Próxima cuota cubierta',
+      statColor: kredit.textPrimary,
+      description:
+          'En lugar de abonar a capital, pagas la cuota del próximo período por adelantado. '
+          'No cambia tu cuota futura ni tu plazo, pero te da la tranquilidad de tener el siguiente pago asegurado.',
+      steps: const [
+        'Realiza el pago como lo harías normalmente (PSE, transferencia o ventanilla)',
+        'Guarda el comprobante de pago',
+        'Verifica en el portal de tu entidad que el pago quedó registrado correctamente',
+      ],
+      recommended: false,
+    ));
+
+    items.add(_StrategyItem(
+      icon: Icons.checklist_outlined,
+      title: 'Solo registrar en Kredit',
+      tagline: 'Mantén tu historial actualizado · sin cambios en el crédito',
+      statLine: 'Interés restante: ${_fmtCOP(baseline.totalInterestRemaining)}',
+      statColor: kredit.textTertiary,
+      description:
+          'Registra el abono en Kredit para mantener tu historial al día, sin instruir ningún cambio en el esquema de pagos del crédito.',
+      steps: const [
+        'Confirma que ya realizaste el abono con tu entidad financiera',
+        'Toca "Registrar" para actualizar Kredit',
+      ],
+      recommended: false,
+    ));
+
+    return items;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = widget.kredit;
+    final accent = widget.accent;
+    final items = _buildItems();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Elige tu estrategia',
+          'Estrategia de abono',
           style: TextStyle(
             fontWeight: FontWeight.w700,
             fontSize: KreditTextSize.heading,
             color: kredit.textPrimary,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 3),
         Text(
-          '¿Qué prefieres hacer con el abono?',
+          'Elige cómo aplicar este abono. Son sugerencias — tu entidad financiera tiene la última palabra.',
           style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
         ),
-        const SizedBox(height: 8),
-        // Seguir igual — opción neutra
-        _StrategyOptionCard(
-          icon: Icons.pause_circle_outline,
-          title: 'Seguir igual',
-          subtitle: 'Sin abonar extra',
-          stats: [
-            _StatTileData(label: 'Terminas en', value: formatDate(baseline.payoffDate)),
-            _StatTileData(
-              label: 'Interés restante',
-              value: _fmtCOP(baseline.totalInterestRemaining),
-              valueColor: Colors.redAccent,
-            ),
-          ],
-          isHighlight: false,
-          kredit: kredit,
-          accent: kredit.textTertiary,
-        ),
-        const SizedBox(height: 8),
-        for (final s in others) ...[
-          _StrategyOptionCard(
-            icon: s.strategy == AbonoStrategy.reducirCuota
-                ? Icons.compress_outlined
-                : Icons.fast_forward_outlined,
-            title: s.strategy == AbonoStrategy.reducirCuota
-                ? 'Reducir cuota'
-                : 'Reducir plazo',
-            subtitle: s.strategy == AbonoStrategy.reducirCuota
-                ? 'Pagas menos cada mes'
-                : 'Terminas antes',
-            stats: s.strategy == AbonoStrategy.reducirCuota
-                ? [
-                    _StatTileData(
-                      label: 'Nueva cuota',
-                      value: _fmtCOP(s.quota),
-                      valueColor: accent,
-                    ),
-                    _StatTileData(
-                      label: s.interestSaved > 0 ? 'Ahorras en intereses' : 'Cuotas restantes',
-                      value: s.interestSaved > 0
-                          ? _fmtCOP(s.interestSaved)
-                          : '${s.remainingInstallments}',
-                      valueColor: s.interestSaved > 0 ? kredit.success : kredit.textPrimary,
-                    ),
-                  ]
-                : [
-                    _StatTileData(
-                      label: 'Terminas en',
-                      value: formatDate(s.payoffDate),
-                      valueColor: accent,
-                    ),
-                    _StatTileData(
-                      label: s.interestSaved > 0 ? 'Ahorras en intereses' : 'Cuotas adelantadas',
-                      value: s.interestSaved > 0
-                          ? _fmtCOP(s.interestSaved)
-                          : '${s.installmentsSaved}',
-                      valueColor: s.interestSaved > 0 ? kredit.success : kredit.textPrimary,
-                    ),
-                  ],
-            isHighlight: true,
-            kredit: kredit,
-            accent: accent,
+        const SizedBox(height: 10),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: kredit.borderCard),
+            borderRadius: BorderRadius.circular(KreditRadius.card),
           ),
-          const SizedBox(height: 8),
+          child: Column(
+            children: [
+              for (var i = 0; i < items.length; i++) ...[
+                if (i > 0) Divider(height: 1, color: kredit.borderCard),
+                _StrategyAccordionTile(
+                  item: items[i],
+                  isSelected: _selectedIdx == i,
+                  isFirst: i == 0,
+                  isLast: i == items.length - 1,
+                  onTap: () => setState(
+                      () => _selectedIdx = _selectedIdx == i ? null : i),
+                  kredit: kredit,
+                  accent: accent,
+                ),
+              ],
+            ],
+          ),
+        ),
+        if (_selectedIdx != null) ...[
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: widget.registering ? null : widget.onRegister,
+              icon: const Icon(Icons.check_circle_outline),
+              label: Text(
+                widget.registering
+                    ? 'Registrando...'
+                    : 'Registrar abono con esta estrategia',
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: kredit.bgCard,
+              borderRadius: BorderRadius.circular(KreditRadius.card),
+              border: Border.all(color: kredit.borderCard),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline,
+                    size: KreditIconSize.small, color: kredit.textTertiary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Las estrategias son sugerencias orientativas basadas en los datos registrados. '
+                    'Pueden existir otras variables que esta app no contempla. '
+                    'Consulta siempre con tu entidad financiera antes de actuar.',
+                    style: TextStyle(
+                        fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ],
     );
   }
 }
 
-class _StrategyOptionCard extends StatelessWidget {
+class _StrategyItem {
   final IconData icon;
   final String title;
-  final String subtitle;
-  final List<_StatTileData> stats;
-  final bool isHighlight;
+  final String tagline;
+  final String statLine;
+  final Color statColor;
+  final String description;
+  final List<String> steps;
+  final bool recommended;
+
+  const _StrategyItem({
+    required this.icon,
+    required this.title,
+    required this.tagline,
+    required this.statLine,
+    required this.statColor,
+    required this.description,
+    required this.steps,
+    required this.recommended,
+  });
+}
+
+class _StrategyAccordionTile extends StatelessWidget {
+  final _StrategyItem item;
+  final bool isSelected;
+  final bool isFirst;
+  final bool isLast;
+  final VoidCallback onTap;
   final KreditColors kredit;
   final Color accent;
 
-  const _StrategyOptionCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.stats,
-    required this.isHighlight,
+  const _StrategyAccordionTile({
+    required this.item,
+    required this.isSelected,
+    required this.isFirst,
+    required this.isLast,
+    required this.onTap,
     required this.kredit,
     required this.accent,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bg = isHighlight ? accent.withValues(alpha: 0.07) : kredit.bgCard;
-    final border = isHighlight ? accent.withValues(alpha: 0.3) : kredit.borderCard;
+    final borderRadius = BorderRadius.vertical(
+      top: isFirst ? Radius.circular(KreditRadius.card - 1) : Radius.zero,
+      bottom:
+          isLast && !isSelected ? Radius.circular(KreditRadius.card - 1) : Radius.zero,
+    );
 
-    return Container(
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(KreditRadius.card),
-        border: Border.all(color: border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 9, 12, 6),
-            child: Row(
-              children: [
-                Icon(icon,
-                    size: KreditIconSize.small,
-                    color: isHighlight ? accent : kredit.textTertiary),
-                const SizedBox(width: 10),
-                Expanded(
+    return ClipRRect(
+      borderRadius: borderRadius,
+      child: Material(
+        color: isSelected ? accent.withValues(alpha: 0.06) : kredit.bgCard,
+        child: InkWell(
+          onTap: onTap,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? accent.withValues(alpha: 0.12)
+                            : kredit.bgCard,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isSelected ? accent : kredit.borderCard,
+                        ),
+                      ),
+                      child: Icon(
+                        item.icon,
+                        size: 18,
+                        color: isSelected ? accent : kredit.textTertiary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  item.title,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: KreditTextSize.body,
+                                    color: isSelected ? accent : kredit.textPrimary,
+                                  ),
+                                ),
+                              ),
+                              if (item.recommended) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: kredit.success.withValues(alpha: 0.13),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    'Recomendado',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: kredit.success,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            item.tagline,
+                            style: TextStyle(
+                              fontSize: KreditTextSize.caption,
+                              color: kredit.textTertiary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      isSelected
+                          ? Icons.keyboard_arrow_up_rounded
+                          : Icons.keyboard_arrow_down_rounded,
+                      size: KreditIconSize.small,
+                      color: kredit.textTertiary,
+                    ),
+                  ],
+                ),
+              ),
+              if (isSelected) ...[
+                Divider(height: 1, color: kredit.borderCard),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 8, horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: accent.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          item.statLine,
+                          style: TextStyle(
+                            fontSize: KreditTextSize.body,
+                            fontWeight: FontWeight.w700,
+                            color: accent,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
                       Text(
-                        title,
+                        item.description,
                         style: TextStyle(
-                          fontWeight: FontWeight.w700,
                           fontSize: KreditTextSize.body,
-                          color: isHighlight ? accent : kredit.textSecondary,
+                          color: kredit.textSecondary,
+                          height: 1.4,
                         ),
                       ),
+                      const SizedBox(height: 10),
                       Text(
-                        subtitle,
+                        'Cómo hacerlo',
                         style: TextStyle(
-                          fontSize: KreditTextSize.caption,
-                          color: kredit.textTertiary,
+                          fontSize: KreditTextSize.body,
+                          fontWeight: FontWeight.w700,
+                          color: kredit.textPrimary,
                         ),
                       ),
+                      const SizedBox(height: 6),
+                      for (var i = 0; i < item.steps.length; i++) ...[
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 20,
+                              height: 20,
+                              margin: const EdgeInsets.only(top: 1),
+                              decoration: BoxDecoration(
+                                color: accent.withValues(alpha: 0.12),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '${i + 1}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: accent,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                item.steps[i],
+                                style: TextStyle(
+                                  fontSize: KreditTextSize.body,
+                                  color: kredit.textSecondary,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (i < item.steps.length - 1) const SizedBox(height: 6),
+                      ],
                     ],
                   ),
                 ),
               ],
-            ),
+            ],
           ),
-          Divider(height: 1, color: kredit.borderCard),
-          _StatRow(left: stats[0], right: stats[1]),
-        ],
+        ),
       ),
     );
   }
@@ -1577,190 +1821,200 @@ class _PaymentResultCard extends StatelessWidget {
   const _PaymentResultCard(
       {required this.result, required this.kredit, required this.accent});
 
+  IconData _impactIcon() {
+    if (result.newBalance == 0) return Icons.celebration_outlined;
+    if (result.interestSaving > 0) return Icons.savings_outlined;
+    if (result.quotasSkipped > 0) return Icons.fast_forward_outlined;
+    if (result.isCard && result.monthsToPayoff > 0) return Icons.schedule_outlined;
+    return Icons.check_circle_outline;
+  }
+
+  Color _impactColor(Color savingsColor, Color accentC) {
+    if (result.newBalance == 0 || result.interestSaving > 0) return savingsColor;
+    return accentC;
+  }
+
+  String _impactLabel() {
+    if (result.newBalance == 0) {
+      return '¡Con este abono saldarías por completo este crédito!';
+    }
+    if (!result.isCard) {
+      if (result.interestSaving > 0) {
+        final extra = result.quotasSkipped > 0
+            ? ' · ~${result.quotasSkipped} cuota${result.quotasSkipped == 1 ? '' : 's'} adelantadas'
+            : '';
+        return 'Ahorras ${_fmtCOP(result.interestSaving)} en intereses$extra';
+      }
+      if (result.quotasSkipped > 0) {
+        return '~${result.quotasSkipped} cuota${result.quotasSkipped == 1 ? '' : 's'} adelantadas';
+      }
+      return 'Abono aplicado sobre el saldo';
+    } else {
+      if (result.monthsToPayoff == 0) return '¡Tarjeta saldada con este pago!';
+      final cupo = result.newAvailable != null
+          ? ' · ${_fmtCOP(result.newAvailable!)} cupo disponible'
+          : '';
+      return '~${result.monthsToPayoff} mes${result.monthsToPayoff == 1 ? '' : 'es'} para saldar$cupo';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isSaldado = result.newBalance == 0;
+    final savingsColor = kredit.success;
+    final accentC = accent;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ── Antes → Después ───────────────────────────────────────────────
-        Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: kredit.bgCard,
-            borderRadius: BorderRadius.circular(KreditRadius.card),
-            border: Border.all(
-              color: isSaldado
-                  ? kredit.success.withValues(alpha: 0.4)
-                  : kredit.borderCard,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-                child: Text(
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: kredit.bgCard,
+        borderRadius: BorderRadius.circular(KreditRadius.card),
+        border: Border.all(
+          color: isSaldado ? savingsColor.withValues(alpha: 0.4) : kredit.borderCard,
+          width: isSaldado ? 1.5 : 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Cabecera ─────────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+            child: Row(
+              children: [
+                Icon(
+                  isSaldado ? Icons.celebration_outlined : Icons.receipt_long_outlined,
+                  size: KreditIconSize.small,
+                  color: isSaldado ? savingsColor : kredit.textTertiary,
+                ),
+                const SizedBox(width: 8),
+                Text(
                   'IMPACTO DEL ABONO',
                   style: TextStyle(
                     fontSize: KreditTextSize.caption,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.8,
-                    color: isSaldado ? kredit.success : kredit.textTertiary,
+                    color: isSaldado ? savingsColor : kredit.textTertiary,
                   ),
                 ),
-              ),
-              Divider(height: 1, color: kredit.borderCard),
-              // Strip Antes → Después
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                const Spacer(),
+                if (isSaldado)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: savingsColor.withValues(alpha: 0.13),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '¡Saldado!',
+                      style: TextStyle(
+                        fontSize: KreditTextSize.caption,
+                        fontWeight: FontWeight.w700,
+                        color: savingsColor,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Divider(height: 1, color: kredit.borderCard),
+          // ── Antes → Después ───────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'ANTES',
+                        style: TextStyle(
+                          fontSize: KreditTextSize.caption,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.4,
+                          color: kredit.textTertiary,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        _fmtCOP(result.currentBalance),
+                        style: TextStyle(
+                          fontSize: KreditTextSize.heading,
+                          fontWeight: FontWeight.w700,
+                          color: kredit.textSecondary,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
                   children: [
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 10, horizontal: 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'ANTES',
-                              style: TextStyle(
-                                fontSize: KreditTextSize.caption,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.5,
-                                color: kredit.textTertiary,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              _fmtCOP(result.currentBalance),
-                              style: TextStyle(
-                                fontSize: KreditTextSize.body,
-                                fontWeight: FontWeight.w700,
-                                color: kredit.textSecondary,
-                                fontFeatures: const [FontFeature.tabularFigures()],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    Icon(
+                      Icons.arrow_forward_rounded,
+                      size: KreditIconSize.small,
+                      color: isSaldado ? savingsColor : accentC,
                     ),
-                    Container(width: 1, color: kredit.borderCard),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: Icon(
-                        Icons.arrow_forward_outlined,
-                        size: KreditIconSize.small,
-                        color: isSaldado ? kredit.success : accent,
-                      ),
-                    ),
-                    Container(width: 1, color: kredit.borderCard),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 10, horizontal: 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'DESPUÉS',
-                              style: TextStyle(
-                                fontSize: KreditTextSize.caption,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.5,
-                                color: kredit.textTertiary,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              isSaldado ? '¡Saldado!' : _fmtCOP(result.newBalance),
-                              style: TextStyle(
-                                fontSize: KreditTextSize.body,
-                                fontWeight: FontWeight.w800,
-                                color: isSaldado ? kredit.success : kredit.textPrimary,
-                                fontFeatures: const [FontFeature.tabularFigures()],
-                              ),
-                            ),
-                          ],
-                        ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '−${_fmtCOP(result.extraPayment)}',
+                      style: TextStyle(
+                        fontSize: KreditTextSize.caption,
+                        fontWeight: FontWeight.w600,
+                        color: isSaldado ? savingsColor : accentC,
                       ),
                     ),
                   ],
                 ),
-              ),
-              Divider(height: 1, color: kredit.borderCard),
-              // Stats secundarios
-              if (!result.isCard)
-                _StatRow(
-                  left: _StatTileData(
-                    label: result.quotasSkipped > 0
-                        ? 'Cuotas adelantadas'
-                        : 'Abono aplicado',
-                    value: result.quotasSkipped > 0
-                        ? '~${result.quotasSkipped} cuota${result.quotasSkipped == 1 ? '' : 's'}'
-                        : _fmtCOP(result.extraPayment),
-                    icon: Icons.fast_forward_outlined,
-                    valueColor: accent,
-                  ),
-                  right: _StatTileData(
-                    label: 'En intereses',
-                    value: result.interestSaving > 0
-                        ? 'Ahorras ${_fmtCOP(result.interestSaving)}'
-                        : 'Sin ahorro',
-                    icon: Icons.savings_outlined,
-                    valueColor: result.interestSaving > 0
-                        ? kredit.success
-                        : kredit.textTertiary,
-                  ),
-                )
-              else
-                _StatRow(
-                  left: _StatTileData(
-                    label: 'Cupo disponible',
-                    value: result.newAvailable != null
-                        ? _fmtCOP(result.newAvailable!)
-                        : '—',
-                    icon: Icons.credit_card_outlined,
-                  ),
-                  right: _StatTileData(
-                    label: 'Meses para saldar',
-                    value: result.monthsToPayoff > 0
-                        ? '~${result.monthsToPayoff} mes${result.monthsToPayoff == 1 ? '' : 'es'}'
-                        : '¡Saldado!',
-                    icon: Icons.schedule_outlined,
-                    valueColor: result.monthsToPayoff == 0
-                        ? kredit.success
-                        : kredit.textPrimary,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'DESPUÉS',
+                        style: TextStyle(
+                          fontSize: KreditTextSize.caption,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.4,
+                          color: kredit.textTertiary,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        isSaldado ? '\$0' : _fmtCOP(result.newBalance),
+                        style: TextStyle(
+                          fontSize: KreditTextSize.heading,
+                          fontWeight: FontWeight.w800,
+                          color: isSaldado ? savingsColor : kredit.textPrimary,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-            ],
-          ),
-        ),
-        // ── Alerta saldado ────────────────────────────────────────────────
-        if (isSaldado) ...[
-          const SizedBox(height: 8),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-            decoration: BoxDecoration(
-              color: kredit.success.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(KreditRadius.card),
-              border: Border.all(color: kredit.success.withValues(alpha: 0.35)),
+              ],
             ),
+          ),
+          Divider(height: 1, color: kredit.borderCard),
+          // ── Línea de impacto clave ────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
             child: Row(
               children: [
-                Icon(Icons.celebration_outlined,
-                    color: kredit.success, size: KreditIconSize.small),
+                Icon(
+                  _impactIcon(),
+                  size: KreditIconSize.small,
+                  color: _impactColor(savingsColor, accentC),
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '¡Con este abono saldarías por completo este crédito!',
+                    _impactLabel(),
                     style: TextStyle(
                       fontSize: KreditTextSize.body,
-                      color: kredit.success,
                       fontWeight: FontWeight.w600,
+                      color: _impactColor(savingsColor, accentC),
                     ),
                   ),
                 ),
@@ -1768,7 +2022,7 @@ class _PaymentResultCard extends StatelessWidget {
             ),
           ),
         ],
-      ],
+      ),
     );
   }
 }
