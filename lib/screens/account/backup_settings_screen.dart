@@ -131,8 +131,10 @@ class _BackupSettingsBodyState extends State<BackupSettingsBody> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return ListView(
-        padding: const EdgeInsets.all(KreditSpacing.card),
+    return Padding(
+      padding: const EdgeInsets.all(KreditSpacing.card),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           KreditSectionCard(
             label: 'RESPALDO AUTOMÁTICO',
@@ -355,6 +357,7 @@ class _BackupSettingsBodyState extends State<BackupSettingsBody> {
           ),
           const SizedBox(height: KreditSpacing.section),
         ],
+      ),
     );
   }
 }

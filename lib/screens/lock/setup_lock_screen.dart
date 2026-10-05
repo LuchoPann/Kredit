@@ -79,11 +79,12 @@ class _SetupLockBodyState extends ConsumerState<SetupLockBody> {
     final method = ref.watch(appLockProvider).method;
     final kredit = Theme.of(context).extension<KreditColors>()!;
 
-    return ListView(
+    return Padding(
       padding: const EdgeInsets.all(16),
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      children: [
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
         Text(
           'Elige cómo proteger el acceso a Kredit al abrir la app.',
           style: TextStyle(color: kredit.textSecondary),
@@ -119,7 +120,8 @@ class _SetupLockBodyState extends ConsumerState<SetupLockBody> {
           onTap: _selectPin,
         ),
         Divider(height: 1, color: kredit.borderCard),
-      ],
+        ],
+      ),
     );
   }
 }
