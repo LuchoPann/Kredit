@@ -6,10 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/models/card_movement.dart';
+import '../../data/models/commercial_quota.dart';
 import '../../data/models/credit.dart';
 import '../../domain/date_utils.dart';
 import '../../domain/interest_rate.dart';
 import '../../domain/loan_calculator.dart';
+import '../../providers/commercial_quotas_provider.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/currency_input_formatter.dart';
@@ -405,25 +407,57 @@ class _SnapDivider extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TAB A — Simulador de Compra
+// TAB A — Simulador de Compra  (tarjetas de crédito y cupos de tienda)
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _PurchaseTab extends StatefulWidget {
+/// Objetivo de simulación: tarjeta o cupo de tienda.
+sealed class _SimTarget {
+  String get displayName;
+  double get limit;
+  double get usedBalance;
+  double get available => math.max(0, limit - usedBalance);
+}
+
+class _CardTarget extends _SimTarget {
+  final CardCredit card;
+  _CardTarget(this.card);
+
+  @override
+  String get displayName => card.name;
+  @override
+  double get limit => card.creditLimit;
+  @override
+  double get usedBalance => card.currentBalance;
+}
+
+class _QuotaTarget extends _SimTarget {
+  final CommercialQuota quota;
+  final double _used;
+  _QuotaTarget(this.quota, this._used);
+
+  @override
+  String get displayName => quota.brand;
+  @override
+  double get limit => quota.limit;
+  @override
+  double get usedBalance => _used;
+}
+
+class _PurchaseTab extends ConsumerStatefulWidget {
   final List<Credit> credits;
   const _PurchaseTab({required this.credits});
 
   @override
-  State<_PurchaseTab> createState() => _PurchaseTabState();
+  ConsumerState<_PurchaseTab> createState() => _PurchaseTabState();
 }
 
-class _PurchaseTabState extends State<_PurchaseTab> {
+class _PurchaseTabState extends ConsumerState<_PurchaseTab> {
   final _amountCtrl = TextEditingController();
   final _quotasCtrl = TextEditingController(text: '1');
-  CardCredit? _selectedCard;
+  // Guardamos el id (card.id o quota.id) en lugar de la instancia para evitar
+  // problemas de igualdad cuando el build() reconstruye los targets.
+  String? _selectedId;
   _PurchaseResult? _result;
-
-  List<CardCredit> get _cards =>
-      widget.credits.whereType<CardCredit>().toList();
 
   @override
   void dispose() {
@@ -432,12 +466,11 @@ class _PurchaseTabState extends State<_PurchaseTab> {
     super.dispose();
   }
 
-  void _simulate() {
+  void _simulate(_SimTarget? target) {
     final raw = CurrencyInputFormatter.unformat(_amountCtrl.text);
     final amount = double.tryParse(raw);
     final quotas = int.tryParse(_quotasCtrl.text);
-    final card = _selectedCard;
-    if (card == null) return;
+    if (target == null) return;
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Ingresa el monto de la compra para simular.')),
@@ -446,23 +479,23 @@ class _PurchaseTabState extends State<_PurchaseTab> {
     }
     if (quotas == null || quotas <= 0) return;
 
-    final newBalance = card.currentBalance + amount;
-    final available = math.max(0.0, card.creditLimit - newBalance);
-    final utilizationPct = card.creditLimit > 0 ? (newBalance / card.creditLimit) * 100 : 0.0;
-
-    // Cuota mensual = monto / cuotas (sin interés extra por cuotas — típico Colombia)
+    final newBalance = target.usedBalance + amount;
+    final available = math.max(0.0, target.limit - newBalance);
+    final utilizationPct =
+        target.limit > 0 ? (newBalance / target.limit) * 100 : 0.0;
     final monthlyInstallment = amount / quotas;
 
-    // Costo total estimado si solo paga mínimo (interés diario E.A./365 sobre saldo)
-    final dailyRate = card.interestRate > 0 ? (card.interestRate / 100 / 365) : 0.0;
-    final monthlyRate = dailyRate * 30;
     double totalInterestCost = 0;
-    if (monthlyRate > 0) {
-      // Amortización francesa simple para el saldo nuevo
-      final r = monthlyRate;
-      final n = quotas;
-      final pmt = (amount * r * math.pow(1 + r, n)) / (math.pow(1 + r, n) - 1);
-      totalInterestCost = (pmt * n) - amount;
+    if (target is _CardTarget) {
+      final dailyRate =
+          target.card.interestRate > 0 ? (target.card.interestRate / 100 / 365) : 0.0;
+      final monthlyRate = dailyRate * 30;
+      if (monthlyRate > 0) {
+        final r = monthlyRate;
+        final n = quotas;
+        final pmt = (amount * r * math.pow(1 + r, n)) / (math.pow(1 + r, n) - 1);
+        totalInterestCost = (pmt * n) - amount;
+      }
     }
 
     setState(() {
@@ -470,12 +503,17 @@ class _PurchaseTabState extends State<_PurchaseTab> {
         purchaseAmount: amount,
         quotas: quotas,
         monthlyInstallment: monthlyInstallment,
+        prevBalance: target.usedBalance,
         newTotalBalance: newBalance,
+        prevAvailable: target.available,
         availableCredit: available,
+        prevUtilizationPct:
+            target.limit > 0 ? (target.usedBalance / target.limit) * 100 : 0.0,
         utilizationPct: utilizationPct,
         estimatedInterestCost: totalInterestCost,
-        cardName: card.name,
-        cardLimit: card.creditLimit,
+        targetName: target.displayName,
+        targetLimit: target.limit,
+        isQuota: target is _QuotaTarget,
       );
     });
   }
@@ -485,113 +523,152 @@ class _PurchaseTabState extends State<_PurchaseTab> {
     final kredit = Theme.of(context).extension<KreditColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
 
+    final quotasAsync = ref.watch(commercialQuotasProvider);
+    final allQuotas = quotasAsync.valueOrNull ?? [];
+    final storeQuotas = allQuotas.where((q) => q.entityType == EntityType.store).toList();
+
+    // Calcular saldo usado por cupo (suma cuotas impagas de créditos ligados)
+    List<_SimTarget> targets = [
+      ...widget.credits.whereType<CardCredit>().map(_CardTarget.new),
+      ...storeQuotas.map((q) {
+        final used = widget.credits
+            .whereType<LoanCredit>()
+            .where((l) => l.quotaId == q.id)
+            .fold(0.0, (s, l) => s + l.installments.where((i) => !i.paid).fold(0.0, (si, i) => si + i.amount));
+        return _QuotaTarget(q, used);
+      }),
+    ];
+
+    if (targets.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(24),
+        child: _InfoBanner(
+          kredit: kredit,
+          icon: Icons.credit_card_off_outlined,
+          text: 'No tienes tarjetas ni cupos de tienda registrados.',
+        ),
+      );
+    }
+
+    // Resolver el target seleccionado a partir del id guardado
+    final selectedTarget =
+        _selectedId == null ? null : targets.where((t) => _idOf(t) == _selectedId).firstOrNull;
+
+    // Si el id ya no existe (target eliminado), limpiar
+    if (_selectedId != null && selectedTarget == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() { _selectedId = null; _result = null; });
+      });
+    }
+
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       children: [
-        if (_cards.isEmpty)
-          _InfoBanner(
-            kredit: kredit,
-            icon: Icons.credit_card_off_outlined,
-            text: 'No tienes tarjetas de crédito registradas. Agrega una primero.',
-          )
-        else ...[
-          // ── Bloque de entrada ─────────────────────────────────────────────
-          Container(
-            padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
-            decoration: BoxDecoration(
-              color: kredit.bgCard,
-              borderRadius: BorderRadius.circular(KreditRadius.card),
-              border: Border.all(color: kredit.borderCard),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'DATOS DE LA COMPRA',
-                  style: TextStyle(
-                    fontSize: KreditTextSize.caption,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
-                    color: kredit.textTertiary,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                DropdownButtonFormField<CardCredit>(
-                  initialValue: _selectedCard,
-                  decoration: const InputDecoration(
-                    labelText: 'Tarjeta',
-                    isDense: true,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  ),
-                  items: _cards
-                      .map((c) => DropdownMenuItem(
-                            value: c,
-                            child: Text(
-                              '${c.name} — ${_fmtCOP(math.max(0, c.creditLimit - c.currentBalance))} disp.',
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ))
-                      .toList(),
-                  onChanged: (v) => setState(() {
-                    _selectedCard = v;
-                    _result = null;
-                  }),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: TextFormField(
-                        controller: _amountCtrl,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: const [CurrencyInputFormatter()],
-                        decoration: const InputDecoration(
-                          labelText: 'Valor',
-                          prefixText: '\$ ',
-                          isDense: true,
-                          contentPadding:
-                              EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        ),
-                        onChanged: (_) => setState(() => _result = null),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      flex: 2,
-                      child: TextFormField(
-                        controller: _quotasCtrl,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Cuotas',
-                          isDense: true,
-                          contentPadding:
-                              EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        ),
-                        onChanged: (_) => setState(() => _result = null),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+        // ── Bloque de entrada ─────────────────────────────────────────────
+        Container(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+          decoration: BoxDecoration(
+            color: kredit.bgCard,
+            borderRadius: BorderRadius.circular(KreditRadius.card),
+            border: Border.all(color: kredit.borderCard),
           ),
-          const SizedBox(height: 10),
-          FilledButton.icon(
-            onPressed: _simulate,
-            icon: const Icon(Icons.play_arrow_outlined),
-            label: const Text('Simular compra'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'DATOS DE LA COMPRA',
+                style: TextStyle(
+                  fontSize: KreditTextSize.caption,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                  color: kredit.textTertiary,
+                ),
+              ),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<String>(
+                value: _selectedId,
+                decoration: const InputDecoration(
+                  labelText: 'Tarjeta / Cupo',
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+                items: targets
+                    .map((t) => DropdownMenuItem(
+                          value: _idOf(t),
+                          child: Text(
+                            '${t.displayName} — ${_fmtCOP(t.available)} disp.',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ))
+                    .toList(),
+                onChanged: (v) => setState(() {
+                  _selectedId = v;
+                  _result = null;
+                }),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: TextFormField(
+                      controller: _amountCtrl,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: const [CurrencyInputFormatter()],
+                      decoration: const InputDecoration(
+                        labelText: 'Valor',
+                        prefixText: '\$ ',
+                        isDense: true,
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      ),
+                      onChanged: (_) => setState(() => _result = null),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 2,
+                    child: TextFormField(
+                      controller: _quotasCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Cuotas',
+                        isDense: true,
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      ),
+                      onChanged: (_) => setState(() => _result = null),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => _simulate(selectedTarget),
+                  icon: const Icon(Icons.play_arrow_outlined),
+                  label: const Text('Simular compra'),
+                ),
+              ),
+            ],
           ),
-          if (_result != null) ...[
-            const SizedBox(height: 14),
-            _PurchaseResultCard(result: _result!, kredit: kredit, accent: accent),
-          ],
-          const SizedBox(height: 10),
-          _DisclaimerBanner(kredit: kredit),
+        ),
+        if (_result != null) ...[
+          const SizedBox(height: 14),
+          _PurchaseResultCard(result: _result!, kredit: kredit, accent: accent),
         ],
+        const SizedBox(height: 10),
+        _DisclaimerBanner(kredit: kredit),
       ],
     );
+  }
+
+  String _idOf(_SimTarget t) {
+    if (t is _CardTarget) return 'card_${t.card.id}';
+    if (t is _QuotaTarget) return 'quota_${t.quota.id}';
+    return t.displayName;
   }
 }
 
@@ -599,23 +676,31 @@ class _PurchaseResult {
   final double purchaseAmount;
   final int quotas;
   final double monthlyInstallment;
+  final double prevBalance;
   final double newTotalBalance;
+  final double prevAvailable;
   final double availableCredit;
+  final double prevUtilizationPct;
   final double utilizationPct;
   final double estimatedInterestCost;
-  final String cardName;
-  final double cardLimit;
+  final String targetName;
+  final double targetLimit;
+  final bool isQuota;
 
   const _PurchaseResult({
     required this.purchaseAmount,
     required this.quotas,
     required this.monthlyInstallment,
+    required this.prevBalance,
     required this.newTotalBalance,
+    required this.prevAvailable,
     required this.availableCredit,
+    required this.prevUtilizationPct,
     required this.utilizationPct,
     required this.estimatedInterestCost,
-    required this.cardName,
-    required this.cardLimit,
+    required this.targetName,
+    required this.targetLimit,
+    required this.isQuota,
   });
 }
 
@@ -630,6 +715,9 @@ class _PurchaseResultCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final highUtilization = result.utilizationPct > 80;
     final accentColor = Theme.of(context).colorScheme.primary;
+    final barColorBefore =
+        result.prevUtilizationPct > 80 ? Colors.redAccent : Colors.green;
+    final barColorAfter = highUtilization ? Colors.redAccent : Colors.green;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -670,64 +758,94 @@ class _PurchaseResultCard extends StatelessWidget {
                 style: TextStyle(
                     fontSize: KreditTextSize.body, color: kredit.textSecondary),
               ),
+              if (result.estimatedInterestCost > 0) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Intereses estimados: ${_fmtCOP(result.estimatedInterestCost)}',
+                  style: TextStyle(
+                      fontSize: KreditTextSize.caption,
+                      color: Colors.redAccent.withValues(alpha: 0.85)),
+                ),
+              ],
             ],
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
 
-        // ── Grid de stats ─────────────────────────────────────────────────
-        _SimSectionCard(
-          title: 'Impacto en tu tarjeta',
-          rows: [
-            _StatRow(
-              left: _StatTileData(
-                label: 'Nuevo saldo',
-                value: _fmtCOP(result.newTotalBalance),
-                icon: Icons.account_balance_wallet_outlined,
-              ),
-              right: _StatTileData(
-                label: 'Cupo disponible',
-                value: _fmtCOP(result.availableCredit),
-                icon: Icons.credit_card_outlined,
-                valueColor: result.availableCredit < result.cardLimit * 0.2
-                    ? Colors.redAccent
-                    : kredit.textPrimary,
-              ),
-            ),
-            if (result.estimatedInterestCost > 0)
-              _StatRow(
-                left: _StatTileData(
-                  label: 'Costo en intereses',
-                  value: _fmtCOP(result.estimatedInterestCost),
-                  icon: Icons.trending_up_outlined,
-                  valueColor: Colors.redAccent,
-                ),
-                right: _StatTileData(
-                  label: 'Utilización del cupo',
-                  value: '${result.utilizationPct.toStringAsFixed(1)}%',
-                  icon: Icons.donut_small_outlined,
-                  valueColor: highUtilization ? Colors.redAccent : kredit.success,
-                ),
-              )
-            else
-              _StatTile(
-                data: _StatTileData(
-                  label: 'Utilización del cupo',
-                  value: '${result.utilizationPct.toStringAsFixed(1)}%',
-                  icon: Icons.donut_small_outlined,
-                  valueColor: highUtilization ? Colors.redAccent : kredit.success,
+        // ── Panel antes / después ─────────────────────────────────────────
+        Container(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+          decoration: BoxDecoration(
+            color: kredit.bgCard,
+            borderRadius: BorderRadius.circular(KreditRadius.card),
+            border: Border.all(color: kredit.borderCard),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'IMPACTO EN ${result.isQuota ? 'TU CUPO' : 'TU TARJETA'}',
+                style: TextStyle(
+                  fontSize: KreditTextSize.caption,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                  color: kredit.textTertiary,
                 ),
               ),
-          ],
-        ),
-        const SizedBox(height: 8),
+              const SizedBox(height: 12),
+              // Fila de comparación: antes / después
+              IntrinsicHeight(
+                child: Row(
+                  children: [
+                    // ANTES
+                    Expanded(
+                      child: _BeforeAfterColumn(
+                        label: 'ANTES',
+                        balance: result.prevBalance,
+                        available: result.prevAvailable,
+                        kredit: kredit,
+                        isAfter: false,
+                      ),
+                    ),
+                    // Flecha central
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.arrow_forward_rounded,
+                              size: 20, color: kredit.textTertiary),
+                        ],
+                      ),
+                    ),
+                    // DESPUÉS
+                    Expanded(
+                      child: _BeforeAfterColumn(
+                        label: 'DESPUÉS',
+                        balance: result.newTotalBalance,
+                        available: result.availableCredit,
+                        kredit: kredit,
+                        isAfter: true,
+                        highUtilization: highUtilization,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
 
-        // ── Barra de utilización ──────────────────────────────────────────
-        _UtilizationBar(
-          pct: result.utilizationPct,
-          kredit: kredit,
-          highUtilization: highUtilization,
+              // Barra de utilización: antes y después superpuestas
+              _DoubleUtilizationBar(
+                prevPct: result.prevUtilizationPct,
+                newPct: result.utilizationPct,
+                kredit: kredit,
+                barColorBefore: barColorBefore,
+                barColorAfter: barColorAfter,
+              ),
+            ],
+          ),
         ),
+
         if (highUtilization) ...[
           const SizedBox(height: 8),
           _WarningBanner(
@@ -740,19 +858,100 @@ class _PurchaseResultCard extends StatelessWidget {
   }
 }
 
-class _UtilizationBar extends StatelessWidget {
-  final double pct;
+class _BeforeAfterColumn extends StatelessWidget {
+  final String label;
+  final double balance;
+  final double available;
   final KreditColors kredit;
+  final bool isAfter;
   final bool highUtilization;
 
-  const _UtilizationBar(
-      {required this.pct,
-      required this.kredit,
-      required this.highUtilization});
+  const _BeforeAfterColumn({
+    required this.label,
+    required this.balance,
+    required this.available,
+    required this.kredit,
+    required this.isAfter,
+    this.highUtilization = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final barColor = highUtilization ? Colors.redAccent : Colors.green;
+    final balanceColor = isAfter && highUtilization
+        ? Colors.redAccent
+        : kredit.textPrimary;
+    final availColor = isAfter && highUtilization
+        ? Colors.redAccent.withValues(alpha: 0.7)
+        : kredit.success;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: kredit.bgSecondary.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: kredit.borderCard),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.6,
+              color: kredit.textTertiary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Saldo',
+            style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+          ),
+          Text(
+            _fmtCOP(balance),
+            style: TextStyle(
+              fontSize: KreditTextSize.body,
+              fontWeight: FontWeight.w700,
+              color: balanceColor,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Disponible',
+            style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+          ),
+          Text(
+            _fmtCOP(available),
+            style: TextStyle(
+              fontSize: KreditTextSize.body,
+              fontWeight: FontWeight.w700,
+              color: availColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DoubleUtilizationBar extends StatelessWidget {
+  final double prevPct;
+  final double newPct;
+  final KreditColors kredit;
+  final Color barColorBefore;
+  final Color barColorAfter;
+
+  const _DoubleUtilizationBar({
+    required this.prevPct,
+    required this.newPct,
+    required this.kredit,
+    required this.barColorBefore,
+    required this.barColorAfter,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -760,23 +959,65 @@ class _UtilizationBar extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text('Utilización del cupo',
-                style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary)),
-            Text('${pct.toStringAsFixed(1)}%',
                 style: TextStyle(
-                    fontSize: KreditTextSize.body,
-                    fontWeight: FontWeight.w700,
-                    color: barColor)),
+                    fontSize: KreditTextSize.caption, color: kredit.textSecondary)),
+            Row(
+              children: [
+                Text('${prevPct.toStringAsFixed(0)}%',
+                    style: TextStyle(
+                        fontSize: KreditTextSize.caption,
+                        color: barColorBefore,
+                        fontWeight: FontWeight.w600)),
+                Text(' → ',
+                    style: TextStyle(
+                        fontSize: KreditTextSize.caption, color: kredit.textTertiary)),
+                Text('${newPct.toStringAsFixed(0)}%',
+                    style: TextStyle(
+                        fontSize: KreditTextSize.caption,
+                        color: barColorAfter,
+                        fontWeight: FontWeight.w700)),
+              ],
+            ),
           ],
         ),
         const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: (pct.clamp(0, 100)) / 100,
-            backgroundColor: kredit.borderCard,
-            valueColor: AlwaysStoppedAnimation<Color>(barColor),
-            minHeight: 8,
-          ),
+        Stack(
+          children: [
+            // Barra base (fondo)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: (newPct.clamp(0, 100)) / 100,
+                backgroundColor: kredit.borderCard,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                    barColorAfter.withValues(alpha: 0.35)),
+                minHeight: 10,
+              ),
+            ),
+            // Marcador del nivel anterior
+            FractionallySizedBox(
+              widthFactor: (prevPct.clamp(0, 100)) / 100,
+              child: Container(
+                height: 10,
+                decoration: BoxDecoration(
+                  color: barColorBefore.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Container(width: 10, height: 4, decoration: BoxDecoration(color: barColorBefore.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(2))),
+            const SizedBox(width: 4),
+            Text('Antes', style: TextStyle(fontSize: 9, color: kredit.textTertiary)),
+            const SizedBox(width: 10),
+            Container(width: 10, height: 4, decoration: BoxDecoration(color: barColorAfter.withValues(alpha: 0.35), borderRadius: BorderRadius.circular(2))),
+            const SizedBox(width: 4),
+            Text('Después', style: TextStyle(fontSize: 9, color: kredit.textTertiary)),
+          ],
         ),
       ],
     );
