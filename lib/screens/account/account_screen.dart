@@ -468,12 +468,14 @@ class _ProfileBanner extends ConsumerWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Patrón diagonal: cada logo desplazado en X e Y respecto al anterior
+            // Patrón diagonal — RepaintBoundary aísla el canvas del scroll
             Positioned.fill(
-              child: OverflowBox(
-                maxWidth: double.infinity,
-                maxHeight: double.infinity,
-                child: _DiagonalPattern(),
+              child: RepaintBoundary(
+                child: OverflowBox(
+                  maxWidth: double.infinity,
+                  maxHeight: double.infinity,
+                  child: _DiagonalPattern(),
+                ),
               ),
             ),
             SafeArea(
