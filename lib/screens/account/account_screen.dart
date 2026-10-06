@@ -292,6 +292,44 @@ class AccountScreen extends ConsumerWidget {
 
 // ── Widgets de apoyo ──────────────────────────────────────────────────────────
 
+/// Cuadrícula diagonal: cada logo desplazado (stepX, stepY) respecto al anterior,
+/// formando filas isométricas — no apiladas verticalmente.
+class _DiagonalPattern extends StatelessWidget {
+  static const _logoW = 100.0;
+  static const _stepX = 140.0; // separación horizontal entre logos en la misma fila
+  static const _stepY = 60.0;  // descenso por cada columna (da el ángulo diagonal)
+  static const _cols = 5;
+  static const _rows = 6;
+
+  @override
+  Widget build(BuildContext context) {
+    final logos = <Widget>[];
+    for (var row = 0; row < _rows; row++) {
+      for (var col = 0; col < _cols; col++) {
+        // Fila par vs impar: offset en X para que no alineen verticalmente
+        final xOffset = col * _stepX + (row.isOdd ? _stepX / 2 : 0);
+        final yOffset = row * _stepY;
+        logos.add(
+          Positioned(
+            left: xOffset - 20,
+            top: yOffset - 10,
+            child: Image.asset(
+              'assets/icons/KREDIT_OUTLINE.png',
+              width: _logoW,
+              opacity: const AlwaysStoppedAnimation(0.07),
+            ),
+          ),
+        );
+      }
+    }
+    return SizedBox(
+      width: _cols * _stepX + 80,
+      height: _rows * _stepY + 80,
+      child: Stack(children: logos),
+    );
+  }
+}
+
 class _ProfileBanner extends ConsumerWidget {
   const _ProfileBanner();
 
@@ -386,31 +424,24 @@ class _ProfileBanner extends ConsumerWidget {
       prefs.isDarkMode,
     );
 
-    return Container(
-      color: kredit.bgCard,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Logo outline diagonal de fondo
-          Positioned(
-            right: -40,
-            bottom: -20,
-            child: Transform.rotate(
-              angle: -0.47, // ~27 grados en radianes
-              child: Opacity(
-                opacity: 0.055,
-                child: Image.asset(
-                  'assets/icons/KREDIT_OUTLINE.png',
-                  width: 260,
-                  fit: BoxFit.contain,
-                ),
+    return ClipRect(
+      child: Container(
+        color: kredit.bgCard,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Patrón diagonal: cada logo desplazado en X e Y respecto al anterior
+            Positioned.fill(
+              child: OverflowBox(
+                maxWidth: double.infinity,
+                maxHeight: double.infinity,
+                child: _DiagonalPattern(),
               ),
             ),
-          ),
-          SafeArea(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
+            SafeArea(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
             const SizedBox(height: 12),
             GestureDetector(
               onTap: () => _showAvatarOptions(context, ref, avatarPath != null),
@@ -467,7 +498,8 @@ class _ProfileBanner extends ConsumerWidget {
           ],
         ),
       ),
-        ],
+          ],
+        ),
       ),
     );
   }
