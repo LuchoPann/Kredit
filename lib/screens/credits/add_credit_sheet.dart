@@ -21,6 +21,7 @@ import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/credit_display_utils.dart';
 import '../../widgets/account/voucher_pattern_picker.dart';
+import '../../widgets/card_design_painter.dart';
 import '../../widgets/interest_rate_type_field.dart';
 import '../../widgets/kredit_section_card.dart';
 import '../../widgets/voucher_pattern.dart';
@@ -61,6 +62,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
 
   String _type = CreditType.loan;
   VoucherPattern _selectedVoucherPattern = VoucherPattern.diagonalLines;
+  CardDesign? _selectedCardDesign;
   bool _saving = false;
 
   // Stepper state (Tarea 1). Only the fields belonging to the current step
@@ -835,7 +837,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         managementFee: managementFee,
         managementFeeFrequency: _managementFeeFrequency,
         quotaId: quotaId,
-        cardDesign: null,
+        cardDesign: _selectedCardDesign?.name,
         movements: currentBalance > 0
             ? [
                 CardMovement(
@@ -1365,7 +1367,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           interestRateType: _interestRateType,
           managementFee: managementFee,
           managementFeeFrequency: _managementFeeFrequency,
-          cardDesign: null,
+          cardDesign: _selectedCardDesign?.name,
         );
       }
       if (_startDate == null) return null;
@@ -3271,6 +3273,58 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.body, color: kredit.textPrimary),
       ),
       const SizedBox(height: 12),
+      StatefulBuilder(
+        builder: (context, setLocal) {
+          final previewCredit = _buildPreviewCredit();
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (previewCredit != null) ...[
+                const Text(
+                  'VISTA PREVIA DE TARJETA',
+                  style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.bold, letterSpacing: 0.8),
+                ),
+                const SizedBox(height: 8),
+                RepaintBoundary(child: WalletCard(credit: previewCredit)),
+                const SizedBox(height: 16),
+              ],
+              Text(
+                'DISEÑO DE TARJETA',
+                style: TextStyle(
+                  fontSize: KreditTextSize.body,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                  color: kredit.textTertiary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    final bank = detectBank(lender: lender);
+                    final gradient = expandedGradientFor(bank.cssClass, null);
+                    showCardDesignPicker(
+                      context,
+                      current: _selectedCardDesign,
+                      c1: gradient.first,
+                      c2: gradient[gradient.length ~/ 2],
+                      c3: gradient.last,
+                      onSelected: (d) {
+                        setState(() => _selectedCardDesign = d);
+                        setLocal(() {});
+                      },
+                    );
+                  },
+                  icon: const Icon(Icons.palette_outlined, size: KreditIconSize.small),
+                  label: Text(_selectedCardDesign?.label ?? 'Seleccionar diseño'),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          );
+        },
+      ),
       KreditSectionCard(
         label: 'RESUMEN',
         icon: Icons.summarize_outlined,

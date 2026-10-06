@@ -20,9 +20,10 @@ import '../../widgets/account/bg_tone_picker.dart';
 import '../../widgets/account/danger_zone_card.dart';
 import '../../widgets/account/data_tools_card.dart';
 import '../../widgets/notification_settings_tile.dart';
-import '../../widgets/security_settings_tile.dart';
 import 'backup_settings_screen.dart';
 import 'how_it_works_screen.dart';
+import '../lock/setup_lock_screen.dart';
+import '../../providers/widget_privacy_provider.dart';
 import '../../utils/nav_utils.dart';
 import '../../widgets/kredit_bottom_dialogs.dart';
 
@@ -254,7 +255,30 @@ class AccountScreen extends ConsumerWidget {
                           const SizedBox(height: 24),
                           _SheetLabel('BLOQUEO DE APP', kredit2),
                           const SizedBox(height: 10),
-                          const SecuritySettingsTile(),
+                          const SetupLockBody(),
+                          const SizedBox(height: 16),
+                          _SheetLabel('WIDGET', kredit2),
+                          const SizedBox(height: 4),
+                          Builder(builder: (ctx2) {
+                            final showAmounts = ref2.watch(widgetPrivacyProvider);
+                            return SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
+                              secondary: Icon(
+                                showAmounts
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                                color: kredit2.textSecondary,
+                              ),
+                              title: const Text('Mostrar montos en el widget'),
+                              subtitle: const Text(
+                                'El widget de pantalla de inicio es visible sin desbloquear la app. '
+                                'Desactivado, muestra solo texto genérico sin cifras.',
+                              ),
+                              value: showAmounts,
+                              onChanged: (v) =>
+                                  ref2.read(widgetPrivacyProvider.notifier).setShowAmounts(v),
+                            );
+                          }),
                           const SizedBox(height: 8),
                         ],
                       );
