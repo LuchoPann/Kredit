@@ -1,6 +1,8 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
@@ -292,32 +294,78 @@ class AccountScreen extends ConsumerWidget {
 
 // ── Widgets de apoyo ──────────────────────────────────────────────────────────
 
-/// Cuadrícula de logos pegados, rotada ~27° en conjunto.
-class _DiagonalPattern extends StatelessWidget {
-  static const _logoW = 90.0;
-  static const _cols = 6;
-  static const _rows = 7;
+/// Patrón brickwork diagonal: carga la imagen real y la pinta en tile con
+/// CustomPainter para obtener dimensiones exactas y alineación perfecta.
+class _DiagonalPattern extends StatefulWidget {
+  @override
+  State<_DiagonalPattern> createState() => _DiagonalPatternState();
+}
+
+class _DiagonalPatternState extends State<_DiagonalPattern> {
+  ui.Image? _image;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_image == null) _loadImage();
+  }
+
+  Future<void> _loadImage() async {
+    final data = await rootBundle.load('assets/icons/KREDIT_OUTLINE.png');
+    final bytes = data.buffer.asUint8List();
+    final codec = await ui.instantiateImageCodec(bytes);
+    final frame = await codec.getNextFrame();
+    if (mounted) setState(() => _image = frame.image);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final image = _image;
+    if (image == null) return const SizedBox.shrink();
     return Transform.rotate(
       angle: -0.47, // ~27°
-      child: Opacity(
-        opacity: 0.07,
-        child: Wrap(
-          spacing: 0,
-          runSpacing: 0,
-          children: List.generate(
-            _cols * _rows,
-            (_) => Image.asset(
-              'assets/icons/KREDIT_OUTLINE.png',
-              width: _logoW,
-            ),
-          ),
-        ),
+      child: CustomPaint(
+        painter: _BrickworkPainter(image),
+        size: const Size(700, 500),
       ),
     );
   }
+}
+
+class _BrickworkPainter extends CustomPainter {
+  final ui.Image image;
+  _BrickworkPainter(this.image);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const logoW = 170.0;
+    final logoH = logoW * image.height / image.width;
+    const gapX = 8.0;
+    const gapY = 6.0;
+    final stepX = logoW + gapX;
+    final stepY = logoH + gapY;
+    final cols = (size.width / stepX).ceil() + 3;
+    final rows = (size.height / stepY).ceil() + 3;
+
+    final paint = Paint()..color = Colors.white.withValues(alpha: 0.09);
+    final src = Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
+
+    for (var row = -1; row < rows; row++) {
+      final offsetX = row.isOdd ? stepX / 2 : 0.0;
+      for (var col = -1; col < cols; col++) {
+        final dst = Rect.fromLTWH(
+          col * stepX + offsetX,
+          row * stepY,
+          logoW,
+          logoH,
+        );
+        canvas.drawImageRect(image, src, dst, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _BrickworkPainter old) => old.image != image;
 }
 
 class _ProfileBanner extends ConsumerWidget {
