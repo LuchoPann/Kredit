@@ -388,10 +388,29 @@ class _ProfileBanner extends ConsumerWidget {
 
     return Container(
       color: kredit.bgCard,
-      child: SafeArea(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Logo outline diagonal de fondo
+          Positioned(
+            right: -40,
+            bottom: -20,
+            child: Transform.rotate(
+              angle: -0.47, // ~27 grados en radianes
+              child: Opacity(
+                opacity: 0.055,
+                child: Image.asset(
+                  'assets/icons/KREDIT_OUTLINE.png',
+                  width: 260,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
             const SizedBox(height: 12),
             GestureDetector(
               onTap: () => _showAvatarOptions(context, ref, avatarPath != null),
@@ -447,6 +466,8 @@ class _ProfileBanner extends ConsumerWidget {
             const SizedBox(height: 8),
           ],
         ),
+      ),
+        ],
       ),
     );
   }
