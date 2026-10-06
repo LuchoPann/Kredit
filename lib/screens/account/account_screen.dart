@@ -292,40 +292,30 @@ class AccountScreen extends ConsumerWidget {
 
 // ── Widgets de apoyo ──────────────────────────────────────────────────────────
 
-/// Cuadrícula diagonal: cada logo desplazado (stepX, stepY) respecto al anterior,
-/// formando filas isométricas — no apiladas verticalmente.
+/// Cuadrícula de logos pegados, rotada ~27° en conjunto.
 class _DiagonalPattern extends StatelessWidget {
-  static const _logoW = 100.0;
-  static const _stepX = 140.0; // separación horizontal entre logos en la misma fila
-  static const _stepY = 60.0;  // descenso por cada columna (da el ángulo diagonal)
-  static const _cols = 5;
-  static const _rows = 6;
+  static const _logoW = 90.0;
+  static const _cols = 6;
+  static const _rows = 7;
 
   @override
   Widget build(BuildContext context) {
-    final logos = <Widget>[];
-    for (var row = 0; row < _rows; row++) {
-      for (var col = 0; col < _cols; col++) {
-        // Fila par vs impar: offset en X para que no alineen verticalmente
-        final xOffset = col * _stepX + (row.isOdd ? _stepX / 2 : 0);
-        final yOffset = row * _stepY;
-        logos.add(
-          Positioned(
-            left: xOffset - 20,
-            top: yOffset - 10,
-            child: Image.asset(
+    return Transform.rotate(
+      angle: -0.47, // ~27°
+      child: Opacity(
+        opacity: 0.07,
+        child: Wrap(
+          spacing: 0,
+          runSpacing: 0,
+          children: List.generate(
+            _cols * _rows,
+            (_) => Image.asset(
               'assets/icons/KREDIT_OUTLINE.png',
               width: _logoW,
-              opacity: const AlwaysStoppedAnimation(0.07),
             ),
           ),
-        );
-      }
-    }
-    return SizedBox(
-      width: _cols * _stepX + 80,
-      height: _rows * _stepY + 80,
-      child: Stack(children: logos),
+        ),
+      ),
     );
   }
 }
