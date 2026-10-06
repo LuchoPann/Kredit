@@ -340,8 +340,8 @@ class _BrickworkPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     const logoW = 170.0;
     final logoH = logoW * image.height / image.width;
-    const gapX = 8.0;
-    const gapY = 6.0;
+    const gapX = 18.0;
+    const gapY = 14.0;
     final stepX = logoW + gapX;
     final stepY = logoH + gapY;
     final cols = (size.width / stepX).ceil() + 3;
