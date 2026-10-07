@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -45,6 +47,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
   final _amountCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
   bool _saving = false;
+  int _chargeInstallments = 1;
 
   @override
   void initState() {
@@ -75,6 +78,9 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
             widget.movementType,
             amount,
             _noteCtrl.text.trim(),
+            chargeInstallments: widget.movementType == CardMovementType.charge && _chargeInstallments > 1
+                ? _chargeInstallments
+                : null,
           );
       if (mounted) {
         Navigator.of(context).pop();
@@ -273,6 +279,63 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
                       hintText: 'Ej. Compra en supermercado, Pago desde Nequi',
                     ),
                   ),
+                  if (isCharge) ...[
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<int>(
+                      value: _chargeInstallments,
+                      decoration: const InputDecoration(
+                        labelText: 'Cuotas',
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      ),
+                      items: [1, 2, 3, 6, 12, 18, 24, 36].map((n) => DropdownMenuItem(
+                        value: n,
+                        child: Text(n == 1 ? 'Pago único / rotativo' : '$n cuotas'),
+                      )).toList(),
+                      onChanged: (v) => setState(() => _chargeInstallments = v ?? 1),
+                    ),
+                    if (_chargeInstallments > 1) ...[
+                      const SizedBox(height: 8),
+                      Builder(builder: (ctx) {
+                        final amount = double.tryParse(CurrencyInputFormatter.unformat(_amountCtrl.text));
+                        if (amount == null || amount <= 0) return const SizedBox.shrink();
+                        double monthlyRate = 0;
+                        if (credit != null && credit.interestRate > 0) {
+                          monthlyRate = math.pow(1 + credit.interestRate / 100, 1 / 12).toDouble() - 1;
+                        }
+                        final double cuota;
+                        if (monthlyRate > 0) {
+                          final r = monthlyRate;
+                          final n = _chargeInstallments;
+                          cuota = (amount * r * math.pow(1 + r, n)) / (math.pow(1 + r, n) - 1);
+                        } else {
+                          cuota = amount / _chargeInstallments;
+                        }
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Theme.of(ctx).colorScheme.primary.withValues(alpha: 0.07),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.info_outline, size: KreditIconSize.small,
+                                  color: Theme.of(ctx).colorScheme.primary),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Cuota mensual estimada: ${formatCOP(cuota)}',
+                                style: TextStyle(
+                                  fontSize: KreditTextSize.body,
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(ctx).colorScheme.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
+                  ],
                 ],
               ),
             ),

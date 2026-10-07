@@ -317,6 +317,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
       final newDateStr = toDateStr(_startDate);
       if (newDateStr != credit.startDate) {
         if (credit.abonos.isNotEmpty) {
+          if (!mounted) return;
           final ok = await showKreditConfirmSheet(
             context,
             title: 'Cambiar fecha de inicio',

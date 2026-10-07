@@ -1,9 +1,7 @@
-import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/models/card_movement.dart';
 import '../../data/models/commercial_quota.dart';
@@ -458,12 +456,33 @@ class _PurchaseTabState extends ConsumerState<_PurchaseTab> {
   // problemas de igualdad cuando el build() reconstruye los targets.
   String? _selectedId;
   _PurchaseResult? _result;
+  List<_SimTarget> _targets = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _amountCtrl.addListener(_autoSimulate);
+    _quotasCtrl.addListener(_autoSimulate);
+  }
 
   @override
   void dispose() {
+    _amountCtrl.removeListener(_autoSimulate);
+    _quotasCtrl.removeListener(_autoSimulate);
     _amountCtrl.dispose();
     _quotasCtrl.dispose();
     super.dispose();
+  }
+
+  void _autoSimulate() {
+    final id = _selectedId;
+    if (id == null) return;
+    try {
+      final target = _targets.firstWhere((t) => _idOf(t) == id);
+      _simulate(target);
+    } catch (e) {
+      debugPrint('_autoSimulate: target not found: $e');
+    }
   }
 
   void _simulate(_SimTarget? target) {
@@ -472,9 +491,7 @@ class _PurchaseTabState extends ConsumerState<_PurchaseTab> {
     final quotas = int.tryParse(_quotasCtrl.text);
     if (target == null) return;
     if (amount == null || amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ingresa el monto de la compra para simular.')),
-      );
+      if (_result != null) setState(() => _result = null);
       return;
     }
     if (quotas == null || quotas <= 0) return;
@@ -525,12 +542,14 @@ class _PurchaseTabState extends ConsumerState<_PurchaseTab> {
 
     final quotasAsync = ref.watch(commercialQuotasProvider);
     final allQuotas = quotasAsync.valueOrNull ?? [];
-    final storeQuotas = allQuotas.where((q) => q.entityType == EntityType.store).toList();
+    final quotaTargets = allQuotas
+        .where((q) => q.entityType != EntityType.bank && q.limit > 0)
+        .toList();
 
     // Calcular saldo usado por cupo (suma cuotas impagas de créditos ligados)
     List<_SimTarget> targets = [
       ...widget.credits.whereType<CardCredit>().map(_CardTarget.new),
-      ...storeQuotas.map((q) {
+      ...quotaTargets.map((q) {
         final used = widget.credits
             .whereType<LoanCredit>()
             .where((l) => l.quotaId == q.id)
@@ -538,6 +557,8 @@ class _PurchaseTabState extends ConsumerState<_PurchaseTab> {
         return _QuotaTarget(q, used);
       }),
     ];
+    // Sync _targets so listeners can resolve the selected target
+    _targets = targets;
 
     if (targets.isEmpty) {
       return Padding(
@@ -586,7 +607,7 @@ class _PurchaseTabState extends ConsumerState<_PurchaseTab> {
               ),
               const SizedBox(height: 10),
               DropdownButtonFormField<String>(
-                value: _selectedId,
+                initialValue: _selectedId,
                 decoration: const InputDecoration(
                   labelText: 'Tarjeta / Cupo',
                   isDense: true,
@@ -601,10 +622,12 @@ class _PurchaseTabState extends ConsumerState<_PurchaseTab> {
                           ),
                         ))
                     .toList(),
-                onChanged: (v) => setState(() {
-                  _selectedId = v;
-                  _result = null;
-                }),
+                onChanged: (v) {
+                  setState(() => _selectedId = v);
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) _autoSimulate();
+                  });
+                },
               ),
               const SizedBox(height: 10),
               Row(
@@ -623,7 +646,6 @@ class _PurchaseTabState extends ConsumerState<_PurchaseTab> {
                         contentPadding:
                             EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       ),
-                      onChanged: (_) => setState(() => _result = null),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -638,19 +660,9 @@ class _PurchaseTabState extends ConsumerState<_PurchaseTab> {
                         contentPadding:
                             EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       ),
-                      onChanged: (_) => setState(() => _result = null),
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () => _simulate(selectedTarget),
-                  icon: const Icon(Icons.play_arrow_outlined),
-                  label: const Text('Simular compra'),
-                ),
               ),
             ],
           ),
@@ -1043,21 +1055,6 @@ class _ExtraPaymentTabState extends ConsumerState<_ExtraPaymentTab> {
   _PaymentResult? _result;
   bool _registering = false;
 
-  // Tarea 2 del roadmap ("comparativas" + "guardar escenarios"): guarda los
-  // últimos escenarios simulados por crédito en SharedPreferences (clave
-  // `sim_scenarios_<creditId>`), así sobreviven a cerrar el simulador o la
-  // app — a diferencia de un abono real, esto es solo una previsualización,
-  // así que no necesita vivir en la base de datos de créditos. Más reciente
-  // primero, tope de 5 para que la tabla no crezca sin límite.
-  final List<_PaymentResult> _scenarios = [];
-  static const _maxScenarios = 5;
-
-  // Fase 6 del roadmap: comparacion automatica de los 3 escenarios fijos
-  // (seguir igual / reducir cuota / reducir plazo) para el monto que se
-  // acaba de simular — a diferencia de `_scenarios` (que compara distintos
-  // MONTOS elegidos por el usuario), esto compara distintas ESTRATEGIAS
-  // para el mismo monto. Solo aplica a prestamos (una tarjeta no tiene
-  // "estrategia de abono", solo reduce saldo).
   List<AbonoScenarioResult> _threeScenarios = [];
 
   @override
@@ -1069,35 +1066,24 @@ class _ExtraPaymentTabState extends ConsumerState<_ExtraPaymentTab> {
           .toList();
       if (match.isNotEmpty) _selectedCredit = match.first;
     }
-    if (_selectedCredit != null) _loadScenarios(_selectedCredit!);
+    _paymentCtrl.addListener(_autoSimulate);
   }
 
-  String _scenariosKey(Credit credit) => 'sim_scenarios_${credit.id}';
-
-  Future<void> _loadScenarios(Credit credit) async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_scenariosKey(credit));
-    if (raw == null || !mounted) return;
-    final decoded = jsonDecode(raw) as List<dynamic>;
-    setState(() {
-      _scenarios
-        ..clear()
-        ..addAll(
-          decoded.map((e) => _PaymentResult.fromJson(e as Map<String, dynamic>, credit)),
-        );
-    });
+  void _autoSimulate() {
+    final credit = _selectedCredit;
+    if (credit == null) return;
+    final amount = double.tryParse(CurrencyInputFormatter.unformat(_paymentCtrl.text));
+    if (amount == null || amount <= 0) {
+      if (_result != null) setState(() { _result = null; _threeScenarios = []; });
+      return;
+    }
+    _simulate();
   }
 
-  Future<void> _persistScenarios(Credit credit) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _scenariosKey(credit),
-      jsonEncode(_scenarios.map((s) => s.toJson()).toList()),
-    );
-  }
 
   @override
   void dispose() {
+    _paymentCtrl.removeListener(_autoSimulate);
     _paymentCtrl.dispose();
     super.dispose();
   }
@@ -1167,12 +1153,7 @@ class _ExtraPaymentTabState extends ConsumerState<_ExtraPaymentTab> {
     final amount = double.tryParse(CurrencyInputFormatter.unformat(_paymentCtrl.text));
     final credit = _selectedCredit;
     if (credit == null) return;
-    if (amount == null || amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ingresa el monto del abono para simular.')),
-      );
-      return;
-    }
+    if (amount == null || amount <= 0) return;
 
     if (credit is LoanCredit) {
       _simulateLoan(credit, amount);
@@ -1199,17 +1180,19 @@ class _ExtraPaymentTabState extends ConsumerState<_ExtraPaymentTab> {
         .take(quotasSkipped)
         .fold(0.0, (s, i) => s + i.interest);
 
-    _addScenario(_PaymentResult(
-      credit: loan,
-      creditName: loan.name,
-      extraPayment: extraPayment,
-      currentBalance: currentBalance,
-      newBalance: newBalance,
-      quotasSkipped: quotasSkipped,
-      interestSaving: saving,
-      isCard: false,
-      monthsToPayoff: 0,
-    ));
+    setState(() {
+      _result = _PaymentResult(
+        credit: loan,
+        creditName: loan.name,
+        extraPayment: extraPayment,
+        currentBalance: currentBalance,
+        newBalance: newBalance,
+        quotasSkipped: quotasSkipped,
+        interestSaving: saving,
+        isCard: false,
+        monthsToPayoff: 0,
+      );
+    });
   }
 
   void _simulateCard(CardCredit card, double extraPayment) {
@@ -1233,35 +1216,32 @@ class _ExtraPaymentTabState extends ConsumerState<_ExtraPaymentTab> {
       }
     }
 
-    _addScenario(_PaymentResult(
-      credit: card,
-      creditName: card.name,
-      extraPayment: extraPayment,
-      currentBalance: card.currentBalance,
-      newBalance: newBalance,
-      quotasSkipped: 0,
-      interestSaving: 0,
-      isCard: true,
-      monthsToPayoff: monthsToPayoff,
-      newAvailable: math.max(0, card.creditLimit - newBalance),
-    ));
+    setState(() {
+      _result = _PaymentResult(
+        credit: card,
+        creditName: card.name,
+        extraPayment: extraPayment,
+        currentBalance: card.currentBalance,
+        newBalance: newBalance,
+        quotasSkipped: 0,
+        interestSaving: 0,
+        isCard: true,
+        monthsToPayoff: monthsToPayoff,
+        newAvailable: math.max(0, card.creditLimit - newBalance),
+      );
+    });
   }
 
-  void _addScenario(_PaymentResult result) {
-    setState(() {
-      _result = result;
-      _scenarios.insert(0, result);
-      if (_scenarios.length > _maxScenarios) {
-        _scenarios.removeRange(_maxScenarios, _scenarios.length);
-      }
-    });
-    _persistScenarios(result.credit);
-  }
 
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
+
+    final quotasAsync = ref.watch(commercialQuotasProvider);
+    final quotaMap = {
+      for (final q in quotasAsync.valueOrNull ?? []) q.id: q.brand,
+    };
 
     if (widget.credits.isEmpty) {
       return Padding(
@@ -1305,20 +1285,28 @@ class _ExtraPaymentTabState extends ConsumerState<_ExtraPaymentTab> {
                   isDense: true,
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
-                items: widget.credits
-                    .map((c) => DropdownMenuItem(
-                          value: c,
-                          child: Text(c.name, overflow: TextOverflow.ellipsis),
-                        ))
-                    .toList(),
+                items: widget.credits.map((c) {
+                  final quotaBrand = c is LoanCredit && c.quotaId != null
+                      ? quotaMap[c.quotaId]
+                      : null;
+                  final label = quotaBrand != null
+                      ? '${c.name} · $quotaBrand'
+                      : c.name;
+                  return DropdownMenuItem(
+                    value: c,
+                    child: Text(label, overflow: TextOverflow.ellipsis),
+                  );
+                }).toList(),
                 onChanged: (v) {
                   setState(() {
                     _selectedCredit = v;
-                    _result = null;
-                    _scenarios.clear();
                     _threeScenarios = [];
                   });
-                  if (v != null) _loadScenarios(v);
+                  if (v != null) {
+                    _autoSimulate();
+                  } else {
+                    setState(() => _result = null);
+                  }
                 },
               ),
               const SizedBox(height: 10),
@@ -1332,28 +1320,14 @@ class _ExtraPaymentTabState extends ConsumerState<_ExtraPaymentTab> {
                   isDense: true,
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
-                onChanged: (_) => setState(() {
-                  _result = null;
-                  _threeScenarios = [];
-                }),
               ),
               const SizedBox(height: 8),
               _QuickAmountRow(
                 kredit: kredit,
-                onPick: (amount) => setState(() {
+                onPick: (amount) {
                   _paymentCtrl.text = CurrencyInputFormatter.format(amount);
-                  _result = null;
-                  _threeScenarios = [];
-                }),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: _simulate,
-                  icon: const Icon(Icons.play_arrow_outlined),
-                  label: const Text('Simular abono'),
-                ),
+                  // listener will trigger _autoSimulate
+                },
               ),
             ],
           ),
@@ -1371,10 +1345,6 @@ class _ExtraPaymentTabState extends ConsumerState<_ExtraPaymentTab> {
             onRegister: _registering ? null : _registerNow,
             registering: _registering,
           ),
-        ],
-        if (_scenarios.length > 1) ...[
-          const SizedBox(height: 8),
-          _ScenarioComparisonTable(scenarios: _scenarios, kredit: kredit),
         ],
         const SizedBox(height: 10),
         _DisclaimerBanner(kredit: kredit),
@@ -1408,36 +1378,6 @@ class _PaymentResult {
     this.newAvailable,
   });
 
-  // Serializa solo los campos primitivos — `credit` se re-adjunta al leer
-  // (no tiene sentido serializar el crédito completo cuando ya lo tenemos
-  // en memoria; solo cambia su `id`, que ya es la clave de SharedPreferences
-  // bajo la que se guarda esta lista).
-  Map<String, dynamic> toJson() => {
-        'creditName': creditName,
-        'extraPayment': extraPayment,
-        'currentBalance': currentBalance,
-        'newBalance': newBalance,
-        'quotasSkipped': quotasSkipped,
-        'interestSaving': interestSaving,
-        'isCard': isCard,
-        'monthsToPayoff': monthsToPayoff,
-        'newAvailable': newAvailable,
-      };
-
-  factory _PaymentResult.fromJson(Map<String, dynamic> json, Credit credit) {
-    return _PaymentResult(
-      credit: credit,
-      creditName: json['creditName'] as String,
-      extraPayment: (json['extraPayment'] as num).toDouble(),
-      currentBalance: (json['currentBalance'] as num).toDouble(),
-      newBalance: (json['newBalance'] as num).toDouble(),
-      quotasSkipped: json['quotasSkipped'] as int,
-      interestSaving: (json['interestSaving'] as num).toDouble(),
-      isCard: json['isCard'] as bool,
-      monthsToPayoff: json['monthsToPayoff'] as int,
-      newAvailable: (json['newAvailable'] as num?)?.toDouble(),
-    );
-  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1517,9 +1457,7 @@ _FreedomResult _computeFreedom(
   return _FreedomResult(rows: rows, totalBaseInterest: totalBaseInterest);
 }
 
-/// Fila de chips con montos típicos ($50k/$100k/$200k) para no tener que
-/// escribir el número a mano cada vez — pedido explícito de la Tarea 2 del
-/// roadmap ("Simulador fuerte").
+/// Fila de chips con montos típicos ($50k/$100k/$200k) para acceso rápido.
 class _QuickAmountRow extends StatelessWidget {
   final KreditColors kredit;
   final ValueChanged<double> onPick;
@@ -2006,95 +1944,6 @@ class _StrategyAccordionTile extends StatelessWidget {
   }
 }
 
-/// Tabla compacta de comparación entre los últimos montos de abono
-/// simulados en esta sesión (Tarea 2 del roadmap: "comparativas"). Muestra
-/// una fila por escenario, con el más reciente (el que está en pantalla en
-/// `_PaymentResultCard`) resaltado con el color de acento.
-class _ScenarioComparisonTable extends StatelessWidget {
-  final List<_PaymentResult> scenarios;
-  final KreditColors kredit;
-  const _ScenarioComparisonTable({required this.scenarios, required this.kredit});
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = Theme.of(context).colorScheme.primary;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Comparar escenarios de esta sesión',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: KreditTextSize.body,
-            color: kredit.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: kredit.borderCard.withValues(alpha: 0.78)),
-            borderRadius: BorderRadius.circular(KreditRadius.card),
-          ),
-          child: Column(
-            children: [
-              for (var i = 0; i < scenarios.length; i++)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(
-                    border: i == scenarios.length - 1
-                        ? null
-                        : Border(bottom: BorderSide(color: kredit.borderCard.withValues(alpha: 0.5))),
-                    color: i == 0 ? accent.withValues(alpha: 0.08) : null,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: Text(
-                          _fmtCOP(scenarios[i].extraPayment),
-                          style: TextStyle(
-                            fontSize: KreditTextSize.body,
-                            fontWeight: i == 0 ? FontWeight.w700 : FontWeight.w500,
-                            color: kredit.textPrimary,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 4,
-                        child: Text(
-                          scenarios[i].isCard
-                              ? '${scenarios[i].monthsToPayoff} mes(es) para saldar'
-                              : '${scenarios[i].quotasSkipped} cuota(s) adelantadas',
-                          style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
-                        ),
-                      ),
-                      Expanded(
-                        flex: 4,
-                        child: Text(
-                          scenarios[i].isCard
-                              ? '${_fmtCOP(scenarios[i].newBalance)} restante'
-                              : scenarios[i].interestSaving > 0
-                                  ? '${_fmtCOP(scenarios[i].interestSaving)} ahorrados'
-                                  : 'Sin ahorro en intereses',
-                          textAlign: TextAlign.right,
-                          style: TextStyle(
-                            fontSize: KreditTextSize.body,
-                            fontWeight: FontWeight.w600,
-                            color: kredit.success,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _PaymentResultCard extends StatelessWidget {
   final _PaymentResult result;
   final KreditColors kredit;
@@ -2326,24 +2175,34 @@ class _FreedomTabState extends State<_FreedomTab> {
   _FreedomResult? _result;
 
   @override
+  void initState() {
+    super.initState();
+    _extraCtrl.addListener(_autoSimulate);
+  }
+
+  @override
   void dispose() {
+    _extraCtrl.removeListener(_autoSimulate);
     _extraCtrl.dispose();
     super.dispose();
   }
 
-  void _simulate() {
+  void _autoSimulate() {
     final parsed = double.tryParse(CurrencyInputFormatter.unformat(_extraCtrl.text));
     if (parsed == null || parsed <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Ingresa el monto extra mensual para proyectar tu libertad financiera.')),
-      );
+      if (_result != null) setState(() => _result = null);
       return;
     }
+    final active = widget.credits.where((c) {
+      if (c is LoanCredit) return c.installments.any((i) => !i.paid);
+      if (c is CardCredit) return c.currentBalance > 0;
+      return false;
+    }).toList();
     setState(() {
-      _result = _computeFreedom(widget.credits, parsed, _isAvalanche);
+      _result = _computeFreedom(active, parsed, _isAvalanche);
     });
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -2405,15 +2264,14 @@ class _FreedomTabState extends State<_FreedomTab> {
                   isDense: true,
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 ),
-                onChanged: (_) => setState(() => _result = null),
+                onChanged: (_) {},
               ),
               const SizedBox(height: 8),
               _QuickAmountRow(
                 kredit: kredit,
-                onPick: (amount) => setState(() {
+                onPick: (amount) {
                   _extraCtrl.text = CurrencyInputFormatter.format(amount);
-                  _result = null;
-                }),
+                },
               ),
               const SizedBox(height: 10),
               Text(
@@ -2428,21 +2286,12 @@ class _FreedomTabState extends State<_FreedomTab> {
               const SizedBox(height: 6),
               _StrategyToggle(
                 isAvalanche: _isAvalanche,
-                onChanged: (v) => setState(() {
-                  _isAvalanche = v;
-                  _result = null;
-                }),
+                onChanged: (v) {
+                  setState(() => _isAvalanche = v);
+                  _autoSimulate();
+                },
                 kredit: kredit,
                 accent: accent,
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: _simulate,
-                  icon: const Icon(Icons.auto_graph_outlined),
-                  label: const Text('Proyectar libertad'),
-                ),
               ),
             ],
           ),
@@ -3370,142 +3219,3 @@ class _DisclaimerBanner extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Widgets de stat grid — reemplazan _ResultRow (horizontal) con un layout
-// vertical que nunca trunca el label ni aprieta el valor.
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _StatTileData {
-  final String label;
-  final String value;
-  final Color? valueColor;
-  final IconData? icon;
-
-  const _StatTileData({
-    required this.label,
-    required this.value,
-    this.valueColor,
-    this.icon,
-  });
-}
-
-/// Celda de stat: etiqueta en caption arriba, valor en heading bold abajo.
-/// Nunca pierde información porque label y valor tienen su propio espacio.
-class _StatTile extends StatelessWidget {
-  final _StatTileData data;
-  const _StatTile({required this.data});
-
-  @override
-  Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (data.icon != null) ...[
-            Icon(data.icon, size: 12, color: kredit.textTertiary),
-            const SizedBox(height: 3),
-          ],
-          Text(
-            data.label.toUpperCase(),
-            style: TextStyle(
-              fontSize: KreditTextSize.caption,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
-              color: kredit.textTertiary,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            data.value,
-            style: TextStyle(
-              fontSize: KreditTextSize.body,
-              fontWeight: FontWeight.w700,
-              color: data.valueColor ?? kredit.textPrimary,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Dos stat tiles lado a lado, separados por línea vertical.
-class _StatRow extends StatelessWidget {
-  final _StatTileData left;
-  final _StatTileData right;
-
-  const _StatRow({required this.left, required this.right});
-
-  @override
-  Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(child: _StatTile(data: left)),
-          Container(width: 1, color: kredit.borderCard),
-          Expanded(child: _StatTile(data: right)),
-        ],
-      ),
-    );
-  }
-}
-
-/// Contenedor de sección de resultado: fondo suave + borde + separadores entre filas.
-class _SimSectionCard extends StatelessWidget {
-  final String? title;
-  final List<Widget> rows;
-  final Color? highlightColor;
-
-  const _SimSectionCard({
-    this.title,
-    required this.rows,
-    this.highlightColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
-    final bg = highlightColor != null
-        ? highlightColor!.withValues(alpha: 0.07)
-        : kredit.bgCard;
-    final borderColor = highlightColor != null
-        ? highlightColor!.withValues(alpha: 0.3)
-        : kredit.borderCard;
-
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(KreditRadius.card),
-        border: Border.all(color: borderColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (title != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 3),
-              child: Text(
-                title!.toUpperCase(),
-                style: TextStyle(
-                  fontSize: KreditTextSize.caption,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8,
-                  color: highlightColor ?? kredit.textTertiary,
-                ),
-              ),
-            ),
-          for (var i = 0; i < rows.length; i++) ...[
-            if (i > 0) Divider(height: 1, color: kredit.borderCard),
-            rows[i],
-          ],
-        ],
-      ),
-    );
-  }
-}

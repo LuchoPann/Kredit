@@ -29,6 +29,26 @@ enum ChangeType { nuevo, mejora, correccion }
 
 const List<VersionEntry> changelog = [
   VersionEntry(
+    version: '1.0.0',
+    date: 'Octubre 2026',
+    changes: [
+      ChangeItem(ChangeType.nuevo,
+          'El simulador ahora funciona con cupos de tienda y app (Addi, Sistecrédito, etc.), no solo con tarjetas de crédito.'),
+      ChangeItem(ChangeType.nuevo,
+          'Simulación en tiempo real: los resultados se actualizan automáticamente mientras escribes, sin necesidad de presionar un botón.'),
+      ChangeItem(ChangeType.nuevo,
+          'Al crear un crédito de tarjeta con saldo inicial, ahora puedes indicar la fecha en que comenzó esa deuda.'),
+      ChangeItem(ChangeType.mejora,
+          'El simulador ya no parpadea al cambiar valores — los datos se actualizan en su lugar sin rehacer la interfaz.'),
+      ChangeItem(ChangeType.mejora,
+          'Se eliminó la tabla "Comparar escenarios" del simulador de abono extra, que generaba más confusión que claridad.'),
+      ChangeItem(ChangeType.correccion,
+          'Las copias de respaldo automáticas ya no se disparan en cada reinicio de la app durante desarrollo.'),
+      ChangeItem(ChangeType.correccion,
+          'Se resolvió el conflicto de recursos duplicados del ícono de notificación que impedía compilar en Android.'),
+    ],
+  ),
+  VersionEntry(
     version: '0.9.2',
     date: 'Octubre 2026',
     changes: [

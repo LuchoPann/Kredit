@@ -270,47 +270,6 @@ class _StatChip extends StatelessWidget {
 /// Secondary metric expressed purely through typography — a mid-weight
 /// value over a small-caps label, no surrounding box. Misma jerarquía que
 /// `_SecondaryStat` (dashboard_screen.dart) y `_StatTile`
-/// (widgets/account/stats_grid.dart) — las tres son el mismo patrón de "fila
-/// de métricas separadas por una línea fina".
-class _StatColumn extends StatelessWidget {
-  final String label;
-  final String value;
-  const _StatColumn({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: KreditTextSize.heading,
-            letterSpacing: -0.3,
-            fontFeatures: [FontFeature.tabularFigures()],
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        const SizedBox(height: 3),
-        Text(
-          label.toUpperCase(),
-          style: TextStyle(
-            fontSize: KreditTextSize.body,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.6,
-            color: kredit.textTertiary,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
-    );
-  }
-}
 
 /// Pill discreto que adelanta cuántos riesgos hay detectados, junto al
 /// anillo de progreso — se oculta por completo cuando no hay ninguno, para

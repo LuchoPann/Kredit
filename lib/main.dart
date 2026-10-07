@@ -185,13 +185,13 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
         _rescheduleNotifications(credits);
         _syncHomeWidget(credits);
       });
-      ref.listen(notificationSettingsProvider, (_, __) {
+      ref.listen(notificationSettingsProvider, (_, _) {
         final credits = ref.read(creditsProvider).value;
         if (credits == null) return;
         _rescheduleNotifications(credits);
       });
-      ref.listen(widgetPrivacyProvider, (_, __) => _syncHomeWidget());
-      ref.listen(themePreferencesProvider, (_, __) => _syncHomeWidget());
+      ref.listen(widgetPrivacyProvider, (_, _) => _syncHomeWidget());
+      ref.listen(themePreferencesProvider, (_, _) => _syncHomeWidget());
     });
   }
 
@@ -200,8 +200,11 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
     final enabled = prefs.getBool('backup_enabled') ?? false;
     if (!enabled) return;
 
-    // Última fecha de backup desde lastBackupProvider
-    final lastBackup = ref.read(lastBackupProvider);
+    // Leer directamente de SharedPreferences para evitar race condition con
+    // LastBackupNotifier._load() (async): el provider puede valer null aunque
+    // ya exista un backup guardado.
+    final raw = prefs.getString('last_backup_at');
+    final lastBackup = raw != null ? DateTime.tryParse(raw) : null;
     final now = DateTime.now();
 
     final frequency = prefs.getString('backup_frequency') ?? 'weekly';
@@ -236,6 +239,14 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
       }
     } catch (e) {
       debugPrint('Auto-backup failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo completar el respaldo automático'),
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
     }
   }
 

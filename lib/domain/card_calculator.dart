@@ -193,6 +193,7 @@ void registerCardMovement(
   String type,
   double amount, [
   String note = '',
+  int? chargeInstallments,
 ]) {
   final delta = type == CardMovementType.payment ? -amount.abs() : amount.abs();
   credit.currentBalance =
@@ -202,6 +203,7 @@ void registerCardMovement(
     type: type,
     amount: amount.abs(),
     note: note,
+    chargeInstallments: type == CardMovementType.charge ? chargeInstallments : null,
   ));
 }
 

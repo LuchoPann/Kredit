@@ -54,8 +54,8 @@ class BackupService {
   }
 
   /// Guarda [json] en Kredit/backups/.
-  /// [newFile]=true → kredit_backup_<timestamp>.json
-  /// [newFile]=false → kredit_backup.json (sobreescribe)
+  /// [newFile]=true → `kredit_backup_TIMESTAMP.json`
+  /// [newFile]=false → `kredit_backup.json` (sobreescribe)
   static Future<File?> saveBackup(String json, {bool newFile = false}) async {
     try {
       final dir = await getBackupDirectory();

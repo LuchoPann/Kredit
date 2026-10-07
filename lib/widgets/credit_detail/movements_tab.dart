@@ -423,6 +423,11 @@ class _MovementTile extends ConsumerWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+                if (m.type == CardMovementType.charge && m.chargeInstallments != null && m.chargeInstallments! > 1)
+                  Text(
+                    '${m.chargeInstallments} cuotas',
+                    style: TextStyle(fontSize: 11, color: kredit.textTertiary),
+                  ),
               ],
             ),
           ),

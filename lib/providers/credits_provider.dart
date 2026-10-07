@@ -178,11 +178,11 @@ class CreditsNotifier extends AsyncNotifier<List<Credit>> {
     await _reload();
   }
 
-  Future<void> registerMovement(String creditId, String type, double amount, String note) async {
+  Future<void> registerMovement(String creditId, String type, double amount, String note, {int? chargeInstallments}) async {
     final credits = state.value ?? [];
     final credit = credits.whereType<CardCredit>().where((c) => c.id == creditId).firstOrNull;
     if (credit == null) return;
-    registerCardMovement(credit, type, amount, note);
+    registerCardMovement(credit, type, amount, note, chargeInstallments);
     await _db.upsertCredit(credit);
     await _reload();
   }
