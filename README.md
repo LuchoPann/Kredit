@@ -143,7 +143,16 @@ lib/
 
 ## Licencia
 
-Uso personal. No se autoriza redistribución comercial sin permiso explícito del autor.
+El código fuente está disponible bajo la **[Apache License 2.0](LICENSE)**.
+
+Puedes usarlo, modificarlo y distribuirlo libremente, incluso como base de otros proyectos, siempre que:
+
+- Incluyas una copia de la licencia Apache 2.0.
+- Indiques los cambios que realizaste.
+- **No uses el nombre "Kredit", el logotipo ni el diseño visual original** en tu derivado — esos elementos son marca registrada del autor y no forman parte de la licencia.
+- Incluyas una atribución visible: *"Basado en Kredit de LuchoPann — github.com/LuchoPann/Kredit"*.
+
+Consulta el archivo [NOTICE](NOTICE) para los detalles completos sobre la reserva de marca.
 
 ---
 
