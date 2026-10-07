@@ -27,6 +27,19 @@ Kredit es una app personal de gestión de créditos para Colombia. Reúne en un 
 
 No hay servidores. No hay publicidad. Tus datos no salen del teléfono.
 
+### Gestión manual — por diseño
+
+Kredit **no se conecta a tu banco ni a ninguna entidad financiera**. No lee extractos, no pide credenciales y no tiene acceso a tus cuentas. Cada crédito y cada movimiento los ingresas tú a mano.
+
+Esto no es una limitación — es una decisión de privacidad:
+
+- Sin conexión bancaria → sin riesgo de filtración de credenciales
+- Sin API de terceros → sin dependencia de servicios que pueden fallar o cambiar
+- Sin sincronización automática → tú decides qué registrar y cuándo
+- Control total → los datos son exactamente lo que tú pusiste, nada más
+
+El usuario es el único que conoce y gestiona su información financiera.
+
 ---
 
 ## Tipos de crédito soportados

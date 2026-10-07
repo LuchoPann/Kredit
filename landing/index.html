@@ -74,6 +74,21 @@ nav {
 }
 .btn-pill:hover { opacity: .85; }
 
+/* ── HERO MANUAL BADGE ────────────────────────────────── */
+.hero-manual-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 20px;
+  padding: 7px 14px;
+  border: 1px solid var(--border-a);
+  border-radius: 999px;
+  font-size: .78rem;
+  font-weight: 500;
+  color: var(--fg-2);
+  letter-spacing: .01em;
+}
+
 /* ── HERO ─────────────────────────────────────────────────── */
 .hero {
   border-bottom: 1px solid var(--border);
@@ -461,6 +476,10 @@ footer {
         <div class="h-stat"><div class="h-stat-num">0 COP</div><div class="h-stat-label">costo permanente</div></div>
         <div class="h-stat"><div class="h-stat-num">100%</div><div class="h-stat-label">offline · sin registro</div></div>
       </div>
+      <div class="hero-manual-badge">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Gestión 100% manual — tú ingresas tus datos, nadie más los toca
+      </div>
     </div>
   </div>
 </section>
@@ -524,8 +543,8 @@ footer {
       </div>
       <div class="why-cell">
         <div class="why-num">03</div>
-        <div class="why-name">Sin conexión ni cuenta</div>
-        <div class="why-desc">No hay servidores, no hay inicio de sesión, no hay sincronización. Tus datos viven en tu teléfono y nadie más los ve. La app funciona igual sin internet.</div>
+        <div class="why-name">Control total, entrada manual</div>
+        <div class="why-desc">Kredit no se conecta a tu banco ni lee tus extractos. Tú ingresas cada crédito y cada movimiento a mano — eso significa cero permisos bancarios, cero riesgo de filtración y cero dependencia de una API que puede fallar.</div>
       </div>
       <div class="why-cell">
         <div class="why-num">04</div>
