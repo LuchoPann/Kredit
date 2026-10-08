@@ -25,9 +25,11 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final creditsAsync = ref.watch(creditsProvider);
-    final credits = creditsAsync.valueOrNull;
-    final isEmpty = credits != null && credits.isEmpty;
+    // Granular selectors: each rebuilds only the minimal subtree that needs it.
+    final isLoading = ref.watch(creditsProvider.select((s) => s.isLoading));
+    final hasError  = ref.watch(creditsProvider.select((s) => s.hasError));
+    // isEmpty true while loading/error so FAB is hidden in those states too.
+    final isEmpty   = ref.watch(creditsProvider.select((s) => s.value?.isEmpty ?? true));
 
     return Scaffold(
       appBar: AppBar(
@@ -36,13 +38,13 @@ class DashboardScreen extends ConsumerWidget {
         toolbarHeight: 0,
       ),
       body: SafeArea(
-        child: creditsAsync.when(
-          loading: () => const _DashboardLoadingState(),
-          error: (err, st) => _DashboardErrorState(
-            onRetry: () => ref.invalidate(creditsProvider),
-          ),
-          data: (credits) => _DashboardBody(credits: credits),
-        ),
+        child: isLoading
+            ? const _DashboardLoadingState()
+            : hasError
+                ? _DashboardErrorState(
+                    onRetry: () => ref.invalidate(creditsProvider),
+                  )
+                : const _DashboardBody(),
       ),
       // Oculto cuando la lista está vacía: en ese estado `_EmptyDashboard`
       // ya muestra su propio botón "Nuevo Crédito" y tener ambos era una
@@ -51,7 +53,7 @@ class DashboardScreen extends ConsumerWidget {
           ? null
           : Builder(
               builder: (context) {
-                // Bug 2: luminance-based foreground so icon is readable on any accent
+                // Luminance-based foreground so icon is readable on any accent.
                 final accentColor = Theme.of(context).colorScheme.primary;
                 final fgColor = legibleForegroundOn(accentColor);
                 return FloatingActionButton(
@@ -151,27 +153,29 @@ final _greeting = () {
 }();
 
 class _DashboardBody extends ConsumerWidget {
-  final List<Credit> credits;
-
-  const _DashboardBody({required this.credits});
+  const _DashboardBody();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (credits.isEmpty) {
+    // Pre-computed by dashboardDataProvider; null only transiently before
+    // the first emission — _DashboardBody is only built when data is ready.
+    final data = ref.watch(dashboardDataProvider);
+    if (data == null) return const _EmptyDashboard();
+
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final activeCredits = data.activeCredits;
+
+    if (activeCredits.isEmpty && ref.watch(totalCreditsCountProvider) == 0) {
       return const _EmptyDashboard();
     }
-    final kredit = Theme.of(context).extension<KreditColors>()!;
 
     // select() rebuilds only when profileName changes, not on every theme save.
     final profileName = ref.watch(
       themePreferencesProvider.select((p) => p.profileName),
     );
     final totalDebt = ref.watch(totalUnpaidProvider);
-    // Pre-computed by dashboardDataProvider; returns null only transiently
-    // before the first credits emission, which never happens here because
-    // _DashboardBody is only rendered from the AsyncData branch.
-    final data = ref.watch(dashboardDataProvider)!;
-    final activeCredits = data.activeCredits;
+    // Selector: rebuilds "N de M" stat only when total count changes.
+    final totalCount = ref.watch(totalCreditsCountProvider);
     final progressPct = data.progressPct;
     final upcoming = data.upcoming;
     final weekSummary = data.weekSummary;
@@ -283,7 +287,7 @@ class _DashboardBody extends ConsumerWidget {
             Expanded(
               child: _SecondaryStat(
                 label: 'Créditos activos',
-                value: '${activeCredits.length} de ${credits.length}',
+                value: '${activeCredits.length} de $totalCount',
               ),
             ),
           ],

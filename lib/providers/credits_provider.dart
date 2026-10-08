@@ -314,3 +314,8 @@ final totalUnpaidProvider = Provider<double>((ref) {
   final credits = ref.watch(creditsProvider).value ?? [];
   return credits.fold(0.0, (sum, c) => sum + getCreditRemainingBalance(c));
 });
+
+/// Derived: total number of credits (used by dashboard to avoid full rebuilds).
+final totalCreditsCountProvider = Provider<int>((ref) {
+  return ref.watch(creditsProvider).value?.length ?? 0;
+});
