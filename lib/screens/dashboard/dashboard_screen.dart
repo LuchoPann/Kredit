@@ -1,3 +1,4 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +8,7 @@ import '../../domain/recommendations.dart';
 import '../../providers/credits_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/navigation_provider.dart';
+import '../../providers/stats_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/credit_display_utils.dart';
@@ -301,6 +303,10 @@ class _DashboardBody extends ConsumerWidget {
           recommendation: recommendation,
           upcoming: upcoming,
         ),
+
+        // 4. Proyección de pagos — gráfica de barras 6 meses.
+        const SizedBox(height: KreditSpacing.section),
+        const _ProjectionChart(),
 
         // 5. Lista de créditos activos — misma tarjeta discreta.
         if (activeCredits.isNotEmpty) ...[
@@ -928,6 +934,149 @@ class _UpcomingRow extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Gráfica de barras — proyección de pagos en los próximos 6 meses.
+/// Datos de [statsDataProvider.monthlyProjection]. Se oculta si no hay datos.
+class _ProjectionChart extends ConsumerWidget {
+  const _ProjectionChart();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stats = ref.watch(statsDataProvider);
+    if (stats == null || stats.monthlyProjection.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accent = Theme.of(context).colorScheme.primary;
+
+    final sortedEntries = stats.monthlyProjection.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+
+    final maxY = sortedEntries.fold(0.0, (m, e) => e.value > m ? e.value : m);
+    // Avoid division by zero and keep chart readable when all values are 0.
+    final chartMax = maxY > 0 ? maxY * 1.2 : 1.0;
+
+    final barGroups = <BarChartGroupData>[];
+    for (var i = 0; i < sortedEntries.length; i++) {
+      barGroups.add(
+        BarChartGroupData(
+          x: i,
+          barRods: [
+            BarChartRodData(
+              toY: sortedEntries[i].value,
+              color: accent,
+              width: 18,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(5)),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(KreditSpacing.card),
+      decoration: BoxDecoration(
+        color: kredit.bgCard,
+        borderRadius: BorderRadius.circular(KreditRadius.card),
+        border: Border.all(color: kredit.borderCard),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'PROYECCIÓN DE PAGOS',
+            style: TextStyle(
+              fontSize: KreditTextSize.body,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.2,
+              color: kredit.textTertiary,
+            ),
+          ),
+          if (stats.monthlyDebtInsight != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              stats.monthlyDebtInsight!,
+              style: TextStyle(
+                fontSize: KreditTextSize.body,
+                color: kredit.textSecondary,
+                height: 1.4,
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 160,
+            child: BarChart(
+              BarChartData(
+                maxY: chartMax,
+                minY: 0,
+                barGroups: barGroups,
+                gridData: const FlGridData(show: false),
+                borderData: FlBorderData(show: false),
+                titlesData: FlTitlesData(
+                  leftTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 24,
+                      getTitlesWidget: (value, meta) {
+                        final i = value.toInt();
+                        if (i < 0 || i >= sortedEntries.length) {
+                          return const SizedBox.shrink();
+                        }
+                        // Label is "Ene\n2026" — only month part needed.
+                        final monthLabel =
+                            sortedEntries[i].key.label.split('\n').first;
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            monthLabel,
+                            style: TextStyle(
+                              fontSize: KreditTextSize.body,
+                              fontWeight: FontWeight.w600,
+                              color: kredit.textTertiary,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                barTouchData: BarTouchData(
+                  touchTooltipData: BarTouchTooltipData(
+                    getTooltipColor: (_) => kredit.bgCard,
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      final entry = sortedEntries[group.x];
+                      final monthLabel =
+                          entry.key.label.replaceAll('\n', ' ');
+                      return BarTooltipItem(
+                        '$monthLabel\n${formatCOP(rod.toY)}',
+                        TextStyle(
+                          fontSize: KreditTextSize.body,
+                          fontWeight: FontWeight.w700,
+                          color: kredit.textPrimary,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
