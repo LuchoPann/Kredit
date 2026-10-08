@@ -240,6 +240,10 @@ class _CreditsListBodyState extends ConsumerState<_CreditsListBody>
                         value: CreditsSortOption.name,
                         child: Text('Nombre A-Z'),
                       ),
+                      PopupMenuItem(
+                        value: CreditsSortOption.type,
+                        child: Text('Tipo (tarjeta / préstamo)'),
+                      ),
                     ],
                 ),
               ),
@@ -472,6 +476,18 @@ class _FilteredListState extends ConsumerState<_FilteredList> {
         break;
       case CreditsSortOption.name:
         sorted.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        break;
+      case CreditsSortOption.type:
+        sorted.sort((a, b) {
+          int typeOrder(Credit c) {
+            if (c is CardCredit) return 0;
+            if (c is LoanCredit) return 1;
+            return 2;
+          }
+          final cmp = typeOrder(a).compareTo(typeOrder(b));
+          if (cmp != 0) return cmp;
+          return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        });
         break;
     }
     return sorted;

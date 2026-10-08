@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Sort options for the credits list screen, mirroring the `#sort-credits`
 /// select in legacy_pwa/index.html (~L197-202).
-enum CreditsSortOption { urgency, dueDate, debtDesc, debtAsc, entity, name }
+enum CreditsSortOption { urgency, dueDate, debtDesc, debtAsc, entity, name, type }
 
 /// Fast comparison filters shown as compact chips in the credits list.
 enum CreditsQuickFilter { all, overdue, upcoming, cards, loans }
