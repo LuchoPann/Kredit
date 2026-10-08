@@ -195,7 +195,7 @@ class DataToolsCard extends ConsumerWidget {
               Expanded(
                 child: Text(
                   backupOk
-                      ? 'Último respaldo: ${formatDate(toDateStr(lastBackup!))}.'
+                      ? 'Último respaldo: ${formatDate(toDateStr(lastBackup))}.'
                       : 'Sin respaldo — se recomienda exportar una copia ahora.',
                   style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600, color: statusColor),
                 ),

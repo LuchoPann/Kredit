@@ -119,24 +119,39 @@ class CreditsNotifier extends AsyncNotifier<List<Credit>> {
     }
   }
 
+  // Recarga completa desde DB — solo para operaciones que reemplazan o borran
+  // datos que ya no existen en el estado en memoria (deleteCredit, replaceAll,
+  // clearAll). Para mutaciones en memoria usa _notifyInPlace().
   Future<void> _reload() async {
     state = AsyncData(await _db.loadAllCredits());
+  }
+
+  // Notifica a Riverpod que la lista cambió sin releer la DB. Funciona porque
+  // todas las mutaciones modifican el objeto Credit en el lugar ANTES de
+  // llamar aquí — crear una nueva List con los mismos objetos ya mutados es
+  // suficiente para que Riverpod propague el cambio a los widgets.
+  void _notifyInPlace() {
+    final current = state.value;
+    if (current != null) state = AsyncData(List<Credit>.from(current));
   }
 
   Future<void> addCredit(Credit credit) async {
     _clearInterestUnknownIfRateKnown(credit);
     await _db.upsertCredit(credit);
-    await _reload();
+    // Agrega el crédito nuevo al estado en memoria sin releer toda la DB.
+    final current = List<Credit>.from(state.value ?? [])..add(credit);
+    state = AsyncData(current);
   }
 
   Future<void> updateCredit(Credit credit) async {
     _clearInterestUnknownIfRateKnown(credit);
     await _db.upsertCredit(credit);
-    await _reload();
+    _notifyInPlace();
   }
 
   Future<void> deleteCredit(String creditId) async {
     await _db.deleteCredit(creditId);
+    // Necesita releer: el objeto ya no existe en memoria de forma confiable.
     await _reload();
   }
 
@@ -147,7 +162,7 @@ class CreditsNotifier extends AsyncNotifier<List<Credit>> {
     final inst = credit.installments.firstWhere((i) => i.number == installmentNumber);
     applyInstallmentPayment(inst, !inst.paid);
     await _db.upsertCredit(credit);
-    await _reload();
+    _notifyInPlace();
   }
 
   /// Registers that [installmentNumber] was actually paid for
@@ -166,7 +181,7 @@ class CreditsNotifier extends AsyncNotifier<List<Credit>> {
     final inst = credit.installments.firstWhere((i) => i.number == installmentNumber);
     registerInstallmentActualPayment(credit, inst, actualAmount);
     await _db.upsertCredit(credit);
-    await _reload();
+    _notifyInPlace();
   }
 
   Future<void> markAllInstallmentsPaid(String creditId) async {
@@ -175,7 +190,7 @@ class CreditsNotifier extends AsyncNotifier<List<Credit>> {
     if (credit == null) return;
     markAllInstallments(credit);
     await _db.upsertCredit(credit);
-    await _reload();
+    _notifyInPlace();
   }
 
   Future<void> registerMovement(String creditId, String type, double amount, String note) async {
@@ -184,7 +199,7 @@ class CreditsNotifier extends AsyncNotifier<List<Credit>> {
     if (credit == null) return;
     registerCardMovement(credit, type, amount, note);
     await _db.upsertCredit(credit);
-    await _reload();
+    _notifyInPlace();
   }
 
   Future<void> registerAdvance(
@@ -217,7 +232,7 @@ class CreditsNotifier extends AsyncNotifier<List<Credit>> {
     credit.currentBalance = credit.currentBalance + amount.abs();
     credit.movements.add(movement);
     await _db.upsertCredit(credit);
-    await _reload();
+    _notifyInPlace();
   }
 
   /// Registers an "abono extra" on a loan credit, applying it against the
@@ -238,7 +253,7 @@ class CreditsNotifier extends AsyncNotifier<List<Credit>> {
     final abono = applyLoanAbono(credit, amount, note: note, strategy: strategy);
     credit.abonos.add(abono);
     await _db.upsertCredit(credit);
-    await _reload();
+    _notifyInPlace();
     return abono;
   }
 
@@ -253,7 +268,7 @@ class CreditsNotifier extends AsyncNotifier<List<Credit>> {
     if (credit == null) return;
     deleteCardMovement(credit, movementIndex);
     await _db.upsertCredit(credit);
-    await _reload();
+    _notifyInPlace();
   }
 
   /// Deletes a registered "abono extra" from a loan credit, best-effort
@@ -266,7 +281,7 @@ class CreditsNotifier extends AsyncNotifier<List<Credit>> {
     reverseLoanAbono(credit, abono);
     credit.abonos.remove(abono);
     await _db.upsertCredit(credit);
-    await _reload();
+    _notifyInPlace();
   }
 
   /// Replaces both credits and commercial quotas atomically (backup
