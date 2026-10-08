@@ -10,6 +10,7 @@ import '../../theme/app_theme.dart';
 import '../../utils/credit_display_utils.dart';
 import '../../widgets/kredit_section_card.dart';
 import '../../widgets/progress_ring.dart';
+import 'calculator_sheet.dart';
 
 /// "Estadísticas avanzadas" screen: month-by-month debt projection, debt
 /// distribution by lender, and payoff-date forecasts. Purely derived from
@@ -24,6 +25,16 @@ class StatsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Estadísticas avanzadas')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => const CalculatorSheet(),
+        ),
+        icon: const Icon(Icons.calculate_outlined),
+        label: const Text('Calcular cuota'),
+      ),
       body: creditsAsync.when(
         data: (credits) {
           if (credits.isEmpty) return const _EmptyState();
