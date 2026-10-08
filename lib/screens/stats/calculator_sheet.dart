@@ -124,7 +124,7 @@ class _CalculatorSheetState extends State<CalculatorSheet> {
                       color: kredit.textPrimary,
                     ),
                     decoration: InputDecoration(
-                      prefixText: '$ ',
+                      prefixText: r'$ ',
                       prefixStyle: TextStyle(
                         fontSize: KreditTextSize.heading,
                         fontWeight: FontWeight.w700,

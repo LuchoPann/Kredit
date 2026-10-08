@@ -249,9 +249,10 @@ class NotificationService {
     await init();
     await _plugin.cancelAll();
     for (final credit in credits) {
+      final effectiveDays = credit.notificationDaysBefore ?? daysBefore;
       await scheduleForCredit(
         credit,
-        daysBefore,
+        effectiveDays,
         time: time,
         repeatDaily: repeatDaily,
       );

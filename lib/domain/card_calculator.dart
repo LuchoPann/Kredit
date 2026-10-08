@@ -189,9 +189,10 @@ void applyRateChangeAt(CardCredit credit, DateTime changeDate) {
 void registerCardMovement(
   CardCredit credit,
   String type,
-  double amount, [
+  double amount, {
   String note = '',
-]) {
+  String? categoria,
+}) {
   final delta = type == CardMovementType.payment ? -amount.abs() : amount.abs();
   credit.currentBalance =
       math.max(0.0, _round2(credit.currentBalance + delta));
@@ -200,6 +201,7 @@ void registerCardMovement(
     type: type,
     amount: amount.abs(),
     note: note,
+    categoria: categoria,
   ));
 }
 

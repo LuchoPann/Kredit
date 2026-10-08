@@ -116,7 +116,7 @@ void main() {
       creditLimit: 5000,
       currentBalance: 200,
     );
-    card.movements.add(const CardMovement(
+    card.movements.add(CardMovement(
       date: '2026-01-05',
       type: CardMovementType.charge,
       amount: 200,

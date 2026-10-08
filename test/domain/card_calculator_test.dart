@@ -372,7 +372,7 @@ void main() {
   group('registerCardMovement', () {
     test('a charge increases the balance', () {
       final credit = CardCredit(id: 'c1', name: 'T', lender: 'B', currentBalance: 100);
-      registerCardMovement(credit, 'charge', 50, 'compra');
+      registerCardMovement(credit, 'charge', 50, note: 'compra');
       expect(credit.currentBalance, 150);
       expect(credit.movements.last.type, 'charge');
       expect(credit.movements.last.amount, 50);

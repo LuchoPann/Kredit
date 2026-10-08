@@ -8,6 +8,7 @@ import '../models/commercial_quota.dart';
 import '../models/credit.dart';
 import '../models/installment.dart';
 import '../models/loan_abono.dart';
+import '../models/pago_realizado.dart';
 import 'connection.dart';
 import 'tables.dart';
 
@@ -30,7 +31,7 @@ class QuotaHasActivePurchasesException implements Exception {
 /// just stashed the whole `state` object as one JSON blob) with a proper
 /// relational schema — see lib/data/db/tables.dart for the mapping notes.
 @DriftDatabase(
-    tables: [Credits, Installments, CardMovements, LoanAbonos, CommercialQuotas])
+    tables: [Credits, Installments, CardMovements, LoanAbonos, CommercialQuotas, PagosRealizados])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(openConnection());
 
@@ -38,7 +39,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -102,6 +103,11 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(cardMovements, cardMovements.advanceFirstPaymentDate);
             await m.addColumn(cardMovements, cardMovements.advanceDestination);
           }
+          if (from < 12) {
+            await m.addColumn(credits, credits.notificationDaysBefore);
+            await m.addColumn(cardMovements, cardMovements.categoria);
+            await m.createTable(pagosRealizados);
+          }
         },
         // SQLite ignores FK constraints (like Credits.quotaId's
         // onDelete: restrict) unless this pragma is set per-connection —
@@ -138,6 +144,7 @@ class AppDatabase extends _$AppDatabase {
       interestUnknown: row.interestUnknown,
       earlyPaymentWaivesInterest: row.earlyPaymentWaivesInterest,
       cardDesign: row.cardDesign,
+      notificationDaysBefore: row.notificationDaysBefore,
     );
   }
 
@@ -165,6 +172,7 @@ class AppDatabase extends _$AppDatabase {
       cardDesign: row.cardDesign,
       paymentDueDay: row.paymentDueDay,
       oneInstallmentInterestPolicy: row.oneInstallmentInterestPolicy,
+      notificationDaysBefore: row.notificationDaysBefore,
       movements: movements,
     );
   }
@@ -192,6 +200,7 @@ class AppDatabase extends _$AppDatabase {
         interestUnknown: Value(credit.interestUnknown),
         earlyPaymentWaivesInterest: Value(credit.earlyPaymentWaivesInterest),
         cardDesign: Value(credit.cardDesign),
+        notificationDaysBefore: Value(credit.notificationDaysBefore),
       );
     } else if (credit is CardCredit) {
       return CreditsCompanion.insert(
@@ -216,6 +225,7 @@ class AppDatabase extends _$AppDatabase {
         paymentDueDay: Value(credit.paymentDueDay),
         oneInstallmentInterestPolicy:
             Value(credit.oneInstallmentInterestPolicy),
+        notificationDaysBefore: Value(credit.notificationDaysBefore),
       );
     }
     throw ArgumentError('Unknown credit subtype: ${credit.runtimeType}');
@@ -248,6 +258,7 @@ class AppDatabase extends _$AppDatabase {
                     advanceCommission: m.advanceCommission,
                     advanceFirstPaymentDate: m.advanceFirstPaymentDate,
                     advanceDestination: m.advanceDestination,
+                    categoria: m.categoria,
                   ))
               .toList(),
         ));
@@ -441,11 +452,49 @@ class AppDatabase extends _$AppDatabase {
             advanceCommission: Value(mv.advanceCommission),
             advanceFirstPaymentDate: Value(mv.advanceFirstPaymentDate),
             advanceDestination: Value(mv.advanceDestination),
+            categoria: Value(mv.categoria),
           ));
         }
       }
     });
   }
+
+  // --- PagosRealizados API -------------------------------------------------
+
+  Future<void> insertPagoRealizado(PagoRealizado pago) async {
+    await into(pagosRealizados).insert(PagosRealizadosCompanion.insert(
+      creditId: pago.creditId,
+      fecha: pago.fecha,
+      monto: pago.monto,
+      tipo: pago.tipo,
+      numeroCuota: Value(pago.numeroCuota),
+      nota: Value(pago.nota),
+    ));
+  }
+
+  Future<List<PagoRealizado>> loadPagosRealizados(String creditId) async {
+    final rows = await (select(pagosRealizados)
+          ..where((p) => p.creditId.equals(creditId))
+          ..orderBy([(p) => OrderingTerm.asc(p.rowId)]))
+        .get();
+    return rows
+        .map((r) => PagoRealizado(
+              rowId: r.rowId,
+              creditId: r.creditId,
+              fecha: r.fecha,
+              monto: r.monto,
+              tipo: r.tipo,
+              numeroCuota: r.numeroCuota,
+              nota: r.nota,
+            ))
+        .toList();
+  }
+
+  Future<void> deletePagoRealizado(int rowId) async {
+    await (delete(pagosRealizados)..where((p) => p.rowId.equals(rowId))).go();
+  }
+
+  // -------------------------------------------------------------------------
 
   /// Deletes [creditId] and (via FK cascade) all its installments/movements.
   Future<void> deleteCredit(String creditId) =>
@@ -458,6 +507,7 @@ class AppDatabase extends _$AppDatabase {
       await delete(installments).go();
       await delete(cardMovements).go();
       await delete(loanAbonos).go();
+      await delete(pagosRealizados).go();
       await delete(credits).go();
       await delete(commercialQuotas).go();
     });
@@ -478,6 +528,7 @@ class AppDatabase extends _$AppDatabase {
       await delete(installments).go();
       await delete(cardMovements).go();
       await delete(loanAbonos).go();
+      await delete(pagosRealizados).go();
       await delete(credits).go();
       await delete(commercialQuotas).go();
       for (final q in newQuotas) {

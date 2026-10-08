@@ -46,6 +46,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
   final _amountCtrl = TextEditingController();
   final _noteCtrl = TextEditingController();
   bool _saving = false;
+  String? _categoria;
 
   @override
   void initState() {
@@ -73,6 +74,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
             widget.movementType,
             amount,
             _noteCtrl.text.trim(),
+            categoria: _categoria,
           );
       if (mounted) {
         Navigator.of(context).pop();
@@ -243,6 +245,44 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
                   ),
               ],
             ),
+            if (isCharge) ...[
+              const SizedBox(height: 14),
+              Text(
+                'CATEGORÍA',
+                style: TextStyle(
+                  fontSize: KreditTextSize.body,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.4,
+                  color: kredit.textTertiary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  for (final cat in const [
+                    ('alimentacion', '🍔', 'Alimentación'),
+                    ('transporte', '🚌', 'Transporte'),
+                    ('salud', '💊', 'Salud'),
+                    ('ropa', '👕', 'Ropa'),
+                    ('entretenimiento', '🎬', 'Entretenimiento'),
+                    ('servicios', '💡', 'Servicios'),
+                    ('viajes', '✈️', 'Viajes'),
+                    ('otro', '📦', 'Otro'),
+                  ])
+                    _CategoriaChip(
+                      value: cat.$1,
+                      emoji: cat.$2,
+                      label: cat.$3,
+                      selected: _categoria == cat.$1,
+                      onTap: () => setState(() {
+                        _categoria = _categoria == cat.$1 ? null : cat.$1;
+                      }),
+                    ),
+                ],
+              ),
+            ],
             if (overlimitBy != null) ...[
               const SizedBox(height: 14),
               Container(
@@ -284,6 +324,51 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoriaChip extends StatelessWidget {
+  final String value;
+  final String emoji;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _CategoriaChip({
+    required this.value,
+    required this.emoji,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(KreditRadius.chip),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: selected ? accent.withValues(alpha: 0.18) : kredit.bgCard,
+          borderRadius: BorderRadius.circular(KreditRadius.chip),
+          border: Border.all(
+            color: selected ? accent : kredit.borderCard,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Text(
+          '$emoji $label',
+          style: TextStyle(
+            fontSize: KreditTextSize.body,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            color: selected ? accent : kredit.textSecondary,
+          ),
         ),
       ),
     );

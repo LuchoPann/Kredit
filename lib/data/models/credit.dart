@@ -33,6 +33,10 @@ abstract class Credit {
   String? notes;
   String? cardDesign;
 
+  /// Días de antelación para notificar vencimientos de este crédito.
+  /// null = usar el valor global de notificationSettingsProvider.
+  int? notificationDaysBefore;
+
   Credit({
     required this.id,
     required this.type,
@@ -41,6 +45,7 @@ abstract class Credit {
     this.color,
     this.notes,
     this.cardDesign,
+    this.notificationDaysBefore,
   });
 
   bool get isCard => type == CreditType.card;
@@ -96,6 +101,7 @@ class LoanCredit extends Credit {
     super.color,
     super.notes,
     super.cardDesign,
+    super.notificationDaysBefore,
     this.location,
     this.card,
     required this.totalAmount,
@@ -138,6 +144,7 @@ class LoanCredit extends Credit {
         'interestUnknown': interestUnknown,
         'earlyPaymentWaivesInterest': earlyPaymentWaivesInterest,
         'cardDesign': cardDesign,
+        'notificationDaysBefore': notificationDaysBefore,
       };
 
   factory LoanCredit.fromJson(Map<String, dynamic> json) => LoanCredit(
@@ -169,6 +176,7 @@ class LoanCredit extends Credit {
         earlyPaymentWaivesInterest:
             json['earlyPaymentWaivesInterest'] as bool? ?? false,
         cardDesign: json['cardDesign'] as String?,
+        notificationDaysBefore: json['notificationDaysBefore'] as int?,
       );
 }
 
@@ -211,6 +219,7 @@ class CardCredit extends Credit {
     super.color,
     super.notes,
     super.cardDesign,
+    super.notificationDaysBefore,
     this.creditLimit = 0,
     this.currentBalance = 0,
     this.cutoffDay = 1,
@@ -249,6 +258,7 @@ class CardCredit extends Credit {
         'cardDesign': cardDesign,
         'paymentDueDay': paymentDueDay,
         'oneInstallmentInterestPolicy': oneInstallmentInterestPolicy,
+        'notificationDaysBefore': notificationDaysBefore,
         'movements': movements.map((m) => m.toJson()).toList(),
       };
 
@@ -276,6 +286,7 @@ class CardCredit extends Credit {
         paymentDueDay: (json['paymentDueDay'] as num?)?.toInt() ?? 0,
         oneInstallmentInterestPolicy:
             json['oneInstallmentInterestPolicy'] as bool?,
+        notificationDaysBefore: json['notificationDaysBefore'] as int?,
         movements: (json['movements'] as List<dynamic>? ?? [])
             .map((e) => CardMovement.fromJson(e as Map<String, dynamic>))
             .toList(),

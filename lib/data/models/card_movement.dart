@@ -28,6 +28,11 @@ class CardMovement {
   final String? advanceFirstPaymentDate;
   final String? advanceDestination;
 
+  /// Categoría del movimiento — null para movimientos sin categorizar.
+  /// Valores sugeridos: 'alimentacion' | 'transporte' | 'salud' | 'ropa' |
+  /// 'entretenimiento' | 'servicios' | 'viajes' | 'otro'.
+  final String? categoria;
+
   CardMovement({
     required this.date,
     required this.type,
@@ -39,6 +44,7 @@ class CardMovement {
     this.advanceCommission,
     this.advanceFirstPaymentDate,
     this.advanceDestination,
+    this.categoria,
   });
 
   Map<String, dynamic> toJson() => {
@@ -52,6 +58,7 @@ class CardMovement {
         'advanceCommission': advanceCommission,
         'advanceFirstPaymentDate': advanceFirstPaymentDate,
         'advanceDestination': advanceDestination,
+        'categoria': categoria,
       };
 
   factory CardMovement.fromJson(Map<String, dynamic> json) => CardMovement(
@@ -65,5 +72,6 @@ class CardMovement {
         advanceCommission: (json['advanceCommission'] as num?)?.toDouble(),
         advanceFirstPaymentDate: json['advanceFirstPaymentDate'] as String?,
         advanceDestination: json['advanceDestination'] as String?,
+        categoria: json['categoria'] as String?,
       );
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/card_movement.dart';
 import '../../data/models/credit.dart';
+import '../../providers/notification_settings_provider.dart';
 import '../../data/models/installment.dart';
 import '../../domain/card_calculator.dart';
 import '../../domain/date_utils.dart';
@@ -84,6 +85,10 @@ class SummaryTab extends ConsumerWidget {
           _CardQuickActions(credit: credit as CardCredit),
         ],
         const SizedBox(height: 20),
+        Divider(height: 1, color: kredit.borderCard),
+        const SizedBox(height: 8),
+        _NotificationOverrideTile(credit: credit),
+        const SizedBox(height: 8),
         Divider(height: 1, color: kredit.borderCard),
         const SizedBox(height: 4),
         NotesTab(credit: credit, embedded: true),
@@ -522,5 +527,127 @@ class _CardQuickActions extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+/// Tile que permite sobrescribir los días de antelación de notificación
+/// para este crédito en particular. Cuando está en "usar global" (null),
+/// muestra cuántos días aplica el ajuste global.
+class _NotificationOverrideTile extends ConsumerWidget {
+  final Credit credit;
+  const _NotificationOverrideTile({required this.credit});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final globalSettings = ref.watch(notificationSettingsProvider);
+    final hasOverride = credit.notificationDaysBefore != null;
+    final effectiveDays = credit.notificationDaysBefore ?? globalSettings.daysBefore;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(
+            'Recordatorio personalizado',
+            style: TextStyle(
+              fontSize: KreditTextSize.body,
+              fontWeight: FontWeight.w600,
+              color: kredit.textPrimary,
+            ),
+          ),
+          subtitle: Text(
+            hasOverride
+                ? '$effectiveDays días antes (personalizado)'
+                : '${globalSettings.daysBefore} días antes (global)',
+            style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
+          ),
+          value: hasOverride,
+          onChanged: (on) {
+            final updated = _withNotificationDays(credit, on ? globalSettings.daysBefore : null);
+            ref.read(creditsProvider.notifier).updateCredit(updated);
+          },
+        ),
+        if (hasOverride) ...[
+          Padding(
+            padding: const EdgeInsets.only(left: 4, right: 4, bottom: 4),
+            child: Row(
+              children: [
+                Text('1', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary)),
+                Expanded(
+                  child: Slider(
+                    value: effectiveDays.toDouble().clamp(1, 14),
+                    min: 1,
+                    max: 14,
+                    divisions: 13,
+                    label: '$effectiveDays días',
+                    onChanged: (v) {
+                      final updated = _withNotificationDays(credit, v.round());
+                      ref.read(creditsProvider.notifier).updateCredit(updated);
+                    },
+                  ),
+                ),
+                Text('14', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary)),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Credit _withNotificationDays(Credit credit, int? days) {
+    if (credit is LoanCredit) {
+      return LoanCredit(
+        id: credit.id,
+        name: credit.name,
+        lender: credit.lender,
+        color: credit.color,
+        notes: credit.notes,
+        cardDesign: credit.cardDesign,
+        notificationDaysBefore: days,
+        location: credit.location,
+        card: credit.card,
+        totalAmount: credit.totalAmount,
+        quotaAmount: credit.quotaAmount,
+        totalInstallments: credit.totalInstallments,
+        frequency: credit.frequency,
+        startDate: credit.startDate,
+        interestRate: credit.interestRate,
+        interestRateType: credit.interestRateType,
+        installments: credit.installments,
+        abonos: credit.abonos,
+        scheduleManuallyAdjusted: credit.scheduleManuallyAdjusted,
+        quotaId: credit.quotaId,
+        interestUnknown: credit.interestUnknown,
+        earlyPaymentWaivesInterest: credit.earlyPaymentWaivesInterest,
+      );
+    } else if (credit is CardCredit) {
+      return CardCredit(
+        id: credit.id,
+        name: credit.name,
+        lender: credit.lender,
+        color: credit.color,
+        notes: credit.notes,
+        cardDesign: credit.cardDesign,
+        notificationDaysBefore: days,
+        creditLimit: credit.creditLimit,
+        currentBalance: credit.currentBalance,
+        cutoffDay: credit.cutoffDay,
+        paymentDueOffsetDays: credit.paymentDueOffsetDays,
+        paymentDueDay: credit.paymentDueDay,
+        interestRate: credit.interestRate,
+        interestRateType: credit.interestRateType,
+        managementFee: credit.managementFee,
+        managementFeeFrequency: credit.managementFeeFrequency,
+        cycleCount: credit.cycleCount,
+        lastAccrualCutoff: credit.lastAccrualCutoff,
+        quotaId: credit.quotaId,
+        oneInstallmentInterestPolicy: credit.oneInstallmentInterestPolicy,
+        movements: credit.movements,
+      );
+    }
+    return credit;
   }
 }

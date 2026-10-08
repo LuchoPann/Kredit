@@ -85,6 +85,10 @@ class Credits extends Table {
   /// null = desconocido, true = sin interés a 1 cuota, false = con interés.
   BoolColumn get oneInstallmentInterestPolicy => boolean().nullable()();
 
+  /// Días de antelación para notificar vencimientos de ESTE crédito.
+  /// null = usar el ajuste global (notificationSettingsProvider.daysBefore).
+  IntColumn get notificationDaysBefore => integer().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -162,6 +166,36 @@ class CardMovements extends Table {
   RealColumn get advanceCommission => real().nullable()();
   TextColumn get advanceFirstPaymentDate => text().nullable()(); // YYYY-MM-DD
   TextColumn get advanceDestination => text().nullable()(); // cash|transfer|other
+
+  /// Categoría del movimiento — null para movimientos anteriores a v12.
+  /// Valores sugeridos: 'alimentacion' | 'transporte' | 'salud' | 'ropa' |
+  /// 'entretenimiento' | 'servicios' | 'viajes' | 'otro'.
+  TextColumn get categoria => text().nullable()();
+}
+
+/// Pagos reales registrados manualmente por el usuario para préstamos
+/// (cuotas) y tarjetas (pagos del extracto). Complementa la marca
+/// `paid = true` en Installments con el monto y fecha reales.
+@DataClassName('PagoRealizadoRow')
+class PagosRealizados extends Table {
+  IntColumn get rowId => integer().autoIncrement()();
+  TextColumn get creditId =>
+      text().references(Credits, #id, onDelete: KeyAction.cascade)();
+
+  /// Fecha real del pago — "YYYY-MM-DD".
+  TextColumn get fecha => text()();
+
+  /// Monto real pagado (puede diferir del calculado por la app).
+  RealColumn get monto => real()();
+
+  /// 'cuota' para préstamos, 'pago_tarjeta' para tarjetas.
+  TextColumn get tipo => text()();
+
+  /// Número de cuota asociada (solo cuando tipo == 'cuota'), o null.
+  IntColumn get numeroCuota => integer().nullable()();
+
+  /// Nota libre del usuario.
+  TextColumn get nota => text().withDefault(const Constant(''))();
 }
 
 /// One row per loan "abono extra" (extra manual payment). Mirrors
