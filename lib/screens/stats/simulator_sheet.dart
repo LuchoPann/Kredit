@@ -11,22 +11,8 @@ import '../../domain/date_utils.dart';
 import '../../domain/loan_calculator.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/credit_display_utils.dart';
 import '../../utils/currency_input_formatter.dart';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Formateo de moneda (reutiliza la misma lógica que stats_screen.dart)
-// ─────────────────────────────────────────────────────────────────────────────
-
-String _fmtCOP(double v) {
-  final n = v.round().abs();
-  final s = n.toString();
-  final buf = StringBuffer();
-  for (var i = 0; i < s.length; i++) {
-    if (i > 0 && (s.length - i) % 3 == 0) buf.write('.');
-    buf.write(s[i]);
-  }
-  return '\$${buf.toString()}';
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Entry point: abre el sheet
@@ -266,7 +252,7 @@ class _PurchaseTabState extends State<_PurchaseTab> {
                 .map((c) => DropdownMenuItem(
                       value: c,
                       child: Text(
-                        '${c.name} — ${_fmtCOP(math.max(0, c.creditLimit - c.currentBalance))} disponible',
+                        '${c.name} — ${formatCOP(math.max(0, c.creditLimit - c.currentBalance))} disponible',
                         overflow: TextOverflow.ellipsis,
                       ),
                     ))
@@ -380,21 +366,21 @@ class _PurchaseResultCard extends StatelessWidget {
               _ResultRow(
                 icon: Icons.receipt_long_outlined,
                 label: 'Cuota mensual estimada',
-                value: _fmtCOP(result.monthlyInstallment),
+                value: formatCOP(result.monthlyInstallment),
                 valueColor: accent,
                 kredit: kredit,
               ),
               _ResultRow(
                 icon: Icons.account_balance_wallet_outlined,
                 label: 'Nuevo saldo total en ${result.cardName}',
-                value: _fmtCOP(result.newTotalBalance),
+                value: formatCOP(result.newTotalBalance),
                 valueColor: kredit.textPrimary,
                 kredit: kredit,
               ),
               _ResultRow(
                 icon: Icons.credit_card_outlined,
                 label: 'Cupo disponible tras la compra',
-                value: _fmtCOP(result.availableCredit),
+                value: formatCOP(result.availableCredit),
                 valueColor: kredit.textPrimary,
                 kredit: kredit,
               ),
@@ -402,7 +388,7 @@ class _PurchaseResultCard extends StatelessWidget {
                 _ResultRow(
                   icon: Icons.trending_up_outlined,
                   label: 'Costo estimado en intereses (${result.quotas} cuotas)',
-                  value: _fmtCOP(result.estimatedInterestCost),
+                  value: formatCOP(result.estimatedInterestCost),
                   valueColor: Colors.redAccent,
                   kredit: kredit,
                 ),
@@ -872,7 +858,7 @@ class _ThreeScenariosCard extends StatelessWidget {
                 title: 'Seguir igual',
                 description: 'Sin abonar, terminas en '
                     '${formatDate(baseline.payoffDate)} — '
-                    '${_fmtCOP(baseline.totalInterestRemaining)} en interés '
+                    '${formatCOP(baseline.totalInterestRemaining)} en interés '
                     'restante por pagar.',
                 highlight: false,
                 isFirst: true,
@@ -884,16 +870,16 @@ class _ThreeScenariosCard extends StatelessWidget {
                       ? 'Reducir cuota'
                       : 'Reducir plazo',
                   description: others[i].strategy == AbonoStrategy.reducirCuota
-                      ? 'Tu cuota baja de ${_fmtCOP(baseline.quota)} a '
-                          '${_fmtCOP(others[i].quota)} — sigues pagando '
+                      ? 'Tu cuota baja de ${formatCOP(baseline.quota)} a '
+                          '${formatCOP(others[i].quota)} — sigues pagando '
                           '${others[i].remainingInstallments} cuota(s), pero '
                           'cada una más liviana. Ahorras aprox. '
-                          '${_fmtCOP(others[i].interestSaved)} en intereses.'
+                          '${formatCOP(others[i].interestSaved)} en intereses.'
                       : 'Terminas ${others[i].installmentsSaved} cuota(s) antes '
                           '(${formatDate(others[i].payoffDate)} en vez de '
                           '${formatDate(baseline.payoffDate)}) — misma cuota de '
-                          '${_fmtCOP(others[i].quota)}. Ahorras aprox. '
-                          '${_fmtCOP(others[i].interestSaved)} en intereses.',
+                          '${formatCOP(others[i].quota)}. Ahorras aprox. '
+                          '${formatCOP(others[i].interestSaved)} en intereses.',
                   highlight: true,
                   isFirst: false,
                   isLast: i == others.length - 1,
@@ -1010,7 +996,7 @@ class _ScenarioComparisonTable extends StatelessWidget {
                       Expanded(
                         flex: 3,
                         child: Text(
-                          _fmtCOP(scenarios[i].extraPayment),
+                          formatCOP(scenarios[i].extraPayment),
                           style: TextStyle(
                             fontSize: KreditTextSize.body,
                             fontWeight: i == 0 ? FontWeight.w700 : FontWeight.w500,
@@ -1031,8 +1017,8 @@ class _ScenarioComparisonTable extends StatelessWidget {
                         flex: 4,
                         child: Text(
                           scenarios[i].isCard
-                              ? '${_fmtCOP(scenarios[i].newBalance)} restante'
-                              : '${_fmtCOP(scenarios[i].interestSaving)} ahorrados',
+                              ? '${formatCOP(scenarios[i].newBalance)} restante'
+                              : '${formatCOP(scenarios[i].interestSaving)} ahorrados',
                           textAlign: TextAlign.right,
                           style: TextStyle(
                             fontSize: KreditTextSize.body,
@@ -1134,21 +1120,21 @@ class _PaymentResultCardState extends ConsumerState<_PaymentResultCard> {
               _ResultRow(
                 icon: Icons.savings_outlined,
                 label: 'Abono aplicado a ${result.creditName}',
-                value: _fmtCOP(result.extraPayment),
+                value: formatCOP(result.extraPayment),
                 valueColor: Colors.green,
                 kredit: kredit,
               ),
               _ResultRow(
                 icon: Icons.trending_down_outlined,
                 label: 'Saldo anterior',
-                value: _fmtCOP(result.currentBalance),
+                value: formatCOP(result.currentBalance),
                 valueColor: kredit.textSecondary,
                 kredit: kredit,
               ),
               _ResultRow(
                 icon: Icons.account_balance_wallet_outlined,
                 label: 'Nuevo saldo',
-                value: _fmtCOP(result.newBalance),
+                value: formatCOP(result.newBalance),
                 valueColor:
                     result.newBalance == 0 ? Colors.green : kredit.textPrimary,
                 kredit: kredit,
@@ -1166,7 +1152,7 @@ class _PaymentResultCardState extends ConsumerState<_PaymentResultCard> {
                 _ResultRow(
                   icon: Icons.attach_money_outlined,
                   label: 'Ahorro estimado en intereses',
-                  value: _fmtCOP(result.interestSaving),
+                  value: formatCOP(result.interestSaving),
                   valueColor: Colors.green,
                   kredit: kredit,
                 ),
@@ -1174,7 +1160,7 @@ class _PaymentResultCardState extends ConsumerState<_PaymentResultCard> {
                 _ResultRow(
                   icon: Icons.credit_card_outlined,
                   label: 'Nuevo cupo disponible',
-                  value: _fmtCOP(result.newAvailable!),
+                  value: formatCOP(result.newAvailable!),
                   valueColor: kredit.textPrimary,
                   kredit: kredit,
                 ),
