@@ -17,6 +17,7 @@ import '../../widgets/kredit_logo.dart';
 import '../../widgets/kredit_section_card.dart';
 import '../../widgets/progress_ring.dart';
 import '../stats/simulator_sheet.dart';
+import 'monthly_summary_screen.dart';
 
 /// Dashboard ("Inicio") screen — answers "¿Qué tengo que pagar pronto?":
 /// a greeting header, 3 compact metrics (por pagar / créditos activos /
@@ -363,6 +364,34 @@ class _DashboardBody extends ConsumerWidget {
                 onTap: (c) => Navigator.of(
                   context,
                 ).pushNamed('/credit-detail', arguments: c.id),
+              ),
+            ],
+          ),
+        ],
+
+        // Resumen mensual de vencimientos
+        if (activeCredits.isNotEmpty) ...[
+          const SizedBox(height: KreditSpacing.section),
+          KreditSectionCard(
+            children: [
+              Material(
+                color: Colors.transparent,
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const MonthlySummaryScreen()),
+                  ),
+                  leading: Icon(Icons.calendar_month_outlined, color: Theme.of(context).colorScheme.primary),
+                  title: const Text(
+                    'Estado de cuenta',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.body),
+                  ),
+                  subtitle: Text(
+                    'Cuotas y tarjetas que vencen este mes',
+                    style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
+                  ),
+                  trailing: Icon(Icons.chevron_right, color: kredit.textTertiary),
+                ),
               ),
             ],
           ),
