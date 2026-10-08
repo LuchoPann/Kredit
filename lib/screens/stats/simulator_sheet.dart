@@ -15,6 +15,69 @@ import '../../utils/credit_display_utils.dart';
 import '../../utils/currency_input_formatter.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Escenarios con nombre — persistencia via SharedPreferences
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _NamedScenario {
+  final String id;
+  final String nombre;
+  final String fecha;
+  final String tipo; // 'compra' | 'abono'
+  final String resumen;
+
+  const _NamedScenario({
+    required this.id,
+    required this.nombre,
+    required this.fecha,
+    required this.tipo,
+    required this.resumen,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'nombre': nombre,
+        'fecha': fecha,
+        'tipo': tipo,
+        'resumen': resumen,
+      };
+
+  factory _NamedScenario.fromJson(Map<String, dynamic> j) => _NamedScenario(
+        id: j['id'] as String,
+        nombre: j['nombre'] as String,
+        fecha: j['fecha'] as String,
+        tipo: j['tipo'] as String,
+        resumen: j['resumen'] as String,
+      );
+}
+
+const _namedScenariosKey = 'simulator_named_scenarios';
+const _maxNamedScenarios = 10;
+
+Future<List<_NamedScenario>> _loadNamedScenarios() async {
+  final prefs = await SharedPreferences.getInstance();
+  final raw = prefs.getString(_namedScenariosKey);
+  if (raw == null) return [];
+  return (jsonDecode(raw) as List)
+      .map((e) => _NamedScenario.fromJson(e as Map<String, dynamic>))
+      .toList();
+}
+
+Future<void> _saveNamedScenario(_NamedScenario scenario) async {
+  final prefs = await SharedPreferences.getInstance();
+  final list = await _loadNamedScenarios();
+  list.insert(0, scenario);
+  if (list.length > _maxNamedScenarios) list.removeRange(_maxNamedScenarios, list.length);
+  await prefs.setString(_namedScenariosKey, jsonEncode(list.map((s) => s.toJson()).toList()));
+}
+
+Future<void> _deleteNamedScenario(String id) async {
+  final prefs = await SharedPreferences.getInstance();
+  final list = await _loadNamedScenarios();
+  list.removeWhere((s) => s.id == id);
+  await prefs.setString(_namedScenariosKey, jsonEncode(list.map((s) => s.toJson()).toList()));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Entry point: abre el sheet
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -105,12 +168,23 @@ class _SimulatorSheetState extends ConsumerState<SimulatorSheet>
                 Icon(Icons.calculate_outlined,
                     size: KreditIconSize.small, color: Theme.of(context).colorScheme.primary),
                 const SizedBox(width: 10),
-                Text(
-                  'Simulador financiero',
-                  style: TextStyle(
-                    fontSize: KreditTextSize.heading,
-                    fontWeight: FontWeight.w700,
-                    color: kredit.textPrimary,
+                Expanded(
+                  child: Text(
+                    'Simulador financiero',
+                    style: TextStyle(
+                      fontSize: KreditTextSize.heading,
+                      fontWeight: FontWeight.w700,
+                      color: kredit.textPrimary,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Escenarios guardados',
+                  icon: const Icon(Icons.bookmark_outline),
+                  onPressed: () => showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (_) => const _SimulatorScenariosSheet(),
                   ),
                 ),
               ],
@@ -305,6 +379,20 @@ class _PurchaseTabState extends State<_PurchaseTab> {
           if (_result != null) ...[
             const SizedBox(height: 24),
             _PurchaseResultCard(result: _result!, kredit: kredit, accent: accent),
+            const SizedBox(height: 12),
+            _SaveScenarioButton(
+              onSave: (nombre) async {
+                final r = _result!;
+                await _saveNamedScenario(_NamedScenario(
+                  id: DateTime.now().millisecondsSinceEpoch.toString(),
+                  nombre: nombre,
+                  fecha: DateTime.now().toIso8601String().substring(0, 10),
+                  tipo: 'compra',
+                  resumen:
+                      '${r.cardName} · ${r.quotas} cuotas · ${formatCOP(r.monthlyInstallment)}/mes',
+                ));
+              },
+            ),
           ],
           const SizedBox(height: 16),
           _DisclaimerBanner(kredit: kredit),
@@ -713,6 +801,20 @@ class _ExtraPaymentTabState extends State<_ExtraPaymentTab> {
         if (_result != null) ...[
           const SizedBox(height: 24),
           _PaymentResultCard(result: _result!, kredit: kredit, accent: accent),
+          const SizedBox(height: 12),
+          _SaveScenarioButton(
+            onSave: (nombre) async {
+              final r = _result!;
+              await _saveNamedScenario(_NamedScenario(
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                nombre: nombre,
+                fecha: DateTime.now().toIso8601String().substring(0, 10),
+                tipo: 'abono',
+                resumen:
+                    '${r.creditName} · abono ${formatCOP(r.extraPayment)} · ahorro ${formatCOP(r.interestSaving)}',
+              ));
+            },
+          ),
         ],
         if (_threeScenarios.isNotEmpty) ...[
           const SizedBox(height: 20),
@@ -1348,6 +1450,192 @@ class _DisclaimerBanner extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Botón reutilizable "Guardar escenario"
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SaveScenarioButton extends StatefulWidget {
+  final Future<void> Function(String nombre) onSave;
+  const _SaveScenarioButton({required this.onSave});
+
+  @override
+  State<_SaveScenarioButton> createState() => _SaveScenarioButtonState();
+}
+
+class _SaveScenarioButtonState extends State<_SaveScenarioButton> {
+  bool _saved = false;
+
+  Future<void> _open() async {
+    final ctrl = TextEditingController();
+    final nombre = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Guardar escenario'),
+        content: TextFormField(
+          controller: ctrl,
+          autofocus: true,
+          maxLength: 40,
+          decoration: const InputDecoration(
+            labelText: 'Nombre del escenario',
+            hintText: 'Ej. Vacaciones mayo',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final v = ctrl.text.trim();
+              if (v.isNotEmpty) Navigator.pop(ctx, v);
+            },
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+    if (nombre != null && mounted) {
+      await widget.onSave(nombre);
+      setState(() => _saved = true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        onPressed: _saved ? null : _open,
+        icon: Icon(_saved ? Icons.bookmark : Icons.bookmark_add_outlined, size: KreditIconSize.small),
+        label: Text(_saved ? 'Escenario guardado' : 'Guardar escenario'),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Browser de escenarios guardados
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SimulatorScenariosSheet extends StatefulWidget {
+  const _SimulatorScenariosSheet();
+
+  @override
+  State<_SimulatorScenariosSheet> createState() => _SimulatorScenariosSheetState();
+}
+
+class _SimulatorScenariosSheetState extends State<_SimulatorScenariosSheet> {
+  List<_NamedScenario> _scenarios = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final list = await _loadNamedScenarios();
+    if (mounted) setState(() { _scenarios = list; _loading = false; });
+  }
+
+  Future<void> _delete(String id) async {
+    await _deleteNamedScenario(id);
+    await _load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.6,
+      minChildSize: 0.4,
+      maxChildSize: 0.9,
+      builder: (_, ctrl) => Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Container(
+              width: 36, height: 4,
+              decoration: BoxDecoration(
+                color: kredit.borderCard,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+            child: Row(
+              children: [
+                Icon(Icons.bookmark_outline, size: KreditIconSize.small,
+                    color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 10),
+                Text(
+                  'Escenarios guardados',
+                  style: TextStyle(
+                    fontSize: KreditTextSize.heading,
+                    fontWeight: FontWeight.w700,
+                    color: kredit.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _scenarios.isEmpty
+                    ? Center(
+                        child: Text(
+                          'Sin escenarios guardados aún.',
+                          style: TextStyle(color: kredit.textTertiary),
+                        ),
+                      )
+                    : ListView.separated(
+                        controller: ctrl,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        itemCount: _scenarios.length,
+                        separatorBuilder: (_, idx) => Divider(height: 1, color: kredit.borderCard),
+                        itemBuilder: (_, i) {
+                          final s = _scenarios[i];
+                          return ListTile(
+                            leading: Icon(
+                              s.tipo == 'compra'
+                                  ? Icons.shopping_cart_outlined
+                                  : Icons.payments_outlined,
+                              size: KreditIconSize.small,
+                              color: kredit.textSecondary,
+                            ),
+                            title: Text(s.nombre,
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: kredit.textPrimary)),
+                            subtitle: Text(
+                              '${s.fecha}  ·  ${s.resumen}',
+                              style: TextStyle(
+                                  fontSize: KreditTextSize.body,
+                                  color: kredit.textSecondary),
+                            ),
+                            trailing: IconButton(
+                              icon: Icon(Icons.delete_outline,
+                                  size: KreditIconSize.small,
+                                  color: kredit.textTertiary),
+                              tooltip: 'Eliminar escenario',
+                              onPressed: () => _delete(s.id),
+                            ),
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
     );
   }
 }
