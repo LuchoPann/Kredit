@@ -14,6 +14,7 @@ import 'attack_plan_screen.dart';
 import 'calculator_sheet.dart';
 import 'credit_comparison_screen.dart';
 import 'payment_goals_screen.dart';
+import 'spending_breakdown_screen.dart';
 import 'strategy_comparison_screen.dart';
 
 /// "Estadísticas avanzadas" screen: month-by-month debt projection, debt
@@ -234,6 +235,34 @@ class StatsScreen extends ConsumerWidget {
                       context,
                       MaterialPageRoute(
                           builder: (_) => const PaymentGoalsScreen()),
+                    ),
+                  ),
+                  Divider(
+                      height: 1,
+                      color: Theme.of(context)
+                          .extension<KreditColors>()!
+                          .borderCard),
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                    leading: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF97316).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.pie_chart_outline_rounded,
+                          size: KreditIconSize.small,
+                          color: Color(0xFFF97316)),
+                    ),
+                    title: const Text('Gastos por categoría',
+                        style: TextStyle(fontWeight: FontWeight.w700)),
+                    subtitle: const Text('Distribución de cargos en tus tarjetas'),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const SpendingBreakdownScreen()),
                     ),
                   ),
                 ],
