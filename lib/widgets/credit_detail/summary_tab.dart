@@ -16,6 +16,7 @@ import '../card_movement_sheet.dart';
 import '../../utils/credit_display_utils.dart';
 import '../wallet_card.dart';
 import 'notes_tab.dart';
+import 'rate_history_tile.dart';
 import 'stat_box.dart';
 
 /// Resumen tab: the one screen someone opens to answer "where do I stand on
@@ -60,6 +61,10 @@ class SummaryTab extends ConsumerWidget {
           Divider(height: 1, color: kredit.borderCard),
           const SizedBox(height: 16),
           _CardCycleSummaryRow(credit: credit as CardCredit),
+          const SizedBox(height: 16),
+          Divider(height: 1, color: kredit.borderCard),
+          const SizedBox(height: 16),
+          RateHistoryTile(credit: credit as CardCredit),
           const SizedBox(height: 16),
           Divider(height: 1, color: kredit.borderCard),
           const SizedBox(height: 16),
