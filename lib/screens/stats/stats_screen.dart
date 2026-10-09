@@ -12,6 +12,8 @@ import '../../widgets/kredit_section_card.dart';
 import '../../widgets/progress_ring.dart';
 import 'attack_plan_screen.dart';
 import 'calculator_sheet.dart';
+import 'credit_comparison_screen.dart';
+import 'payment_goals_screen.dart';
 import 'strategy_comparison_screen.dart';
 
 /// "Estadísticas avanzadas" screen: month-by-month debt projection, debt
@@ -140,6 +142,11 @@ class StatsScreen extends ConsumerWidget {
                       color: Theme.of(context)
                           .extension<KreditColors>()!
                           .borderCard),
+                  Divider(
+                      height: 1,
+                      color: Theme.of(context)
+                          .extension<KreditColors>()!
+                          .borderCard),
                   ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 4),
                     leading: Container(
@@ -166,6 +173,67 @@ class StatsScreen extends ConsumerWidget {
                       context,
                       MaterialPageRoute(
                           builder: (_) => const StrategyComparisonScreen()),
+                    ),
+                  ),
+                  Divider(
+                      height: 1,
+                      color: Theme.of(context)
+                          .extension<KreditColors>()!
+                          .borderCard),
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                    leading: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.tertiary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.compare_arrows_rounded,
+                          size: KreditIconSize.small,
+                          color: Theme.of(context).colorScheme.tertiary),
+                    ),
+                    title: const Text('Comparar créditos',
+                        style: TextStyle(fontWeight: FontWeight.w700)),
+                    subtitle: const Text('Analiza dos créditos lado a lado'),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const CreditComparisonScreen()),
+                    ),
+                  ),
+                  Divider(
+                      height: 1,
+                      color: Theme.of(context)
+                          .extension<KreditColors>()!
+                          .borderCard),
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                    leading: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .extension<KreditColors>()!
+                            .warning
+                            .withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.flag_rounded,
+                          size: KreditIconSize.small,
+                          color: Theme.of(context)
+                              .extension<KreditColors>()!
+                              .warning),
+                    ),
+                    title: const Text('Metas de pago',
+                        style: TextStyle(fontWeight: FontWeight.w700)),
+                    subtitle: const Text('Trackea objetivos de reducción de deuda'),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const PaymentGoalsScreen()),
                     ),
                   ),
                 ],
