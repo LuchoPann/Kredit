@@ -16,8 +16,8 @@ import '../../domain/bank_detector.dart';
 import '../../widgets/kredit_logo.dart';
 import '../../widgets/kredit_section_card.dart';
 import '../../widgets/progress_ring.dart';
-import '../stats/attack_plan_screen.dart';
 import '../stats/simulator_sheet.dart';
+import '../../widgets/attack_tools_sheet.dart';
 
 /// Dashboard ("Inicio") screen — answers "¿Qué tengo que pagar pronto?":
 /// a greeting header, 3 compact metrics (por pagar / créditos activos /
@@ -373,14 +373,14 @@ class _DashboardBody extends ConsumerWidget {
                 color: Colors.transparent,
                 child: ListTile(
                 contentPadding: EdgeInsets.zero,
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttackPlanScreen())),
+                onTap: () => showAttackToolsSheet(context),
                 leading: Icon(Icons.bolt_rounded, color: Theme.of(context).colorScheme.primary),
                 title: const Text(
-                  'Plan de ataque',
+                  'Herramientas de ataque',
                   style: TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.body),
                 ),
                 subtitle: Text(
-                  'Snowball o Avalanche: liquida tus deudas más rápido',
+                  'Snowball, Avalanche, metas y más',
                   style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
                 ),
                 trailing: Icon(Icons.chevron_right, color: kredit.textTertiary),

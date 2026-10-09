@@ -1,0 +1,194 @@
+import 'package:flutter/material.dart';
+
+import '../screens/stats/attack_plan_screen.dart';
+import '../screens/stats/credit_comparison_screen.dart';
+import '../screens/stats/payment_goals_screen.dart';
+import '../screens/stats/spending_breakdown_screen.dart';
+import '../screens/stats/strategy_comparison_screen.dart';
+import '../theme/app_theme.dart';
+
+void showAttackToolsSheet(BuildContext context) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => const _AttackToolsSheet(),
+  );
+}
+
+class _AttackToolsSheet extends StatelessWidget {
+  const _AttackToolsSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accent = Theme.of(context).colorScheme.primary;
+
+    void go(Widget screen) {
+      Navigator.pop(context);
+      Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+    }
+
+    final tools = [
+      _Tool(
+        icon: Icons.bolt_rounded,
+        iconColor: accent,
+        title: 'Plan de ataque',
+        subtitle: 'Snowball o Avalanche con pago extra',
+        onTap: () => go(const AttackPlanScreen()),
+      ),
+      _Tool(
+        icon: Icons.show_chart_rounded,
+        iconColor: kredit.success,
+        title: 'Comparar estrategias',
+        subtitle: 'Mínimos vs Snowball vs Avalanche en una gráfica',
+        onTap: () => go(const StrategyComparisonScreen()),
+      ),
+      _Tool(
+        icon: Icons.compare_arrows_rounded,
+        iconColor: Theme.of(context).colorScheme.tertiary,
+        title: 'Comparar créditos',
+        subtitle: 'Analiza dos créditos lado a lado',
+        onTap: () => go(const CreditComparisonScreen()),
+      ),
+      _Tool(
+        icon: Icons.flag_rounded,
+        iconColor: kredit.warning,
+        title: 'Metas de pago',
+        subtitle: 'Trackea objetivos de reducción de deuda',
+        onTap: () => go(const PaymentGoalsScreen()),
+      ),
+      _Tool(
+        icon: Icons.pie_chart_outline_rounded,
+        iconColor: const Color(0xFFF97316),
+        title: 'Gastos por categoría',
+        subtitle: 'Distribución de cargos en tus tarjetas',
+        onTap: () => go(const SpendingBreakdownScreen()),
+      ),
+    ];
+
+    return SafeArea(
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(KreditRadius.card),
+          border: Border.all(color: kredit.borderCard),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle
+            Padding(
+              padding: const EdgeInsets.only(top: 12, bottom: 4),
+              child: Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: kredit.textTertiary.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+            ),
+            // Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.bolt_rounded, size: KreditIconSize.small, color: accent),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Herramientas de ataque',
+                        style: TextStyle(
+                          fontSize: KreditTextSize.heading,
+                          fontWeight: FontWeight.w700,
+                          color: kredit.textPrimary,
+                        ),
+                      ),
+                      Text(
+                        'Estrategias para liquidar tu deuda',
+                        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Divider(height: 1, color: kredit.borderCard),
+            // Tool list
+            for (int i = 0; i < tools.length; i++) ...[
+              _ToolTile(tool: tools[i], kredit: kredit),
+              if (i < tools.length - 1) Divider(height: 1, color: kredit.borderCard),
+            ],
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Tool {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _Tool({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+}
+
+class _ToolTile extends StatelessWidget {
+  final _Tool tool;
+  final KreditColors kredit;
+
+  const _ToolTile({required this.tool, required this.kredit});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+        leading: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: tool.iconColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(tool.icon, size: KreditIconSize.small, color: tool.iconColor),
+        ),
+        title: Text(
+          tool.title,
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.body, color: kredit.textPrimary),
+        ),
+        subtitle: Text(
+          tool.subtitle,
+          style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary),
+        ),
+        trailing: Icon(Icons.chevron_right_rounded, color: kredit.textTertiary),
+        onTap: tool.onTap,
+      ),
+    );
+  }
+}
