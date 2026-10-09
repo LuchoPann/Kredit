@@ -27,6 +27,7 @@ import 'providers/theme_provider.dart';
 import 'providers/widget_privacy_provider.dart';
 import 'screens/lock/lock_screen.dart';
 import 'screens/onboarding/welcome_screen.dart';
+import 'providers/database_provider.dart';
 import 'providers/shared_preferences_provider.dart';
 import 'services/home_widget_service.dart';
 import 'services/notification_service.dart';
@@ -267,6 +268,11 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
     final service = ref.read(notificationServiceProvider);
     if (s.enabled) {
       service.rescheduleAll(credits, s.daysBefore, time: s.reminderTime, repeatDaily: s.repeatDaily);
+      // Alertas de mora: cuotas vencidas sin pago registrado.
+      final db = ref.read(databaseProvider);
+      service.scheduleOverdueAlerts(credits, db);
+      // Recordatorio de cierre de extracto (tarjetas cuyo corte es hoy).
+      service.scheduleCutoffReminders(credits, time: s.reminderTime);
     } else {
       service.rescheduleAll(const [], s.daysBefore);
     }

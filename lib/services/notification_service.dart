@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../data/db/database.dart';
 import '../data/models/credit.dart';
 import '../domain/card_calculator.dart';
 
@@ -12,6 +13,16 @@ const String _channelId = 'vencimientos';
 const String _channelName = 'Vencimientos';
 const String _channelDescription =
     'Avisos de vencimiento de cuotas y pagos de tarjeta';
+
+const String _cutoffChannelId = 'kredit_cutoff';
+const String _cutoffChannelName = 'Cierre de extracto';
+const String _cutoffChannelDescription =
+    'Recordatorio del día de cierre del extracto de tarjetas de crédito';
+
+const String _moraChannelId = 'kredit_mora';
+const String _moraChannelName = 'Alertas de mora';
+const String _moraChannelDescription =
+    'Cuotas vencidas sin pago registrado';
 
 /// Local (on-device only, no backend) due-date reminder notifications.
 ///
@@ -78,6 +89,28 @@ class NotificationService {
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
         ?.requestNotificationsPermission();
+
+    const moraChannel = AndroidNotificationChannel(
+      _moraChannelId,
+      _moraChannelName,
+      description: _moraChannelDescription,
+      importance: Importance.high,
+    );
+    await _plugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(moraChannel);
+
+    const cutoffChannel = AndroidNotificationChannel(
+      _cutoffChannelId,
+      _cutoffChannelName,
+      description: _cutoffChannelDescription,
+      importance: Importance.defaultImportance,
+    );
+    await _plugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(cutoffChannel);
 
     _initialized = true;
   }
@@ -263,6 +296,54 @@ class NotificationService {
     );
   }
 
+  /// Schedules a reminder for each CardCredit whose cutoffDay matches today.
+  /// Fires at [time] (default 20:00) to remind that today is the last day
+  /// to make purchases that stay in the current statement.
+  Future<void> scheduleCutoffReminders(
+    List<Credit> credits, {
+    TimeOfDay time = const TimeOfDay(hour: 20, minute: 0),
+  }) async {
+    final today = DateTime.now();
+    for (final credit in credits) {
+      if (credit is! CardCredit) continue;
+      if (credit.cutoffDay != today.day) continue;
+      // ID: high-range slot distinct from due-date ids (use slot 98 + cutoff marker)
+      final id = _bucketFor(credit.id) * _itemSlotCount * _dayOffsetCount +
+          98 * _dayOffsetCount + 8; // offset 8 = cutoff sentinel
+      final scheduled = tz.TZDateTime(
+        tz.local,
+        today.year,
+        today.month,
+        today.day,
+        time.hour,
+        time.minute,
+      );
+      if (!scheduled.isAfter(tz.TZDateTime.now(tz.local))) continue;
+      try {
+        await _plugin.zonedSchedule(
+          id: id,
+          title: 'Cierre de extracto hoy — ${credit.name}',
+          body:
+              'Las compras de hoy aún quedan en este extracto. Mañana inicia el próximo ciclo.',
+          scheduledDate: scheduled,
+          notificationDetails: const NotificationDetails(
+            android: AndroidNotificationDetails(
+              _cutoffChannelId,
+              _cutoffChannelName,
+              channelDescription: _cutoffChannelDescription,
+              importance: Importance.defaultImportance,
+              priority: Priority.defaultPriority,
+              icon: '@drawable/ic_notification',
+            ),
+          ),
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        );
+      } catch (e) {
+        debugPrint('NotificationService: cutoff reminder failed ($e)');
+      }
+    }
+  }
+
   Future<void> rescheduleAll(
     List<Credit> credits,
     int daysBefore, {
@@ -279,6 +360,63 @@ class NotificationService {
         time: time,
         repeatDaily: repeatDaily,
       );
+    }
+  }
+
+  /// Muestra una notificación inmediata por cada cuota vencida sin pago
+  /// registrado. Usa IDs deterministas (bucket*10000 + installmentNumber)
+  /// en el canal kredit_mora — sobrescribe cualquier alerta anterior del
+  /// mismo número de cuota.
+  Future<void> scheduleOverdueAlerts(
+    List<Credit> credits,
+    AppDatabase db,
+  ) async {
+    await init();
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+
+    for (final credit in credits) {
+      if (credit is! LoanCredit) continue;
+      final pagos = await db.loadPagosRealizados(credit.id);
+      final paidSlots = pagos
+          .where((p) => p.numeroCuota != null)
+          .map((p) => p.numeroCuota!)
+          .toSet();
+
+      for (final inst in credit.installments) {
+        if (inst.paid) continue;
+        if (paidSlots.contains(inst.number)) continue;
+        final due = DateTime.tryParse(inst.dueDate);
+        if (due == null) continue;
+        final dueDate = DateTime(due.year, due.month, due.day);
+        if (!dueDate.isBefore(todayDate)) continue;
+
+        final diasMora = todayDate.difference(dueDate).inDays;
+        if (diasMora < 1) continue;
+
+        final id = _bucketFor(credit.id) * 10000 + inst.number;
+        final diasLabel = diasMora == 1 ? '1 día' : '$diasMora días';
+        try {
+          await _plugin.show(
+            id: id,
+            title: 'Cuota vencida — ${credit.name}',
+            body:
+                'La cuota #${inst.number} venció hace $diasLabel. Registra tu pago para mantener el control.',
+            notificationDetails: const NotificationDetails(
+              android: AndroidNotificationDetails(
+                _moraChannelId,
+                _moraChannelName,
+                channelDescription: _moraChannelDescription,
+                importance: Importance.high,
+                priority: Priority.high,
+                icon: '@drawable/ic_notification',
+              ),
+            ),
+          );
+        } catch (e) {
+          debugPrint('scheduleOverdueAlerts: show failed for ${credit.id}#${inst.number}: $e');
+        }
+      }
     }
   }
 }
