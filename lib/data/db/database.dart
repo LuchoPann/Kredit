@@ -558,7 +558,12 @@ class AppDatabase extends _$AppDatabase {
         await upsertCommercialQuota(q);
       }
       for (final c in newCredits) {
-        if (c is LoanCredit && c.quotaId != null && !quotaIds.contains(c.quotaId)) {
+        // Clear orphaned quotaId on both LoanCredit and CardCredit — a credit
+        // referencing a quota that isn't in this backup would fail the FK
+        // constraint (credits.quotaId → commercialQuotas.id) and silently
+        // mis-group the credit. Nullifying it lets it render as a standalone
+        // credit instead.
+        if (c.quotaId != null && !quotaIds.contains(c.quotaId)) {
           c.quotaId = null;
         }
         await upsertCredit(c);

@@ -74,11 +74,23 @@ class _BackupRestoreSheetState extends ConsumerState<_BackupRestoreSheet> {
       if (mounted) {
         ref.invalidate(backupDetectorProvider);
         Navigator.of(context).pop();
+        final n = imported.credits.length;
+        final q = imported.quotas.length;
+        final msg = StringBuffer('Datos restaurados: $n crédito${n == 1 ? '' : 's'}');
+        if (q > 0) {
+          msg.write(', $q cupo${q == 1 ? '' : 's'} de tienda');
+        } else {
+          // Check if any credit had a quotaId — backup predates cupos feature
+          final hadQuotas = imported.credits.any((c) => c.quotaId != null);
+          if (hadQuotas) {
+            msg.write('. Los cupos de tienda no estaban en este respaldo — créalos de nuevo');
+          }
+        }
+        msg.write('.');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Datos restaurados: ${imported.credits.length} crédito${imported.credits.length == 1 ? '' : 's'}.',
-            ),
+            content: Text(msg.toString()),
+            duration: Duration(seconds: q == 0 && imported.credits.any((c) => c.quotaId != null) ? 6 : 3),
           ),
         );
       }
