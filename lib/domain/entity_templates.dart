@@ -86,6 +86,13 @@ const entityTemplates = <EntityTemplate>[
     matchKeyword: 'colpatria',
     typicalCutoffDay: 15,
     typicalPaymentOffsetDays: 20,
+    note: 'Colpatria pertenece a Scotiabank desde 2012; también buscar "scotiabank".',
+  ),
+  EntityTemplate(
+    matchKeyword: 'scotiabank',
+    typicalCutoffDay: 15,
+    typicalPaymentOffsetDays: 20,
+    note: 'Scotiabank Colpatria — mismos rangos típicos que Colpatria.',
   ),
   EntityTemplate(
     matchKeyword: 'popular',
@@ -96,11 +103,13 @@ const entityTemplates = <EntityTemplate>[
     matchKeyword: 'villas',
     typicalCutoffDay: 15,
     typicalPaymentOffsetDays: 20,
+    note: 'AV Villas (Grupo Aval).',
   ),
   EntityTemplate(
     matchKeyword: 'occidente',
     typicalCutoffDay: 15,
     typicalPaymentOffsetDays: 20,
+    note: 'Banco de Occidente (Grupo Aval).',
   ),
   EntityTemplate(
     matchKeyword: 'itau',
@@ -109,6 +118,22 @@ const entityTemplates = <EntityTemplate>[
   ),
   EntityTemplate(
     matchKeyword: 'tuya',
+    typicalCutoffDay: 20,
+    typicalPaymentOffsetDays: 20,
+    note: 'Tarjeta Tuya de Bancolombia — período de pago típico 20 días.',
+  ),
+  EntityTemplate(
+    matchKeyword: 'serfinansa',
+    typicalCutoffDay: 15,
+    typicalPaymentOffsetDays: 20,
+  ),
+  EntityTemplate(
+    matchKeyword: 'coomeva',
+    typicalCutoffDay: 15,
+    typicalPaymentOffsetDays: 20,
+  ),
+  EntityTemplate(
+    matchKeyword: 'cooperativa',
     typicalCutoffDay: 15,
     typicalPaymentOffsetDays: 20,
   ),
