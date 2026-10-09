@@ -10,7 +10,9 @@ import '../../theme/app_theme.dart';
 import '../../utils/credit_display_utils.dart';
 import '../../widgets/kredit_section_card.dart';
 import '../../widgets/progress_ring.dart';
+import 'attack_plan_screen.dart';
 import 'calculator_sheet.dart';
+import 'strategy_comparison_screen.dart';
 
 /// "Estadísticas avanzadas" screen: month-by-month debt projection, debt
 /// distribution by lender, and payoff-date forecasts. Purely derived from
@@ -102,6 +104,70 @@ class StatsScreen extends ConsumerWidget {
                   const SizedBox(height: 12),
                   _LenderDistributionChart(slices: statsData.distribution, compact: true),
                   _InsightLine(text: statsData.lenderDistributionInsight),
+                ],
+              ),
+              const SizedBox(height: 28),
+
+              _GroupLabel(text: 'HERRAMIENTAS DE ATAQUE'),
+              const SizedBox(height: 12),
+              KreditSectionCard(
+                children: [
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                    leading: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.bolt_rounded,
+                          size: KreditIconSize.small,
+                          color: Theme.of(context).colorScheme.primary),
+                    ),
+                    title: const Text('Plan de ataque',
+                        style: TextStyle(fontWeight: FontWeight.w700)),
+                    subtitle: const Text('Snowball o Avalanche con pago extra'),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const AttackPlanScreen()),
+                    ),
+                  ),
+                  Divider(
+                      height: 1,
+                      color: Theme.of(context)
+                          .extension<KreditColors>()!
+                          .borderCard),
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                    leading: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .extension<KreditColors>()!
+                            .success
+                            .withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Icons.show_chart_rounded,
+                          size: KreditIconSize.small,
+                          color: Theme.of(context)
+                              .extension<KreditColors>()!
+                              .success),
+                    ),
+                    title: const Text('Comparar estrategias',
+                        style: TextStyle(fontWeight: FontWeight.w700)),
+                    subtitle: const Text('Mínimos vs Snowball vs Avalanche en una gráfica'),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const StrategyComparisonScreen()),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 28),

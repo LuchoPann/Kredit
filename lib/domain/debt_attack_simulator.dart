@@ -172,8 +172,8 @@ AttackPlanResult simulateAttackPlan(
     for (final c in simCredits) {
       if (c.balance <= 0.01 && c.minimumPayment > 0) {
         // Was just paid off — add its minimum to rolling extra (once)
-        if (!_paidOff.contains(c.id)) {
-          _paidOff.add(c.id);
+        if (!paidOffTracker.contains(c.id)) {
+          paidOffTracker.add(c.id);
           rollingExtra += c.minimumPayment;
           c.balance = 0;
         }
@@ -213,19 +213,20 @@ AttackPlanResult simulateAttackPlan(
 }
 
 // Tracks which credits have already had their minimum rolled into the extra.
-// Reset before each simulation run.
-final Set<String> _paidOff = {};
+// Reset before each simulation run. Exposed for callers that run multiple
+// consecutive simulations (e.g. AttackPlanScreen recalculates on input change).
+final Set<String> paidOffTracker = {};
 
 /// Run all three strategies and return their results with savings computed.
 Map<AttackStrategy, AttackPlanResult> simulateAllStrategies(
   List<Credit> credits, {
   double extraMonthlyPayment = 0,
 }) {
-  _paidOff.clear();
+  paidOffTracker.clear();
   final minimums = simulateAttackPlan(credits, AttackStrategy.minimums,
       extraMonthlyPayment: 0);
 
-  _paidOff.clear();
+  paidOffTracker.clear();
   final snowball = simulateAttackPlan(
     credits,
     AttackStrategy.snowball,
@@ -233,7 +234,7 @@ Map<AttackStrategy, AttackPlanResult> simulateAllStrategies(
     minimumsResult: minimums,
   );
 
-  _paidOff.clear();
+  paidOffTracker.clear();
   final avalanche = simulateAttackPlan(
     credits,
     AttackStrategy.avalanche,
