@@ -1,0 +1,795 @@
+part of 'account_screen.dart';
+
+
+// ── Widgets de apoyo ──────────────────────────────────────────────────────────
+
+/// Patrón brickwork diagonal: carga la imagen real y la pinta en tile con
+/// CustomPainter para obtener dimensiones exactas y alineación perfecta.
+class _DiagonalPattern extends StatefulWidget {
+  @override
+  State<_DiagonalPattern> createState() => _DiagonalPatternState();
+}
+
+class _DiagonalPatternState extends State<_DiagonalPattern> {
+  ui.Image? _image;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_image == null) _loadImage();
+  }
+
+  Future<void> _loadImage() async {
+    final data = await rootBundle.load('assets/icons/KREDIT_OUTLINE.png');
+    final bytes = data.buffer.asUint8List();
+    final codec = await ui.instantiateImageCodec(bytes);
+    final frame = await codec.getNextFrame();
+    if (mounted) setState(() => _image = frame.image);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final image = _image;
+    if (image == null) return const SizedBox.shrink();
+    return Transform.rotate(
+      angle: -0.47, // ~27°
+      child: CustomPaint(
+        painter: _BrickworkPainter(image),
+        size: const Size(700, 500),
+      ),
+    );
+  }
+}
+
+class _BrickworkPainter extends CustomPainter {
+  final ui.Image image;
+  _BrickworkPainter(this.image);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const logoW = 170.0;
+    final logoH = logoW * image.height / image.width;
+    const gapX = 18.0;
+    const gapY = 14.0;
+    final stepX = logoW + gapX;
+    final stepY = logoH + gapY;
+    final cols = (size.width / stepX).ceil() + 3;
+    final rows = (size.height / stepY).ceil() + 3;
+
+    final paint = Paint()..color = Colors.white.withValues(alpha: 0.09);
+    final src = Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
+
+    for (var row = -1; row < rows; row++) {
+      final offsetX = row.isOdd ? stepX / 2 : 0.0;
+      for (var col = -1; col < cols; col++) {
+        final dst = Rect.fromLTWH(
+          col * stepX + offsetX,
+          row * stepY,
+          logoW,
+          logoH,
+        );
+        canvas.drawImageRect(image, src, dst, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _BrickworkPainter old) => old.image != image;
+}
+
+class _ProfileBanner extends ConsumerWidget {
+  const _ProfileBanner();
+
+  Future<void> _pickImage(BuildContext context, WidgetRef ref, ImageSource source) async {
+    final picker = ImagePicker();
+    try {
+      final picked = await picker.pickImage(
+        source: source, maxWidth: 1024, maxHeight: 1024, imageQuality: 85,
+      );
+      if (picked == null) return;
+      if (!context.mounted) return;
+      final accent = Theme.of(context).colorScheme.primary;
+      final cropped = await ImageCropper().cropImage(
+        sourcePath: picked.path,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Recortar foto',
+            toolbarColor: Colors.black,
+            toolbarWidgetColor: Colors.white,
+            activeControlsWidgetColor: accent,
+            lockAspectRatio: true,
+          ),
+          IOSUiSettings(title: 'Recortar foto', aspectRatioLockEnabled: true),
+        ],
+      );
+      if (cropped == null) return;
+      await ref.read(themePreferencesProvider.notifier).setAvatarFromFile(cropped.path);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo cargar la imagen.')),
+        );
+      }
+    }
+  }
+
+  Future<void> _showAvatarOptions(BuildContext context, WidgetRef ref, bool hasAvatar) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Elegir de galería'),
+              onTap: () { Navigator.pop(ctx); _pickImage(context, ref, ImageSource.gallery); },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Tomar foto'),
+              onTap: () { Navigator.pop(ctx); _pickImage(context, ref, ImageSource.camera); },
+            ),
+            if (hasAvatar)
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: AppColors.danger),
+                title: const Text('Quitar imagen', style: TextStyle(color: AppColors.danger)),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await ref.read(themePreferencesProvider.notifier).clearAvatar();
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _editName(BuildContext context, WidgetRef ref, String current) async {
+    final result = await showKreditInputSheet(
+      context,
+      title: 'Nombre de perfil',
+      initialValue: current,
+      hint: 'Tu nombre',
+      confirmLabel: 'Guardar',
+    );
+    if (result != null && result.trim().isNotEmpty) {
+      await ref.read(themePreferencesProvider.notifier).setProfileName(result);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final prefs = ref.watch(themePreferencesProvider);
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accent = Theme.of(context).colorScheme.primary;
+    final avatarPath = prefs.avatarPath;
+    final effectiveAvatarBg = applyBgToneToAccent(
+      resolveEffectiveAccent(prefs.accentColor, prefs.isDarkMode),
+      prefs.bgTone,
+      prefs.isDarkMode,
+    );
+
+    return ClipRect(
+      child: Container(
+        color: kredit.bgCard,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Patrón diagonal — RepaintBoundary aísla el canvas del scroll
+            Positioned.fill(
+              child: RepaintBoundary(
+                child: OverflowBox(
+                  maxWidth: double.infinity,
+                  maxHeight: double.infinity,
+                  child: _DiagonalPattern(),
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: () => _showAvatarOptions(context, ref, avatarPath != null),
+              child: Stack(
+                alignment: Alignment.bottomRight,
+                children: [
+                  CircleAvatar(
+                    radius: 44,
+                    backgroundColor: effectiveAvatarBg,
+                    backgroundImage: avatarPath != null ? FileImage(File(avatarPath)) : null,
+                    child: avatarPath == null
+                        ? Icon(Icons.person_outline_rounded,
+                            size: 44, color: legibleForegroundOn(effectiveAvatarBg))
+                        : null,
+                  ),
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: accent,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: kredit.bgCard, width: 2),
+                    ),
+                    child: const Icon(Icons.camera_alt_outlined, size: 14, color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            GestureDetector(
+              onTap: () => _editName(context, ref, prefs.profileName),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    prefs.profileName.isNotEmpty ? prefs.profileName : 'Mi perfil',
+                    style: TextStyle(
+                      fontSize: KreditTextSize.heading,
+                      fontWeight: FontWeight.w700,
+                      color: kredit.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(Icons.edit_outlined, size: 14, color: kredit.textTertiary),
+                ],
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'Kredit · Mis créditos',
+              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionDivider extends StatelessWidget {
+  final String label;
+  final KreditColors kredit;
+  final bool danger;
+
+  const _SectionDivider({required this.label, required this.kredit, this.danger = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = danger ? AppColors.danger : kredit.textTertiary;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(KreditSpacing.card, 20, KreditSpacing.card, 4),
+      child: Text(
+        label.toUpperCase(),
+        style: TextStyle(
+          fontSize: KreditTextSize.caption,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.8,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
+class _Divider extends StatelessWidget {
+  final KreditColors kredit;
+  const _Divider(this.kredit);
+
+  @override
+  Widget build(BuildContext context) {
+    return Divider(
+      height: 1,
+      indent: KreditSpacing.card + KreditIconSize.small + 16,
+      endIndent: KreditSpacing.card,
+      color: kredit.borderCard,
+    );
+  }
+}
+
+class _SettingsTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final bool showChevron;
+
+  const _SettingsTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.showChevron = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+              horizontal: KreditSpacing.card, vertical: 14),
+          child: Row(
+            children: [
+              Icon(icon, size: KreditIconSize.small, color: kredit.textSecondary),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: KreditTextSize.body,
+                        fontWeight: FontWeight.w600,
+                        color: kredit.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                          fontSize: KreditTextSize.caption,
+                          color: kredit.textTertiary),
+                    ),
+                  ],
+                ),
+              ),
+              if (showChevron)
+                Icon(Icons.chevron_right,
+                    size: KreditIconSize.small, color: kredit.textTertiary),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SheetHeader extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+
+  const _SheetHeader({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: iconColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Icon(icon, color: iconColor, size: 24),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: KreditTextSize.emphasis,
+                  fontWeight: FontWeight.w800,
+                  color: kredit.textPrimary,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: KreditTextSize.caption,
+                  color: kredit.textTertiary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ActionTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _ActionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accent = Theme.of(context).colorScheme.primary;
+    return Material(
+      color: kredit.bgCard,
+      borderRadius: BorderRadius.circular(KreditRadius.tile),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(KreditRadius.tile),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, size: 18, color: accent),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: KreditTextSize.body,
+                        fontWeight: FontWeight.w600,
+                        color: kredit.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: KreditTextSize.caption,
+                        color: kredit.textTertiary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, size: KreditIconSize.small, color: kredit.textTertiary),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ModeOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ModeOption({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accent = Theme.of(context).colorScheme.primary;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: selected ? accent.withValues(alpha: 0.10) : kredit.bgCard,
+          borderRadius: BorderRadius.circular(KreditRadius.tile),
+          border: Border.all(
+            color: selected ? accent : kredit.borderCard,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              size: 26,
+              color: selected ? accent : kredit.textSecondary,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: KreditTextSize.body,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: selected ? accent : kredit.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+class _SheetLabel extends StatelessWidget {
+  final String text;
+  final KreditColors kredit;
+  const _SheetLabel(this.text, this.kredit);
+
+  @override
+  Widget build(BuildContext context) => Text(
+        text,
+        style: TextStyle(
+          fontSize: KreditTextSize.caption,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.8,
+          color: kredit.textTertiary,
+        ),
+      );
+}
+
+class _VersionTile extends StatefulWidget {
+  const _VersionTile();
+
+  @override
+  State<_VersionTile> createState() => _VersionTileState();
+}
+
+class _VersionTileState extends State<_VersionTile> {
+  String _version = '…';
+
+  @override
+  void initState() {
+    super.initState();
+    PackageInfo.fromPlatform().then((info) {
+      if (mounted) setState(() => _version = info.version.isNotEmpty ? info.version : changelog.first.version);
+    }).catchError((_) {
+      if (mounted) setState(() => _version = changelog.first.version);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => _SettingsTile(
+        icon: Icons.tag_rounded,
+        title: 'Versión',
+        subtitle: _version,
+        showChevron: false,
+        onTap: () => showWhatsNewSheet(context),
+      );
+}
+
+/// Tile de respaldo automático que lee el estado actual de SharedPreferences
+/// para mostrar el subtítulo dinámico sin necesitar un provider adicional.
+class _BackupAutoTile extends StatefulWidget {
+  final Widget Function({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required VoidCallback onTap,
+    Color? iconColor,
+    bool showChevron,
+  }) navTile;
+
+  const _BackupAutoTile({required this.navTile});
+
+  @override
+  State<_BackupAutoTile> createState() => _BackupAutoTileState();
+}
+
+class _BackupAutoTileState extends State<_BackupAutoTile> {
+  String _subtitle = 'Cargando…';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSubtitle();
+  }
+
+  Future<void> _loadSubtitle() async {
+    final prefs = await SharedPreferences.getInstance();
+    final enabled = prefs.getBool('backup_enabled') ?? false;
+    if (!enabled) {
+      if (mounted) setState(() => _subtitle = 'Desactivado');
+      return;
+    }
+    final freq = prefs.getString('backup_frequency') ?? 'weekly';
+    final mode = prefs.getString('backup_mode') ?? 'overwrite';
+    final freqLabel = switch (freq) {
+      'daily' => 'Diario',
+      'biweekly' => 'Quincenal',
+      'monthly' => 'Mensual',
+      _ => 'Semanal',
+    };
+    final modeLabel = mode == 'new_file' ? 'Archivo nuevo' : 'Sobreescribir';
+    if (mounted) setState(() => _subtitle = '$freqLabel · $modeLabel');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.navTile(
+      icon: Icons.backup_outlined,
+      title: 'Respaldo automático',
+      subtitle: _subtitle,
+      onTap: () async {
+        await Navigator.of(context).push(
+          slidePageRoute((_) => const BackupSettingsScreen()),
+        );
+        _loadSubtitle(); // refresh after returning
+      },
+    );
+  }
+}
+
+// ── Navegación interna de sheets ─────────────────────────────────────────────
+
+/// InheritedWidget que expone push/pop a cualquier descendiente del sheet.
+class SheetNav extends InheritedWidget {
+  final void Function(String title, Widget page) push;
+  final VoidCallback pop;
+  final bool canPop;
+
+  const SheetNav({
+    super.key,
+    required this.push,
+    required this.pop,
+    required this.canPop,
+    required super.child,
+  });
+
+  static SheetNav of(BuildContext context) {
+    final nav = context.dependOnInheritedWidgetOfExactType<SheetNav>();
+    assert(nav != null, 'SheetNav no encontrado en el árbol');
+    return nav!;
+  }
+
+  @override
+  bool updateShouldNotify(SheetNav old) =>
+      canPop != old.canPop;
+}
+
+/// Host del sheet que gestiona la pila de páginas con slide lateral.
+class SheetNavHost extends StatefulWidget {
+  final ScrollController scrollController;
+  final Widget rootContent;
+
+  const SheetNavHost({
+    super.key,
+    required this.scrollController,
+    required this.rootContent,
+  });
+
+  @override
+  State<SheetNavHost> createState() => SheetNavHostState();
+}
+
+class SheetNavHostState extends State<SheetNavHost> {
+  final List<({String title, Widget page})> _stack = [];
+  int _direction = 1;
+
+  void _push(String title, Widget page) {
+    setState(() {
+      _direction = 1;
+      _stack.add((title: title, page: page));
+    });
+  }
+
+  void _pop() {
+    if (_stack.isEmpty) return;
+    setState(() {
+      _direction = -1;
+      _stack.removeLast();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final canPop = _stack.isNotEmpty;
+    final currentTitle = canPop ? _stack.last.title : null;
+
+    return SheetNav(
+      push: _push,
+      pop: _pop,
+      canPop: canPop,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: Material(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: Column(
+            children: [
+              // Handle pill — siempre visible
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: kredit.borderCard,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              // Barra de título / back cuando hay sub-página
+              if (canPop)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 0, 16, 8),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+                        onPressed: _pop,
+                        tooltip: 'Volver',
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          currentTitle ?? '',
+                          style: const TextStyle(
+                            fontSize: KreditTextSize.heading,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              // Contenido animado
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 320),
+                  reverseDuration: const Duration(milliseconds: 260),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) {
+                    final entering =
+                        child.key == ValueKey(_stack.length);
+                    final sign = entering ? _direction : -_direction;
+                    final offset = Tween<Offset>(
+                      begin: Offset(sign.toDouble(), 0),
+                      end: Offset.zero,
+                    ).animate(animation);
+                    return SlideTransition(position: offset, child: child);
+                  },
+                  child: KeyedSubtree(
+                    key: ValueKey(_stack.length),
+                    child: ListView(
+                      controller: canPop ? null : widget.scrollController,
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                      children: [
+                        canPop ? _stack.last.page : widget.rootContent,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
