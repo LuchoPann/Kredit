@@ -108,7 +108,12 @@ class _StrategyComparisonScreenState
             const SizedBox(height: 20),
 
             // Legend
-            _Legend(kredit: kredit, accent: accent),
+            _Legend(
+              kredit: kredit,
+              accent: accent,
+              credits: credits,
+              extra: _extra,
+            ),
             const SizedBox(height: 20),
 
             // Comparison table
@@ -256,19 +261,44 @@ class _ComparisonChart extends StatelessWidget {
 class _Legend extends StatelessWidget {
   final KreditColors kredit;
   final Color accent;
+  final List<Credit> credits;
+  final double extra;
 
-  const _Legend({required this.kredit, required this.accent});
+  const _Legend({
+    required this.kredit,
+    required this.accent,
+    required this.credits,
+    required this.extra,
+  });
 
   @override
   Widget build(BuildContext context) {
+    AttackStrategy? recommended;
+    if (credits.length >= 2) {
+      try {
+        paidOffTracker.clear();
+        final rec = recommendStrategy(credits, extraMonthlyPayment: extra);
+        paidOffTracker.clear();
+        recommended = rec.recommended;
+      } catch (_) {}
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _LegendDot(color: kredit.textTertiary, label: 'Solo mínimos', dashed: true),
         const SizedBox(width: 16),
-        _LegendDot(color: accent, label: 'Snowball'),
+        _LegendDot(
+          color: accent,
+          label: 'Snowball',
+          isRecommended: recommended == AttackStrategy.snowball,
+        ),
         const SizedBox(width: 16),
-        _LegendDot(color: kredit.success, label: 'Avalanche'),
+        _LegendDot(
+          color: kredit.success,
+          label: 'Avalanche',
+          isRecommended: recommended == AttackStrategy.avalanche,
+        ),
       ],
     );
   }
@@ -278,8 +308,14 @@ class _LegendDot extends StatelessWidget {
   final Color color;
   final String label;
   final bool dashed;
+  final bool isRecommended;
 
-  const _LegendDot({required this.color, required this.label, this.dashed = false});
+  const _LegendDot({
+    required this.color,
+    required this.label,
+    this.dashed = false,
+    this.isRecommended = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -302,6 +338,24 @@ class _LegendDot extends StatelessWidget {
           style: TextStyle(
               fontSize: KreditTextSize.body, color: kredit.textSecondary),
         ),
+        if (isRecommended) ...[
+          const SizedBox(width: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(KreditRadius.chip),
+            ),
+            child: Text(
+              '★ Rec.',
+              style: TextStyle(
+                fontSize: KreditTextSize.caption,
+                fontWeight: FontWeight.w700,
+                color: color,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

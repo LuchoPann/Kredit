@@ -26,6 +26,7 @@ class _AttackPlanScreenState extends ConsumerState<AttackPlanScreen> {
   double _extra = 0;
   final _extraCtrl = TextEditingController(text: '0');
   AttackPlanResult? _result;
+  StrategyRecommendation? _recommendation;
   final _repaintKey = GlobalKey();
 
   @override
@@ -38,7 +39,13 @@ class _AttackPlanScreenState extends ConsumerState<AttackPlanScreen> {
     paidOffTracker.clear();
     final r = simulateAttackPlan(credits, _strategy,
         extraMonthlyPayment: _extra);
-    setState(() => _result = r);
+    final rec = credits.length >= 2
+        ? recommendStrategy(credits, extraMonthlyPayment: _extra)
+        : null;
+    setState(() {
+      _result = r;
+      _recommendation = rec;
+    });
   }
 
   Future<void> _share() async {
@@ -81,6 +88,20 @@ class _AttackPlanScreenState extends ConsumerState<AttackPlanScreen> {
       body: ListView(
         padding: const EdgeInsets.all(KreditSpacing.card),
         children: [
+          // Recommendation card (only when ≥2 credits)
+          if (_recommendation != null) ...[
+            _RecommendationCard(
+              rec: _recommendation!,
+              kredit: kredit,
+              accent: accent,
+              onAccept: () {
+                setState(() => _strategy = _recommendation!.recommended);
+                _recalculate(credits);
+              },
+            ),
+            const SizedBox(height: 20),
+          ],
+
           // Strategy selector
           _SectionLabel(text: 'ESTRATEGIA'),
           const SizedBox(height: 8),
@@ -464,6 +485,132 @@ class _SectionLabel extends StatelessWidget {
         fontWeight: FontWeight.w700,
         letterSpacing: 1.2,
         color: kredit.textTertiary,
+      ),
+    );
+  }
+}
+
+class _RecommendationCard extends StatelessWidget {
+  final StrategyRecommendation rec;
+  final KreditColors kredit;
+  final Color accent;
+  final VoidCallback onAccept;
+
+  const _RecommendationCard({
+    required this.rec,
+    required this.kredit,
+    required this.accent,
+    required this.onAccept,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isAvalanche = rec.recommended == AttackStrategy.avalanche;
+    final cardColor = isAvalanche ? kredit.success : accent;
+
+    return GestureDetector(
+      onTap: onAccept,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: cardColor.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(KreditRadius.card),
+          border: Border.all(color: cardColor.withValues(alpha: 0.28)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.auto_awesome_rounded,
+                    size: KreditIconSize.small, color: cardColor),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    rec.headline,
+                    style: TextStyle(
+                      fontSize: KreditTextSize.body,
+                      fontWeight: FontWeight.w800,
+                      color: cardColor,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: cardColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(KreditRadius.chip),
+                  ),
+                  child: Text(
+                    'Calculado con tus datos',
+                    style: TextStyle(
+                      fontSize: KreditTextSize.caption,
+                      fontWeight: FontWeight.w600,
+                      color: cardColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              rec.reasoning,
+              style: TextStyle(
+                fontSize: KreditTextSize.body,
+                color: kredit.textSecondary,
+              ),
+            ),
+            if (rec.savingsNote != null || rec.timeNote != null || rec.motivationNote != null) ...[
+              const SizedBox(height: 8),
+              if (rec.savingsNote != null)
+                _RecNote(icon: Icons.savings_outlined, text: rec.savingsNote!, color: cardColor),
+              if (rec.timeNote != null)
+                _RecNote(icon: Icons.schedule_rounded, text: rec.timeNote!, color: cardColor),
+              if (rec.motivationNote != null)
+                _RecNote(icon: Icons.emoji_events_outlined, text: rec.motivationNote!, color: cardColor),
+            ],
+            const SizedBox(height: 8),
+            Text(
+              'Toca para aplicar esta estrategia →',
+              style: TextStyle(
+                fontSize: KreditTextSize.caption,
+                color: cardColor.withValues(alpha: 0.7),
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RecNote extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final Color color;
+  const _RecNote({required this.icon, required this.text, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 5),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: KreditTextSize.body,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

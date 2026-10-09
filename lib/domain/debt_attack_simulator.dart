@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../data/models/credit.dart';
+import '../utils/credit_display_utils.dart';
 import 'interest_rate.dart';
 
 enum AttackStrategy { minimums, snowball, avalanche }
@@ -216,6 +217,188 @@ AttackPlanResult simulateAttackPlan(
 // Reset before each simulation run. Exposed for callers that run multiple
 // consecutive simulations (e.g. AttackPlanScreen recalculates on input change).
 final Set<String> paidOffTracker = {};
+
+// ── Recommendation engine ───────────────────────────────────────────────────
+
+class StrategyRecommendation {
+  final AttackStrategy recommended;
+  final String headline;
+  final String reasoning;
+  final String? savingsNote;
+  final String? timeNote;
+  final String? motivationNote;
+
+  const StrategyRecommendation({
+    required this.recommended,
+    required this.headline,
+    required this.reasoning,
+    this.savingsNote,
+    this.timeNote,
+    this.motivationNote,
+  });
+}
+
+/// Analyzes the user's actual credit portfolio and recommends the better
+/// strategy based on: rate variance, interest savings %, months difference,
+/// and time-to-first-win. Never hardcodes a winner.
+StrategyRecommendation recommendStrategy(
+  List<Credit> credits, {
+  double extraMonthlyPayment = 0,
+}) {
+  // 1. Run both simulations
+  paidOffTracker.clear();
+  final avalanche = simulateAttackPlan(credits, AttackStrategy.avalanche,
+      extraMonthlyPayment: extraMonthlyPayment);
+  paidOffTracker.clear();
+  final snowball = simulateAttackPlan(credits, AttackStrategy.snowball,
+      extraMonthlyPayment: extraMonthlyPayment);
+  paidOffTracker.clear();
+
+  // 2. Rate variance (mean absolute deviation of all effective monthly rates)
+  final allRates = <double>[];
+  for (final c in credits) {
+    double rate = 0;
+    String? rateType;
+    if (c is LoanCredit) {
+      rate = c.interestRate;
+      rateType = c.interestRateType;
+    } else if (c is CardCredit) {
+      rate = c.interestRate;
+      rateType = c.interestRateType;
+    }
+    if (rate > 0) {
+      allRates.add(_effectiveMonthlyRate(rate, rateType) * 100); // as %
+    }
+  }
+  final double rateMAD;
+  if (allRates.length < 2) {
+    rateMAD = 0;
+  } else {
+    final mean = allRates.reduce((a, b) => a + b) / allRates.length;
+    rateMAD =
+        allRates.map((r) => (r - mean).abs()).reduce((a, b) => a + b) /
+            allRates.length;
+  }
+
+  // 3. Key deltas
+  final interestSavings =
+      snowball.totalInterest - avalanche.totalInterest; // >0 = avalanche better
+  final interestSavingsPct = snowball.totalInterest > 0
+      ? interestSavings / snowball.totalInterest
+      : 0.0;
+  final monthsDiff =
+      snowball.months.length - avalanche.months.length; // >0 = avalanche faster
+
+  // 4. First-win speed with snowball: credit with lowest remaining balance
+  String? firstCreditName;
+  int? firstWinMonths;
+  {
+    Credit? smallest;
+    double smallestBalance = double.infinity;
+    for (final c in credits) {
+      double bal = 0;
+      if (c is LoanCredit) {
+        bal = c.installments
+            .where((i) => !i.paid)
+            .fold<double>(0, (s, i) => s + i.principal + i.interest);
+      } else if (c is CardCredit) {
+        bal = c.currentBalance;
+      }
+      if (bal > 0 && bal < smallestBalance) {
+        smallestBalance = bal;
+        smallest = c;
+      }
+    }
+    if (smallest != null && snowball.months.isNotEmpty) {
+      firstCreditName = smallest.name;
+      // Estimate: balance / (monthly minimum + proportional share of extra)
+      final share = credits.length > 0
+          ? extraMonthlyPayment / math.max(1, credits.length)
+          : 0.0;
+      final monthlyAttack = math.max(smallestBalance * 0.1, share + smallestBalance * 0.1);
+      firstWinMonths =
+          (smallestBalance / monthlyAttack).ceil().clamp(1, 24);
+    }
+  }
+
+  // 5. Decision rules
+  // Avalanche wins if it saves >10% interest OR frees ≥3 months earlier
+  final bool avalancheWins =
+      interestSavingsPct > 0.10 || monthsDiff >= 3;
+
+  // Snowball wins if rates are very similar (MAD < 0.5pp) AND first win ≤ 3m
+  final bool snowballWins =
+      rateMAD < 0.5 && firstWinMonths != null && firstWinMonths <= 3;
+
+  final AttackStrategy recommended;
+  if (avalancheWins && !snowballWins) {
+    recommended = AttackStrategy.avalanche;
+  } else if (snowballWins && !avalancheWins) {
+    recommended = AttackStrategy.snowball;
+  } else if (interestSavings > 500000) {
+    recommended = AttackStrategy.avalanche;
+  } else {
+    recommended = AttackStrategy.snowball;
+  }
+
+  // 6. Build personalized text
+  final name =
+      recommended == AttackStrategy.avalanche ? 'Avalanche' : 'Snowball';
+  String reasoning;
+  String? savingsNote;
+  String? timeNote;
+  String? motivationNote;
+
+  if (recommended == AttackStrategy.avalanche) {
+    if (rateMAD >= 0.5) {
+      reasoning =
+          'Tus créditos tienen tasas muy distintas. Atacar primero los más caros '
+          'reduce significativamente los intereses que terminas pagando.';
+    } else {
+      reasoning =
+          'Avalanche te libera antes y maximiza el ahorro en intereses '
+          'con el perfil actual de tus deudas.';
+    }
+    if (interestSavings > 100000) {
+      savingsNote = '${formatCOP(interestSavings)} menos en intereses que con Snowball';
+    }
+    if (monthsDiff >= 2) {
+      timeNote =
+          '$monthsDiff ${monthsDiff == 1 ? "mes" : "meses"} antes que con Snowball';
+    }
+  } else {
+    if (rateMAD < 0.5) {
+      reasoning =
+          'Tus tasas son muy similares, así que el ahorro extra de Avalanche '
+          'es mínimo. Snowball te da victorias rápidas que ayudan a mantener '
+          'el impulso hasta terminar.';
+    } else {
+      reasoning =
+          'Las victorias tempranas de Snowball superan el ahorro marginal '
+          'de Avalanche y reducen el riesgo de abandonar el plan.';
+    }
+    if (firstCreditName != null &&
+        firstWinMonths != null &&
+        firstWinMonths <= 6) {
+      motivationNote =
+          'Podrías liquidar "$firstCreditName" en ~$firstWinMonths '
+          '${firstWinMonths == 1 ? "mes" : "meses"}';
+    }
+    if (interestSavings.abs() < 300000 && interestSavings.abs() > 0) {
+      savingsNote =
+          'Diferencia vs Avalanche: solo ${formatCOP(interestSavings.abs())}';
+    }
+  }
+
+  return StrategyRecommendation(
+    recommended: recommended,
+    headline: 'Recomendamos $name',
+    reasoning: reasoning,
+    savingsNote: savingsNote,
+    timeNote: timeNote,
+    motivationNote: motivationNote,
+  );
+}
 
 /// Run all three strategies and return their results with savings computed.
 Map<AttackStrategy, AttackPlanResult> simulateAllStrategies(
