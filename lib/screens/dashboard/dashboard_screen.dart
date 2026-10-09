@@ -13,7 +13,6 @@ import '../../providers/theme_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/credit_display_utils.dart';
 import '../../domain/bank_detector.dart';
-import '../../widgets/dashboard/debt_history_chart.dart';
 import '../../widgets/kredit_logo.dart';
 import '../../widgets/kredit_section_card.dart';
 import '../../widgets/progress_ring.dart';
@@ -370,8 +369,6 @@ class _DashboardBody extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: KreditSpacing.section),
-          const DebtHistoryChart(),
         ],
       ],
     );
