@@ -38,7 +38,7 @@ class _StrategyComparisonScreenState
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
-    final credits = ref.watch(creditsProvider).value ?? [];
+    final credits = ref.watch(creditsProvider).value ?? <Credit>[];
 
     if (_results == null && credits.isNotEmpty) {
       WidgetsBinding.instance
