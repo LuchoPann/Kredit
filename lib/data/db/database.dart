@@ -104,9 +104,32 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(cardMovements, cardMovements.advanceDestination);
           }
           if (from < 12) {
-            await m.addColumn(credits, credits.notificationDaysBefore);
-            await m.addColumn(cardMovements, cardMovements.categoria);
-            await m.createTable(pagosRealizados);
+            // notification_days_before may already exist on devices that ran
+            // the CosasNuevas branch (where it was added at v11 before the
+            // schema version was bumped). Guard with PRAGMA table_info to
+            // avoid "duplicate column name" on those devices.
+            final creditCols =
+                await customSelect('PRAGMA table_info(credits)').get();
+            final creditColNames =
+                creditCols.map((r) => r.read<String>('name')).toSet();
+            if (!creditColNames.contains('notification_days_before')) {
+              await m.addColumn(credits, credits.notificationDaysBefore);
+            }
+
+            final movCols =
+                await customSelect('PRAGMA table_info(card_movements)').get();
+            final movColNames =
+                movCols.map((r) => r.read<String>('name')).toSet();
+            if (!movColNames.contains('categoria')) {
+              await m.addColumn(cardMovements, cardMovements.categoria);
+            }
+
+            // pagosRealizados table may not exist yet — only create if absent.
+            final tables =
+                await customSelect("SELECT name FROM sqlite_master WHERE type='table' AND name='pagos_realizados'").get();
+            if (tables.isEmpty) {
+              await m.createTable(pagosRealizados);
+            }
           }
         },
         // SQLite ignores FK constraints (like Credits.quotaId's
