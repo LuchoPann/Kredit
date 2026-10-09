@@ -107,7 +107,7 @@ class _BackupRestoreSheetState extends ConsumerState<_BackupRestoreSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final single = widget.backups.length == 1;
     final toRestore = single ? widget.backups.first : _selected;
 
@@ -142,7 +142,7 @@ class _BackupRestoreSheetState extends ConsumerState<_BackupRestoreSheet> {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: kredit.success.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(KreditRadius.chip),
+                  borderRadius: BorderRadius.circular(AppRadius.chip),
                 ),
                 child: Icon(Icons.cloud_done_outlined, color: kredit.success, size: 20),
               ),
@@ -154,7 +154,7 @@ class _BackupRestoreSheetState extends ConsumerState<_BackupRestoreSheet> {
                     Text(
                       single ? 'Se encontró un respaldo' : 'Se encontraron ${widget.backups.length} respaldos',
                       style: TextStyle(
-                        fontSize: KreditTextSize.heading,
+                        fontSize: AppTextSize.heading,
                         fontWeight: FontWeight.w700,
                         color: kredit.textPrimary,
                       ),
@@ -163,7 +163,7 @@ class _BackupRestoreSheetState extends ConsumerState<_BackupRestoreSheet> {
                       single
                           ? '¿Deseas restaurar tus datos desde este respaldo?'
                           : 'Elige el respaldo que quieres usar',
-                      style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
+                      style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary),
                     ),
                   ],
                 ),
@@ -248,7 +248,7 @@ class _BackupCard extends StatelessWidget {
   final bool selected;
   final String Function(DateTime) fmtDate;
   final VoidCallback? onTap;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
 
   const _BackupCard({
     required this.info,
@@ -272,7 +272,7 @@ class _BackupCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: selected ? accent.withValues(alpha: 0.07) : Theme.of(context).colorScheme.surfaceContainer,
-          borderRadius: BorderRadius.circular(KreditRadius.tile),
+          borderRadius: BorderRadius.circular(AppRadius.tile),
           border: Border.all(color: borderColor, width: selected ? 1.5 : 1),
         ),
         child: Row(
@@ -289,7 +289,7 @@ class _BackupCard extends StatelessWidget {
             ],
             Icon(
               info.isAuto ? Icons.cloud_sync_outlined : Icons.save_outlined,
-              size: KreditIconSize.small,
+              size: AppIconSize.small,
               color: info.isAuto ? kredit.success : accent,
             ),
             const SizedBox(width: 10),
@@ -302,7 +302,7 @@ class _BackupCard extends StatelessWidget {
                       Text(
                         info.label,
                         style: TextStyle(
-                          fontSize: KreditTextSize.body,
+                          fontSize: AppTextSize.body,
                           fontWeight: FontWeight.w700,
                           color: kredit.textPrimary,
                         ),
@@ -312,12 +312,12 @@ class _BackupCard extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                         decoration: BoxDecoration(
                           color: kredit.textTertiary.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(KreditRadius.chip),
+                          borderRadius: BorderRadius.circular(AppRadius.chip),
                         ),
                         child: Text(
                           '${info.creditCount} crédito${info.creditCount == 1 ? '' : 's'}',
                           style: TextStyle(
-                            fontSize: KreditTextSize.caption,
+                            fontSize: AppTextSize.caption,
                             color: kredit.textSecondary,
                           ),
                         ),
@@ -327,7 +327,7 @@ class _BackupCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     fmtDate(info.date),
-                    style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+                    style: TextStyle(fontSize: AppTextSize.caption, color: kredit.textTertiary),
                   ),
                 ],
               ),

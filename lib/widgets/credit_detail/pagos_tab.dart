@@ -52,7 +52,7 @@ class _PagosBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final mora = _cuotasMorasSinRegistro();
     final hayContenido = pagos.isNotEmpty || mora.isNotEmpty;
 
@@ -61,11 +61,11 @@ class _PagosBody extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check_circle_outline, size: KreditIconSize.large, color: kredit.success),
+            Icon(Icons.check_circle_outline, size: AppIconSize.large, color: kredit.success),
             const SizedBox(height: 12),
             Text(
               'Todos los pagos al día.',
-              style: TextStyle(color: kredit.textSecondary, fontSize: KreditTextSize.heading),
+              style: TextStyle(color: kredit.textSecondary, fontSize: AppTextSize.heading),
             ),
           ],
         ),
@@ -73,7 +73,7 @@ class _PagosBody extends ConsumerWidget {
     }
 
     return ListView(
-      padding: const EdgeInsets.all(KreditSpacing.card),
+      padding: const EdgeInsets.all(AppSpacing.card),
       children: [
         if (mora.isNotEmpty) ...[
           _SectionHeader(
@@ -114,12 +114,12 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: KreditIconSize.small, color: color),
+        Icon(icon, size: AppIconSize.small, color: color),
         const SizedBox(width: 6),
         Text(
           label.toUpperCase(),
           style: TextStyle(
-            fontSize: KreditTextSize.body,
+            fontSize: AppTextSize.body,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.5,
             color: color,
@@ -138,7 +138,7 @@ class _MoraItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final inst = cuota.inst;
 
     return Container(
@@ -146,7 +146,7 @@ class _MoraItem extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.danger.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(KreditRadius.tile),
+        borderRadius: BorderRadius.circular(AppRadius.tile),
         border: Border.all(color: AppColors.danger.withValues(alpha: 0.22)),
       ),
       child: Row(
@@ -160,14 +160,14 @@ class _MoraItem extends StatelessWidget {
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     color: kredit.textPrimary,
-                    fontSize: KreditTextSize.body,
+                    fontSize: AppTextSize.body,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   'Venció ${formatDate(inst.dueDate)} · ${cuota.diasMora} días de mora',
                   style: TextStyle(
-                    fontSize: KreditTextSize.body,
+                    fontSize: AppTextSize.body,
                     color: AppColors.danger,
                   ),
                 ),
@@ -201,7 +201,7 @@ class _PagoItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final proyectado = _montoProyectado();
     final diff = pago.monto - proyectado;
     final esAhorro = diff <= 0;
@@ -218,7 +218,7 @@ class _PagoItem extends StatelessWidget {
         padding: const EdgeInsets.only(right: 16),
         decoration: BoxDecoration(
           color: AppColors.danger.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(KreditRadius.tile),
+          borderRadius: BorderRadius.circular(AppRadius.tile),
         ),
         child: const Icon(Icons.delete_outline, color: AppColors.danger),
       ),
@@ -254,7 +254,7 @@ class _PagoItem extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: kredit.bgCard,
-          borderRadius: BorderRadius.circular(KreditRadius.tile),
+          borderRadius: BorderRadius.circular(AppRadius.tile),
           border: Border.all(color: kredit.borderCard.withValues(alpha: 0.7)),
         ),
         child: Row(
@@ -270,7 +270,7 @@ class _PagoItem extends StatelessWidget {
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       color: kredit.textPrimary,
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -278,7 +278,7 @@ class _PagoItem extends StatelessWidget {
                     Text(
                       'Proyectado ${formatCOP(proyectado)} · Real ${formatCOP(pago.monto)}',
                       style: TextStyle(
-                        fontSize: KreditTextSize.body,
+                        fontSize: AppTextSize.body,
                         color: kredit.textSecondary,
                       ),
                     ),
@@ -286,7 +286,7 @@ class _PagoItem extends StatelessWidget {
                     Text(
                       pago.nota,
                       style: TextStyle(
-                        fontSize: KreditTextSize.body,
+                        fontSize: AppTextSize.body,
                         color: kredit.textTertiary,
                       ),
                     ),
@@ -302,14 +302,14 @@ class _PagoItem extends StatelessWidget {
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     color: kredit.textPrimary,
-                    fontSize: KreditTextSize.heading,
+                    fontSize: AppTextSize.heading,
                   ),
                 ),
                 if (proyectado > 0)
                   Text(
                     diffLabel,
                     style: TextStyle(
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                       color: diffColor,
                       fontWeight: FontWeight.w600,
                     ),

@@ -27,12 +27,12 @@ class _CreditComparisonScreenState
   Widget build(BuildContext context) {
     final credits = ref.watch(creditsProvider).value ?? [];
     final active = credits.where((c) => creditHasUnpaid(c)).toList();
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Comparar créditos')),
       body: ListView(
-        padding: const EdgeInsets.all(KreditSpacing.card),
+        padding: const EdgeInsets.all(AppSpacing.card),
         children: [
           _PickerRow(
             label: 'Crédito A',
@@ -63,7 +63,7 @@ class _CreditComparisonScreenState
                 'Selecciona dos créditos para comparar',
                 style: TextStyle(
                   color: kredit.textTertiary,
-                  fontSize: KreditTextSize.body,
+                  fontSize: AppTextSize.body,
                 ),
               ),
             ),
@@ -232,14 +232,14 @@ class _VerdictCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final verdict = _computeVerdict();
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: kredit.success.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(KreditRadius.card),
+        borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(color: kredit.success.withValues(alpha: 0.25)),
       ),
       child: Column(
@@ -254,7 +254,7 @@ class _VerdictCard extends StatelessWidget {
                 style: TextStyle(
                   color: kredit.success,
                   fontWeight: FontWeight.w700,
-                  fontSize: KreditTextSize.heading,
+                  fontSize: AppTextSize.heading,
                 ),
               ),
             ],
@@ -264,7 +264,7 @@ class _VerdictCard extends StatelessWidget {
             verdict.reason,
             style: TextStyle(
               color: kredit.textSecondary,
-              fontSize: KreditTextSize.body,
+              fontSize: AppTextSize.body,
             ),
           ),
         ],
@@ -283,7 +283,7 @@ class _ComparisonTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
 
     final rows = [
       _RowData(
@@ -346,7 +346,7 @@ class _ComparisonTable extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(KreditRadius.card),
+        borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(color: kredit.borderCard),
       ),
       child: Column(
@@ -357,7 +357,7 @@ class _ComparisonTable extends StatelessWidget {
             decoration: BoxDecoration(
               color: kredit.borderCard.withValues(alpha: 0.5),
               borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(KreditRadius.card)),
+                  top: Radius.circular(AppRadius.card)),
             ),
             child: Row(
               children: [
@@ -370,7 +370,7 @@ class _ComparisonTable extends StatelessWidget {
                     style: TextStyle(
                       color: kredit.success,
                       fontWeight: FontWeight.w700,
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -384,7 +384,7 @@ class _ComparisonTable extends StatelessWidget {
                     style: TextStyle(
                       color: Theme.of(context).colorScheme.primary,
                       fontWeight: FontWeight.w700,
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -434,7 +434,7 @@ class _TableRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final winColor = kredit.success;
 
     return Padding(
@@ -447,7 +447,7 @@ class _TableRow extends StatelessWidget {
               data.label,
               style: TextStyle(
                 color: kredit.textTertiary,
-                fontSize: KreditTextSize.caption,
+                fontSize: AppTextSize.caption,
               ),
             ),
           ),
@@ -464,7 +464,7 @@ class _TableRow extends StatelessWidget {
                         : kredit.textSecondary,
                 fontWeight:
                     data.aWins && !data.tied ? FontWeight.w700 : FontWeight.w400,
-                fontSize: KreditTextSize.body,
+                fontSize: AppTextSize.body,
               ),
             ),
           ),
@@ -481,7 +481,7 @@ class _TableRow extends StatelessWidget {
                         : kredit.textSecondary,
                 fontWeight:
                     data.bWins && !data.tied ? FontWeight.w700 : FontWeight.w400,
-                fontSize: KreditTextSize.body,
+                fontSize: AppTextSize.body,
               ),
             ),
           ),
@@ -512,13 +512,13 @@ class _PickerRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final available = credits.where((c) => c != excluded).toList();
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(KreditRadius.tile),
+        borderRadius: BorderRadius.circular(AppRadius.tile),
         border: Border.all(
             color: selected != null
                 ? accentColor.withValues(alpha: 0.4)

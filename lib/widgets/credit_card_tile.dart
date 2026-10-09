@@ -53,7 +53,7 @@ class _CreditCardTileState extends State<CreditCardTile> {
     );
     final accent = parseHexColor(bank.accentColor);
     final logoAsset = bankLogoAssets[bank.cssClass];
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
 
     return InkWell(
       onTap: widget.onTap,
@@ -99,7 +99,7 @@ class _CreditCardTileState extends State<CreditCardTile> {
                         Flexible(
                           child: Text(
                             credit.name,
-                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.body),
+                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSize.body),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -111,7 +111,7 @@ class _CreditCardTileState extends State<CreditCardTile> {
                     Text(
                       '${bank.shortLabel} · ${creditTypeLabel(credit)} · ${creditSublabel(credit)}',
                       style: TextStyle(
-                        fontSize: KreditTextSize.body,
+                        fontSize: AppTextSize.body,
                         fontWeight: FontWeight.w600,
                         color: kredit.textTertiary,
                       ),
@@ -132,7 +132,7 @@ class _CreditCardTileState extends State<CreditCardTile> {
                   Text(
                     credit.isCard ? 'SALDO' : 'PENDIENTE',
                     style: TextStyle(
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.5,
                       color: kredit.textTertiary,
@@ -143,14 +143,14 @@ class _CreditCardTileState extends State<CreditCardTile> {
                     creditRemainingLabel(credit),
                     style: const TextStyle(
                       fontWeight: FontWeight.w800,
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                       letterSpacing: -0.2,
                     ),
                   ),
                 ],
               ),
               const SizedBox(width: 6),
-              Icon(Icons.chevron_right, size: KreditIconSize.small, color: kredit.textTertiary),
+              Icon(Icons.chevron_right, size: AppIconSize.small, color: kredit.textTertiary),
             ],
           ),
         ),
@@ -175,7 +175,7 @@ class CreditCardTileList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Column(
       children: [
         for (var i = 0; i < credits.length; i++) ...[

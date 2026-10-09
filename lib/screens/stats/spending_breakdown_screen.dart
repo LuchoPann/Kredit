@@ -162,7 +162,7 @@ class _SpendingBreakdownScreenState
   @override
   Widget build(BuildContext context) {
     final creditsAsync = ref.watch(creditsProvider);
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Gastos por categoría')),
@@ -172,7 +172,7 @@ class _SpendingBreakdownScreenState
           final grandTotal = slices.fold<double>(0, (s, e) => s + e.total);
 
           return ListView(
-            padding: const EdgeInsets.all(KreditSpacing.card),
+            padding: const EdgeInsets.all(AppSpacing.card),
             children: [
               // Selector de período
               _PeriodChips(
@@ -231,7 +231,7 @@ class _SpendingBreakdownScreenState
         error: (e, _) => Center(
           child: Text(
             'Error al cargar gastos.',
-            style: TextStyle(color: Theme.of(context).extension<KreditColors>()!.textSecondary),
+            style: TextStyle(color: Theme.of(context).extension<AppThemeColors>()!.textSecondary),
           ),
         ),
       ),
@@ -280,7 +280,7 @@ class _PieSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final sections = slices.asMap().entries.map((e) {
       final idx = e.key;
       final slice = e.value;
@@ -293,7 +293,7 @@ class _PieSection extends StatelessWidget {
         radius: isTouched ? 80 : 65,
         title: pct >= 8 ? '${pct.round()}%' : '',
         titleStyle: const TextStyle(
-          fontSize: KreditTextSize.body,
+          fontSize: AppTextSize.body,
           fontWeight: FontWeight.w800,
           color: Colors.white,
         ),
@@ -328,7 +328,7 @@ class _PieSection extends StatelessWidget {
                 Text(
                   'TOTAL',
                   style: TextStyle(
-                    fontSize: KreditTextSize.body,
+                    fontSize: AppTextSize.body,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.2,
                     color: kredit.textTertiary,
@@ -338,7 +338,7 @@ class _PieSection extends StatelessWidget {
                 Text(
                   formatCOP(grandTotal),
                   style: TextStyle(
-                    fontSize: KreditTextSize.heading,
+                    fontSize: AppTextSize.heading,
                     fontWeight: FontWeight.w800,
                     color: kredit.textPrimary,
                     fontFeatures: const [FontFeature.tabularFigures()],
@@ -360,7 +360,7 @@ class _CategoryTile extends StatelessWidget {
   final int pct;
   final bool isSelected;
   final VoidCallback onTap;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
 
   const _CategoryTile({
     required this.slice,
@@ -377,7 +377,7 @@ class _CategoryTile extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(KreditRadius.tile),
+      borderRadius: BorderRadius.circular(AppRadius.tile),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -385,7 +385,7 @@ class _CategoryTile extends StatelessWidget {
           color: isSelected
               ? color.withValues(alpha: 0.10)
               : kredit.bgCard,
-          borderRadius: BorderRadius.circular(KreditRadius.tile),
+          borderRadius: BorderRadius.circular(AppRadius.tile),
           border: Border.all(
             color: isSelected ? color.withValues(alpha: 0.40) : kredit.borderCard,
           ),
@@ -399,14 +399,14 @@ class _CategoryTile extends StatelessWidget {
                 color: color.withValues(alpha: 0.16),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, size: KreditIconSize.small, color: color),
+              child: Icon(icon, size: AppIconSize.small, color: color),
             ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 _capitalize(slice.category),
                 style: TextStyle(
-                  fontSize: KreditTextSize.body,
+                  fontSize: AppTextSize.body,
                   fontWeight: FontWeight.w600,
                   color: kredit.textPrimary,
                 ),
@@ -416,7 +416,7 @@ class _CategoryTile extends StatelessWidget {
             Text(
               formatCOP(slice.total),
               style: TextStyle(
-                fontSize: KreditTextSize.body,
+                fontSize: AppTextSize.body,
                 fontWeight: FontWeight.w700,
                 color: kredit.textPrimary,
                 fontFeatures: const [FontFeature.tabularFigures()],
@@ -429,7 +429,7 @@ class _CategoryTile extends StatelessWidget {
                 '$pct%',
                 textAlign: TextAlign.right,
                 style: TextStyle(
-                  fontSize: KreditTextSize.body,
+                  fontSize: AppTextSize.body,
                   fontWeight: FontWeight.w800,
                   color: color,
                 ),
@@ -446,7 +446,7 @@ class _CategoryTile extends StatelessWidget {
 
 class _DetailCard extends StatelessWidget {
   final _CategorySlice slice;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
 
   const _DetailCard({required this.slice, required this.kredit});
 
@@ -459,7 +459,7 @@ class _DetailCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: kredit.bgCard,
-        borderRadius: BorderRadius.circular(KreditRadius.card),
+        borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(color: kredit.borderCard),
       ),
       child: Column(
@@ -470,7 +470,7 @@ class _DetailCard extends StatelessWidget {
             child: Text(
               'Movimientos — ${_capitalize(slice.category)}',
               style: TextStyle(
-                fontSize: KreditTextSize.body,
+                fontSize: AppTextSize.body,
                 fontWeight: FontWeight.w700,
                 color: color,
               ),
@@ -495,7 +495,7 @@ class _DetailCard extends StatelessWidget {
                             Text(
                               m.creditName,
                               style: TextStyle(
-                                fontSize: KreditTextSize.body,
+                                fontSize: AppTextSize.body,
                                 fontWeight: FontWeight.w600,
                                 color: kredit.textPrimary,
                               ),
@@ -506,7 +506,7 @@ class _DetailCard extends StatelessWidget {
                             Text(
                               _fmtDate(m.date),
                               style: TextStyle(
-                                fontSize: KreditTextSize.caption,
+                                fontSize: AppTextSize.caption,
                                 color: kredit.textTertiary,
                               ),
                             ),
@@ -516,7 +516,7 @@ class _DetailCard extends StatelessWidget {
                       Text(
                         formatCOP(m.amount),
                         style: TextStyle(
-                          fontSize: KreditTextSize.body,
+                          fontSize: AppTextSize.body,
                           fontWeight: FontWeight.w700,
                           color: kredit.textPrimary,
                           fontFeatures: const [FontFeature.tabularFigures()],
@@ -533,7 +533,7 @@ class _DetailCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
               child: Text(
                 '+${slice.movements.length - 20} más',
-                style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+                style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
               ),
             ),
         ],
@@ -554,18 +554,18 @@ class _DetailCard extends StatelessWidget {
 class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 60),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.pie_chart_outline, size: KreditIconSize.large, color: kredit.textTertiary),
+          Icon(Icons.pie_chart_outline, size: AppIconSize.large, color: kredit.textTertiary),
           const SizedBox(height: 16),
           Text(
             'Sin gastos categorizados',
             style: TextStyle(
-              fontSize: KreditTextSize.heading,
+              fontSize: AppTextSize.heading,
               fontWeight: FontWeight.bold,
               color: kredit.textPrimary,
             ),
@@ -574,7 +574,7 @@ class _EmptyState extends StatelessWidget {
           Text(
             'Registra categorías al añadir movimientos de tarjeta.',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+            style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
           ),
         ],
       ),

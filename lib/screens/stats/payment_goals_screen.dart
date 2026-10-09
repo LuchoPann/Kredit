@@ -141,7 +141,7 @@ class PaymentGoalsScreen extends ConsumerWidget {
           final creditMap = {for (final c in credits) c.id: c};
           return ListView.separated(
             padding: const EdgeInsets.fromLTRB(
-                KreditSpacing.card, KreditSpacing.card, KreditSpacing.card, 96),
+                AppSpacing.card, AppSpacing.card, AppSpacing.card, 96),
             itemCount: goals.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, i) {
@@ -180,7 +180,7 @@ class _GoalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final now = DateTime.now();
     final daysLeft = goal.deadline.difference(now).inDays;
     final status = _goalStatus(goal, remaining);
@@ -197,7 +197,7 @@ class _GoalCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: kredit.bgCard,
-        borderRadius: BorderRadius.circular(KreditRadius.card),
+        borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(color: kredit.borderCard),
       ),
       child: Column(
@@ -209,7 +209,7 @@ class _GoalCard extends StatelessWidget {
                 child: Text(
                   goal.creditName,
                   style: const TextStyle(
-                    fontSize: KreditTextSize.heading,
+                    fontSize: AppTextSize.heading,
                     fontWeight: FontWeight.w700,
                   ),
                   maxLines: 1,
@@ -221,13 +221,13 @@ class _GoalCard extends StatelessWidget {
                     const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: statusColor.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(KreditRadius.chip),
+                  borderRadius: BorderRadius.circular(AppRadius.chip),
                 ),
                 child: Text(
                   statusLabel,
                   style: TextStyle(
                     color: statusColor,
-                    fontSize: KreditTextSize.body,
+                    fontSize: AppTextSize.body,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -236,7 +236,7 @@ class _GoalCard extends StatelessWidget {
               GestureDetector(
                 onTap: onDelete,
                 child: Icon(Icons.delete_outline,
-                    size: KreditIconSize.small, color: kredit.textTertiary),
+                    size: AppIconSize.small, color: kredit.textTertiary),
               ),
             ],
           ),
@@ -251,14 +251,14 @@ class _GoalCard extends StatelessWidget {
                       'Meta: ${formatCOP(goal.targetAmount)}',
                       style: TextStyle(
                         color: kredit.textSecondary,
-                        fontSize: KreditTextSize.body,
+                        fontSize: AppTextSize.body,
                       ),
                     ),
                     Text(
                       'Restante: ${formatCOP(remaining.clamp(0, double.infinity))}',
                       style: TextStyle(
                         color: kredit.textPrimary,
-                        fontSize: KreditTextSize.body,
+                        fontSize: AppTextSize.body,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -275,7 +275,7 @@ class _GoalCard extends StatelessWidget {
                   color: daysLeft <= 0 && status != GoalStatus.achieved
                       ? kredit.danger
                       : kredit.textTertiary,
-                  fontSize: KreditTextSize.body,
+                  fontSize: AppTextSize.body,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -295,7 +295,7 @@ class _GoalCard extends StatelessWidget {
           Text(
             'Fecha límite: ${_fmtDate(goal.deadline)}',
             style: TextStyle(
-                color: kredit.textTertiary, fontSize: KreditTextSize.caption),
+                color: kredit.textTertiary, fontSize: AppTextSize.caption),
           ),
         ],
       ),
@@ -371,13 +371,13 @@ class _AddGoalSheetState extends ConsumerState<_AddGoalSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
 
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
         borderRadius:
-            BorderRadius.vertical(top: Radius.circular(KreditRadius.card)),
+            BorderRadius.vertical(top: Radius.circular(AppRadius.card)),
       ),
       padding: EdgeInsets.fromLTRB(
           20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 24),
@@ -399,7 +399,7 @@ class _AddGoalSheetState extends ConsumerState<_AddGoalSheet> {
           const Text(
             'Nueva meta de pago',
             style: TextStyle(
-              fontSize: KreditTextSize.heading,
+              fontSize: AppTextSize.heading,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -411,7 +411,7 @@ class _AddGoalSheetState extends ConsumerState<_AddGoalSheet> {
             decoration: InputDecoration(
               labelText: 'Crédito',
               border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(KreditRadius.tile)),
+                  borderRadius: BorderRadius.circular(AppRadius.tile)),
             ),
             items: widget.credits
                 .map((c) => DropdownMenuItem(value: c, child: Text(c.name)))
@@ -429,7 +429,7 @@ class _AddGoalSheetState extends ConsumerState<_AddGoalSheet> {
               labelText: 'Monto meta (COP)',
               prefixText: '\$ ',
               border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(KreditRadius.tile)),
+                  borderRadius: BorderRadius.circular(AppRadius.tile)),
             ),
           ),
           const SizedBox(height: 14),
@@ -441,7 +441,7 @@ class _AddGoalSheetState extends ConsumerState<_AddGoalSheet> {
               decoration: InputDecoration(
                 labelText: 'Fecha límite',
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(KreditRadius.tile)),
+                    borderRadius: BorderRadius.circular(AppRadius.tile)),
                 suffixIcon: const Icon(Icons.calendar_today_outlined),
               ),
               child: Text(
@@ -459,7 +459,7 @@ class _AddGoalSheetState extends ConsumerState<_AddGoalSheet> {
             const SizedBox(height: 10),
             Text(
               _error!,
-              style: TextStyle(color: kredit.danger, fontSize: KreditTextSize.body),
+              style: TextStyle(color: kredit.danger, fontSize: AppTextSize.body),
             ),
           ],
 
@@ -491,7 +491,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -499,12 +499,12 @@ class _EmptyState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.flag_outlined,
-                size: KreditIconSize.large, color: kredit.textTertiary),
+                size: AppIconSize.large, color: kredit.textTertiary),
             const SizedBox(height: 16),
             Text(
               'Sin metas de pago',
               style: TextStyle(
-                fontSize: KreditTextSize.heading,
+                fontSize: AppTextSize.heading,
                 fontWeight: FontWeight.bold,
                 color: kredit.textPrimary,
               ),
@@ -514,7 +514,7 @@ class _EmptyState extends StatelessWidget {
               'Crea una meta para trackear tu progreso hacia un objetivo de pago concreto.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                  fontSize: KreditTextSize.body, color: kredit.textTertiary),
+                  fontSize: AppTextSize.body, color: kredit.textTertiary),
             ),
           ],
         ),

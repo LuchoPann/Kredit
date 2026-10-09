@@ -7,7 +7,7 @@ part of 'simulator_sheet.dart';
 
 class _DebtSnapshotStrip extends StatelessWidget {
   final _FreedomResult baseline;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   final Color accent;
   const _DebtSnapshotStrip(
       {required this.baseline, required this.kredit, required this.accent});
@@ -65,7 +65,7 @@ class _SnapStat extends StatelessWidget {
   final String label;
   final String value;
   final Color? valueColor;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   const _SnapStat(
       {required this.label,
       required this.value,
@@ -81,12 +81,12 @@ class _SnapStat extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-                fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+                fontSize: AppTextSize.caption, color: kredit.textTertiary),
           ),
           Text(
             value,
             style: TextStyle(
-              fontSize: KreditTextSize.body,
+              fontSize: AppTextSize.body,
               fontWeight: FontWeight.w700,
               color: valueColor ?? kredit.textPrimary,
             ),
@@ -99,7 +99,7 @@ class _SnapStat extends StatelessWidget {
 }
 
 class _SnapDivider extends StatelessWidget {
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   const _SnapDivider({required this.kredit});
 
   @override
@@ -243,7 +243,7 @@ class _PurchaseTabState extends ConsumerState<_PurchaseTab> {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
 
     final quotasAsync = ref.watch(commercialQuotasProvider);
@@ -296,7 +296,7 @@ class _PurchaseTabState extends ConsumerState<_PurchaseTab> {
           padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
           decoration: BoxDecoration(
             color: kredit.bgCard,
-            borderRadius: BorderRadius.circular(KreditRadius.card),
+            borderRadius: BorderRadius.circular(AppRadius.card),
             border: Border.all(color: kredit.borderCard),
           ),
           child: Column(
@@ -305,7 +305,7 @@ class _PurchaseTabState extends ConsumerState<_PurchaseTab> {
               Text(
                 'DATOS DE LA COMPRA',
                 style: TextStyle(
-                  fontSize: KreditTextSize.caption,
+                  fontSize: AppTextSize.caption,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.8,
                   color: kredit.textTertiary,
@@ -424,7 +424,7 @@ class _PurchaseResult {
 
 class _PurchaseResultCard extends StatelessWidget {
   final _PurchaseResult result;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   final Color accent;
   const _PurchaseResultCard(
       {required this.result, required this.kredit, required this.accent});
@@ -446,7 +446,7 @@ class _PurchaseResultCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           decoration: BoxDecoration(
             color: accentColor.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(KreditRadius.card),
+            borderRadius: BorderRadius.circular(AppRadius.card),
             border: Border.all(color: accentColor.withValues(alpha: 0.25)),
           ),
           child: Column(
@@ -454,7 +454,7 @@ class _PurchaseResultCard extends StatelessWidget {
               Text(
                 'CUOTA MENSUAL ESTIMADA',
                 style: TextStyle(
-                  fontSize: KreditTextSize.caption,
+                  fontSize: AppTextSize.caption,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.8,
                   color: accentColor,
@@ -464,7 +464,7 @@ class _PurchaseResultCard extends StatelessWidget {
               Text(
                 formatCOP(result.monthlyInstallment),
                 style: TextStyle(
-                  fontSize: KreditTextSize.emphasis,
+                  fontSize: AppTextSize.emphasis,
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.5,
                   color: accentColor,
@@ -474,14 +474,14 @@ class _PurchaseResultCard extends StatelessWidget {
               Text(
                 'por ${result.quotas} cuota${result.quotas == 1 ? '' : 's'}',
                 style: TextStyle(
-                    fontSize: KreditTextSize.body, color: kredit.textSecondary),
+                    fontSize: AppTextSize.body, color: kredit.textSecondary),
               ),
               if (result.estimatedInterestCost > 0) ...[
                 const SizedBox(height: 4),
                 Text(
                   'Intereses estimados: ${formatCOP(result.estimatedInterestCost)}',
                   style: TextStyle(
-                      fontSize: KreditTextSize.caption,
+                      fontSize: AppTextSize.caption,
                       color: Colors.redAccent.withValues(alpha: 0.85)),
                 ),
               ],
@@ -495,7 +495,7 @@ class _PurchaseResultCard extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
           decoration: BoxDecoration(
             color: kredit.bgCard,
-            borderRadius: BorderRadius.circular(KreditRadius.card),
+            borderRadius: BorderRadius.circular(AppRadius.card),
             border: Border.all(color: kredit.borderCard),
           ),
           child: Column(
@@ -504,7 +504,7 @@ class _PurchaseResultCard extends StatelessWidget {
               Text(
                 'IMPACTO EN ${result.isQuota ? 'TU CUPO' : 'TU TARJETA'}',
                 style: TextStyle(
-                  fontSize: KreditTextSize.caption,
+                  fontSize: AppTextSize.caption,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.8,
                   color: kredit.textTertiary,
@@ -580,7 +580,7 @@ class _BeforeAfterColumn extends StatelessWidget {
   final String label;
   final double balance;
   final double available;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   final bool isAfter;
   final bool highUtilization;
 
@@ -624,12 +624,12 @@ class _BeforeAfterColumn extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             'Saldo',
-            style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+            style: TextStyle(fontSize: AppTextSize.caption, color: kredit.textTertiary),
           ),
           Text(
             formatCOP(balance),
             style: TextStyle(
-              fontSize: KreditTextSize.body,
+              fontSize: AppTextSize.body,
               fontWeight: FontWeight.w700,
               color: balanceColor,
             ),
@@ -637,12 +637,12 @@ class _BeforeAfterColumn extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'Disponible',
-            style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+            style: TextStyle(fontSize: AppTextSize.caption, color: kredit.textTertiary),
           ),
           Text(
             formatCOP(available),
             style: TextStyle(
-              fontSize: KreditTextSize.body,
+              fontSize: AppTextSize.body,
               fontWeight: FontWeight.w700,
               color: availColor,
             ),
@@ -656,7 +656,7 @@ class _BeforeAfterColumn extends StatelessWidget {
 class _DoubleUtilizationBar extends StatelessWidget {
   final double prevPct;
   final double newPct;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   final Color barColorBefore;
   final Color barColorAfter;
 
@@ -678,20 +678,20 @@ class _DoubleUtilizationBar extends StatelessWidget {
           children: [
             Text('Utilización del cupo',
                 style: TextStyle(
-                    fontSize: KreditTextSize.caption, color: kredit.textSecondary)),
+                    fontSize: AppTextSize.caption, color: kredit.textSecondary)),
             Row(
               children: [
                 Text('${prevPct.toStringAsFixed(0)}%',
                     style: TextStyle(
-                        fontSize: KreditTextSize.caption,
+                        fontSize: AppTextSize.caption,
                         color: barColorBefore,
                         fontWeight: FontWeight.w600)),
                 Text(' → ',
                     style: TextStyle(
-                        fontSize: KreditTextSize.caption, color: kredit.textTertiary)),
+                        fontSize: AppTextSize.caption, color: kredit.textTertiary)),
                 Text('${newPct.toStringAsFixed(0)}%',
                     style: TextStyle(
-                        fontSize: KreditTextSize.caption,
+                        fontSize: AppTextSize.caption,
                         color: barColorAfter,
                         fontWeight: FontWeight.w700)),
               ],
@@ -941,7 +941,7 @@ class _ExtraPaymentTabState extends ConsumerState<_ExtraPaymentTab> {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
 
     final quotasAsync = ref.watch(commercialQuotasProvider);
@@ -968,7 +968,7 @@ class _ExtraPaymentTabState extends ConsumerState<_ExtraPaymentTab> {
           padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
           decoration: BoxDecoration(
             color: kredit.bgCard,
-            borderRadius: BorderRadius.circular(KreditRadius.card),
+            borderRadius: BorderRadius.circular(AppRadius.card),
             border: Border.all(color: kredit.borderCard),
           ),
           child: Column(
@@ -977,7 +977,7 @@ class _ExtraPaymentTabState extends ConsumerState<_ExtraPaymentTab> {
               Text(
                 'DATOS DEL ABONO',
                 style: TextStyle(
-                  fontSize: KreditTextSize.caption,
+                  fontSize: AppTextSize.caption,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.8,
                   color: kredit.textTertiary,
@@ -1179,7 +1179,7 @@ _FreedomResult _computeFreedom(
 
 /// Fila de chips con montos típicos ($50k/$100k/$200k) para acceso rápido.
 class _QuickAmountRow extends StatelessWidget {
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   final ValueChanged<double> onPick;
   const _QuickAmountRow({required this.kredit, required this.onPick});
 
@@ -1204,7 +1204,7 @@ class _QuickAmountRow extends StatelessWidget {
 
 class _StrategySelector extends StatefulWidget {
   final List<AbonoScenarioResult> scenarios;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   final Color accent;
   final VoidCallback? onRegister;
   final bool registering;
@@ -1301,15 +1301,15 @@ class _StrategySelectorState extends State<_StrategySelector> {
 
     items.add(_StrategyItem(
       icon: Icons.checklist_outlined,
-      title: 'Solo registrar en Kredit',
+      title: 'Solo registrar en Krezium',
       tagline: 'Mantén tu historial actualizado · sin cambios en el crédito',
       statLine: 'Interés restante: ${formatCOP(baseline.totalInterestRemaining)}',
       statColor: kredit.textTertiary,
       description:
-          'Registra el abono en Kredit para mantener tu historial al día, sin instruir ningún cambio en el esquema de pagos del crédito.',
+          'Registra el abono en Krezium para mantener tu historial al día, sin instruir ningún cambio en el esquema de pagos del crédito.',
       steps: const [
         'Confirma que ya realizaste el abono con tu entidad financiera',
-        'Toca "Registrar" para actualizar Kredit',
+        'Toca "Registrar" para actualizar Krezium',
       ],
       recommended: false,
     ));
@@ -1330,20 +1330,20 @@ class _StrategySelectorState extends State<_StrategySelector> {
           'Estrategia de abono',
           style: TextStyle(
             fontWeight: FontWeight.w700,
-            fontSize: KreditTextSize.heading,
+            fontSize: AppTextSize.heading,
             color: kredit.textPrimary,
           ),
         ),
         const SizedBox(height: 3),
         Text(
           'Elige cómo aplicar este abono. Son sugerencias — tu entidad financiera tiene la última palabra.',
-          style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
+          style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary),
         ),
         const SizedBox(height: 10),
         Container(
           decoration: BoxDecoration(
             border: Border.all(color: kredit.borderCard),
-            borderRadius: BorderRadius.circular(KreditRadius.card),
+            borderRadius: BorderRadius.circular(AppRadius.card),
           ),
           child: Column(
             children: [
@@ -1374,7 +1374,7 @@ class _StrategySelectorState extends State<_StrategySelector> {
                       final items = _buildItems();
                       final sel = _selectedIdx;
                       if (sel == null) return;
-                      final confirmed = await showKreditConfirmSheet(
+                      final confirmed = await showAppConfirmSheet(
                         context,
                         title: 'Confirmar registro',
                         message:
@@ -1402,14 +1402,14 @@ class _StrategySelectorState extends State<_StrategySelector> {
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: kredit.bgCard,
-              borderRadius: BorderRadius.circular(KreditRadius.card),
+              borderRadius: BorderRadius.circular(AppRadius.card),
               border: Border.all(color: kredit.borderCard),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(Icons.info_outline,
-                    size: KreditIconSize.small, color: kredit.textTertiary),
+                    size: AppIconSize.small, color: kredit.textTertiary),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -1417,7 +1417,7 @@ class _StrategySelectorState extends State<_StrategySelector> {
                     'Pueden existir otras variables que esta app no contempla. '
                     'Consulta siempre con tu entidad financiera antes de actuar.',
                     style: TextStyle(
-                        fontSize: KreditTextSize.caption,
+                        fontSize: AppTextSize.caption,
                         fontStyle: FontStyle.italic,
                         color: kredit.textTertiary),
                   ),
@@ -1459,7 +1459,7 @@ class _StrategyAccordionTile extends StatelessWidget {
   final bool isFirst;
   final bool isLast;
   final VoidCallback onTap;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   final Color accent;
 
   const _StrategyAccordionTile({
@@ -1475,9 +1475,9 @@ class _StrategyAccordionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final borderRadius = BorderRadius.vertical(
-      top: isFirst ? Radius.circular(KreditRadius.card - 1) : Radius.zero,
+      top: isFirst ? Radius.circular(AppRadius.card - 1) : Radius.zero,
       bottom:
-          isLast && !isSelected ? Radius.circular(KreditRadius.card - 1) : Radius.zero,
+          isLast && !isSelected ? Radius.circular(AppRadius.card - 1) : Radius.zero,
     );
 
     return ClipRRect(
@@ -1523,7 +1523,7 @@ class _StrategyAccordionTile extends StatelessWidget {
                                   item.title,
                                   style: TextStyle(
                                     fontWeight: FontWeight.w700,
-                                    fontSize: KreditTextSize.body,
+                                    fontSize: AppTextSize.body,
                                     color: isSelected ? accent : kredit.textPrimary,
                                   ),
                                 ),
@@ -1553,7 +1553,7 @@ class _StrategyAccordionTile extends StatelessWidget {
                           Text(
                             item.tagline,
                             style: TextStyle(
-                              fontSize: KreditTextSize.caption,
+                              fontSize: AppTextSize.caption,
                               color: kredit.textTertiary,
                             ),
                           ),
@@ -1565,7 +1565,7 @@ class _StrategyAccordionTile extends StatelessWidget {
                       isSelected
                           ? Icons.keyboard_arrow_up_rounded
                           : Icons.keyboard_arrow_down_rounded,
-                      size: KreditIconSize.small,
+                      size: AppIconSize.small,
                       color: kredit.textTertiary,
                     ),
                   ],
@@ -1589,7 +1589,7 @@ class _StrategyAccordionTile extends StatelessWidget {
                         child: Text(
                           item.statLine,
                           style: TextStyle(
-                            fontSize: KreditTextSize.body,
+                            fontSize: AppTextSize.body,
                             fontWeight: FontWeight.w700,
                             color: accent,
                           ),
@@ -1599,7 +1599,7 @@ class _StrategyAccordionTile extends StatelessWidget {
                       Text(
                         item.description,
                         style: TextStyle(
-                          fontSize: KreditTextSize.body,
+                          fontSize: AppTextSize.body,
                           color: kredit.textSecondary,
                           height: 1.4,
                         ),
@@ -1608,7 +1608,7 @@ class _StrategyAccordionTile extends StatelessWidget {
                       Text(
                         'Cómo hacerlo',
                         style: TextStyle(
-                          fontSize: KreditTextSize.body,
+                          fontSize: AppTextSize.body,
                           fontWeight: FontWeight.w700,
                           color: kredit.textPrimary,
                         ),
@@ -1642,7 +1642,7 @@ class _StrategyAccordionTile extends StatelessWidget {
                               child: Text(
                                 item.steps[i],
                                 style: TextStyle(
-                                  fontSize: KreditTextSize.body,
+                                  fontSize: AppTextSize.body,
                                   color: kredit.textSecondary,
                                   height: 1.35,
                                 ),
@@ -1666,7 +1666,7 @@ class _StrategyAccordionTile extends StatelessWidget {
 
 class _PaymentResultCard extends StatelessWidget {
   final _PaymentResult result;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   final Color accent;
   const _PaymentResultCard(
       {required this.result, required this.kredit, required this.accent});
@@ -1718,7 +1718,7 @@ class _PaymentResultCard extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         color: kredit.bgCard,
-        borderRadius: BorderRadius.circular(KreditRadius.card),
+        borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(
           color: isSaldado ? savingsColor.withValues(alpha: 0.4) : kredit.borderCard,
           width: isSaldado ? 1.5 : 1,
@@ -1734,14 +1734,14 @@ class _PaymentResultCard extends StatelessWidget {
               children: [
                 Icon(
                   isSaldado ? Icons.celebration_outlined : Icons.receipt_long_outlined,
-                  size: KreditIconSize.small,
+                  size: AppIconSize.small,
                   color: isSaldado ? savingsColor : kredit.textTertiary,
                 ),
                 const SizedBox(width: 8),
                 Text(
                   'IMPACTO DEL ABONO',
                   style: TextStyle(
-                    fontSize: KreditTextSize.caption,
+                    fontSize: AppTextSize.caption,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.8,
                     color: isSaldado ? savingsColor : kredit.textTertiary,
@@ -1758,7 +1758,7 @@ class _PaymentResultCard extends StatelessWidget {
                     child: Text(
                       '¡Saldado!',
                       style: TextStyle(
-                        fontSize: KreditTextSize.caption,
+                        fontSize: AppTextSize.caption,
                         fontWeight: FontWeight.w700,
                         color: savingsColor,
                       ),
@@ -1780,7 +1780,7 @@ class _PaymentResultCard extends StatelessWidget {
                       Text(
                         'ANTES',
                         style: TextStyle(
-                          fontSize: KreditTextSize.caption,
+                          fontSize: AppTextSize.caption,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 0.4,
                           color: kredit.textTertiary,
@@ -1790,7 +1790,7 @@ class _PaymentResultCard extends StatelessWidget {
                       Text(
                         formatCOP(result.currentBalance),
                         style: TextStyle(
-                          fontSize: KreditTextSize.heading,
+                          fontSize: AppTextSize.heading,
                           fontWeight: FontWeight.w700,
                           color: kredit.textSecondary,
                           fontFeatures: const [FontFeature.tabularFigures()],
@@ -1803,14 +1803,14 @@ class _PaymentResultCard extends StatelessWidget {
                   children: [
                     Icon(
                       Icons.arrow_forward_rounded,
-                      size: KreditIconSize.small,
+                      size: AppIconSize.small,
                       color: isSaldado ? savingsColor : accentC,
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '−${formatCOP(result.extraPayment)}',
                       style: TextStyle(
-                        fontSize: KreditTextSize.caption,
+                        fontSize: AppTextSize.caption,
                         fontWeight: FontWeight.w600,
                         color: isSaldado ? savingsColor : accentC,
                       ),
@@ -1824,7 +1824,7 @@ class _PaymentResultCard extends StatelessWidget {
                       Text(
                         'DESPUÉS',
                         style: TextStyle(
-                          fontSize: KreditTextSize.caption,
+                          fontSize: AppTextSize.caption,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 0.4,
                           color: kredit.textTertiary,
@@ -1834,7 +1834,7 @@ class _PaymentResultCard extends StatelessWidget {
                       Text(
                         isSaldado ? '\$0' : formatCOP(result.newBalance),
                         style: TextStyle(
-                          fontSize: KreditTextSize.heading,
+                          fontSize: AppTextSize.heading,
                           fontWeight: FontWeight.w800,
                           color: isSaldado ? savingsColor : kredit.textPrimary,
                           fontFeatures: const [FontFeature.tabularFigures()],
@@ -1854,7 +1854,7 @@ class _PaymentResultCard extends StatelessWidget {
               children: [
                 Icon(
                   _impactIcon(),
-                  size: KreditIconSize.small,
+                  size: AppIconSize.small,
                   color: _impactColor(savingsColor, accentC),
                 ),
                 const SizedBox(width: 8),
@@ -1862,7 +1862,7 @@ class _PaymentResultCard extends StatelessWidget {
                   child: Text(
                     _impactLabel(),
                     style: TextStyle(
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                       fontWeight: FontWeight.w600,
                       color: _impactColor(savingsColor, accentC),
                     ),
@@ -1926,7 +1926,7 @@ class _FreedomTabState extends State<_FreedomTab> {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
 
     final active = widget.credits.where((c) {
@@ -1958,7 +1958,7 @@ class _FreedomTabState extends State<_FreedomTab> {
           padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
           decoration: BoxDecoration(
             color: kredit.bgCard,
-            borderRadius: BorderRadius.circular(KreditRadius.card),
+            borderRadius: BorderRadius.circular(AppRadius.card),
             border: Border.all(color: kredit.borderCard),
           ),
           child: Column(
@@ -1967,7 +1967,7 @@ class _FreedomTabState extends State<_FreedomTab> {
               Text(
                 'CONFIGURAR PROYECCIÓN',
                 style: TextStyle(
-                  fontSize: KreditTextSize.caption,
+                  fontSize: AppTextSize.caption,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.8,
                   color: kredit.textTertiary,
@@ -1997,7 +1997,7 @@ class _FreedomTabState extends State<_FreedomTab> {
               Text(
                 'ESTRATEGIA DE PAGO',
                 style: TextStyle(
-                  fontSize: KreditTextSize.caption,
+                  fontSize: AppTextSize.caption,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.5,
                   color: kredit.textTertiary,
@@ -2029,7 +2029,7 @@ class _FreedomTabState extends State<_FreedomTab> {
 
 class _BaselineCard extends StatelessWidget {
   final _FreedomResult baseline;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   final Color accent;
   const _BaselineCard(
       {required this.baseline, required this.kredit, required this.accent});
@@ -2059,7 +2059,7 @@ class _BaselineCard extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         color: kredit.bgCard,
-        borderRadius: BorderRadius.circular(KreditRadius.card),
+        borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(color: kredit.borderCard),
       ),
       child: Column(
@@ -2071,12 +2071,12 @@ class _BaselineCard extends StatelessWidget {
             child: Row(
               children: [
                 Icon(Icons.account_balance_outlined,
-                    size: KreditIconSize.small, color: kredit.textTertiary),
+                    size: AppIconSize.small, color: kredit.textTertiary),
                 const SizedBox(width: 8),
                 Text(
                   'TU SITUACIÓN ACTUAL',
                   style: TextStyle(
-                    fontSize: KreditTextSize.caption,
+                    fontSize: AppTextSize.caption,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.8,
                     color: kredit.textTertiary,
@@ -2092,7 +2092,7 @@ class _BaselineCard extends StatelessWidget {
                   child: Text(
                     '$creditsCount crédito${creditsCount == 1 ? '' : 's'}',
                     style: TextStyle(
-                      fontSize: KreditTextSize.caption,
+                      fontSize: AppTextSize.caption,
                       fontWeight: FontWeight.w600,
                       color: kredit.textTertiary,
                     ),
@@ -2116,7 +2116,7 @@ class _BaselineCard extends StatelessWidget {
                         Text(
                           'CUOTA MENSUAL',
                           style: TextStyle(
-                            fontSize: KreditTextSize.caption,
+                            fontSize: AppTextSize.caption,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 0.4,
                             color: kredit.textTertiary,
@@ -2126,7 +2126,7 @@ class _BaselineCard extends StatelessWidget {
                         Text(
                           totalMonthlyBase > 0 ? formatCOP(totalMonthlyBase) : '—',
                           style: TextStyle(
-                            fontSize: KreditTextSize.heading,
+                            fontSize: AppTextSize.heading,
                             fontWeight: FontWeight.w700,
                             color: kredit.textPrimary,
                             fontFeatures: const [FontFeature.tabularFigures()],
@@ -2146,7 +2146,7 @@ class _BaselineCard extends StatelessWidget {
                         Text(
                           'TASA PROM.',
                           style: TextStyle(
-                            fontSize: KreditTextSize.caption,
+                            fontSize: AppTextSize.caption,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 0.4,
                             color: kredit.textTertiary,
@@ -2158,7 +2158,7 @@ class _BaselineCard extends StatelessWidget {
                               ? '${avgRate.toStringAsFixed(2)}%'
                               : '—',
                           style: TextStyle(
-                            fontSize: KreditTextSize.heading,
+                            fontSize: AppTextSize.heading,
                             fontWeight: FontWeight.w700,
                             color: avgRate > 30 ? Colors.redAccent : kredit.textPrimary,
                             fontFeatures: const [FontFeature.tabularFigures()],
@@ -2186,7 +2186,7 @@ class _BaselineCard extends StatelessWidget {
                         Text(
                           'SALDO PENDIENTE',
                           style: TextStyle(
-                            fontSize: KreditTextSize.caption,
+                            fontSize: AppTextSize.caption,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 0.4,
                             color: kredit.textTertiary,
@@ -2196,7 +2196,7 @@ class _BaselineCard extends StatelessWidget {
                         Text(
                           formatCOP(totalBalance),
                           style: TextStyle(
-                            fontSize: KreditTextSize.heading,
+                            fontSize: AppTextSize.heading,
                             fontWeight: FontWeight.w700,
                             color: Colors.redAccent,
                             fontFeatures: const [FontFeature.tabularFigures()],
@@ -2216,7 +2216,7 @@ class _BaselineCard extends StatelessWidget {
                         Text(
                           'TIEMPO RESTANTE',
                           style: TextStyle(
-                            fontSize: KreditTextSize.caption,
+                            fontSize: AppTextSize.caption,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 0.4,
                             color: kredit.textTertiary,
@@ -2226,7 +2226,7 @@ class _BaselineCard extends StatelessWidget {
                         Text(
                           _monthsLabel(maxMonths),
                           style: TextStyle(
-                            fontSize: KreditTextSize.heading,
+                            fontSize: AppTextSize.heading,
                             fontWeight: FontWeight.w700,
                             color: kredit.textPrimary,
                             fontFeatures: const [FontFeature.tabularFigures()],
@@ -2245,13 +2245,13 @@ class _BaselineCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
             child: Row(
               children: [
-                Icon(Icons.flag_outlined, size: KreditIconSize.small, color: accent),
+                Icon(Icons.flag_outlined, size: AppIconSize.small, color: accent),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Sin deudas estimado para ${_monthsToDateStr(maxMonths)}',
                     style: TextStyle(
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                       fontWeight: FontWeight.w600,
                       color: accent,
                     ),
@@ -2268,7 +2268,7 @@ class _BaselineCard extends StatelessWidget {
 
 class _FreedomResultCard extends StatelessWidget {
   final _FreedomResult result;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   final Color accent;
   const _FreedomResultCard(
       {required this.result, required this.kredit, required this.accent});
@@ -2297,7 +2297,7 @@ class _FreedomResultCard extends StatelessWidget {
           width: double.infinity,
           decoration: BoxDecoration(
             color: kredit.bgCard,
-            borderRadius: BorderRadius.circular(KreditRadius.card),
+            borderRadius: BorderRadius.circular(AppRadius.card),
             border: Border.all(
               color: monthsSaved > 0
                   ? accent.withValues(alpha: 0.4)
@@ -2314,13 +2314,13 @@ class _FreedomResultCard extends StatelessWidget {
                 child: Row(
                   children: [
                     Icon(Icons.rocket_launch_outlined,
-                        size: KreditIconSize.small,
+                        size: AppIconSize.small,
                         color: monthsSaved > 0 ? accent : kredit.textTertiary),
                     const SizedBox(width: 8),
                     Text(
                       'PROYECCIÓN DE LIBERTAD',
                       style: TextStyle(
-                        fontSize: KreditTextSize.caption,
+                        fontSize: AppTextSize.caption,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.8,
                         color: monthsSaved > 0 ? accent : kredit.textTertiary,
@@ -2338,7 +2338,7 @@ class _FreedomResultCard extends StatelessWidget {
                         child: Text(
                           '−$monthsSaved mes${monthsSaved == 1 ? '' : 'es'}',
                           style: TextStyle(
-                            fontSize: KreditTextSize.caption,
+                            fontSize: AppTextSize.caption,
                             fontWeight: FontWeight.w700,
                             color: kredit.success,
                           ),
@@ -2358,7 +2358,7 @@ class _FreedomResultCard extends StatelessWidget {
                     Text(
                       'SIN DEUDAS EL',
                       style: TextStyle(
-                        fontSize: KreditTextSize.caption,
+                        fontSize: AppTextSize.caption,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.4,
                         color: kredit.textTertiary,
@@ -2368,7 +2368,7 @@ class _FreedomResultCard extends StatelessWidget {
                     Text(
                       freedomDate,
                       style: TextStyle(
-                        fontSize: KreditTextSize.emphasis,
+                        fontSize: AppTextSize.emphasis,
                         fontWeight: FontWeight.w800,
                         color: accent,
                         fontFeatures: const [FontFeature.tabularFigures()],
@@ -2393,7 +2393,7 @@ class _FreedomResultCard extends StatelessWidget {
                             Text(
                               'TIEMPO TOTAL',
                               style: TextStyle(
-                                fontSize: KreditTextSize.caption,
+                                fontSize: AppTextSize.caption,
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: 0.4,
                                 color: kredit.textTertiary,
@@ -2403,7 +2403,7 @@ class _FreedomResultCard extends StatelessWidget {
                             Text(
                               _monthsLabel(newMonthsTotal),
                               style: TextStyle(
-                                fontSize: KreditTextSize.body,
+                                fontSize: AppTextSize.body,
                                 fontWeight: FontWeight.w700,
                                 color: kredit.textPrimary,
                               ),
@@ -2424,7 +2424,7 @@ class _FreedomResultCard extends StatelessWidget {
                               Text(
                                 'AHORRO TOTAL',
                                 style: TextStyle(
-                                  fontSize: KreditTextSize.caption,
+                                  fontSize: AppTextSize.caption,
                                   fontWeight: FontWeight.w600,
                                   letterSpacing: 0.4,
                                   color: kredit.textTertiary,
@@ -2434,7 +2434,7 @@ class _FreedomResultCard extends StatelessWidget {
                               Text(
                                 formatCOP(result.totalInterestSaved),
                                 style: TextStyle(
-                                  fontSize: KreditTextSize.body,
+                                  fontSize: AppTextSize.body,
                                   fontWeight: FontWeight.w700,
                                   color: kredit.success,
                                 ),
@@ -2455,7 +2455,7 @@ class _FreedomResultCard extends StatelessWidget {
                               Text(
                                 'CUOTAS TOTALES',
                                 style: TextStyle(
-                                  fontSize: KreditTextSize.caption,
+                                  fontSize: AppTextSize.caption,
                                   fontWeight: FontWeight.w600,
                                   letterSpacing: 0.4,
                                   color: kredit.textTertiary,
@@ -2465,7 +2465,7 @@ class _FreedomResultCard extends StatelessWidget {
                               Text(
                                 '$cuotasRestantes pendientes',
                                 style: TextStyle(
-                                  fontSize: KreditTextSize.body,
+                                  fontSize: AppTextSize.body,
                                   fontWeight: FontWeight.w700,
                                   color: kredit.textPrimary,
                                 ),
@@ -2486,13 +2486,13 @@ class _FreedomResultCard extends StatelessWidget {
                   child: Row(
                     children: [
                       Icon(Icons.savings_outlined,
-                          size: KreditIconSize.small, color: kredit.success),
+                          size: AppIconSize.small, color: kredit.success),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           '$monthsSaved mes${monthsSaved == 1 ? '' : 'es'} antes libres con este abono extra mensual',
                           style: TextStyle(
-                            fontSize: KreditTextSize.body,
+                            fontSize: AppTextSize.body,
                             fontWeight: FontWeight.w600,
                             color: kredit.success,
                           ),
@@ -2508,7 +2508,7 @@ class _FreedomResultCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 12),
                   decoration: BoxDecoration(
                     color: kredit.bgCard,
-                    borderRadius: BorderRadius.circular(KreditRadius.tile),
+                    borderRadius: BorderRadius.circular(AppRadius.tile),
                     border: Border.all(color: kredit.borderCard),
                   ),
                   child: Row(
@@ -2522,7 +2522,7 @@ class _FreedomResultCard extends StatelessWidget {
                         child: Text(
                           'Con ese monto el impacto es marginal. Aumenta el abono extra para ver una diferencia mayor.',
                           style: TextStyle(
-                            fontSize: KreditTextSize.caption,
+                            fontSize: AppTextSize.caption,
                             fontStyle: FontStyle.italic,
                             color: kredit.textTertiary,
                           ),
@@ -2542,7 +2542,7 @@ class _FreedomResultCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 12),
           decoration: BoxDecoration(
             color: kredit.bgCard,
-            borderRadius: BorderRadius.circular(KreditRadius.tile),
+            borderRadius: BorderRadius.circular(AppRadius.tile),
             border: Border.all(color: kredit.borderCard),
           ),
           child: Row(
@@ -2554,7 +2554,7 @@ class _FreedomResultCard extends StatelessWidget {
                 child: Text(
                   'Proyección estimada. Sujeta a cambios según los pagos reales realizados.',
                   style: TextStyle(
-                    fontSize: KreditTextSize.caption,
+                    fontSize: AppTextSize.caption,
                     fontStyle: FontStyle.italic,
                     color: kredit.textTertiary,
                   ),
@@ -2569,14 +2569,14 @@ class _FreedomResultCard extends StatelessWidget {
           'Orden de pago recomendado',
           style: TextStyle(
               fontWeight: FontWeight.w600,
-              fontSize: KreditTextSize.body,
+              fontSize: AppTextSize.body,
               color: kredit.textPrimary),
         ),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
             border: Border.all(color: kredit.borderCard.withValues(alpha: 0.78)),
-            borderRadius: BorderRadius.circular(KreditRadius.card),
+            borderRadius: BorderRadius.circular(AppRadius.card),
           ),
           child: Column(
             children: [
@@ -2602,7 +2602,7 @@ class _FreedomCreditTile extends StatelessWidget {
   final int index;
   final bool isLast;
   final int maxMonths; // para escalar la barra de progreso
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   final Color accent;
   const _FreedomCreditTile({
     required this.row,
@@ -2648,7 +2648,7 @@ class _FreedomCreditTile extends StatelessWidget {
                   child: Text(
                     '${index + 1}',
                     style: TextStyle(
-                      fontSize: KreditTextSize.caption,
+                      fontSize: AppTextSize.caption,
                       fontWeight: FontWeight.w700,
                       color: isPriority ? Colors.white : kredit.textTertiary,
                     ),
@@ -2661,7 +2661,7 @@ class _FreedomCreditTile extends StatelessWidget {
                   row.credit.name,
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    fontSize: KreditTextSize.body,
+                    fontSize: AppTextSize.body,
                     color: kredit.textPrimary,
                   ),
                   maxLines: 1,
@@ -2674,14 +2674,14 @@ class _FreedomCreditTile extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: kredit.success.withValues(alpha: 0.13),
-                    borderRadius: BorderRadius.circular(KreditRadius.chip),
+                    borderRadius: BorderRadius.circular(AppRadius.chip),
                   ),
                   child: Text(
                     '-$saved m',
                     style: TextStyle(
                       color: kredit.success,
                       fontWeight: FontWeight.w700,
-                      fontSize: KreditTextSize.caption,
+                      fontSize: AppTextSize.caption,
                     ),
                   ),
                 ),
@@ -2705,7 +2705,7 @@ class _FreedomCreditTile extends StatelessWidget {
                 ? '${formatCOP(row.monthlyBase + row.monthlyExtra)}/mes · ${_monthsLabel(displayMonths)}'
                 : '${formatCOP(row.monthlyBase)}/mes · ${_monthsLabel(displayMonths)}',
             style: TextStyle(
-              fontSize: KreditTextSize.body,
+              fontSize: AppTextSize.body,
               color: isPriority ? accent : kredit.textSecondary,
             ),
           ),
@@ -2718,7 +2718,7 @@ class _FreedomCreditTile extends StatelessWidget {
 class _StrategyToggle extends StatelessWidget {
   final bool isAvalanche;
   final ValueChanged<bool> onChanged;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   final Color accent;
   const _StrategyToggle({
     required this.isAvalanche,
@@ -2732,7 +2732,7 @@ class _StrategyToggle extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: kredit.borderCard.withValues(alpha: 0.78)),
-        borderRadius: BorderRadius.circular(KreditRadius.card),
+        borderRadius: BorderRadius.circular(AppRadius.card),
       ),
       child: Row(
         children: [
@@ -2773,7 +2773,7 @@ class _StrategyOption extends StatelessWidget {
   final IconData icon;
   final bool selected;
   final VoidCallback onTap;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   final Color accent;
   final bool isLeft;
   const _StrategyOption({
@@ -2790,8 +2790,8 @@ class _StrategyOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final radius = BorderRadius.horizontal(
-      left: isLeft ? Radius.circular(KreditRadius.card - 1) : Radius.zero,
-      right: isLeft ? Radius.zero : Radius.circular(KreditRadius.card - 1),
+      left: isLeft ? Radius.circular(AppRadius.card - 1) : Radius.zero,
+      right: isLeft ? Radius.zero : Radius.circular(AppRadius.card - 1),
     );
     return InkWell(
       onTap: onTap,
@@ -2806,20 +2806,20 @@ class _StrategyOption extends StatelessWidget {
           children: [
             Icon(icon,
                 color: selected ? accent : kredit.textTertiary,
-                size: KreditIconSize.small),
+                size: AppIconSize.small),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
                 fontWeight: FontWeight.w700,
-                fontSize: KreditTextSize.body,
+                fontSize: AppTextSize.body,
                 color: selected ? accent : kredit.textPrimary,
               ),
             ),
             Text(
               description,
               style: TextStyle(
-                  fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+                  fontSize: AppTextSize.caption, color: kredit.textTertiary),
               textAlign: TextAlign.center,
             ),
           ],
@@ -2846,13 +2846,13 @@ class _WarningBanner extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Icon(Icons.warning_amber_rounded,
-            size: KreditIconSize.small, color: AppColors.warning),
+            size: AppIconSize.small, color: AppColors.warning),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             text,
             style: const TextStyle(
-              fontSize: KreditTextSize.body,
+              fontSize: AppTextSize.body,
               fontWeight: FontWeight.w600,
               color: AppColors.warning,
             ),
@@ -2866,7 +2866,7 @@ class _WarningBanner extends StatelessWidget {
 /// Texto informativo simple (sin tarjetas ni casos de acción) para estados
 /// vacíos del simulador — tipografía secundaria + ícono pequeño inline.
 class _InfoBanner extends StatelessWidget {
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   final IconData icon;
   final String text;
   const _InfoBanner(
@@ -2879,7 +2879,7 @@ class _InfoBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 12),
       decoration: BoxDecoration(
         color: kredit.bgCard,
-        borderRadius: BorderRadius.circular(KreditRadius.tile),
+        borderRadius: BorderRadius.circular(AppRadius.tile),
         border: Border.all(color: kredit.borderCard),
       ),
       child: Row(
@@ -2891,7 +2891,7 @@ class _InfoBanner extends StatelessWidget {
             child: Text(
               text,
               style: TextStyle(
-                fontSize: KreditTextSize.caption,
+                fontSize: AppTextSize.caption,
                 fontStyle: FontStyle.italic,
                 color: kredit.textTertiary,
               ),
@@ -2904,7 +2904,7 @@ class _InfoBanner extends StatelessWidget {
 }
 
 class _DisclaimerBanner extends StatelessWidget {
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   const _DisclaimerBanner({required this.kredit});
 
   @override
@@ -2914,7 +2914,7 @@ class _DisclaimerBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 12),
       decoration: BoxDecoration(
         color: kredit.bgCard,
-        borderRadius: BorderRadius.circular(KreditRadius.tile),
+        borderRadius: BorderRadius.circular(AppRadius.tile),
         border: Border.all(color: kredit.borderCard),
       ),
       child: Row(
@@ -2927,7 +2927,7 @@ class _DisclaimerBanner extends StatelessWidget {
               'Simulación aproximada con base en los datos registrados. '
               'Consulta con tu entidad financiera para información oficial.',
               style: TextStyle(
-                fontSize: KreditTextSize.caption,
+                fontSize: AppTextSize.caption,
                 fontStyle: FontStyle.italic,
                 color: kredit.textTertiary,
               ),
@@ -2954,7 +2954,7 @@ class _SaveScenarioButtonState extends State<_SaveScenarioButton> {
   bool _saving = false;
 
   Future<void> _tap() async {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final ctrl = TextEditingController();
     final nombre = await showDialog<String>(
       context: context,

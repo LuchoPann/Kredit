@@ -87,7 +87,7 @@ class _DataToolsCardState extends ConsumerState<DataToolsCard> {
   }
 
   Future<bool> _confirmUnencryptedShare() async {
-    return showKreditConfirmSheet(
+    return showAppConfirmSheet(
       context,
       title: 'Compartir respaldo sin cifrar',
       message:
@@ -112,11 +112,11 @@ class _DataToolsCardState extends ConsumerState<DataToolsCard> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                  'Respaldo guardado en Kredit/backups/${savedFile.uri.pathSegments.last}'),
+                  'Respaldo guardado en Krezium/backups/${savedFile.uri.pathSegments.last}'),
               action: SnackBarAction(
                 label: 'Compartir',
                 onPressed: () =>
-                    Share.shareXFiles([XFile(savedFile.path)], text: 'Respaldo de Kredit'),
+                    Share.shareXFiles([XFile(savedFile.path)], text: 'Respaldo de Krezium'),
               ),
             ),
           );
@@ -126,7 +126,7 @@ class _DataToolsCardState extends ConsumerState<DataToolsCard> {
         final tempFile = File(
             '${dir.path}/kredit_backup_${DateTime.now().millisecondsSinceEpoch}.json');
         await tempFile.writeAsString(json);
-        await Share.shareXFiles([XFile(tempFile.path)], text: 'Respaldo de Kredit');
+        await Share.shareXFiles([XFile(tempFile.path)], text: 'Respaldo de Krezium');
         await ref.read(lastBackupProvider.notifier).markBackedUpNow();
       }
     } catch (e) {
@@ -166,7 +166,7 @@ class _DataToolsCardState extends ConsumerState<DataToolsCard> {
       return;
     }
     if (!mounted) return;
-    final confirmed = await showKreditConfirmSheet(
+    final confirmed = await showAppConfirmSheet(
       context,
       title: 'Importar datos',
       message:
@@ -198,7 +198,7 @@ class _DataToolsCardState extends ConsumerState<DataToolsCard> {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     final lastBackup = ref.watch(lastBackupProvider);
     final backupOk = lastBackup != null;
@@ -237,7 +237,7 @@ class _DataToolsCardState extends ConsumerState<DataToolsCard> {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
             color: statusColor.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(KreditRadius.tile),
+            borderRadius: BorderRadius.circular(AppRadius.tile),
             border: Border.all(color: statusColor.withValues(alpha: 0.28)),
           ),
           child: Row(
@@ -252,7 +252,7 @@ class _DataToolsCardState extends ConsumerState<DataToolsCard> {
                 child: Text(
                   statusLabel,
                   style: TextStyle(
-                    fontSize: KreditTextSize.body,
+                    fontSize: AppTextSize.body,
                     fontWeight: FontWeight.w600,
                     color: statusColor,
                   ),
@@ -267,7 +267,7 @@ class _DataToolsCardState extends ConsumerState<DataToolsCard> {
         Text(
           'RESPALDO AUTOMÁTICO',
           style: TextStyle(
-            fontSize: KreditTextSize.caption,
+            fontSize: AppTextSize.caption,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.8,
             color: kredit.textTertiary,
@@ -279,14 +279,14 @@ class _DataToolsCardState extends ConsumerState<DataToolsCard> {
           title: Text(
             'Activar respaldo automático',
             style: TextStyle(
-              fontSize: KreditTextSize.body,
+              fontSize: AppTextSize.body,
               fontWeight: FontWeight.w600,
               color: kredit.textPrimary,
             ),
           ),
           subtitle: Text(
             _autoBackupEnabled ? 'Al abrir la app, según la frecuencia elegida' : 'Solo respaldos manuales',
-            style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+            style: TextStyle(fontSize: AppTextSize.caption, color: kredit.textTertiary),
           ),
           value: _autoBackupEnabled,
           onChanged: (v) {
@@ -316,12 +316,12 @@ class _DataToolsCardState extends ConsumerState<DataToolsCard> {
           // Hora del respaldo
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.schedule_outlined, size: KreditIconSize.small, color: kredit.textTertiary),
+            leading: Icon(Icons.schedule_outlined, size: AppIconSize.small, color: kredit.textTertiary),
             title: Text('Hora del respaldo',
-                style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textPrimary)),
+                style: TextStyle(fontSize: AppTextSize.body, color: kredit.textPrimary)),
             trailing: Text('$h:$m',
                 style: TextStyle(
-                    fontSize: KreditTextSize.body,
+                    fontSize: AppTextSize.body,
                     fontWeight: FontWeight.w700,
                     color: accent)),
             onTap: () async {
@@ -341,11 +341,11 @@ class _DataToolsCardState extends ConsumerState<DataToolsCard> {
           // Próximo respaldo
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.event_outlined, size: KreditIconSize.small, color: kredit.textTertiary),
+            leading: Icon(Icons.event_outlined, size: AppIconSize.small, color: kredit.textTertiary),
             title: Text('Próximo respaldo',
-                style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textPrimary)),
+                style: TextStyle(fontSize: AppTextSize.body, color: kredit.textPrimary)),
             subtitle: Text(_nextBackupLabel(),
-                style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary)),
+                style: TextStyle(fontSize: AppTextSize.caption, color: kredit.textTertiary)),
           ),
         ],
         const SizedBox(height: 16),
@@ -354,7 +354,7 @@ class _DataToolsCardState extends ConsumerState<DataToolsCard> {
         Text(
           'CONFIGURACIÓN',
           style: TextStyle(
-            fontSize: KreditTextSize.caption,
+            fontSize: AppTextSize.caption,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.8,
             color: kredit.textTertiary,
@@ -364,12 +364,12 @@ class _DataToolsCardState extends ConsumerState<DataToolsCard> {
         // Carpeta de destino
         ListTile(
           contentPadding: EdgeInsets.zero,
-          leading: Icon(Icons.folder_outlined, size: KreditIconSize.small, color: kredit.textTertiary),
+          leading: Icon(Icons.folder_outlined, size: AppIconSize.small, color: kredit.textTertiary),
           title: Text('Carpeta de destino',
-              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textPrimary)),
+              style: TextStyle(fontSize: AppTextSize.body, color: kredit.textPrimary)),
           subtitle: Text(
-            _customPath != null ? '$_customPath/Kredit/backups/' : 'Predeterminada: Kredit/backups/',
-            style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+            _customPath != null ? '$_customPath/Krezium/backups/' : 'Predeterminada: Krezium/backups/',
+            style: TextStyle(fontSize: AppTextSize.caption, color: kredit.textTertiary),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -382,7 +382,7 @@ class _DataToolsCardState extends ConsumerState<DataToolsCard> {
                     _savePrefs();
                   },
                 )
-              : Icon(Icons.chevron_right, size: KreditIconSize.small, color: kredit.textTertiary),
+              : Icon(Icons.chevron_right, size: AppIconSize.small, color: kredit.textTertiary),
           onTap: () async {
             final path = await FilePicker.platform.getDirectoryPath();
             if (path != null) {
@@ -400,12 +400,12 @@ class _DataToolsCardState extends ConsumerState<DataToolsCard> {
               Row(
                 children: [
                   Icon(Icons.file_copy_outlined,
-                      size: KreditIconSize.small, color: kredit.textTertiary),
+                      size: AppIconSize.small, color: kredit.textTertiary),
                   const SizedBox(width: 8),
                   Text(
                     'Modo de archivo',
                     style: TextStyle(
-                        fontSize: KreditTextSize.body,
+                        fontSize: AppTextSize.body,
                         fontWeight: FontWeight.w600,
                         color: kredit.textPrimary),
                   ),
@@ -415,7 +415,7 @@ class _DataToolsCardState extends ConsumerState<DataToolsCard> {
                         ? 'Sobreescribe el mismo'
                         : 'Uno por cada respaldo',
                     style: TextStyle(
-                        fontSize: KreditTextSize.caption,
+                        fontSize: AppTextSize.caption,
                         color: kredit.textTertiary),
                   ),
                 ],

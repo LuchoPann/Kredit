@@ -20,12 +20,12 @@ class InterestRateTypeField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     // Mismo fontSize explícito que el campo de texto vecino (ej. "Interés
     // anual (%)") — sin esto, este dropdown cae al estilo por defecto de
     // Material (distinto tamaño/peso) y ambos campos de la misma fila se
     // ven visiblemente descuadrados entre sí, aunque compartan isDense.
-    const style = TextStyle(fontSize: KreditTextSize.body);
+    const style = TextStyle(fontSize: AppTextSize.body);
     return DropdownButtonFormField<String>(
       isExpanded: true,
       style: style.copyWith(color: kredit.textPrimary),

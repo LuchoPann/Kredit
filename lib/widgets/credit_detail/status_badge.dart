@@ -15,7 +15,7 @@ class StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     Color color;
     IconData icon;
     switch (status.state) {
@@ -40,17 +40,17 @@ class StatusBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(KreditRadius.chip),
+        borderRadius: BorderRadius.circular(AppRadius.chip),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: KreditIconSize.small, color: color),
+          Icon(icon, size: AppIconSize.small, color: color),
           const SizedBox(width: 4),
           Text(
             status.label,
             style: TextStyle(
-              fontSize: KreditTextSize.body,
+              fontSize: AppTextSize.body,
               color: color,
               fontWeight: FontWeight.w700,
             ),

@@ -96,7 +96,7 @@ class VoucherPatternPicker extends StatelessWidget {
                                   ),
                                   child: const Icon(
                                     Icons.check,
-                                    size: KreditIconSize.micro,
+                                    size: AppIconSize.micro,
                                     color: Colors.white,
                                   ),
                                 ),
@@ -111,7 +111,7 @@ class VoucherPatternPicker extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: KreditTextSize.body,
+                          fontSize: AppTextSize.body,
                           fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                           color: isSelected ? scheme.primary : scheme.onSurfaceVariant,
                         ),
@@ -186,7 +186,7 @@ class _VoucherPickerSheet extends StatelessWidget {
             Text(
               'DISEÑO DE VOUCHER',
               style: TextStyle(
-                fontSize: KreditTextSize.body,
+                fontSize: AppTextSize.body,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.2,
                 color: scheme.onSurfaceVariant,
@@ -255,7 +255,7 @@ class _VoucherPickerSheet extends StatelessWidget {
                                       ),
                                       child: const Icon(
                                         Icons.check,
-                                        size: KreditIconSize.micro,
+                                        size: AppIconSize.micro,
                                         color: Colors.white,
                                       ),
                                     ),
@@ -270,7 +270,7 @@ class _VoucherPickerSheet extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: KreditTextSize.body,
+                              fontSize: AppTextSize.body,
                               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                               color: isSelected ? scheme.primary : scheme.onSurfaceVariant,
                             ),

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kredit/data/models/commercial_quota.dart';
+import 'package:krezium/data/models/commercial_quota.dart';
 
 void main() {
   test('toJson/fromJson round-trip', () {

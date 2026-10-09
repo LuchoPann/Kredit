@@ -48,7 +48,7 @@ class _CalculatorSheetState extends State<CalculatorSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     final hasAmount = _amount > 0;
 
@@ -79,12 +79,12 @@ class _CalculatorSheetState extends State<CalculatorSheet> {
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
               child: Row(
                 children: [
-                  Icon(Icons.calculate_outlined, size: KreditIconSize.medium, color: accent),
+                  Icon(Icons.calculate_outlined, size: AppIconSize.medium, color: accent),
                   const SizedBox(width: 12),
                   Text(
                     'Calculadora de cuotas',
                     style: TextStyle(
-                      fontSize: KreditTextSize.heading,
+                      fontSize: AppTextSize.heading,
                       fontWeight: FontWeight.w800,
                       color: kredit.textPrimary,
                     ),
@@ -103,7 +103,7 @@ class _CalculatorSheetState extends State<CalculatorSheet> {
                   Text(
                     'VALOR DEL ARTÍCULO',
                     style: TextStyle(
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.8,
                       color: kredit.textTertiary,
@@ -119,14 +119,14 @@ class _CalculatorSheetState extends State<CalculatorSheet> {
                     ],
                     onChanged: (_) => setState(() {}),
                     style: TextStyle(
-                      fontSize: KreditTextSize.heading,
+                      fontSize: AppTextSize.heading,
                       fontWeight: FontWeight.w700,
                       color: kredit.textPrimary,
                     ),
                     decoration: InputDecoration(
                       prefixText: r'$ ',
                       prefixStyle: TextStyle(
-                        fontSize: KreditTextSize.heading,
+                        fontSize: AppTextSize.heading,
                         fontWeight: FontWeight.w700,
                         color: kredit.textTertiary,
                       ),
@@ -135,15 +135,15 @@ class _CalculatorSheetState extends State<CalculatorSheet> {
                       filled: true,
                       fillColor: kredit.bgCard,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(KreditRadius.tile),
+                        borderRadius: BorderRadius.circular(AppRadius.tile),
                         borderSide: BorderSide(color: kredit.borderCard),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(KreditRadius.tile),
+                        borderRadius: BorderRadius.circular(AppRadius.tile),
                         borderSide: BorderSide(color: kredit.borderCard),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(KreditRadius.tile),
+                        borderRadius: BorderRadius.circular(AppRadius.tile),
                         borderSide: BorderSide(color: accent, width: 1.5),
                       ),
                     ),
@@ -154,7 +154,7 @@ class _CalculatorSheetState extends State<CalculatorSheet> {
                   Text(
                     'NÚMERO DE CUOTAS',
                     style: TextStyle(
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.8,
                       color: kredit.textTertiary,
@@ -175,7 +175,7 @@ class _CalculatorSheetState extends State<CalculatorSheet> {
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                               decoration: BoxDecoration(
                                 color: sel ? accent.withValues(alpha: 0.15) : kredit.bgCard,
-                                borderRadius: BorderRadius.circular(KreditRadius.chip),
+                                borderRadius: BorderRadius.circular(AppRadius.chip),
                                 border: Border.all(
                                   color: sel ? accent : kredit.borderCard,
                                   width: sel ? 1.5 : 1,
@@ -184,7 +184,7 @@ class _CalculatorSheetState extends State<CalculatorSheet> {
                               child: Text(
                                 '$n',
                                 style: TextStyle(
-                                  fontSize: KreditTextSize.body,
+                                  fontSize: AppTextSize.body,
                                   fontWeight: sel ? FontWeight.w700 : FontWeight.w500,
                                   color: sel ? accent : kredit.textSecondary,
                                 ),
@@ -201,7 +201,7 @@ class _CalculatorSheetState extends State<CalculatorSheet> {
                   Text(
                     'TASA DE INTERÉS MENSUAL (%)',
                     style: TextStyle(
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.8,
                       color: kredit.textTertiary,
@@ -213,33 +213,33 @@ class _CalculatorSheetState extends State<CalculatorSheet> {
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     onChanged: (_) => setState(() {}),
                     style: TextStyle(
-                      fontSize: KreditTextSize.heading,
+                      fontSize: AppTextSize.heading,
                       fontWeight: FontWeight.w700,
                       color: kredit.textPrimary,
                     ),
                     decoration: InputDecoration(
                       suffixText: '%',
                       suffixStyle: TextStyle(
-                        fontSize: KreditTextSize.heading,
+                        fontSize: AppTextSize.heading,
                         fontWeight: FontWeight.w700,
                         color: kredit.textTertiary,
                       ),
                       hintText: '0.00',
                       hintStyle: TextStyle(color: kredit.textTertiary),
                       helperText: 'Ej: 1.5 para 1.5% mensual. Deja en 0 para cuotas sin interés.',
-                      helperStyle: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+                      helperStyle: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
                       filled: true,
                       fillColor: kredit.bgCard,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(KreditRadius.tile),
+                        borderRadius: BorderRadius.circular(AppRadius.tile),
                         borderSide: BorderSide(color: kredit.borderCard),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(KreditRadius.tile),
+                        borderRadius: BorderRadius.circular(AppRadius.tile),
                         borderSide: BorderSide(color: kredit.borderCard),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(KreditRadius.tile),
+                        borderRadius: BorderRadius.circular(AppRadius.tile),
                         borderSide: BorderSide(color: accent, width: 1.5),
                       ),
                     ),
@@ -285,15 +285,15 @@ class _CalculatorSheetState extends State<CalculatorSheet> {
                     const SizedBox(height: 28),
                   ] else ...[
                     Container(
-                      padding: const EdgeInsets.all(KreditSpacing.card),
+                      padding: const EdgeInsets.all(AppSpacing.card),
                       decoration: BoxDecoration(
                         color: kredit.bgCard,
-                        borderRadius: BorderRadius.circular(KreditRadius.card),
+                        borderRadius: BorderRadius.circular(AppRadius.card),
                         border: Border.all(color: kredit.borderCard.withValues(alpha: 0.5)),
                       ),
                       child: Text(
                         'Ingresa el valor del artículo para ver el cálculo.',
-                        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+                        style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -310,7 +310,7 @@ class _CalculatorSheetState extends State<CalculatorSheet> {
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         textStyle: const TextStyle(
-                          fontSize: KreditTextSize.body,
+                          fontSize: AppTextSize.body,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -330,7 +330,7 @@ class _ResultCard extends StatelessWidget {
   final String label;
   final String value;
   final String detail;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   final Color accent;
   final bool highlight;
 
@@ -347,10 +347,10 @@ class _ResultCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(KreditSpacing.card),
+      padding: const EdgeInsets.all(AppSpacing.card),
       decoration: BoxDecoration(
         color: highlight ? accent.withValues(alpha: 0.08) : kredit.bgCard,
-        borderRadius: BorderRadius.circular(KreditRadius.card),
+        borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(
           color: highlight ? accent.withValues(alpha: 0.4) : kredit.borderCard.withValues(alpha: 0.6),
         ),
@@ -361,7 +361,7 @@ class _ResultCard extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontSize: KreditTextSize.body,
+              fontSize: AppTextSize.body,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.0,
               color: highlight ? accent : kredit.textTertiary,
@@ -371,7 +371,7 @@ class _ResultCard extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              fontSize: highlight ? KreditTextSize.emphasis : KreditTextSize.heading,
+              fontSize: highlight ? AppTextSize.emphasis : AppTextSize.heading,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.5,
               color: kredit.textPrimary,
@@ -380,7 +380,7 @@ class _ResultCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             detail,
-            style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+            style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
           ),
         ],
       ),

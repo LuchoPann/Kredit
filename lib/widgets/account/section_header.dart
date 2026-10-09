@@ -10,18 +10,18 @@ import '../../theme/app_theme.dart';
 Widget sectionHeader(String title, {Color? color, String? subtitle}) {
   return Builder(
     builder: (context) {
-      final kredit = Theme.of(context).extension<KreditColors>()!;
+      final kredit = Theme.of(context).extension<AppThemeColors>()!;
       final resolvedColor = color ?? kredit.textPrimary;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.heading, color: resolvedColor),
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSize.heading, color: resolvedColor),
           ),
           if (subtitle != null) ...[
             const SizedBox(height: 3),
-            Text(subtitle, style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary)),
+            Text(subtitle, style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary)),
           ],
         ],
       );

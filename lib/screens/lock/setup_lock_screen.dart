@@ -77,7 +77,7 @@ class _SetupLockBodyState extends ConsumerState<SetupLockBody> {
   @override
   Widget build(BuildContext context) {
     final method = ref.watch(appLockProvider).method;
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -86,10 +86,10 @@ class _SetupLockBodyState extends ConsumerState<SetupLockBody> {
         mainAxisSize: MainAxisSize.min,
         children: [
         Text(
-          'Elige cómo proteger el acceso a Kredit al abrir la app.',
+          'Elige cómo proteger el acceso a Krezium al abrir la app.',
           style: TextStyle(color: kredit.textSecondary),
         ),
-        const SizedBox(height: KreditSpacing.section),
+        const SizedBox(height: AppSpacing.section),
         Divider(height: 1, color: kredit.borderCard),
         _LockOptionTile(
           icon: Icons.lock_open_outlined,
@@ -152,7 +152,7 @@ class _LockOptionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     final contentColor = enabled ? kredit.textPrimary : kredit.textTertiary;
 
@@ -167,7 +167,7 @@ class _LockOptionTile extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Icon(icon, size: KreditIconSize.small, color: selected ? accent : contentColor),
+              Icon(icon, size: AppIconSize.small, color: selected ? accent : contentColor),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -177,14 +177,14 @@ class _LockOptionTile extends StatelessWidget {
                       title,
                       style: TextStyle(
                         color: contentColor,
-                        fontSize: KreditTextSize.body,
+                        fontSize: AppTextSize.body,
                         fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: TextStyle(color: kredit.textSecondary, fontSize: KreditTextSize.body),
+                      style: TextStyle(color: kredit.textSecondary, fontSize: AppTextSize.body),
                     ),
                   ],
                 ),
@@ -197,7 +197,7 @@ class _LockOptionTile extends StatelessWidget {
                   decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
                 )
               else if (enabled)
-                Icon(Icons.chevron_right, size: KreditIconSize.small, color: kredit.textTertiary),
+                Icon(Icons.chevron_right, size: AppIconSize.small, color: kredit.textTertiary),
             ],
           ),
         ),
@@ -301,7 +301,7 @@ class _PinSetupFlowState extends State<_PinSetupFlow>
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
@@ -329,7 +329,7 @@ class _PinSetupFlowState extends State<_PinSetupFlow>
                   ),
                   child: Icon(
                     Icons.pin_outlined,
-                    size: KreditIconSize.large,
+                    size: AppIconSize.large,
                     color: kredit.textPrimary,
                   ),
                 ),
@@ -341,7 +341,7 @@ class _PinSetupFlowState extends State<_PinSetupFlow>
                       ? 'Ingresa el PIN de nuevo para confirmar'
                       : 'Ingresa de 4 a 6 dígitos',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: kredit.textSecondary, fontSize: KreditTextSize.body),
+                  style: TextStyle(color: kredit.textSecondary, fontSize: AppTextSize.body),
                 ),
                 const SizedBox(height: 36),
 
@@ -443,7 +443,7 @@ class _PinSetupFlowState extends State<_PinSetupFlow>
                             'Los PIN no coinciden, intenta de nuevo',
                             style: TextStyle(
                               color: AppColors.danger,
-                              fontSize: KreditTextSize.body,
+                              fontSize: AppTextSize.body,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -475,10 +475,10 @@ class _PinSetupFlowState extends State<_PinSetupFlow>
                 TextButton.icon(
                   onPressed: () => _pinFocus.requestFocus(),
                   icon: Icon(Icons.keyboard_outlined,
-                      size: KreditIconSize.small, color: kredit.textTertiary),
+                      size: AppIconSize.small, color: kredit.textTertiary),
                   label: Text(
                     'Abrir teclado',
-                    style: TextStyle(color: kredit.textTertiary, fontSize: KreditTextSize.body),
+                    style: TextStyle(color: kredit.textTertiary, fontSize: AppTextSize.body),
                   ),
                 ),
               ],

@@ -109,7 +109,7 @@ class _DashboardErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -118,7 +118,7 @@ class _DashboardErrorState extends StatelessWidget {
           children: [
             Icon(
               Icons.error_outline,
-              size: KreditIconSize.large,
+              size: AppIconSize.large,
               color: kredit.textTertiary,
             ),
             const SizedBox(height: 16),
@@ -126,14 +126,14 @@ class _DashboardErrorState extends StatelessWidget {
               'No se pudieron cargar tus créditos.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: KreditTextSize.body,
+                fontSize: AppTextSize.body,
                 color: kredit.textSecondary,
               ),
             ),
             const SizedBox(height: 20),
             OutlinedButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh, size: KreditIconSize.small),
+              icon: const Icon(Icons.refresh, size: AppIconSize.small),
               label: const Text('Reintentar'),
             ),
           ],
@@ -165,7 +165,7 @@ class _DashboardBody extends ConsumerWidget {
     final data = ref.watch(dashboardDataProvider);
     if (data == null) return const _EmptyDashboard();
 
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final activeCredits = data.activeCredits;
 
     if (activeCredits.isEmpty && ref.watch(totalCreditsCountProvider) == 0) {
@@ -191,9 +191,9 @@ class _DashboardBody extends ConsumerWidget {
       // Extra bottom clearance so the last row of content can scroll clear
       // of the floating "+" button instead of sitting hidden behind it.
       padding: const EdgeInsets.fromLTRB(
-        KreditSpacing.card,
-        KreditSpacing.card,
-        KreditSpacing.card,
+        AppSpacing.card,
+        AppSpacing.card,
+        AppSpacing.card,
         88,
       ),
       children: [
@@ -245,7 +245,7 @@ class _DashboardBody extends ConsumerWidget {
                   Text(
                     'Tu situación crediticia',
                     style: TextStyle(
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                       color: kredit.textSecondary,
                     ),
                   ),
@@ -253,7 +253,7 @@ class _DashboardBody extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 8),
-            const KreditLogo(height: 26),
+            const AppLogo(height: 26),
           ],
         ),
         const SizedBox(height: 28),
@@ -269,7 +269,7 @@ class _DashboardBody extends ConsumerWidget {
                   Text(
                     'DEUDA TOTAL',
                     style: TextStyle(
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.4,
                       color: kredit.textTertiary,
@@ -279,7 +279,7 @@ class _DashboardBody extends ConsumerWidget {
                   Text(
                     formatCOP(totalDebt),
                     style: const TextStyle(
-                      fontSize: KreditTextSize.hero,
+                      fontSize: AppTextSize.hero,
                       fontWeight: FontWeight.w800,
                       letterSpacing: -1.2,
                       height: 1.0,
@@ -319,7 +319,7 @@ class _DashboardBody extends ConsumerWidget {
             ),
           ],
         ),
-        const SizedBox(height: KreditSpacing.section),
+        const SizedBox(height: AppSpacing.section),
 
         // 3. Prioridad de hoy — el dashboard deja de ser solo un reporte y
         // empieza a comportarse como una guía: identifica el pago más urgente
@@ -340,10 +340,10 @@ class _DashboardBody extends ConsumerWidget {
         // ese archivo, asi que se replica aqui en vez de exportarla, para
         // no acoplar dos pantallas por un widget tan chico).
         if (activeCredits.isNotEmpty) ...[
-          const SizedBox(height: KreditSpacing.section),
-          KreditSectionCard(
+          const SizedBox(height: AppSpacing.section),
+          AppSectionCard(
             children: [
-              // Material transparente: KreditSectionCard pinta su fondo con
+              // Material transparente: AppSectionCard pinta su fondo con
               // un DecoratedBox (no un Material), así que el ink splash del
               // ListTile pintaba en el Material ancestro más cercano (mucho
               // más arriba en el árbol) y quedaba oculto detrás de esa caja
@@ -359,11 +359,11 @@ class _DashboardBody extends ConsumerWidget {
                 leading: Icon(Icons.calculate_outlined, color: Theme.of(context).colorScheme.primary),
                 title: const Text(
                   '¿Qué pasa si…?',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.body),
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSize.body),
                 ),
                 subtitle: Text(
                   'Simula una compra en cuotas o un abono extra a capital',
-                  style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
+                  style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary),
                 ),
                 trailing: Icon(Icons.chevron_right, color: kredit.textTertiary),
                 ),
@@ -377,11 +377,11 @@ class _DashboardBody extends ConsumerWidget {
                 leading: Icon(Icons.bolt_rounded, color: Theme.of(context).colorScheme.primary),
                 title: const Text(
                   'Herramientas de ataque',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.body),
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSize.body),
                 ),
                 subtitle: Text(
                   'Snowball, Avalanche, metas y más',
-                  style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
+                  style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary),
                 ),
                 trailing: Icon(Icons.chevron_right, color: kredit.textTertiary),
                 ),
@@ -406,7 +406,7 @@ class _SecondaryStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -415,7 +415,7 @@ class _SecondaryStat extends StatelessWidget {
           value,
           style: const TextStyle(
             fontWeight: FontWeight.w700,
-            fontSize: KreditTextSize.heading,
+            fontSize: AppTextSize.heading,
             letterSpacing: -0.3,
             fontFeatures: [FontFeature.tabularFigures()],
           ),
@@ -426,7 +426,7 @@ class _SecondaryStat extends StatelessWidget {
         Text(
           label.toUpperCase(),
           style: TextStyle(
-            fontSize: KreditTextSize.body,
+            fontSize: AppTextSize.body,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.6,
             color: kredit.textTertiary,
@@ -455,7 +455,7 @@ class _PaymentCoachCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     final fgOnAccent = legibleForegroundOn(accent);
     final item = recommendation.payment;
@@ -466,10 +466,10 @@ class _PaymentCoachCard extends ConsumerWidget {
         item == null ? kredit.borderCard : urgencyColor.withValues(alpha: 0.28);
 
     return Container(
-      padding: const EdgeInsets.all(KreditSpacing.card),
+      padding: const EdgeInsets.all(AppSpacing.card),
       decoration: BoxDecoration(
         color: kredit.bgCard,
-        borderRadius: BorderRadius.circular(KreditRadius.card),
+        borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(color: borderColor),
       ),
       child: Column(
@@ -484,14 +484,14 @@ class _PaymentCoachCard extends ConsumerWidget {
                 'Tus créditos',
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
-                  fontSize: KreditTextSize.heading,
+                  fontSize: AppTextSize.heading,
                 ),
               ),
               const SizedBox(width: 8),
               Text(
                 '${credits.length}',
                 style: TextStyle(
-                  fontSize: KreditTextSize.body,
+                  fontSize: AppTextSize.body,
                   fontWeight: FontWeight.w600,
                   color: kredit.textTertiary,
                 ),
@@ -506,7 +506,7 @@ class _PaymentCoachCard extends ConsumerWidget {
                 onPressed: onSeeAll,
                 child: const Text(
                   'Ver todos',
-                  style: TextStyle(fontSize: KreditTextSize.body),
+                  style: TextStyle(fontSize: AppTextSize.body),
                 ),
               ),
             ],
@@ -524,11 +524,11 @@ class _PaymentCoachCard extends ConsumerWidget {
                   height: 38,
                   decoration: BoxDecoration(
                     color: kredit.success.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(KreditRadius.tile),
+                    borderRadius: BorderRadius.circular(AppRadius.tile),
                   ),
                   child: Icon(
                     Icons.check_circle_outline,
-                    size: KreditIconSize.small,
+                    size: AppIconSize.small,
                     color: kredit.success,
                   ),
                 ),
@@ -540,7 +540,7 @@ class _PaymentCoachCard extends ConsumerWidget {
                       const Text(
                         'Prioridad de hoy',
                         style: TextStyle(
-                          fontSize: KreditTextSize.body,
+                          fontSize: AppTextSize.body,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -548,7 +548,7 @@ class _PaymentCoachCard extends ConsumerWidget {
                       Text(
                         'No tienes pagos pendientes por resolver.',
                         style: TextStyle(
-                          fontSize: KreditTextSize.body,
+                          fontSize: AppTextSize.body,
                           color: kredit.textSecondary,
                         ),
                       ),
@@ -608,7 +608,7 @@ class _NextPaymentBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final daysLeft = item.daysUntilDue();
     final relativeLabel = formatRelativeDate(item.dueDate);
 
@@ -623,11 +623,11 @@ class _NextPaymentBlock extends StatelessWidget {
               height: 38,
               decoration: BoxDecoration(
                 color: urgencyColor.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(KreditRadius.tile),
+                borderRadius: BorderRadius.circular(AppRadius.tile),
               ),
               child: Icon(
                 daysLeft < 0 ? Icons.priority_high_rounded : Icons.payments_outlined,
-                size: KreditIconSize.small,
+                size: AppIconSize.small,
                 color: urgencyColor,
               ),
             ),
@@ -639,7 +639,7 @@ class _NextPaymentBlock extends StatelessWidget {
                   Text(
                     recommendation.title.toUpperCase(),
                     style: TextStyle(
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.7,
                       color: kredit.textTertiary,
@@ -649,7 +649,7 @@ class _NextPaymentBlock extends StatelessWidget {
                   Text(
                     item.credit.name,
                     style: const TextStyle(
-                      fontSize: KreditTextSize.heading,
+                      fontSize: AppTextSize.heading,
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.3,
                     ),
@@ -666,7 +666,7 @@ class _NextPaymentBlock extends StatelessWidget {
                 Text(
                   formatCOP(item.amount),
                   style: const TextStyle(
-                    fontSize: KreditTextSize.heading,
+                    fontSize: AppTextSize.heading,
                     fontWeight: FontWeight.w800,
                     fontFeatures: [FontFeature.tabularFigures()],
                   ),
@@ -675,7 +675,7 @@ class _NextPaymentBlock extends StatelessWidget {
                 Text(
                   relativeLabel,
                   style: TextStyle(
-                    fontSize: KreditTextSize.body,
+                    fontSize: AppTextSize.body,
                     fontWeight: FontWeight.w700,
                     color: urgencyColor,
                   ),
@@ -688,7 +688,7 @@ class _NextPaymentBlock extends StatelessWidget {
         Text(
           recommendation.description,
           style: TextStyle(
-            fontSize: KreditTextSize.body,
+            fontSize: AppTextSize.body,
             color: kredit.textSecondary,
             height: 1.35,
           ),
@@ -700,7 +700,7 @@ class _NextPaymentBlock extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: () => Navigator.of(context)
                     .pushNamed('/credit-detail', arguments: item.credit.id),
-                icon: const Icon(Icons.open_in_new, size: KreditIconSize.small),
+                icon: const Icon(Icons.open_in_new, size: AppIconSize.small),
                 label: const Text('Ver detalle'),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(42),
@@ -714,7 +714,7 @@ class _NextPaymentBlock extends StatelessWidget {
               IconButton.outlined(
                 tooltip: 'Marcar cuota como pagada',
                 onPressed: onTogglePaid,
-                icon: const Icon(Icons.done, size: KreditIconSize.small),
+                icon: const Icon(Icons.done, size: AppIconSize.small),
                 style: IconButton.styleFrom(
                   minimumSize: const Size(42, 42),
                   foregroundColor: kredit.textPrimary,
@@ -733,7 +733,7 @@ Color _severityColor(
   BuildContext context,
   RecommendationSeverity severity,
 ) {
-  final kredit = Theme.of(context).extension<KreditColors>()!;
+  final kredit = Theme.of(context).extension<AppThemeColors>()!;
   final accent = Theme.of(context).colorScheme.primary;
   return switch (severity) {
     RecommendationSeverity.calm => kredit.success,
@@ -760,7 +760,7 @@ class _CreditListRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final bank = detectBank(lender: credit.lender);
     final hex = bank.accentColor.replaceFirst('#', '');
     final bankColor = hex.length == 6
@@ -847,7 +847,7 @@ class _CreditListRow extends StatelessWidget {
                         child: Text(
                           credit.name,
                           style: const TextStyle(
-                            fontSize: KreditTextSize.body,
+                            fontSize: AppTextSize.body,
                             fontWeight: FontWeight.w700,
                           ),
                           maxLines: 1,
@@ -863,12 +863,12 @@ class _CreditListRow extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: urgencyColor!.withValues(alpha: 0.13),
-                            borderRadius: BorderRadius.circular(KreditRadius.chip),
+                            borderRadius: BorderRadius.circular(AppRadius.chip),
                           ),
                           child: Text(
                             urgencyLabel,
                             style: TextStyle(
-                              fontSize: KreditTextSize.caption,
+                              fontSize: AppTextSize.caption,
                               fontWeight: FontWeight.w700,
                               color: urgencyColor,
                             ),
@@ -886,7 +886,7 @@ class _CreditListRow extends StatelessWidget {
                         child: Text(
                           subtitleParts.join(' · '),
                           style: TextStyle(
-                            fontSize: KreditTextSize.body,
+                            fontSize: AppTextSize.body,
                             color: kredit.textTertiary,
                             fontWeight: FontWeight.w500,
                           ),
@@ -918,12 +918,12 @@ class _CreditListRow extends StatelessWidget {
                                 color: paid
                                     ? kredit.success.withValues(alpha: 0.16)
                                     : accentColor,
-                                borderRadius: BorderRadius.circular(KreditRadius.chip),
+                                borderRadius: BorderRadius.circular(AppRadius.chip),
                               ),
                               child: Text(
                                 paid ? 'Pagado' : 'Marcar pago',
                                 style: TextStyle(
-                                  fontSize: KreditTextSize.body,
+                                  fontSize: AppTextSize.body,
                                   fontWeight: FontWeight.w700,
                                   color: paid ? kredit.success : fgColor,
                                 ),
@@ -965,7 +965,7 @@ class _CreditsListSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
 
     final displayCredits = priorityCreditId == null
         ? credits
@@ -1013,7 +1013,7 @@ class _EmptyDashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -1022,7 +1022,7 @@ class _EmptyDashboard extends StatelessWidget {
           children: [
             Icon(
               Icons.account_balance_wallet_outlined,
-              size: KreditIconSize.large,
+              size: AppIconSize.large,
               color: kredit.textTertiary,
             ),
             const SizedBox(height: 16),
@@ -1030,7 +1030,7 @@ class _EmptyDashboard extends StatelessWidget {
               'Aún no tienes créditos registrados',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
-                fontSize: KreditTextSize.body,
+                fontSize: AppTextSize.body,
               ),
               textAlign: TextAlign.center,
             ),
@@ -1038,7 +1038,7 @@ class _EmptyDashboard extends StatelessWidget {
             Text(
               'Agrega tu primera tarjeta o préstamo para empezar a llevar el control.',
               style: TextStyle(
-                fontSize: KreditTextSize.body,
+                fontSize: AppTextSize.body,
                 color: kredit.textSecondary,
               ),
               textAlign: TextAlign.center,

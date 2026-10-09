@@ -88,24 +88,24 @@ class _ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: KreditIconSize.large, color: kredit.textTertiary),
+            Icon(Icons.error_outline, size: AppIconSize.large, color: kredit.textTertiary),
             const SizedBox(height: 16),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
+              style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary),
             ),
             const SizedBox(height: 20),
             OutlinedButton.icon(
               onPressed: onRetry,
-              icon: const Icon(Icons.refresh, size: KreditIconSize.small),
+              icon: const Icon(Icons.refresh, size: AppIconSize.small),
               label: const Text('Reintentar'),
             ),
           ],
@@ -143,7 +143,7 @@ class _CreditsListBodyState extends ConsumerState<_CreditsListBody>
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final filter = ref.watch(creditsFilterProvider);
     final active = widget.credits.where(creditHasUnpaid).toList();
     final completed = widget.credits.where((c) => !creditHasUnpaid(c)).toList();
@@ -163,11 +163,11 @@ class _CreditsListBodyState extends ConsumerState<_CreditsListBody>
                   controller: _searchController,
                   decoration: InputDecoration(
                     hintText: 'Buscar crédito, banco...',
-                    hintStyle: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
-                    prefixIcon: Icon(Icons.search, size: KreditIconSize.small, color: kredit.textSecondary),
+                    hintStyle: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
+                    prefixIcon: Icon(Icons.search, size: AppIconSize.small, color: kredit.textSecondary),
                     suffixIcon: filter.query.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear, size: KreditIconSize.small),
+                            icon: const Icon(Icons.clear, size: AppIconSize.small),
                             onPressed: () {
                               _searchController.clear();
                               ref.read(creditsFilterProvider.notifier).setQuery('');
@@ -213,7 +213,7 @@ class _CreditsListBodyState extends ConsumerState<_CreditsListBody>
                 ),
                 child: PopupMenuButton<CreditsSortOption>(
                   tooltip: 'Ordenar por',
-                  icon: Icon(Icons.sort, color: kredit.textSecondary, size: KreditIconSize.small),
+                  icon: Icon(Icons.sort, color: kredit.textSecondary, size: AppIconSize.small),
                   color: kredit.bgCard,
                   initialValue: filter.sort,
                   onSelected: (v) => ref.read(creditsFilterProvider.notifier).setSort(v),
@@ -259,8 +259,8 @@ class _CreditsListBodyState extends ConsumerState<_CreditsListBody>
           controller: _tabController,
           indicatorSize: TabBarIndicatorSize.label,
           indicatorWeight: 2.5,
-          labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.body),
-          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: KreditTextSize.body),
+          labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSize.body),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: AppTextSize.body),
           unselectedLabelColor: kredit.textTertiary,
           tabs: [
             Tab(text: 'Activos (${active.length})'),
@@ -353,7 +353,7 @@ class _QuickFilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     return Padding(
       padding: const EdgeInsets.only(right: 8),
@@ -362,7 +362,7 @@ class _QuickFilterChip extends StatelessWidget {
         selected: selected,
         onSelected: (_) => onTap(),
         labelStyle: TextStyle(
-          fontSize: KreditTextSize.body,
+          fontSize: AppTextSize.body,
           fontWeight: FontWeight.w700,
           color: selected ? legibleForegroundOn(accent) : kredit.textSecondary,
         ),
@@ -372,7 +372,7 @@ class _QuickFilterChip extends StatelessWidget {
           color: selected ? accent : kredit.borderCard.withValues(alpha: 0.7),
         ),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(KreditRadius.chip),
+          borderRadius: BorderRadius.circular(AppRadius.chip),
         ),
       ),
     );
@@ -537,7 +537,7 @@ class _FilteredListState extends ConsumerState<_FilteredList> {
   /// the user.
   Future<void> _confirmDeleteQuota(
       BuildContext context, WidgetRef ref, CommercialQuota quota) async {
-    final confirmed = await showKreditConfirmSheet(
+    final confirmed = await showAppConfirmSheet(
       context,
       title: '¿Eliminar "${quota.brand}"?',
       message: 'Esta acción no se puede deshacer.',
@@ -563,7 +563,7 @@ class _FilteredListState extends ConsumerState<_FilteredList> {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final list = _apply();
     final quotas = widget.showCommercialQuotas
         ? ref.watch(commercialQuotasProvider).valueOrNull ??
@@ -583,7 +583,7 @@ class _FilteredListState extends ConsumerState<_FilteredList> {
               Text(
                 widget.emptyText,
                 style: TextStyle(
-                  fontSize: KreditTextSize.body,
+                  fontSize: AppTextSize.body,
                   fontWeight: FontWeight.w600,
                   color: kredit.textSecondary,
                 ),
@@ -595,11 +595,11 @@ class _FilteredListState extends ConsumerState<_FilteredList> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.lock_outline, size: KreditIconSize.small, color: kredit.textTertiary),
+                  Icon(Icons.lock_outline, size: AppIconSize.small, color: kredit.textTertiary),
                   const SizedBox(width: 4),
                   Text(
                     'Tus datos permanecen en tu dispositivo',
-                    style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+                    style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
                   ),
                 ],
               ),
@@ -821,7 +821,7 @@ class _CreditComparisonStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = _stripColor(context, credit);
     final progress = _progressValue(credit);
     final label = _progressLabel(credit);
@@ -833,14 +833,14 @@ class _CreditComparisonStrip extends StatelessWidget {
       decoration: BoxDecoration(
         color: kredit.bgCard,
         borderRadius: const BorderRadius.vertical(
-          bottom: Radius.circular(KreditRadius.card),
+          bottom: Radius.circular(AppRadius.card),
         ),
         border: Border(
           left: BorderSide(color: kredit.borderCard.withValues(alpha: 0.78)),
           right: BorderSide(color: kredit.borderCard.withValues(alpha: 0.78)),
           bottom: BorderSide(color: kredit.borderCard.withValues(alpha: 0.78)),
         ),
-        // Sin boxShadow: el resto de la app (KreditSectionCard, WalletCard,
+        // Sin boxShadow: el resto de la app (AppSectionCard, WalletCard,
         // dashboard) usa solo borde tenue, nunca sombra — mantiene esta
         // bandeja consistente con el lenguaje visual "sin cajas pesadas".
       ),
@@ -854,7 +854,7 @@ class _CreditComparisonStrip extends StatelessWidget {
                     Text(
                       label.toUpperCase(),
                       style: TextStyle(
-                        fontSize: KreditTextSize.body,
+                        fontSize: AppTextSize.body,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.5,
                         color: kredit.textTertiary,
@@ -866,7 +866,7 @@ class _CreditComparisonStrip extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: AppColors.danger,
-                          borderRadius: BorderRadius.circular(KreditRadius.chip),
+                          borderRadius: BorderRadius.circular(AppRadius.chip),
                         ),
                         child: Text(
                           '${_cuotasEnMora(credit as LoanCredit)} en mora',
@@ -884,7 +884,7 @@ class _CreditComparisonStrip extends StatelessWidget {
               Text(
                 detail,
                 style: TextStyle(
-                  fontSize: KreditTextSize.body,
+                  fontSize: AppTextSize.body,
                   fontWeight: FontWeight.w800,
                   color: accent,
                   fontFeatures: const [FontFeature.tabularFigures()],
@@ -937,7 +937,7 @@ String _progressDetail(Credit credit) {
 }
 
 Color _stripColor(BuildContext context, Credit credit) {
-  final kredit = Theme.of(context).extension<KreditColors>()!;
+  final kredit = Theme.of(context).extension<AppThemeColors>()!;
   final accent = Theme.of(context).colorScheme.primary;
   if (credit is CardCredit) {
     final progress = _progressValue(credit);

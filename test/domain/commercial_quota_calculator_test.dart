@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kredit/data/models/commercial_quota.dart';
-import 'package:kredit/data/models/credit.dart';
-import 'package:kredit/data/models/installment.dart';
-import 'package:kredit/domain/commercial_quota_calculator.dart';
+import 'package:krezium/data/models/commercial_quota.dart';
+import 'package:krezium/data/models/credit.dart';
+import 'package:krezium/data/models/installment.dart';
+import 'package:krezium/domain/commercial_quota_calculator.dart';
 
 LoanCredit _purchase({
   required String id,

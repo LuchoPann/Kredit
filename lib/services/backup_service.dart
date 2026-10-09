@@ -9,7 +9,7 @@ const kBackupCustomPathPref = 'backup_custom_path';
 
 class BackupService {
   /// Ruta destino: configurable por el usuario via [kBackupCustomPathPref].
-  /// Si no hay ruta custom: /storage/emulated/0/Kredit/backups/ (por defecto).
+  /// Si no hay ruta custom: /storage/emulated/0/Krezium/backups/ (por defecto).
   /// Retorna null si no se otorga permiso o no hay almacenamiento externo.
   static Future<Directory?> getBackupDirectory() async {
     if (Platform.isAndroid) {
@@ -37,7 +37,7 @@ class BackupService {
     final prefs = await SharedPreferences.getInstance();
     final customPath = prefs.getString(kBackupCustomPathPref);
     if (customPath != null && customPath.isNotEmpty) {
-      final backupDir = Directory('$customPath/Kredit/backups');
+      final backupDir = Directory('$customPath/Krezium/backups');
       await backupDir.create(recursive: true);
       return backupDir;
     }
@@ -48,12 +48,12 @@ class BackupService {
     // getExternalStorageDirectory() → /storage/emulated/0/Android/data/<pkg>/files
     // Subir 4 niveles para llegar a /storage/emulated/0
     final storageRoot = externalDir.parent.parent.parent.parent;
-    final backupDir = Directory('${storageRoot.path}/Kredit/backups');
+    final backupDir = Directory('${storageRoot.path}/Krezium/backups');
     await backupDir.create(recursive: true);
     return backupDir;
   }
 
-  /// Guarda [json] en Kredit/backups/.
+  /// Guarda [json] en Krezium/backups/.
   /// [newFile]=true → `kredit_backup_TIMESTAMP.json`
   /// [newFile]=false → `kredit_backup.json` (sobreescribe)
   static Future<File?> saveBackup(String json, {bool newFile = false}) async {

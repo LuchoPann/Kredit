@@ -4,7 +4,7 @@ import '../theme/app_theme.dart';
 
 /// Bottom sheet de confirmación (reemplaza AlertDialog con bool).
 /// Retorna true si el usuario confirmó, false/null si canceló.
-Future<bool> showKreditConfirmSheet(
+Future<bool> showAppConfirmSheet(
   BuildContext context, {
   required String title,
   required String message,
@@ -20,7 +20,7 @@ Future<bool> showKreditConfirmSheet(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
     builder: (ctx) {
-      final kredit = Theme.of(ctx).extension<KreditColors>()!;
+      final kredit = Theme.of(ctx).extension<AppThemeColors>()!;
       final accent = Theme.of(ctx).colorScheme.primary;
       final actionColor = isDanger ? AppColors.danger : accent;
       return SafeArea(
@@ -48,7 +48,7 @@ Future<bool> showKreditConfirmSheet(
               Text(
                 title,
                 style: TextStyle(
-                  fontSize: KreditTextSize.heading,
+                  fontSize: AppTextSize.heading,
                   fontWeight: FontWeight.w700,
                   color: kredit.textPrimary,
                 ),
@@ -57,7 +57,7 @@ Future<bool> showKreditConfirmSheet(
               Text(
                 message,
                 style: TextStyle(
-                  fontSize: KreditTextSize.body,
+                  fontSize: AppTextSize.body,
                   color: kredit.textSecondary,
                   height: 1.4,
                 ),
@@ -91,7 +91,7 @@ Future<bool> showKreditConfirmSheet(
 
 /// Abre un bottom sheet con el estilo visual estándar de Kredit:
 /// fondo transparente, DraggableScrollableSheet, borde r=24, handle pill.
-Future<T?> showKreditSheet<T>({
+Future<T?> showAppSheet<T>({
   required BuildContext context,
   required Widget Function(BuildContext ctx, ScrollController scrollController) builder,
   double initialSize = 0.6,
@@ -119,7 +119,7 @@ Future<T?> showKreditSheet<T>({
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).extension<KreditColors>()!.borderCard,
+                    color: Theme.of(context).extension<AppThemeColors>()!.borderCard,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -137,13 +137,13 @@ Future<T?> showKreditSheet<T>({
 
 /// Header estándar para bottom sheets de Kredit.
 /// Ícono con fondo translúcido + título + subtítulo.
-class KreditSheetHeader extends StatelessWidget {
+class AppSheetHeader extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
   final String title;
   final String subtitle;
 
-  const KreditSheetHeader({
+  const AppSheetHeader({
     super.key,
     required this.icon,
     required this.iconColor,
@@ -153,7 +153,7 @@ class KreditSheetHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -174,7 +174,7 @@ class KreditSheetHeader extends StatelessWidget {
               Text(
                 title,
                 style: TextStyle(
-                  fontSize: KreditTextSize.emphasis,
+                  fontSize: AppTextSize.emphasis,
                   fontWeight: FontWeight.w800,
                   color: kredit.textPrimary,
                 ),
@@ -182,7 +182,7 @@ class KreditSheetHeader extends StatelessWidget {
               Text(
                 subtitle,
                 style: TextStyle(
-                  fontSize: KreditTextSize.caption,
+                  fontSize: AppTextSize.caption,
                   color: kredit.textTertiary,
                 ),
               ),
@@ -196,7 +196,7 @@ class KreditSheetHeader extends StatelessWidget {
 
 /// Bottom sheet de entrada de texto (reemplaza AlertDialog con String).
 /// Retorna el texto ingresado o null si canceló.
-Future<String?> showKreditInputSheet(
+Future<String?> showAppInputSheet(
   BuildContext context, {
   required String title,
   String? initialValue,
@@ -214,7 +214,7 @@ Future<String?> showKreditInputSheet(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
     builder: (ctx) {
-      final kredit = Theme.of(ctx).extension<KreditColors>()!;
+      final kredit = Theme.of(ctx).extension<AppThemeColors>()!;
       return Padding(
         padding: EdgeInsets.only(
           left: 24, right: 24, top: 16,
@@ -237,7 +237,7 @@ Future<String?> showKreditInputSheet(
             Text(
               title,
               style: TextStyle(
-                fontSize: KreditTextSize.heading,
+                fontSize: AppTextSize.heading,
                 fontWeight: FontWeight.w700,
                 color: kredit.textPrimary,
               ),

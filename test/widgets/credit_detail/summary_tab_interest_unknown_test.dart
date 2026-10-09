@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kredit/data/models/credit.dart';
-import 'package:kredit/theme/app_theme.dart';
-import 'package:kredit/widgets/credit_detail/summary_tab.dart';
+import 'package:krezium/data/models/credit.dart';
+import 'package:krezium/theme/app_theme.dart';
+import 'package:krezium/widgets/credit_detail/summary_tab.dart';
 
 void main() {
   testWidgets(

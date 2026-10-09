@@ -79,7 +79,7 @@ class _CommercialQuotaCardState extends State<CommercialQuotaCard>
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final available = quotaAvailable(
       widget.quota,
       widget.allPurchases ?? widget.purchases,
@@ -111,7 +111,7 @@ class _CommercialQuotaCardState extends State<CommercialQuotaCard>
             decoration: BoxDecoration(
               color: kredit.bgCard,
               borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(KreditRadius.card),
+                bottom: Radius.circular(AppRadius.card),
               ),
               border: Border(
                 left: BorderSide(
@@ -133,7 +133,7 @@ class _CommercialQuotaCardState extends State<CommercialQuotaCard>
                       child: Text(
                         'COMPRAS DE ESTE CUPO',
                         style: TextStyle(
-                          fontSize: KreditTextSize.body,
+                          fontSize: AppTextSize.body,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.5,
                           color: kredit.textTertiary,
@@ -144,7 +144,7 @@ class _CommercialQuotaCardState extends State<CommercialQuotaCard>
                       turns: _chevronTurn,
                       child: Icon(
                         Icons.expand_more,
-                        size: KreditIconSize.small,
+                        size: AppIconSize.small,
                         color: kredit.textSecondary,
                       ),
                     ),
@@ -180,7 +180,7 @@ class _CommercialQuotaCardState extends State<CommercialQuotaCard>
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
-                                            fontSize: KreditTextSize.body,
+                                            fontSize: AppTextSize.body,
                                             color: kredit.textPrimary,
                                           ),
                                         ),
@@ -188,7 +188,7 @@ class _CommercialQuotaCardState extends State<CommercialQuotaCard>
                                       Text(
                                         formatCOP(getCreditRemainingBalance(purchase)),
                                         style: TextStyle(
-                                          fontSize: KreditTextSize.body,
+                                          fontSize: AppTextSize.body,
                                           fontWeight: FontWeight.w800,
                                           color: kredit.textPrimary,
                                           fontFeatures: const [
@@ -207,7 +207,7 @@ class _CommercialQuotaCardState extends State<CommercialQuotaCard>
                             child: Text(
                               '$count compra${count == 1 ? '' : 's'}',
                               style: TextStyle(
-                                fontSize: KreditTextSize.body,
+                                fontSize: AppTextSize.body,
                                 color: kredit.textSecondary,
                               ),
                             ),
@@ -282,7 +282,7 @@ class _QuotaVoucherFace extends StatelessWidget {
                         // Kredit's own wordmark, painted straight in `ink`
                         // (no white chip box) — a cupo comercial voucher is
                         // Kredit's own product, not a third-party bank's.
-                        KreditWordmark(color: ink, height: 18),
+                        AppWordmark(color: ink, height: 18),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -293,7 +293,7 @@ class _QuotaVoucherFace extends StatelessWidget {
                             style: TextStyle(
                               color: ink,
                               fontWeight: FontWeight.w700,
-                              fontSize: KreditTextSize.body,
+                              fontSize: AppTextSize.body,
                             ),
                           ),
                         ),
@@ -312,7 +312,7 @@ class _QuotaVoucherFace extends StatelessWidget {
                                 style: TextStyle(
                                   color: ink.withValues(alpha: 0.7),
                                   fontWeight: FontWeight.w700,
-                                  fontSize: KreditTextSize.body,
+                                  fontSize: AppTextSize.body,
                                   letterSpacing: 0.5,
                                 ),
                               ),
@@ -321,7 +321,7 @@ class _QuotaVoucherFace extends StatelessWidget {
                                 style: TextStyle(
                                   color: ink,
                                   fontWeight: FontWeight.w800,
-                                  fontSize: KreditTextSize.emphasis,
+                                  fontSize: AppTextSize.emphasis,
                                 ),
                               ),
                             ],
@@ -335,7 +335,7 @@ class _QuotaVoucherFace extends StatelessWidget {
                               style: TextStyle(
                                 color: ink.withValues(alpha: 0.7),
                                 fontWeight: FontWeight.w700,
-                                fontSize: KreditTextSize.body,
+                                fontSize: AppTextSize.body,
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -344,7 +344,7 @@ class _QuotaVoucherFace extends StatelessWidget {
                               style: TextStyle(
                                 color: ink,
                                 fontWeight: FontWeight.w800,
-                                fontSize: KreditTextSize.emphasis,
+                                fontSize: AppTextSize.emphasis,
                               ),
                             ),
                           ],

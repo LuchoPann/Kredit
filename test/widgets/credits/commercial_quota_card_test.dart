@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kredit/data/models/commercial_quota.dart';
-import 'package:kredit/data/models/credit.dart';
-import 'package:kredit/data/models/installment.dart';
-import 'package:kredit/theme/app_theme.dart';
-import 'package:kredit/utils/credit_display_utils.dart';
-import 'package:kredit/widgets/credits/commercial_quota_card.dart';
+import 'package:krezium/data/models/commercial_quota.dart';
+import 'package:krezium/data/models/credit.dart';
+import 'package:krezium/data/models/installment.dart';
+import 'package:krezium/theme/app_theme.dart';
+import 'package:krezium/utils/credit_display_utils.dart';
+import 'package:krezium/widgets/credits/commercial_quota_card.dart';
 
 LoanCredit _purchase({
   required String id,

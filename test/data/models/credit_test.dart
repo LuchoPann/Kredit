@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kredit/data/models/credit.dart';
+import 'package:krezium/data/models/credit.dart';
 
 void main() {
   group('LoanCredit cupo comercial fields', () {

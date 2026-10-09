@@ -25,7 +25,7 @@ class NotificationSettingsTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(notificationSettingsProvider);
     final notifier = ref.read(notificationSettingsProvider.notifier);
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final stepBg = kredit.bgSecondary;
     final on = settings.enabled;
     final dimmed = on ? kredit.textPrimary : kredit.textTertiary;
@@ -40,7 +40,7 @@ class NotificationSettingsTile extends ConsumerWidget {
               // --- Header: master on/off ---
               Row(
                 children: [
-                  Icon(Icons.notifications_active_outlined, size: KreditIconSize.small, color: kredit.textSecondary),
+                  Icon(Icons.notifications_active_outlined, size: AppIconSize.small, color: kredit.textSecondary),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -54,7 +54,7 @@ class NotificationSettingsTile extends ConsumerWidget {
                   ),
                 ],
               ),
-              Divider(height: KreditSpacing.section, color: kredit.borderCard),
+              Divider(height: AppSpacing.section, color: kredit.borderCard),
             ],
 
             // --- Step 1: how many days ahead ---
@@ -65,7 +65,7 @@ class NotificationSettingsTile extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
               decoration: BoxDecoration(
                 color: stepBg,
-                borderRadius: BorderRadius.circular(KreditRadius.tile),
+                borderRadius: BorderRadius.circular(AppRadius.tile),
                 border: Border.all(color: kredit.borderCard),
               ),
               child: Row(
@@ -83,7 +83,7 @@ class NotificationSettingsTile extends ConsumerWidget {
                         Text(
                           '${settings.daysBefore} día${settings.daysBefore == 1 ? '' : 's'} antes',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: dimmed, fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading),
+                          style: TextStyle(color: dimmed, fontWeight: FontWeight.w800, fontSize: AppTextSize.heading),
                         ),
                         SliderTheme(
                           data: SliderTheme.of(context).copyWith(
@@ -110,13 +110,13 @@ class NotificationSettingsTile extends ConsumerWidget {
                 ],
               ),
             ),
-            const SizedBox(height: KreditSpacing.section),
+            const SizedBox(height: AppSpacing.section),
 
             // --- Step 2: what time ---
             _StepHeader(icon: Icons.schedule_outlined, text: 'HORA DEL AVISO', color: dimmedSecondary),
             const SizedBox(height: 8),
             InkWell(
-              borderRadius: BorderRadius.circular(KreditRadius.tile),
+              borderRadius: BorderRadius.circular(AppRadius.tile),
               onTap: on
                   ? () async {
                       final picked = await showTimePicker(
@@ -131,7 +131,7 @@ class NotificationSettingsTile extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
                 decoration: BoxDecoration(
                   color: stepBg,
-                  borderRadius: BorderRadius.circular(KreditRadius.tile),
+                  borderRadius: BorderRadius.circular(AppRadius.tile),
                   border: Border.all(color: kredit.borderCard),
                 ),
                 child: Row(
@@ -141,17 +141,17 @@ class NotificationSettingsTile extends ConsumerWidget {
                     ),
                     Text(
                       settings.reminderTime.format(context),
-                      style: TextStyle(color: dimmed, fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading),
+                      style: TextStyle(color: dimmed, fontWeight: FontWeight.w800, fontSize: AppTextSize.heading),
                     ),
                     if (on) ...[
                       const SizedBox(width: 4),
-                      Icon(Icons.chevron_right, size: KreditIconSize.small, color: dimmedSecondary),
+                      Icon(Icons.chevron_right, size: AppIconSize.small, color: dimmedSecondary),
                     ],
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: KreditSpacing.section),
+            const SizedBox(height: AppSpacing.section),
 
             // --- Step 3: how often ---
             _StepHeader(icon: Icons.repeat, text: 'FRECUENCIA', color: dimmedSecondary),
@@ -195,12 +195,12 @@ class _StepHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: KreditIconSize.small, color: color),
+        Icon(icon, size: AppIconSize.small, color: color),
         const SizedBox(width: 6),
         Text(
           text,
           style: TextStyle(
-            fontSize: KreditTextSize.body,
+            fontSize: AppTextSize.body,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.4,
             color: color,
@@ -219,7 +219,7 @@ class _StepperButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return IconButton(
       onPressed: onTap,
       icon: Icon(icon),
@@ -250,21 +250,21 @@ class _FrequencyOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     final borderColor = selected && enabled ? accent : kredit.borderCard;
     final textColor = enabled ? kredit.textPrimary : kredit.textTertiary;
     final subtitleColor = enabled ? kredit.textSecondary : kredit.textTertiary;
 
     return InkWell(
-      borderRadius: BorderRadius.circular(KreditRadius.tile),
+      borderRadius: BorderRadius.circular(AppRadius.tile),
       onTap: enabled ? onTap : null,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(KreditSpacing.tile),
+        padding: const EdgeInsets.all(AppSpacing.tile),
         decoration: BoxDecoration(
           color: bg,
-          borderRadius: BorderRadius.circular(KreditRadius.tile),
+          borderRadius: BorderRadius.circular(AppRadius.tile),
           border: Border.all(color: borderColor, width: selected && enabled ? 1.5 : 1),
         ),
         child: Row(
@@ -272,7 +272,7 @@ class _FrequencyOption extends StatelessWidget {
           children: [
             Icon(
               selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-              size: KreditIconSize.small,
+              size: AppIconSize.small,
               color: selected && enabled ? accent : kredit.textTertiary,
             ),
             const SizedBox(width: 10),
@@ -282,7 +282,7 @@ class _FrequencyOption extends StatelessWidget {
                 children: [
                   Text(title, style: TextStyle(color: textColor, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
-                  Text(subtitle, style: TextStyle(fontSize: KreditTextSize.body, color: subtitleColor)),
+                  Text(subtitle, style: TextStyle(fontSize: AppTextSize.body, color: subtitleColor)),
                 ],
               ),
             ),

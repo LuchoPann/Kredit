@@ -51,7 +51,7 @@ class MyApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final prefs = ref.watch(themePreferencesProvider);
     return MaterialApp(
-      title: 'Kredit',
+      title: 'Krezium',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(
         accent: prefs.accentColor,
@@ -306,7 +306,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
                 angle: -0.22, // ~ -12 degrees rotation
                 child: Opacity(
                   opacity: 0.04,
-                  child: const KreditLogo(height: 280),
+                  child: const AppLogo(height: 280),
                 ),
               ),
             ),

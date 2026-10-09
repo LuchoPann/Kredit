@@ -4,10 +4,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 /// App wordmark ("K"), swapping fill color for light/dark mode.
 /// Assets ported from legacy_pwa/icons/KREDIT.svg (dark-mode/white variant)
 /// with a generated light-mode/black variant at assets/brand/.
-class KreditLogo extends StatelessWidget {
+class AppLogo extends StatelessWidget {
   final double height;
 
-  const KreditLogo({super.key, this.height = 40});
+  const AppLogo({super.key, this.height = 40});
 
   @override
   Widget build(BuildContext context) {

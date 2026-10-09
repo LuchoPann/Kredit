@@ -55,7 +55,7 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
   @override
   Widget build(BuildContext context) {
     final credits = ref.watch(creditsProvider).value ?? [];
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
 
     final installmentRows = _buildInstallmentRows(credits);
@@ -97,7 +97,7 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontWeight: FontWeight.w700,
-                        fontSize: KreditTextSize.heading,
+                        fontSize: AppTextSize.heading,
                       ),
                     ),
                   ),
@@ -144,11 +144,11 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.event_available_outlined, size: KreditIconSize.large, color: kredit.textTertiary),
+                          Icon(Icons.event_available_outlined, size: AppIconSize.large, color: kredit.textTertiary),
                           const SizedBox(height: 12),
                           Text(
                             'Sin vencimientos en este mes.',
-                            style: TextStyle(color: kredit.textSecondary, fontSize: KreditTextSize.body),
+                            style: TextStyle(color: kredit.textSecondary, fontSize: AppTextSize.body),
                           ),
                         ],
                       ),
@@ -248,14 +248,14 @@ class _SummaryHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final allPaid = pendiente <= 0 && totalProjectado > 0;
 
     return Container(
-      padding: const EdgeInsets.all(KreditSpacing.card),
+      padding: const EdgeInsets.all(AppSpacing.card),
       decoration: BoxDecoration(
         color: kredit.bgCard,
-        borderRadius: BorderRadius.circular(KreditRadius.card),
+        borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(color: kredit.borderCard),
       ),
       child: Row(
@@ -278,7 +278,7 @@ class _SummaryHeader extends StatelessWidget {
 class _Divider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Container(width: 1, height: 36, margin: const EdgeInsets.symmetric(horizontal: 12), color: kredit.borderCard);
   }
 }
@@ -292,14 +292,14 @@ class _SummaryCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w700, letterSpacing: 0.4, color: kredit.textTertiary)),
+          Text(label, style: TextStyle(fontSize: AppTextSize.body, fontWeight: FontWeight.w700, letterSpacing: 0.4, color: kredit.textTertiary)),
           const SizedBox(height: 3),
-          Text(value, style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w800, color: color), maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text(value, style: TextStyle(fontSize: AppTextSize.body, fontWeight: FontWeight.w800, color: color), maxLines: 1, overflow: TextOverflow.ellipsis),
         ],
       ),
     );
@@ -314,12 +314,12 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Row(
       children: [
-        Text(label, style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w700, letterSpacing: 0.8, color: kredit.textTertiary)),
+        Text(label, style: TextStyle(fontSize: AppTextSize.body, fontWeight: FontWeight.w700, letterSpacing: 0.8, color: kredit.textTertiary)),
         const SizedBox(width: 6),
-        Text('$count', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary)),
+        Text('$count', style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary)),
       ],
     );
   }
@@ -333,7 +333,7 @@ class _InstallmentTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final IconData icon;
     final Color iconColor;
     if (row.paid) {
@@ -352,26 +352,26 @@ class _InstallmentTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: kredit.bgCard,
-        borderRadius: BorderRadius.circular(KreditRadius.tile),
+        borderRadius: BorderRadius.circular(AppRadius.tile),
         border: Border.all(color: row.overdue && !row.paid ? kredit.danger.withValues(alpha: 0.4) : kredit.borderCard),
       ),
       child: Row(
         children: [
-          Icon(icon, size: KreditIconSize.small, color: iconColor),
+          Icon(icon, size: AppIconSize.small, color: iconColor),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(row.creditName, style: TextStyle(fontWeight: FontWeight.w600, fontSize: KreditTextSize.body, color: kredit.textPrimary)),
+                Text(row.creditName, style: TextStyle(fontWeight: FontWeight.w600, fontSize: AppTextSize.body, color: kredit.textPrimary)),
                 Text(
                   'Vence ${toDateStr(row.dueDate)}',
-                  style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+                  style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
                 ),
               ],
             ),
           ),
-          Text(formatCOP(row.amount), style: TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.body, color: kredit.textPrimary)),
+          Text(formatCOP(row.amount), style: TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSize.body, color: kredit.textPrimary)),
         ],
       ),
     );
@@ -386,7 +386,7 @@ class _CardTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final usageColor = row.usagePct >= 0.85 ? kredit.danger : (row.usagePct >= 0.65 ? kredit.warning : accent);
 
     return Container(
@@ -394,25 +394,25 @@ class _CardTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: kredit.bgCard,
-        borderRadius: BorderRadius.circular(KreditRadius.tile),
+        borderRadius: BorderRadius.circular(AppRadius.tile),
         border: Border.all(color: kredit.borderCard),
       ),
       child: Column(
         children: [
           Row(
             children: [
-              Icon(Icons.credit_card_outlined, size: KreditIconSize.small, color: kredit.textTertiary),
+              Icon(Icons.credit_card_outlined, size: AppIconSize.small, color: kredit.textTertiary),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(row.creditName, style: TextStyle(fontWeight: FontWeight.w600, fontSize: KreditTextSize.body, color: kredit.textPrimary)),
-                    Text('Vence ${toDateStr(row.dueDate)}', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary)),
+                    Text(row.creditName, style: TextStyle(fontWeight: FontWeight.w600, fontSize: AppTextSize.body, color: kredit.textPrimary)),
+                    Text('Vence ${toDateStr(row.dueDate)}', style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary)),
                   ],
                 ),
               ),
-              Text(formatCOP(row.amount), style: TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.body, color: kredit.textPrimary)),
+              Text(formatCOP(row.amount), style: TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSize.body, color: kredit.textPrimary)),
             ],
           ),
           if (row.creditLimit > 0) ...[
@@ -429,7 +429,7 @@ class _CardTile extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               'Usas el ${(row.usagePct * 100).round()}% del cupo de ${formatCOP(row.creditLimit)}',
-              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+              style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
             ),
           ],
         ],

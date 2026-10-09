@@ -704,7 +704,7 @@ class WalletCard extends ConsumerWidget {
                               if (isQuotaVoucher) {
                                 return Align(
                                   alignment: Alignment.centerLeft,
-                                  child: KreditWordmark(color: ink, height: 18),
+                                  child: AppWordmark(color: ink, height: 18),
                                 );
                               }
                               final asset = bankLogoAssets[bank.cssClass];
@@ -719,7 +719,7 @@ class WalletCard extends ConsumerWidget {
                                     decoration: BoxDecoration(
                                       color: Colors.white,
                                       borderRadius: BorderRadius.circular(
-                                        KreditRadius.chip,
+                                        AppRadius.chip,
                                       ),
                                     ),
                                     child: FittedBox(
@@ -738,7 +738,7 @@ class WalletCard extends ConsumerWidget {
                                 style: TextStyle(
                                   color: inkStrong,
                                   fontWeight: FontWeight.w700,
-                                  fontSize: KreditTextSize.body,
+                                  fontSize: AppTextSize.body,
                                   letterSpacing: 0.5,
                                 ),
                               );
@@ -767,7 +767,7 @@ class WalletCard extends ConsumerWidget {
                                     ? Colors.black
                                     : Colors.white,
                                 borderRadius: BorderRadius.circular(
-                                  KreditRadius.chip,
+                                  AppRadius.chip,
                                 ),
                               ),
                               child: Text(
@@ -779,7 +779,7 @@ class WalletCard extends ConsumerWidget {
                                       ? Colors.white
                                       : Colors.black,
                                   fontWeight: FontWeight.w800,
-                                  fontSize: KreditTextSize.body,
+                                  fontSize: AppTextSize.body,
                                   letterSpacing: 0.2,
                                 ),
                               ),
@@ -797,7 +797,7 @@ class WalletCard extends ConsumerWidget {
                         children: [
                           const _EmvChip(),
                           const Spacer(),
-                          _NfcIcon(color: inkMid, size: KreditIconSize.small),
+                          _NfcIcon(color: inkMid, size: AppIconSize.small),
                         ],
                       ),
                     const Spacer(),
@@ -819,7 +819,7 @@ class WalletCard extends ConsumerWidget {
                                 'DEUDA RESTANTE',
                                 style: TextStyle(
                                   color: bottomInkFaint,
-                                  fontSize: KreditTextSize.cardCaption,
+                                  fontSize: AppTextSize.cardCaption,
                                   fontWeight: FontWeight.w600,
                                   letterSpacing: 1,
                                 ),
@@ -831,7 +831,7 @@ class WalletCard extends ConsumerWidget {
                                 style: TextStyle(
                                   color: bottomInkStrong,
                                   fontWeight: FontWeight.w800,
-                                  fontSize: KreditTextSize.cardValue,
+                                  fontSize: AppTextSize.cardValue,
                                   letterSpacing: -0.5,
                                 ),
                               ),
@@ -915,7 +915,7 @@ class _DesignPickerSheet extends StatelessWidget {
       ...CardDesign.values.map((d) => (d, d.label)),
     ];
 
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       child: ConstrainedBox(
@@ -939,7 +939,7 @@ class _DesignPickerSheet extends StatelessWidget {
             Text(
               'DISEÑO DE TARJETA',
               style: TextStyle(
-                fontSize: KreditTextSize.body,
+                fontSize: AppTextSize.body,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.2,
                 color: scheme.onSurfaceVariant,
@@ -1017,7 +1017,7 @@ class _DesignPickerSheet extends StatelessWidget {
                                       ),
                                       child: const Icon(
                                         Icons.check,
-                                        size: KreditIconSize.micro,
+                                        size: AppIconSize.micro,
                                         color: Colors.white,
                                       ),
                                     ),
@@ -1032,7 +1032,7 @@ class _DesignPickerSheet extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: KreditTextSize.body,
+                              fontSize: AppTextSize.body,
                               fontWeight:
                                   isSelected ? FontWeight.w700 : FontWeight.w500,
                               color: isSelected
@@ -1153,7 +1153,7 @@ class _CardStatColumn extends StatelessWidget {
           primary.label.toUpperCase(),
           style: TextStyle(
             color: captionColor,
-            fontSize: KreditTextSize.cardCaption,
+            fontSize: AppTextSize.cardCaption,
             fontWeight: FontWeight.w600,
             letterSpacing: 1,
           ),
@@ -1165,7 +1165,7 @@ class _CardStatColumn extends StatelessWidget {
           style: TextStyle(
             color: valueColor,
             fontWeight: FontWeight.w800,
-            fontSize: KreditTextSize.cardValue,
+            fontSize: AppTextSize.cardValue,
             letterSpacing: -0.5,
           ),
         ),
@@ -1178,7 +1178,7 @@ class _CardStatColumn extends StatelessWidget {
             style: TextStyle(
               color: secondaryColor,
               fontWeight: FontWeight.w600,
-              fontSize: KreditTextSize.cardCaption,
+              fontSize: AppTextSize.cardCaption,
               letterSpacing: 0.4,
             ),
           ),
@@ -1327,7 +1327,7 @@ class EntityCardFace extends StatelessWidget {
                             if (isQuotaVoucher) {
                               return Align(
                                 alignment: Alignment.centerLeft,
-                                child: KreditWordmark(color: ink, height: 18),
+                                child: AppWordmark(color: ink, height: 18),
                               );
                             }
                             final asset = bankLogoAssets[bank.cssClass];
@@ -1340,7 +1340,7 @@ class EntityCardFace extends StatelessWidget {
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius:
-                                        BorderRadius.circular(KreditRadius.chip),
+                                        BorderRadius.circular(AppRadius.chip),
                                   ),
                                   child: FittedBox(
                                     fit: BoxFit.contain,
@@ -1355,7 +1355,7 @@ class EntityCardFace extends StatelessWidget {
                               style: TextStyle(
                                 color: ink,
                                 fontWeight: FontWeight.w700,
-                                fontSize: KreditTextSize.body,
+                                fontSize: AppTextSize.body,
                                 letterSpacing: 0.5,
                               ),
                             );
@@ -1368,7 +1368,7 @@ class EntityCardFace extends StatelessWidget {
                             horizontal: 9, vertical: 4),
                         decoration: BoxDecoration(
                           color: isLightFace ? Colors.black : Colors.white,
-                          borderRadius: BorderRadius.circular(KreditRadius.chip),
+                          borderRadius: BorderRadius.circular(AppRadius.chip),
                         ),
                         child: Text(
                           quota.brand,
@@ -1377,7 +1377,7 @@ class EntityCardFace extends StatelessWidget {
                           style: TextStyle(
                             color: isLightFace ? Colors.white : Colors.black,
                             fontWeight: FontWeight.w800,
-                            fontSize: KreditTextSize.body,
+                            fontSize: AppTextSize.body,
                             letterSpacing: 0.2,
                           ),
                         ),
@@ -1390,7 +1390,7 @@ class EntityCardFace extends StatelessWidget {
                       children: [
                         const _EmvChip(),
                         const Spacer(),
-                        _NfcIcon(color: inkFaint, size: KreditIconSize.small),
+                        _NfcIcon(color: inkFaint, size: AppIconSize.small),
                       ],
                     ),
                   ],
@@ -1403,7 +1403,7 @@ class EntityCardFace extends StatelessWidget {
                         bottomLabel,
                         style: TextStyle(
                           color: inkFaint,
-                          fontSize: KreditTextSize.cardCaption,
+                          fontSize: AppTextSize.cardCaption,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 1,
                         ),
@@ -1415,7 +1415,7 @@ class EntityCardFace extends StatelessWidget {
                         style: TextStyle(
                           color: ink,
                           fontWeight: FontWeight.w800,
-                          fontSize: KreditTextSize.cardValue,
+                          fontSize: AppTextSize.cardValue,
                           letterSpacing: -0.5,
                         ),
                       ),

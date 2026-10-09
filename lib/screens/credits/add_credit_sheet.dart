@@ -358,7 +358,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
-        final kredit = Theme.of(ctx).extension<KreditColors>()!;
+        final kredit = Theme.of(ctx).extension<AppThemeColors>()!;
         return ClipRRect(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           child: Material(
@@ -379,17 +379,17 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                     ),
                   ),
                 ),
-                Icon(Icons.delete_outline, size: KreditIconSize.large, color: AppColors.danger),
+                Icon(Icons.delete_outline, size: AppIconSize.large, color: AppColors.danger),
                 const SizedBox(height: 12),
                 Text(
                   '¿Descartar este crédito?',
-                  style: TextStyle(fontSize: KreditTextSize.heading, fontWeight: FontWeight.w800),
+                  style: TextStyle(fontSize: AppTextSize.heading, fontWeight: FontWeight.w800),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Los datos no guardados se perderán.',
-                  style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+                  style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
@@ -420,7 +420,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
 
   /// Modal para crear una nueva entidad (banco / tienda / app).
   /// [forcedType]: si se pasa, fija el tipo y oculta el selector de tipo.
-  void _showNewEntitySheet(KreditColors kredit, {String? forcedType}) {
+  void _showNewEntitySheet(AppThemeColors kredit, {String? forcedType}) {
     // Estado local del sheet — no afecta el padre hasta que el user confirma.
     var localType = forcedType ?? _newEntityType;
     String? localPreset = _newEntityPreset;
@@ -456,7 +456,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                     height: 4,
                     margin: const EdgeInsets.symmetric(vertical: 12),
                     decoration: BoxDecoration(
-                      color: Theme.of(ctx).extension<KreditColors>()!.borderCard,
+                      color: Theme.of(ctx).extension<AppThemeColors>()!.borderCard,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -924,7 +924,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return PopScope(
       canPop: !_hasUnsavedData,
       onPopInvokedWithResult: (didPop, result) async {
@@ -1010,7 +1010,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                       };
                       return ListView.builder(
                         key: ValueKey('${_mode}_$_currentStep'),
-                        padding: const EdgeInsets.all(KreditSpacing.card),
+                        padding: const EdgeInsets.all(AppSpacing.card),
                         // Pre-build items 300px below the viewport so they are
                         // ready before the user scrolls to them.
                         cacheExtent: 300,
@@ -1092,17 +1092,17 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       };
 
 
-  List<Widget> _step0EntitySelection(KreditColors kredit) {
+  List<Widget> _step0EntitySelection(AppThemeColors kredit) {
     final quotas = ref.watch(commercialQuotasProvider).valueOrNull ?? const [];
     return [
       const Text(
         '¿Dónde tienes este crédito?',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading),
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSize.heading),
       ),
       const SizedBox(height: 4),
       Text(
         'Elige la entidad donde tienes el crédito que vas a registrar.',
-        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+        style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
       ),
       const SizedBox(height: 16),
       _NoEntityCard(
@@ -1119,7 +1119,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         Text(
           'TUS ENTIDADES',
           style: TextStyle(
-            fontSize: KreditTextSize.body,
+            fontSize: AppTextSize.body,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.8,
             color: kredit.textTertiary,
@@ -1199,18 +1199,18 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   // Paso 3: casos opcionales y de calendario — separado del paso 2 para
   // que cada pantalla del formulario tenga un propósito único y quepa
   // cómoda sin scroll excesivo.
-  List<Widget> _step3ScheduleAndExtras(KreditColors kredit) {
+  List<Widget> _step3ScheduleAndExtras(AppThemeColors kredit) {
     return [
       Text(
         _type == CreditType.card ? 'Interés y costos' : 'Fecha de pago',
-        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading),
+        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSize.heading),
       ),
       const SizedBox(height: 4),
       Text(
         _type == CreditType.card
             ? 'Cuánto te cobra la tarjeta por usarla.'
             : 'Cuándo empieza a pagarse y con qué frecuencia.',
-        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+        style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
       ),
       if (_type == CreditType.loan) ..._loanFieldsSchedule(),
       if (_type == CreditType.card) ..._cardFieldsExtra(),
@@ -1218,16 +1218,16 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     ];
   }
 
-  List<Widget> _step4ColorNotesConfirm(KreditColors kredit) {
+  List<Widget> _step4ColorNotesConfirm(AppThemeColors kredit) {
     return [
       const Text(
         '¡Ya casi está!',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading),
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSize.heading),
       ),
       const SizedBox(height: 4),
       Text(
         'Revisa que todo esté correcto antes de registrar el crédito.',
-        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+        style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
       ),
       const SizedBox(height: 12),
       if (_mode == 'tienda') ...[
@@ -1240,7 +1240,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                 if (credit != null) ...[
                   const Text(
                     'VISTA PREVIA DE VOUCHER',
-                    style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.bold, letterSpacing: 0.8),
+                    style: TextStyle(fontSize: AppTextSize.body, fontWeight: FontWeight.bold, letterSpacing: 0.8),
                   ),
                   const SizedBox(height: 8),
                   RepaintBoundary(child: WalletCard(credit: credit, previewPattern: _selectedVoucherPattern)),
@@ -1249,7 +1249,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                 Text(
                   'DISEÑO DE VOUCHER',
                   style: TextStyle(
-                    fontSize: KreditTextSize.body,
+                    fontSize: AppTextSize.body,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.8,
                     color: kredit.textTertiary,
@@ -1269,7 +1269,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                         },
                       );
                     },
-                    icon: const Icon(Icons.style_outlined, size: KreditIconSize.small),
+                    icon: const Icon(Icons.style_outlined, size: AppIconSize.small),
                     label: Text(_selectedVoucherPattern.label),
                   ),
                 ),
@@ -1282,7 +1282,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       Text(
         'DETALLES DEL CRÉDITO',
         style: TextStyle(
-          fontSize: KreditTextSize.body,
+          fontSize: AppTextSize.body,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.8,
           color: kredit.textTertiary,
@@ -1432,7 +1432,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   List<Widget> _loanFieldsCore({bool hideSwitch = false}) {
     return [
       const SizedBox(height: 12),
-      KreditSectionCard(
+      AppSectionCard(
         label: 'DATOS DEL CRÉDITO',
         icon: Icons.request_quote_outlined,
         children: [
@@ -1480,7 +1480,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('No conozco la tasa'),
-              subtitle: const Text('Kredit solo hará seguimiento de cuotas, sin calcular interés'),
+              subtitle: const Text('Krezium solo hará seguimiento de cuotas, sin calcular interés'),
               value: _interestUnknown,
               onChanged: (v) => setState(() {
                 _interestUnknown = v;
@@ -1493,8 +1493,8 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               child: Text(
                 'Cuenta sin intereses registrados',
                 style: TextStyle(
-                  fontSize: KreditTextSize.body,
-                  color: Theme.of(context).extension<KreditColors>()!.textTertiary,
+                  fontSize: AppTextSize.body,
+                  color: Theme.of(context).extension<AppThemeColors>()!.textTertiary,
                 ),
               ),
             )
@@ -1540,10 +1540,10 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   // paso 2 para que cada pantalla tenga un único propósito y quepa sin
   // scroll excesivo.
   List<Widget> _loanFieldsSchedule() {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return [
       const SizedBox(height: 12),
-      KreditSectionCard(
+      AppSectionCard(
         label: 'FECHA Y FRECUENCIA',
         icon: Icons.event_repeat_outlined,
         children: [
@@ -1571,7 +1571,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                     const SizedBox(height: 6),
                     Text(
                       '¿Cada cuánto vence una cuota? La mayoría de créditos son mensuales.',
-                      style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+                      style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
                     ),
                   ],
                 ),
@@ -1592,7 +1592,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                     Text(
                       'La fecha en que vence (o venció) tu primera cuota — la ves en tu '
                       'contrato o primer recibo.',
-                      style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+                      style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
                     ),
                   ],
                 ),
@@ -1635,7 +1635,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   List<Widget> _cardFieldsExtra() {
     return [
       const SizedBox(height: 12),
-      KreditSectionCard(
+      AppSectionCard(
         label: 'INTERÉS Y MANTENIMIENTO',
         icon: Icons.percent_outlined,
         children: [
@@ -1682,7 +1682,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
               isExpanded: true,
-            style: TextStyle(fontSize: KreditTextSize.heading, color: Theme.of(context).extension<KreditColors>()!.textPrimary),
+            style: TextStyle(fontSize: AppTextSize.heading, color: Theme.of(context).extension<AppThemeColors>()!.textPrimary),
             initialValue: _managementFeeFrequency,
             decoration: const InputDecoration(labelText: 'Frecuencia de Cobro de Mantenimiento'),
             items: const [
@@ -1698,16 +1698,16 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
 
   // ─── Selector de modo ────────────────────────────────────────────────────
 
-  List<Widget> _stepModeSelector(KreditColors kredit) {
+  List<Widget> _stepModeSelector(AppThemeColors kredit) {
     return [
       Text(
         '¿Qué quieres registrar?',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.body, color: kredit.textPrimary),
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSize.body, color: kredit.textPrimary),
       ),
       const SizedBox(height: 6),
       Text(
         'Elige el tipo de crédito que vas a agregar.',
-        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+        style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
       ),
       const SizedBox(height: 20),
       _ModeCard(
@@ -1728,19 +1728,19 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     ];
   }
 
-  List<Widget> _stepBancoSelector(KreditColors kredit) {
+  List<Widget> _stepBancoSelector(AppThemeColors kredit) {
     return [
       Text(
         '¿Con qué banco?',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.body, color: kredit.textPrimary),
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSize.body, color: kredit.textPrimary),
       ),
       const SizedBox(height: 4),
       Text(
         'Selecciona el banco y el tipo de producto.',
-        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+        style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
       ),
       const SizedBox(height: 20),
-      KreditSectionCard(
+      AppSectionCard(
         label: 'BANCO Y PRODUCTO',
         icon: Icons.account_balance_outlined,
         children: [
@@ -1766,7 +1766,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           const SizedBox(height: 16),
           Text(
             'Tipo de producto',
-            style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600, color: kredit.textSecondary),
+            style: TextStyle(fontSize: AppTextSize.body, fontWeight: FontWeight.w600, color: kredit.textSecondary),
           ),
           const SizedBox(height: 8),
           Row(
@@ -1809,7 +1809,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                         child: const Text(
                           'Próximamente',
                           style: TextStyle(
-                            fontSize: KreditTextSize.caption,
+                            fontSize: AppTextSize.caption,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
                             letterSpacing: 0.2,
@@ -1825,7 +1825,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         ],
       ),
       const SizedBox(height: 12),
-      KreditSectionCard(
+      AppSectionCard(
         label: 'PERSONALIZAR',
         icon: Icons.edit_outlined,
         children: [
@@ -1848,7 +1848,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   }) {
     if (detail == null) {
       return Builder(builder: (ctx) {
-        final kredit = Theme.of(ctx).extension<KreditColors>()!;
+        final kredit = Theme.of(ctx).extension<AppThemeColors>()!;
         final accent = Theme.of(ctx).colorScheme.primary;
         return Container(
           margin: const EdgeInsets.only(top: 8),
@@ -1861,12 +1861,12 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, size: KreditIconSize.small, color: accent),
+              Icon(icon, size: AppIconSize.small, color: accent),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   text,
-                  style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary, height: 1.45),
+                  style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary, height: 1.45),
                 ),
               ),
             ],
@@ -1877,7 +1877,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     return _EduHintExpansion(text: text, detail: detail, icon: icon);
   }
 
-  Widget _heroStatCol(KreditColors kredit, String label, String value, Color valueColor) {
+  Widget _heroStatCol(AppThemeColors kredit, String label, String value, Color valueColor) {
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1886,7 +1886,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           Text(
             label,
             style: TextStyle(
-              fontSize: KreditTextSize.caption,
+              fontSize: AppTextSize.caption,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.5,
               color: kredit.textTertiary,
@@ -1896,7 +1896,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           Text(
             value,
             style: TextStyle(
-              fontSize: KreditTextSize.body,
+              fontSize: AppTextSize.body,
               fontWeight: FontWeight.w700,
               color: valueColor,
             ),
@@ -1906,7 +1906,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     );
   }
 
-  List<Widget> _stepTiendaDatos(KreditColors kredit) {
+  List<Widget> _stepTiendaDatos(AppThemeColors kredit) {
     return [
       Builder(builder: (ctx) {
         final entityName = _lenderCtrl.text.trim();
@@ -1916,18 +1916,18 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           children: [
             Text(
               title,
-              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading),
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSize.heading),
             ),
             const SizedBox(height: 4),
             Text(
               'Ingresa el monto, cuotas y condiciones del crédito.',
-              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+              style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
             ),
           ],
         );
       }),
       const SizedBox(height: 12),
-      KreditSectionCard(
+      AppSectionCard(
         label: 'NOMBRE DE LA COMPRA',
         icon: Icons.label_outline,
         children: [
@@ -1943,7 +1943,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       const SizedBox(height: 12),
       Builder(builder: (ctx) {
         final accent = Theme.of(ctx).colorScheme.primary;
-        final kredit2 = Theme.of(ctx).extension<KreditColors>()!;
+        final kredit2 = Theme.of(ctx).extension<AppThemeColors>()!;
         final amount = double.tryParse(CurrencyInputFormatter.unformat(_amountCtrl.text));
         final inst = int.tryParse(_installmentsCtrl.text);
         final cuota = double.tryParse(CurrencyInputFormatter.unformat(_quotaCtrl.text));
@@ -1965,7 +1965,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               Text(
                 'VALOR FINANCIADO',
                 style: TextStyle(
-                  fontSize: KreditTextSize.caption,
+                  fontSize: AppTextSize.caption,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1.1,
                   color: accent.withValues(alpha: 0.7),
@@ -1975,7 +1975,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               Text(
                 formatCOP(amount),
                 style: TextStyle(
-                  fontSize: KreditTextSize.hero,
+                  fontSize: AppTextSize.hero,
                   fontWeight: FontWeight.w800,
                   color: accent,
                   height: 1.1,
@@ -2013,12 +2013,12 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                     children: [
                       Text(
                         'Capital ${(capitalPct * 100).toStringAsFixed(0)}%',
-                        style: TextStyle(fontSize: KreditTextSize.caption, color: accent, fontWeight: FontWeight.w700),
+                        style: TextStyle(fontSize: AppTextSize.caption, color: accent, fontWeight: FontWeight.w700),
                       ),
                       const Spacer(),
                       Text(
                         'Interés ${((1 - capitalPct) * 100).toStringAsFixed(0)}%  ·  ${formatCOP(totalInterest)}',
-                        style: TextStyle(fontSize: KreditTextSize.caption, color: Colors.orange.shade400, fontWeight: FontWeight.w600),
+                        style: TextStyle(fontSize: AppTextSize.caption, color: Colors.orange.shade400, fontWeight: FontWeight.w600),
                       ),
                     ],
                   ),
@@ -2027,7 +2027,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                 const SizedBox(height: 6),
                 Text(
                   'Ingresa cuotas y valor de cuota para ver el resumen',
-                  style: TextStyle(fontSize: KreditTextSize.body, color: kredit2.textTertiary),
+                  style: TextStyle(fontSize: AppTextSize.body, color: kredit2.textTertiary),
                 ),
               ],
             ],
@@ -2036,7 +2036,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       }),
       ..._loanFieldsCore(hideSwitch: true),
       const SizedBox(height: 8),
-      KreditSectionCard(
+      AppSectionCard(
         label: 'OPCIONES',
         icon: Icons.tune_outlined,
         children: [
@@ -2056,25 +2056,25 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     ];
   }
 
-  List<Widget> _stepTiendaFechas(KreditColors kredit) {
+  List<Widget> _stepTiendaFechas(AppThemeColors kredit) {
     return [
       const Text(
         'Fecha y frecuencia',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading),
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSize.heading),
       ),
       const SizedBox(height: 4),
       Text(
         'Configura cuándo y con qué frecuencia pagas.',
-        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+        style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
       ),
       const SizedBox(height: 12),
-      KreditSectionCard(
+      AppSectionCard(
         label: 'FRECUENCIA DE PAGO',
         icon: Icons.repeat_outlined,
         children: [
           Text(
             '¿Cada cuánto vence tu cuota?',
-            style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 10),
           Row(
@@ -2107,13 +2107,13 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(entry.$3, size: KreditIconSize.small, color: selected ? accent : kredit.textTertiary),
+                            Icon(entry.$3, size: AppIconSize.small, color: selected ? accent : kredit.textTertiary),
                             const SizedBox(height: 4),
                             Text(
                               entry.$2,
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontSize: KreditTextSize.body,
+                                fontSize: AppTextSize.body,
                                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                                 color: selected ? accent : kredit.textSecondary,
                               ),
@@ -2131,7 +2131,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         ],
       ),
       const SizedBox(height: 12),
-      KreditSectionCard(
+      AppSectionCard(
         label: 'PRIMER PAGO',
         icon: Icons.event_outlined,
         children: [
@@ -2145,11 +2145,11 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           const SizedBox(height: 6),
           Text(
             'La fecha del primer vencimiento — la ves en tu contrato o primer recibo.',
-            style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+            style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
           ),
           const SizedBox(height: 8),
           Builder(builder: (ctx) {
-            final kredit2 = Theme.of(ctx).extension<KreditColors>()!;
+            final kredit2 = Theme.of(ctx).extension<AppThemeColors>()!;
             if (_startDate != null) return const SizedBox.shrink();
             return GestureDetector(
               onTap: () => setState(() => _startDate = DateTime.now()),
@@ -2161,15 +2161,15 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.today_outlined, size: KreditIconSize.small, color: kredit2.textTertiary),
+                    Icon(Icons.today_outlined, size: AppIconSize.small, color: kredit2.textTertiary),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         'No recuerdo la fecha — usar fecha de hoy',
-                        style: TextStyle(fontSize: KreditTextSize.body, color: kredit2.textSecondary),
+                        style: TextStyle(fontSize: AppTextSize.body, color: kredit2.textSecondary),
                       ),
                     ),
-                    Icon(Icons.arrow_forward_ios, size: KreditIconSize.micro, color: kredit2.textTertiary),
+                    Icon(Icons.arrow_forward_ios, size: AppIconSize.micro, color: kredit2.textTertiary),
                   ],
                 ),
               ),
@@ -2228,11 +2228,11 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                 color: accent.withValues(alpha: 0.1),
                 child: Row(
                   children: [
-                    Icon(Icons.event_outlined, size: KreditIconSize.small, color: accent),
+                    Icon(Icons.event_outlined, size: AppIconSize.small, color: accent),
                     const SizedBox(width: 8),
                     Text(
                       'Primeros pagos · $inst cuotas en total',
-                      style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w700, color: accent),
+                      style: TextStyle(fontSize: AppTextSize.body, fontWeight: FontWeight.w700, color: accent),
                     ),
                   ],
                 ),
@@ -2253,7 +2253,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                             alignment: Alignment.center,
                             child: Text('${i + 1}',
                                 style: TextStyle(
-                                  fontSize: KreditTextSize.body,
+                                  fontSize: AppTextSize.body,
                                   fontWeight: FontWeight.w700,
                                   color: i == 0 ? Colors.white : accent,
                                 )),
@@ -2262,12 +2262,12 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                           Expanded(
                             child: Text(
                               fmt(dates[i]),
-                              style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600, color: kredit.textPrimary),
+                              style: TextStyle(fontSize: AppTextSize.body, fontWeight: FontWeight.w600, color: kredit.textPrimary),
                             ),
                           ),
                           Text(
                             formatCOP(cuota),
-                            style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w700, color: kredit.textSecondary),
+                            style: TextStyle(fontSize: AppTextSize.body, fontWeight: FontWeight.w700, color: kredit.textSecondary),
                           ),
                         ],
                       ),
@@ -2286,7 +2286,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                             child: Text('···', style: TextStyle(color: kredit.textTertiary, fontWeight: FontWeight.w700)),
                           ),
                           const SizedBox(width: 12),
-                          Text('${inst - 3} cuotas más', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary)),
+                          Text('${inst - 3} cuotas más', style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary)),
                         ],
                       ),
                     ],
@@ -2300,7 +2300,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     ];
   }
 
-  List<Widget> _stepTiendaConfirmar(KreditColors kredit) {
+  List<Widget> _stepTiendaConfirmar(AppThemeColors kredit) {
     return [
       ..._step4ColorNotesConfirm(kredit),
     ];
@@ -2308,19 +2308,19 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
 
   // ─── Tarjeta: steps 0-4 ──────────────────────────────────────────────────
 
-  List<Widget> _stepTarjetaBanco(KreditColors kredit) {
+  List<Widget> _stepTarjetaBanco(AppThemeColors kredit) {
     return [
       Text(
         '¿En qué banco tienes la tarjeta?',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading, color: kredit.textPrimary),
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSize.heading, color: kredit.textPrimary),
       ),
       const SizedBox(height: 4),
       Text(
         'Selecciona el banco emisor de tu tarjeta.',
-        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+        style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
       ),
       const SizedBox(height: 16),
-      KreditSectionCard(
+      AppSectionCard(
         label: 'BANCO EMISOR',
         icon: Icons.account_balance_outlined,
         children: [
@@ -2342,7 +2342,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         ],
       ),
       const SizedBox(height: 12),
-      KreditSectionCard(
+      AppSectionCard(
         label: 'PERSONALIZAR',
         icon: Icons.edit_outlined,
         children: [
@@ -2368,17 +2368,17 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   }
 
 
-  Widget _inlineStat(String label, String value, KreditColors kredit) {
+  Widget _inlineStat(String label, String value, AppThemeColors kredit) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary)),
-        Text(value, style: TextStyle(fontSize: KreditTextSize.heading, fontWeight: FontWeight.w800, color: kredit.textPrimary)),
+        Text(label, style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary)),
+        Text(value, style: TextStyle(fontSize: AppTextSize.heading, fontWeight: FontWeight.w800, color: kredit.textPrimary)),
       ],
     );
   }
 
-  List<Widget> _stepTarjetaCupoFinanzas(KreditColors kredit) {
+  List<Widget> _stepTarjetaCupoFinanzas(AppThemeColors kredit) {
     final accent = Theme.of(context).colorScheme.primary;
     final limitVal = double.tryParse(CurrencyInputFormatter.unformat(_limitCtrl.text)) ?? 0;
     final balanceVal = double.tryParse(CurrencyInputFormatter.unformat(_balanceCtrl.text)) ?? 0;
@@ -2404,11 +2404,11 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading)),
+            Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSize.heading)),
             const SizedBox(height: 4),
             Text(
               'Todos los campos son opcionales — completa lo que conozcas.',
-              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+              style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
             ),
           ],
         );
@@ -2436,18 +2436,18 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text('DISPONIBLE',
-                                  style: TextStyle(fontSize: KreditTextSize.caption, fontWeight: FontWeight.w600,
+                                  style: TextStyle(fontSize: AppTextSize.caption, fontWeight: FontWeight.w600,
                                       letterSpacing: 1.1, color: accent.withValues(alpha: 0.7))),
                               const SizedBox(height: 2),
                               Text(formatCOP(available),
-                                  style: TextStyle(fontSize: KreditTextSize.hero, fontWeight: FontWeight.w800,
+                                  style: TextStyle(fontSize: AppTextSize.hero, fontWeight: FontWeight.w800,
                                       color: heroColor, height: 1.0),
                                   maxLines: 1, overflow: TextOverflow.ellipsis),
                             ],
                           ),
                         ),
                         Text('${((availPct ?? 0) * 100).toStringAsFixed(0)}% libre',
-                            style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w700, color: heroColor)),
+                            style: TextStyle(fontSize: AppTextSize.body, fontWeight: FontWeight.w700, color: heroColor)),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -2475,12 +2475,12 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               : Row(
                   children: [
                     Icon(hasLimit ? Icons.credit_score_outlined : Icons.warning_amber_rounded,
-                        size: KreditIconSize.small,
+                        size: AppIconSize.small,
                         color: hasLimit ? accent : Colors.orange.shade400),
                     const SizedBox(width: 8),
                     Text(
                       hasLimit ? 'Cupo: ${formatCOP(limitVal)} — sin deuda registrada' : 'Deuda: ${formatCOP(balanceVal)} — cupo no especificado',
-                      style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary, fontWeight: FontWeight.w500),
+                      style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary, fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
@@ -2489,7 +2489,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       ],
 
       // ── Campos cupo y deuda (sin card wrapper) ────────────────────────────
-      KreditSectionCard(
+      AppSectionCard(
         label: 'CUPO Y DEUDA',
         icon: Icons.credit_card_outlined,
         children: [
@@ -2524,7 +2524,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
             Divider(color: kredit.borderCard, height: 1),
             const SizedBox(height: 14),
             Text('Detalle de la deuda inicial',
-                style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600, color: kredit.textSecondary)),
+                style: TextStyle(fontSize: AppTextSize.body, fontWeight: FontWeight.w600, color: kredit.textSecondary)),
             const SizedBox(height: 10),
             Row(
               children: [
@@ -2585,7 +2585,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                   _startDate != null
                       ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
                       : 'Hoy (por defecto)',
-                  style: TextStyle(fontSize: KreditTextSize.body,
+                  style: TextStyle(fontSize: AppTextSize.body,
                       color: _startDate != null ? null : kredit.textTertiary),
                 ),
               ),
@@ -2596,7 +2596,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
 
       // ── Condiciones: un solo card compacto ────────────────────────────────
       const SizedBox(height: 12),
-      KreditSectionCard(
+      AppSectionCard(
         label: 'CONDICIONES',
         icon: Icons.tune_outlined,
         children: [
@@ -2633,7 +2633,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
             children: [
               Expanded(
                 child: Text('Sin interés a 1 cuota',
-                    style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600, color: kredit.textPrimary)),
+                    style: TextStyle(fontSize: AppTextSize.body, fontWeight: FontWeight.w600, color: kredit.textPrimary)),
               ),
               const SizedBox(width: 8),
               for (final option in [
@@ -2659,7 +2659,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                     ),
                     child: Text(option.label,
                         style: TextStyle(
-                          fontSize: KreditTextSize.body,
+                          fontSize: AppTextSize.body,
                           fontWeight: FontWeight.w600,
                           color: _oneInstallmentInterestPolicy == option.value
                               ? accent : kredit.textTertiary,
@@ -2688,7 +2688,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
               isExpanded: true,
-              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textPrimary),
+              style: TextStyle(fontSize: AppTextSize.body, color: kredit.textPrimary),
               initialValue: _managementFeeFrequency,
               decoration: const InputDecoration(labelText: 'Frecuencia de cobro'),
               items: const [
@@ -2701,7 +2701,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         ],
       ),
       const SizedBox(height: 12),
-      KreditSectionCard(
+      AppSectionCard(
         label: 'NOMBRE DE LA COMPRA',
         icon: Icons.label_outline,
         children: [
@@ -2718,7 +2718,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
   }
 
   // ── Ciclo timeline visual ────────────────────────────────────────────────
-  Widget _buildCicloTimelineCard(KreditColors kredit, Color accent, int dueDay) {
+  Widget _buildCicloTimelineCard(AppThemeColors kredit, Color accent, int dueDay) {
     final wraps = dueDay <= _cutoffDayInt;
     // Colors for each segment
     final spendColor = const Color(0xFF4CAF93); // teal/green: spending period
@@ -2746,10 +2746,10 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
             color: accent.withValues(alpha: 0.1),
             child: Row(
               children: [
-                Icon(Icons.timeline_rounded, size: KreditIconSize.small, color: accent),
+                Icon(Icons.timeline_rounded, size: AppIconSize.small, color: accent),
                 const SizedBox(width: 8),
                 Text('Así funciona tu ciclo de facturación',
-                    style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w700, color: accent)),
+                    style: TextStyle(fontSize: AppTextSize.body, fontWeight: FontWeight.w700, color: accent)),
               ],
             ),
           ),
@@ -2764,8 +2764,8 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                     child: Column(
                       children: [
                         Text('$_tarjetaPaymentOffsetDays días',
-                            style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w700, color: kredit.textSecondary)),
-                        Text('de plazo', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary)),
+                            style: TextStyle(fontSize: AppTextSize.body, fontWeight: FontWeight.w700, color: kredit.textSecondary)),
+                        Text('de plazo', style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary)),
                       ],
                     ),
                   ),
@@ -2803,7 +2803,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                       child: Text(
                         'Nuevo extracto →',
                         style: TextStyle(
-                          fontSize: KreditTextSize.caption,
+                          fontSize: AppTextSize.caption,
                           fontWeight: FontWeight.w600,
                           color: spendColor,
                           letterSpacing: 0.2,
@@ -2914,7 +2914,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                       width: 52,
                       child: Text('Corte\nDía $_cutoffDayInt',
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: KreditTextSize.caption, fontWeight: FontWeight.w600, color: spendColor, height: 1.3)),
+                          style: TextStyle(fontSize: AppTextSize.caption, fontWeight: FontWeight.w600, color: spendColor, height: 1.3)),
                     ),
                     // ── Label: límite ─────────────────────────────────────
                     Positioned(
@@ -2923,19 +2923,19 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                       width: 52,
                       child: Text(wraps ? 'Límite\n(mes sig.)' : 'Límite\nDía $dueDay',
                           textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: KreditTextSize.caption, fontWeight: FontWeight.w600, color: payColor, height: 1.3)),
+                          style: TextStyle(fontSize: AppTextSize.caption, fontWeight: FontWeight.w600, color: payColor, height: 1.3)),
                     ),
                     // ── Day-1 label ──────────────────────────────────────
                     Positioned(
                       top: tickH + barH + 8,
                       left: 0,
-                      child: Text('1', style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary)),
+                      child: Text('1', style: TextStyle(fontSize: AppTextSize.caption, color: kredit.textTertiary)),
                     ),
                     // ── Day-31 label ─────────────────────────────────────
                     Positioned(
                       top: tickH + barH + 8,
                       right: 0,
-                      child: Text('31', style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary)),
+                      child: Text('31', style: TextStyle(fontSize: AppTextSize.caption, color: kredit.textTertiary)),
                     ),
                     // ── HOY marker ───────────────────────────────────────
                     Builder(builder: (ctx) {
@@ -2979,7 +2979,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                               'Hoy\nDía ${today.day}',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontSize: KreditTextSize.caption,
+                                fontSize: AppTextSize.caption,
                                 fontWeight: FontWeight.w700,
                                 color: todayColor,
                                 height: 1.3,
@@ -3059,62 +3059,62 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     );
   }
 
-  Widget _cycleStat(String day, String label, Color color, KreditColors kredit, {bool alignEnd = false}) =>
+  Widget _cycleStat(String day, String label, Color color, AppThemeColors kredit, {bool alignEnd = false}) =>
       Column(
         crossAxisAlignment: alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
           Text(day, style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: color, letterSpacing: -1)),
-          Text(label, style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600, color: kredit.textTertiary, letterSpacing: 0.8)),
+          Text(label, style: TextStyle(fontSize: AppTextSize.body, fontWeight: FontWeight.w600, color: kredit.textTertiary, letterSpacing: 0.8)),
         ],
       );
 
-  Widget _legendChip(Color color, String label, KreditColors kredit) => Row(
+  Widget _legendChip(Color color, String label, AppThemeColors kredit) => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(width: 10, height: 10, decoration: BoxDecoration(color: color.withValues(alpha: 0.75), borderRadius: BorderRadius.circular(3))),
           const SizedBox(width: 5),
-          Text(label, style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary)),
+          Text(label, style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary)),
         ],
       );
 
-  Widget _cicloExplainRow({required IconData icon, required Color color, required String title, required String desc, required KreditColors kredit}) =>
+  Widget _cicloExplainRow({required IconData icon, required Color color, required String title, required String desc, required AppThemeColors kredit}) =>
       Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
-            child: Icon(icon, size: KreditIconSize.small, color: color),
+            child: Icon(icon, size: AppIconSize.small, color: color),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w700, color: kredit.textPrimary)),
+                Text(title, style: TextStyle(fontSize: AppTextSize.body, fontWeight: FontWeight.w700, color: kredit.textPrimary)),
                 const SizedBox(height: 3),
-                Text(desc, style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary, height: 1.45)),
+                Text(desc, style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary, height: 1.45)),
               ],
             ),
           ),
         ],
       );
 
-  List<Widget> _stepTarjetaCiclo(KreditColors kredit) {
+  List<Widget> _stepTarjetaCiclo(AppThemeColors kredit) {
     final accent = Theme.of(context).colorScheme.primary;
     final dueDay = ((_cutoffDayInt - 1 + _tarjetaPaymentOffsetDays) % 31) + 1;
     return [
       Text(
         'Ciclo de facturación',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading, color: kredit.textPrimary),
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSize.heading, color: kredit.textPrimary),
       ),
       const SizedBox(height: 4),
       Text(
         'Encuentra estos datos en tu extracto bancario.',
-        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+        style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
       ),
       const SizedBox(height: 16),
-      KreditSectionCard(
+      AppSectionCard(
         label: 'FECHAS DEL CICLO',
         icon: Icons.calendar_month_outlined,
         children: [
@@ -3124,15 +3124,15 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Día de corte', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary)),
+                    Text('Día de corte', style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary)),
                     const SizedBox(height: 4),
                     DropdownButtonFormField<int>(
                       isExpanded: true,
-                      style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textPrimary),
+                      style: TextStyle(fontSize: AppTextSize.body, color: kredit.textPrimary),
                       initialValue: _cutoffDayInt.clamp(1, 31),
                       decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
                       items: List.generate(31, (i) => i + 1)
-                          .map((d) => DropdownMenuItem(value: d, child: Text('Día $d', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textPrimary))))
+                          .map((d) => DropdownMenuItem(value: d, child: Text('Día $d', style: TextStyle(fontSize: AppTextSize.body, color: kredit.textPrimary))))
                           .toList(),
                       onChanged: (v) {
                         if (v != null) setState(() { _cutoffDayInt = v; _cutoffDayCtrl.text = v.toString(); _cutoffDayTouched = true; });
@@ -3146,15 +3146,15 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Días para pagar', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary)),
+                    Text('Días para pagar', style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary)),
                     const SizedBox(height: 4),
                     DropdownButtonFormField<int>(
                       isExpanded: true,
-                      style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textPrimary),
+                      style: TextStyle(fontSize: AppTextSize.body, color: kredit.textPrimary),
                       initialValue: _tarjetaPaymentOffsetDays.clamp(1, 30),
                       decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
                       items: List.generate(30, (i) => i + 1)
-                          .map((d) => DropdownMenuItem(value: d, child: Text('$d ${d == 1 ? 'día' : 'días'}', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textPrimary))))
+                          .map((d) => DropdownMenuItem(value: d, child: Text('$d ${d == 1 ? 'día' : 'días'}', style: TextStyle(fontSize: AppTextSize.body, color: kredit.textPrimary))))
                           .toList(),
                       onChanged: (v) {
                         if (v != null) setState(() { _tarjetaPaymentOffsetDays = v; _paymentOffsetTouched = true; });
@@ -3178,12 +3178,12 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               child: Row(
                 children: [
                   Icon(Icons.event_available_outlined,
-                      size: KreditIconSize.small, color: Theme.of(ctx).colorScheme.primary),
+                      size: AppIconSize.small, color: Theme.of(ctx).colorScheme.primary),
                   const SizedBox(width: 8),
                   Text(
                     'Fecha límite: día $dueDay2${wraps2 ? ' del mes siguiente' : ' del mismo mes'}',
                     style: TextStyle(
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                       fontWeight: FontWeight.w600,
                       color: Theme.of(ctx).colorScheme.primary,
                     ),
@@ -3202,7 +3202,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
       const SizedBox(height: 16),
       _buildCicloTimelineCard(kredit, accent, dueDay),
       const SizedBox(height: 12),
-      KreditSectionCard(
+      AppSectionCard(
         label: 'NOTAS',
         icon: Icons.sticky_note_2_outlined,
         children: [
@@ -3227,14 +3227,14 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           ),
           child: Text(
             _entityTemplateNote!,
-            style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
+            style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary),
           ),
         ),
       ],
     ];
   }
 
-  List<Widget> _stepTarjetaConfirmar(KreditColors kredit) {
+  List<Widget> _stepTarjetaConfirmar(AppThemeColors kredit) {
     final lender = _lenderCtrl.text.trim().isEmpty ? '(sin definir)' : _lenderCtrl.text.trim();
     final limitVal = double.tryParse(CurrencyInputFormatter.unformat(_limitCtrl.text)) ?? 0;
     final balanceVal = double.tryParse(CurrencyInputFormatter.unformat(_balanceCtrl.text)) ?? 0;
@@ -3243,7 +3243,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     return [
       Text(
         'Confirmar tarjeta',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.heading, color: kredit.textPrimary),
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSize.heading, color: kredit.textPrimary),
       ),
       const SizedBox(height: 12),
       StatefulBuilder(
@@ -3255,7 +3255,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               if (previewCredit != null) ...[
                 const Text(
                   'VISTA PREVIA DE TARJETA',
-                  style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.bold, letterSpacing: 0.8),
+                  style: TextStyle(fontSize: AppTextSize.body, fontWeight: FontWeight.bold, letterSpacing: 0.8),
                 ),
                 const SizedBox(height: 8),
                 RepaintBoundary(child: WalletCard(credit: previewCredit)),
@@ -3264,7 +3264,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
               Text(
                 'DISEÑO DE TARJETA',
                 style: TextStyle(
-                  fontSize: KreditTextSize.body,
+                  fontSize: AppTextSize.body,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.8,
                   color: kredit.textTertiary,
@@ -3289,7 +3289,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
                       },
                     );
                   },
-                  icon: const Icon(Icons.palette_outlined, size: KreditIconSize.small),
+                  icon: const Icon(Icons.palette_outlined, size: AppIconSize.small),
                   label: Text(_selectedCardDesign?.label ?? 'Seleccionar diseño'),
                 ),
               ),
@@ -3298,7 +3298,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
           );
         },
       ),
-      KreditSectionCard(
+      AppSectionCard(
         label: 'RESUMEN',
         icon: Icons.summarize_outlined,
         children: [
@@ -3326,19 +3326,19 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
 
   // ─── Préstamo: steps 0-4 ─────────────────────────────────────────────────
 
-  List<Widget> _stepPrestamoBanco(KreditColors kredit) {
+  List<Widget> _stepPrestamoBanco(AppThemeColors kredit) {
     return [
       Text(
         '¿Dónde tienes el préstamo?',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.body, color: kredit.textPrimary),
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSize.body, color: kredit.textPrimary),
       ),
       const SizedBox(height: 4),
       Text(
         'Selecciona el banco que te otorgó el préstamo.',
-        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+        style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
       ),
       const SizedBox(height: 16),
-      KreditSectionCard(
+      AppSectionCard(
         label: 'ENTIDAD',
         icon: Icons.account_balance_outlined,
         children: [
@@ -3354,7 +3354,7 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
         ],
       ),
       const SizedBox(height: 12),
-      KreditSectionCard(
+      AppSectionCard(
         label: 'PERSONALIZAR',
         icon: Icons.edit_outlined,
         children: [
@@ -3370,25 +3370,25 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     ];
   }
 
-  List<Widget> _stepPrestamoDataCondiciones(KreditColors kredit) {
+  List<Widget> _stepPrestamoDataCondiciones(AppThemeColors kredit) {
     return [
       Text(
         'Datos y condiciones',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.body, color: kredit.textPrimary),
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSize.body, color: kredit.textPrimary),
       ),
       const SizedBox(height: 4),
       Text(
         'Monto, cuotas y condiciones del préstamo.',
-        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+        style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
       ),
       const SizedBox(height: 16),
-      KreditSectionCard(
+      AppSectionCard(
         label: 'MONTO Y CUOTAS',
         icon: Icons.request_quote_outlined,
         children: _loanFieldsCore(),
       ),
       const SizedBox(height: 12),
-      KreditSectionCard(
+      AppSectionCard(
         label: 'FRECUENCIA Y EXTRAS',
         icon: Icons.tune_outlined,
         children: [
@@ -3403,26 +3403,26 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
     ];
   }
 
-  List<Widget> _stepPrestamoFechas(KreditColors kredit) {
+  List<Widget> _stepPrestamoFechas(AppThemeColors kredit) {
     return [
       Text(
         'Fechas',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.body, color: kredit.textPrimary),
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSize.body, color: kredit.textPrimary),
       ),
       const SizedBox(height: 4),
       Text(
         'Indica cuándo fue la primera cuota.',
-        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+        style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
       ),
       ..._step3ScheduleAndExtras(kredit),
     ];
   }
 
-  List<Widget> _stepPrestamoConfirmar(KreditColors kredit) {
+  List<Widget> _stepPrestamoConfirmar(AppThemeColors kredit) {
     return [
       Text(
         'Confirmar préstamo',
-        style: TextStyle(fontWeight: FontWeight.w800, fontSize: KreditTextSize.body, color: kredit.textPrimary),
+        style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSize.body, color: kredit.textPrimary),
       ),
       const SizedBox(height: 12),
       ..._step4ColorNotesConfirm(kredit),
@@ -3431,9 +3431,9 @@ class _AddCreditSheetState extends ConsumerState<AddCreditSheet> {
 
   // ─── Helpers compartidos ─────────────────────────────────────────────────
 
-  List<Widget> _frequencySelector(KreditColors kredit) {
+  List<Widget> _frequencySelector(AppThemeColors kredit) {
     return [
-      Text('Frecuencia de pago', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary)),
+      Text('Frecuencia de pago', style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary)),
       const SizedBox(height: 6),
       Wrap(
         spacing: 8,

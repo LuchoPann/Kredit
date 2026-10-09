@@ -55,7 +55,7 @@ String exportStateToJson(List<Credit> credits,
 /// (`importedState && Array.isArray(importedState.credits)`).
 class InvalidBackupFormatException implements Exception {
   final String message;
-  const InvalidBackupFormatException([this.message = 'Archivo inválido: no es un respaldo de Kredit']);
+  const InvalidBackupFormatException([this.message = 'Archivo inválido: no es un respaldo de Krezium']);
   @override
   String toString() => message;
 }

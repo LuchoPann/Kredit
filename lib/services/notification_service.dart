@@ -281,7 +281,7 @@ class NotificationService {
     await init();
     await _plugin.show(
       id: 999999,
-      title: 'Kredit · Prueba',
+      title: 'Krezium · Prueba',
       body: '¡Las notificaciones están funcionando correctamente! 🎉',
       notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(

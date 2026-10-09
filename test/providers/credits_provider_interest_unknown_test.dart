@@ -1,10 +1,10 @@
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kredit/data/db/database.dart';
-import 'package:kredit/data/models/credit.dart';
-import 'package:kredit/providers/credits_provider.dart';
-import 'package:kredit/providers/database_provider.dart';
+import 'package:krezium/data/db/database.dart';
+import 'package:krezium/data/models/credit.dart';
+import 'package:krezium/providers/credits_provider.dart';
+import 'package:krezium/providers/database_provider.dart';
 
 void main() {
   test('saving a purchase with interestRate > 0 clears interestUnknown',

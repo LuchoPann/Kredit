@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kredit/theme/app_theme.dart';
+import 'package:krezium/theme/app_theme.dart';
 
 void main() {
   group('legibleForegroundOn', () {

@@ -31,7 +31,7 @@ class StatBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -40,14 +40,14 @@ class StatBox extends StatelessWidget {
         Row(
           children: [
             if (icon != null) ...[
-              Icon(icon, size: KreditIconSize.small, color: kredit.textTertiary),
+              Icon(icon, size: AppIconSize.small, color: kredit.textTertiary),
               const SizedBox(width: 4),
             ],
             Expanded(
               child: Text(
                 label.toUpperCase(),
                 style: TextStyle(
-                  fontSize: KreditTextSize.body,
+                  fontSize: AppTextSize.body,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.6,
                   color: kredit.textTertiary,
@@ -62,7 +62,7 @@ class StatBox extends StatelessWidget {
         Text(
           value,
           style: TextStyle(
-            fontSize: emphasized ? KreditTextSize.emphasis : KreditTextSize.heading,
+            fontSize: emphasized ? AppTextSize.emphasis : AppTextSize.heading,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.4,
             color: valueColor ?? (emphasized ? accent : kredit.textPrimary),
@@ -74,7 +74,7 @@ class StatBox extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             caption!,
-            style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+            style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

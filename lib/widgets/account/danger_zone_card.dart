@@ -11,7 +11,7 @@ class DangerZoneCard extends ConsumerWidget {
   const DangerZoneCard({super.key});
 
   Future<void> _confirmAndClear(BuildContext context, WidgetRef ref) async {
-    final firstConfirm = await showKreditConfirmSheet(
+    final firstConfirm = await showAppConfirmSheet(
       context,
       title: 'Borrar base de datos',
       message: '¿Estás seguro de que quieres borrar TODOS tus créditos? Esta acción no se puede deshacer.',
@@ -21,7 +21,7 @@ class DangerZoneCard extends ConsumerWidget {
     );
     if (firstConfirm != true || !context.mounted) return;
 
-    final secondConfirm = await showKreditConfirmSheet(
+    final secondConfirm = await showAppConfirmSheet(
       context,
       title: 'Última confirmación',
       message: 'Esta es tu última oportunidad para cancelar. Todos tus créditos, cuotas y movimientos se eliminarán permanentemente. ¿Continuar?',
@@ -77,7 +77,7 @@ class DangerZoneCard extends ConsumerWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
-        final kredit = Theme.of(ctx).extension<KreditColors>()!;
+        final kredit = Theme.of(ctx).extension<AppThemeColors>()!;
         String? pinError;
         return StatefulBuilder(
           builder: (ctx, setState) => Padding(
@@ -102,10 +102,10 @@ class DangerZoneCard extends ConsumerWidget {
                 const Icon(Icons.lock_outline, size: 28, color: AppColors.danger),
                 const SizedBox(height: 12),
                 Text('Confirma tu PIN',
-                    style: TextStyle(fontSize: KreditTextSize.heading, fontWeight: FontWeight.w700, color: kredit.textPrimary)),
+                    style: TextStyle(fontSize: AppTextSize.heading, fontWeight: FontWeight.w700, color: kredit.textPrimary)),
                 const SizedBox(height: 8),
                 Text('Ingresa tu PIN para confirmar que quieres borrar todo.',
-                    style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary)),
+                    style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary)),
                 const SizedBox(height: 16),
                 TextField(
                   controller: pinCtrl,
@@ -153,11 +153,11 @@ class DangerZoneCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(KreditRadius.card),
+      borderRadius: BorderRadius.circular(AppRadius.card),
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.danger.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(KreditRadius.card),
+          borderRadius: BorderRadius.circular(AppRadius.card),
           border: Border.all(color: AppColors.danger.withValues(alpha: 0.22)),
         ),
         child: Material(
@@ -172,11 +172,11 @@ class DangerZoneCard extends ConsumerWidget {
     return InkWell(
       onTap: () => _confirmAndClear(context, ref),
       child: Padding(
-        padding: const EdgeInsets.all(KreditSpacing.tile),
+        padding: const EdgeInsets.all(AppSpacing.tile),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.delete_forever_outlined, size: KreditIconSize.small, color: AppColors.danger),
+            Icon(Icons.delete_forever_outlined, size: AppIconSize.small, color: AppColors.danger),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -189,13 +189,13 @@ class DangerZoneCard extends ConsumerWidget {
                   const SizedBox(height: 2),
                   Text(
                     'Elimina todos tus créditos de forma permanente',
-                    style: TextStyle(fontSize: KreditTextSize.body, color: Theme.of(context).extension<KreditColors>()!.textSecondary),
+                    style: TextStyle(fontSize: AppTextSize.body, color: Theme.of(context).extension<AppThemeColors>()!.textSecondary),
                   ),
                   const SizedBox(height: 6),
                   const Text(
                     'IRREVERSIBLE',
                     style: TextStyle(
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.8,
                       color: AppColors.danger,
@@ -205,7 +205,7 @@ class DangerZoneCard extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 4),
-            Icon(Icons.chevron_right, size: KreditIconSize.small, color: AppColors.danger.withValues(alpha: 0.7)),
+            Icon(Icons.chevron_right, size: AppIconSize.small, color: AppColors.danger.withValues(alpha: 0.7)),
           ],
         ),
       ),

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kredit/theme/app_theme.dart';
-import 'package:kredit/widgets/account/voucher_pattern_picker.dart';
-import 'package:kredit/widgets/voucher_pattern.dart';
+import 'package:krezium/theme/app_theme.dart';
+import 'package:krezium/widgets/account/voucher_pattern_picker.dart';
+import 'package:krezium/widgets/voucher_pattern.dart';
 
 void main() {
   testWidgets('shows all 8 patterns and tapping one calls onSelect', (tester) async {
