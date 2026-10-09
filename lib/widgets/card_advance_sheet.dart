@@ -119,7 +119,7 @@ class _CardAdvanceSheetState extends ConsumerState<CardAdvanceSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     final available = getCardAvailableLimit(widget.credit);
 
@@ -163,7 +163,7 @@ class _CardAdvanceSheetState extends ConsumerState<CardAdvanceSheet> {
                     ),
                     child: Icon(
                       Icons.payments_rounded,
-                      size: KreditIconSize.small,
+                      size: AppIconSize.small,
                       color: accent,
                     ),
                   ),
@@ -179,7 +179,7 @@ class _CardAdvanceSheetState extends ConsumerState<CardAdvanceSheet> {
                         Text(
                           widget.credit.name,
                           style: TextStyle(
-                            fontSize: KreditTextSize.body,
+                            fontSize: AppTextSize.body,
                             color: kredit.textTertiary,
                           ),
                         ),
@@ -191,7 +191,7 @@ class _CardAdvanceSheetState extends ConsumerState<CardAdvanceSheet> {
               const SizedBox(height: 4),
               Text(
                 'Cupo disponible: ${formatCOP(available)}',
-                style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
+                style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary),
               ),
               const SizedBox(height: 20),
 
@@ -199,7 +199,7 @@ class _CardAdvanceSheetState extends ConsumerState<CardAdvanceSheet> {
               Text(
                 'MONTO',
                 style: TextStyle(
-                  fontSize: KreditTextSize.body,
+                  fontSize: AppTextSize.body,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.4,
                   color: kredit.textTertiary,
@@ -212,7 +212,7 @@ class _CardAdvanceSheetState extends ConsumerState<CardAdvanceSheet> {
                 inputFormatters: const [CurrencyInputFormatter()],
                 autofocus: true,
                 style: const TextStyle(
-                  fontSize: KreditTextSize.emphasis,
+                  fontSize: AppTextSize.emphasis,
                   fontWeight: FontWeight.w700,
                 ),
                 decoration: const InputDecoration(
@@ -228,12 +228,12 @@ class _CardAdvanceSheetState extends ConsumerState<CardAdvanceSheet> {
               const SizedBox(height: 4),
               Text(
                 'Disponible: ${formatCOP(available)}',
-                style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+                style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
               ),
               const SizedBox(height: 20),
 
               // Condiciones
-              KreditSectionCard(
+              AppSectionCard(
                 label: 'Condiciones (opcionales)',
                 children: [
                   TextFormField(
@@ -270,12 +270,12 @@ class _CardAdvanceSheetState extends ConsumerState<CardAdvanceSheet> {
               const SizedBox(height: 16),
 
               // Fechas
-              KreditSectionCard(
+              AppSectionCard(
                 label: 'Fechas',
                 children: [
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.calendar_today_rounded, size: KreditIconSize.small, color: accent),
+                    leading: Icon(Icons.calendar_today_rounded, size: AppIconSize.small, color: accent),
                     title: const Text('Fecha del avance'),
                     subtitle: Text(_fmt(_advanceDate)),
                     trailing: const Icon(Icons.chevron_right_rounded),
@@ -284,7 +284,7 @@ class _CardAdvanceSheetState extends ConsumerState<CardAdvanceSheet> {
                   Divider(height: 1, color: kredit.borderCard),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: Icon(Icons.event_rounded, size: KreditIconSize.small, color: accent),
+                    leading: Icon(Icons.event_rounded, size: AppIconSize.small, color: accent),
                     title: const Text('Primera fecha de pago'),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -293,7 +293,7 @@ class _CardAdvanceSheetState extends ConsumerState<CardAdvanceSheet> {
                         Text(
                           'Sugerido según el ciclo de tu tarjeta',
                           style: TextStyle(
-                            fontSize: KreditTextSize.body,
+                            fontSize: AppTextSize.body,
                             color: kredit.textTertiary,
                           ),
                         ),
@@ -310,7 +310,7 @@ class _CardAdvanceSheetState extends ConsumerState<CardAdvanceSheet> {
               Text(
                 'DESTINO (OPCIONAL)',
                 style: TextStyle(
-                  fontSize: KreditTextSize.body,
+                  fontSize: AppTextSize.body,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.4,
                   color: kredit.textTertiary,

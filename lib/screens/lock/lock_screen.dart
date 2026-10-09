@@ -177,7 +177,7 @@ class _LockScreenState extends ConsumerState<LockScreen>
   @override
   Widget build(BuildContext context) {
     final lockState = ref.watch(appLockProvider);
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final isPinMode = lockState.method == LockMethod.pin;
 
     return Scaffold(
@@ -208,7 +208,7 @@ class _LockScreenState extends ConsumerState<LockScreen>
                     ),
                     child: Icon(
                       isPinMode ? Icons.pin_outlined : Icons.lock_outline,
-                      size: KreditIconSize.large,
+                      size: AppIconSize.large,
                       color: kredit.textPrimary,
                     ),
                   ),
@@ -216,10 +216,10 @@ class _LockScreenState extends ConsumerState<LockScreen>
 
                   // ── Title ──────────────────────────────────────────────────
                   Text(
-                    'Kredit bloqueado',
+                    'Krezium bloqueado',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: KreditTextSize.emphasis,
+                      fontSize: AppTextSize.emphasis,
                       fontWeight: FontWeight.bold,
                       color: kredit.textPrimary,
                       letterSpacing: -0.3,
@@ -231,7 +231,7 @@ class _LockScreenState extends ConsumerState<LockScreen>
                         ? 'Ingresa tu PIN para continuar'
                         : 'Verifica tu identidad para continuar',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: kredit.textSecondary, fontSize: KreditTextSize.body),
+                    style: TextStyle(color: kredit.textSecondary, fontSize: AppTextSize.body),
                   ),
                   const SizedBox(height: 40),
 
@@ -303,7 +303,7 @@ class _NativePinField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     final isLockedOut = lockoutMessage != null;
 
@@ -404,7 +404,7 @@ class _NativePinField extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: AppColors.danger,
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -417,7 +417,7 @@ class _NativePinField extends StatelessWidget {
                         'PIN incorrecto, intenta de nuevo',
                         style: TextStyle(
                           color: AppColors.danger,
-                          fontSize: KreditTextSize.body,
+                          fontSize: AppTextSize.body,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -440,11 +440,11 @@ class _NativePinField extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.keyboard_outlined,
-                      size: KreditIconSize.small, color: kredit.textTertiary),
+                      size: AppIconSize.small, color: kredit.textTertiary),
                   const SizedBox(width: 6),
                   Text(
                     'Toca para ingresar tu PIN',
-                    style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+                    style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
                   ),
                 ],
               ),
@@ -458,10 +458,10 @@ class _NativePinField extends StatelessWidget {
         TextButton.icon(
           onPressed: isLockedOut ? null : _showKeyboard,
           icon: Icon(Icons.keyboard_outlined,
-              size: KreditIconSize.small, color: kredit.textTertiary),
+              size: AppIconSize.small, color: kredit.textTertiary),
           label: Text(
             'Abrir teclado',
-            style: TextStyle(color: kredit.textTertiary, fontSize: KreditTextSize.body),
+            style: TextStyle(color: kredit.textTertiary, fontSize: AppTextSize.body),
           ),
         ),
       ],
@@ -496,7 +496,7 @@ class _BiometricPrompt extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
 
     return Column(
@@ -542,7 +542,7 @@ class _BiometricPrompt extends StatelessWidget {
               ),
               child: Icon(
                 Icons.fingerprint,
-                size: KreditIconSize.large,
+                size: AppIconSize.large,
                 color: authenticating ? accent : kredit.textSecondary,
               ),
             ),
@@ -554,17 +554,17 @@ class _BiometricPrompt extends StatelessWidget {
               ? 'Verificando...'
               : 'Autenticación biométrica requerida',
           textAlign: TextAlign.center,
-          style: TextStyle(color: kredit.textSecondary, fontSize: KreditTextSize.body),
+          style: TextStyle(color: kredit.textSecondary, fontSize: AppTextSize.body),
         ),
         const SizedBox(height: 28),
         FilledButton.icon(
           onPressed: authenticating ? null : onRetry,
-          icon: const Icon(Icons.fingerprint, size: KreditIconSize.small),
+          icon: const Icon(Icons.fingerprint, size: AppIconSize.small),
           label: const Text('Reintentar'),
           style: FilledButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(KreditRadius.tile),
+              borderRadius: BorderRadius.circular(AppRadius.tile),
             ),
           ),
         ),

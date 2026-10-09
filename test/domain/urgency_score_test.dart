@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kredit/domain/urgency_score.dart';
+import 'package:krezium/domain/urgency_score.dart';
 
 void main() {
   group('urgencyScore', () {

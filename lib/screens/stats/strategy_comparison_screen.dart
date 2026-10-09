@@ -36,7 +36,7 @@ class _StrategyComparisonScreenState
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     final credits = ref.watch(creditsProvider).value ?? <Credit>[];
 
@@ -52,12 +52,12 @@ class _StrategyComparisonScreenState
     return Scaffold(
       appBar: AppBar(title: const Text('Comparar estrategias')),
       body: ListView(
-        padding: const EdgeInsets.all(KreditSpacing.card),
+        padding: const EdgeInsets.all(AppSpacing.card),
         children: [
           Text(
             'Compara cuánto pagas y cuándo terminas con cada estrategia aplicando el mismo monto extra mensual.',
             style: TextStyle(
-                fontSize: KreditTextSize.body, color: kredit.textSecondary),
+                fontSize: AppTextSize.body, color: kredit.textSecondary),
           ),
           const SizedBox(height: 16),
           TextField(
@@ -69,7 +69,7 @@ class _StrategyComparisonScreenState
               hintText: '0',
               labelText: 'Pago extra mensual',
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(KreditRadius.tile),
+                borderRadius: BorderRadius.circular(AppRadius.tile),
               ),
             ),
             onChanged: (v) {
@@ -91,7 +91,7 @@ class _StrategyComparisonScreenState
                 child: Text(
                   'Sin deudas activas para comparar.',
                   style: TextStyle(
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                       color: kredit.textTertiary),
                 ),
               ),
@@ -135,7 +135,7 @@ class _ComparisonChart extends StatelessWidget {
   final AttackPlanResult minimums;
   final AttackPlanResult snowball;
   final AttackPlanResult avalanche;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   final Color accent;
 
   const _ComparisonChart({
@@ -203,7 +203,7 @@ class _ComparisonChart extends StatelessWidget {
                           child: Text(
                             '\$${v.toStringAsFixed(1)}M',
                             style: TextStyle(
-                                fontSize: KreditTextSize.caption,
+                                fontSize: AppTextSize.caption,
                                 color: kredit.textTertiary),
                           ),
                         ),
@@ -217,7 +217,7 @@ class _ComparisonChart extends StatelessWidget {
                   getTitlesWidget: (v, _) => Text(
                     '${v.toInt()}m',
                     style: TextStyle(
-                        fontSize: KreditTextSize.caption,
+                        fontSize: AppTextSize.caption,
                         color: kredit.textTertiary),
                   ),
                 ),
@@ -259,7 +259,7 @@ class _ComparisonChart extends StatelessWidget {
 }
 
 class _Legend extends StatelessWidget {
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   final Color accent;
   final List<Credit> credits;
   final double extra;
@@ -319,7 +319,7 @@ class _LegendDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -336,7 +336,7 @@ class _LegendDot extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-              fontSize: KreditTextSize.body, color: kredit.textSecondary),
+              fontSize: AppTextSize.body, color: kredit.textSecondary),
         ),
         if (isRecommended) ...[
           const SizedBox(width: 4),
@@ -344,12 +344,12 @@ class _LegendDot extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(KreditRadius.chip),
+              borderRadius: BorderRadius.circular(AppRadius.chip),
             ),
             child: Text(
               '★ Rec.',
               style: TextStyle(
-                fontSize: KreditTextSize.caption,
+                fontSize: AppTextSize.caption,
                 fontWeight: FontWeight.w700,
                 color: color,
               ),
@@ -365,7 +365,7 @@ class _ComparisonTable extends StatelessWidget {
   final AttackPlanResult minimums;
   final AttackPlanResult snowball;
   final AttackPlanResult avalanche;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   final Color accent;
 
   const _ComparisonTable({
@@ -393,7 +393,7 @@ class _ComparisonTable extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: kredit.bgCard,
-        borderRadius: BorderRadius.circular(KreditRadius.card),
+        borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(color: kredit.borderCard),
       ),
       child: Column(
@@ -410,7 +410,7 @@ class _ComparisonTable extends StatelessWidget {
                       s.name,
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: KreditTextSize.body,
+                        fontSize: AppTextSize.body,
                         fontWeight: FontWeight.w700,
                         color: s.color,
                       ),
@@ -473,7 +473,7 @@ class _StrategyData {
 class _TableRow extends StatelessWidget {
   final String label;
   final List<String> values;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   final List<Color> colors;
   final bool isLast;
 
@@ -496,7 +496,7 @@ class _TableRow extends StatelessWidget {
             child: Text(
               label,
               style: TextStyle(
-                  fontSize: KreditTextSize.body, color: kredit.textTertiary),
+                  fontSize: AppTextSize.body, color: kredit.textTertiary),
             ),
           ),
           for (var i = 0; i < values.length; i++)
@@ -505,7 +505,7 @@ class _TableRow extends StatelessWidget {
                 values[i],
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: KreditTextSize.body,
+                  fontSize: AppTextSize.body,
                   fontWeight: FontWeight.w700,
                   color: colors[i],
                   fontFeatures: const [FontFeature.tabularFigures()],

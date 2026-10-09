@@ -46,10 +46,10 @@ class SummaryTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
 
     return ListView(
-      padding: padding ?? const EdgeInsets.all(KreditSpacing.card),
+      padding: padding ?? const EdgeInsets.all(AppSpacing.card),
       shrinkWrap: shrinkWrap,
       physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
       children: [
@@ -99,7 +99,7 @@ class _LoanProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final total = credit.installments.length;
     final paid = credit.installments.where((i) => i.paid).length;
     final paidAmount = credit.installments
@@ -116,7 +116,7 @@ class _LoanProgress extends StatelessWidget {
             Text(
               'PROGRESO DE AMORTIZACIÓN',
               style: TextStyle(
-                fontSize: KreditTextSize.body,
+                fontSize: AppTextSize.body,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.6,
                 color: kredit.textTertiary,
@@ -125,7 +125,7 @@ class _LoanProgress extends StatelessWidget {
             Text(
               '$paid de $total cuotas · ${(pct * 100).round()}%',
               style: TextStyle(
-                fontSize: KreditTextSize.body,
+                fontSize: AppTextSize.body,
                 fontWeight: FontWeight.w600,
                 color: kredit.textSecondary,
               ),
@@ -146,10 +146,27 @@ class _LoanProgress extends StatelessWidget {
         Text(
           '${formatCOP(paidAmount)} pagado de ${formatCOP(totalAmount)}',
           style: TextStyle(
-            fontSize: KreditTextSize.body,
+            fontSize: AppTextSize.body,
             color: kredit.textTertiary,
           ),
         ),
+        const SizedBox(height: 6),
+        if (credit.interestUnknown)
+          Text(
+            'Cuenta sin intereses registrados',
+            style: TextStyle(
+              fontSize: AppTextSize.body,
+              color: kredit.textTertiary,
+            ),
+          )
+        else
+          Text(
+            '${(credit.interestRate * 100).toStringAsFixed(1)}% ${credit.interestRateType ?? ''}',
+            style: TextStyle(
+              fontSize: AppTextSize.body,
+              color: kredit.textTertiary,
+            ),
+          ),
       ],
     );
   }
@@ -165,7 +182,7 @@ class _NextInstallmentCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final unpaid = credit.installments.where((i) => !i.paid).toList()
       ..sort((a, b) => a.number.compareTo(b.number));
 
@@ -175,14 +192,14 @@ class _NextInstallmentCard extends ConsumerWidget {
           Icon(
             Icons.check_circle,
             color: Theme.of(context).colorScheme.primary,
-            size: KreditIconSize.small,
+            size: AppIconSize.small,
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               'Crédito totalmente pagado. ¡Sin cuotas pendientes!',
               style: TextStyle(
-                fontSize: KreditTextSize.body,
+                fontSize: AppTextSize.body,
                 fontWeight: FontWeight.w600,
                 color: kredit.textPrimary,
               ),
@@ -217,7 +234,7 @@ class _NextInstallmentCard extends ConsumerWidget {
               Text(
                 'PRÓXIMA CUOTA · #${next.number}',
                 style: TextStyle(
-                  fontSize: KreditTextSize.body,
+                  fontSize: AppTextSize.body,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.6,
                   color: kredit.textTertiary,
@@ -227,7 +244,7 @@ class _NextInstallmentCard extends ConsumerWidget {
               Text(
                 daysLabel,
                 style: TextStyle(
-                  fontSize: KreditTextSize.body,
+                  fontSize: AppTextSize.body,
                   fontWeight: isOverdue ? FontWeight.w700 : FontWeight.w600,
                   color: isOverdue ? accent : kredit.textPrimary,
                 ),
@@ -237,7 +254,7 @@ class _NextInstallmentCard extends ConsumerWidget {
                 Text(
                   formatDate(next.dueDate),
                   style: TextStyle(
-                    fontSize: KreditTextSize.body,
+                    fontSize: AppTextSize.body,
                     color: kredit.textSecondary,
                   ),
                 ),
@@ -251,7 +268,7 @@ class _NextInstallmentCard extends ConsumerWidget {
             foregroundColor: kredit.textPrimary,
           ),
           onPressed: () => openSimulatorSheet(context, initialCreditId: credit.id),
-          icon: const Icon(Icons.calculate_outlined, size: KreditIconSize.small),
+          icon: const Icon(Icons.calculate_outlined, size: AppIconSize.small),
           label: const Text('Simular'),
         ),
         const SizedBox(width: 10),
@@ -276,7 +293,7 @@ class _NextInstallmentCard extends ConsumerWidget {
               );
             }
           },
-          icon: const Icon(Icons.check, size: KreditIconSize.small),
+          icon: const Icon(Icons.check, size: AppIconSize.small),
           label: const Text('Pagar'),
         ),
       ],
@@ -293,7 +310,7 @@ class _CardUtilization extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final limit = credit.creditLimit;
     final used = credit.currentBalance;
 
@@ -308,7 +325,7 @@ class _CardUtilization extends StatelessWidget {
           Text(
             'CUPO UTILIZADO',
             style: TextStyle(
-              fontSize: KreditTextSize.body,
+              fontSize: AppTextSize.body,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.6,
               color: kredit.textTertiary,
@@ -320,7 +337,7 @@ class _CardUtilization extends StatelessWidget {
                 ? '${formatCOP(used)} en saldo · límite no definido'
                 : 'Límite no definido para esta tarjeta.',
             style: TextStyle(
-              fontSize: KreditTextSize.body,
+              fontSize: AppTextSize.body,
               color: kredit.textTertiary,
             ),
           ),
@@ -344,7 +361,7 @@ class _CardUtilization extends StatelessWidget {
             Text(
               'CUPO UTILIZADO',
               style: TextStyle(
-                fontSize: KreditTextSize.body,
+                fontSize: AppTextSize.body,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.6,
                 color: kredit.textTertiary,
@@ -353,7 +370,7 @@ class _CardUtilization extends StatelessWidget {
             Text(
               '${(pct * 100).round()}%',
               style: TextStyle(
-                fontSize: KreditTextSize.body,
+                fontSize: AppTextSize.body,
                 fontWeight: FontWeight.w700,
                 color: isHigh ? accent : kredit.textSecondary,
               ),
@@ -374,7 +391,7 @@ class _CardUtilization extends StatelessWidget {
         Text(
           '${formatCOP(used)} usado de ${formatCOP(limit)} · ${formatCOP(available)} disponible',
           style: TextStyle(
-            fontSize: KreditTextSize.body,
+            fontSize: AppTextSize.body,
             color: kredit.textTertiary,
           ),
         ),
@@ -399,7 +416,7 @@ class _CardCycleSummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     final dates = getCardCycleDates(credit);
     final today = DateTime.now();
@@ -468,7 +485,7 @@ class _CardCycleSummaryRow extends StatelessWidget {
         Text(
           'CICLO DE FACTURACIÓN',
           style: TextStyle(
-            fontSize: KreditTextSize.body,
+            fontSize: AppTextSize.body,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.6,
             color: kredit.textTertiary,
@@ -498,7 +515,7 @@ class _BillingCycleTimeline extends StatelessWidget {
   final int paymentDueDay;
   final int todayDay;
   final Color accent;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   final bool isOverdue;
 
   const _BillingCycleTimeline({
@@ -550,7 +567,7 @@ class _BillingCycleTimeline extends StatelessWidget {
               child: Text(
                 'Nuevo extracto →',
                 style: TextStyle(
-                  fontSize: KreditTextSize.caption,
+                  fontSize: AppTextSize.caption,
                   fontWeight: FontWeight.w600,
                   color: spendColor,
                   letterSpacing: 0.2,
@@ -692,7 +709,7 @@ class _BillingCycleTimeline extends StatelessWidget {
               child: Text(
                 'Hoy',
                 style: TextStyle(
-                  fontSize: KreditTextSize.caption,
+                  fontSize: AppTextSize.caption,
                   fontWeight: FontWeight.w700,
                   color: todayColor,
                 ),
@@ -704,7 +721,7 @@ class _BillingCycleTimeline extends StatelessWidget {
               top: tickH + barH + 8,
               left: 0,
               child: Text('1',
-                  style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary)),
+                  style: TextStyle(fontSize: AppTextSize.caption, color: kredit.textTertiary)),
             ),
             Positioned(
               top: tickH + barH + 8,
@@ -714,7 +731,7 @@ class _BillingCycleTimeline extends StatelessWidget {
                 'Corte\nDía $cutoffDay',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontSize: KreditTextSize.caption,
+                    fontSize: AppTextSize.caption,
                     fontWeight: FontWeight.w600,
                     color: spendColor,
                     height: 1.3),
@@ -728,7 +745,7 @@ class _BillingCycleTimeline extends StatelessWidget {
                 wraps ? 'Límite\n(mes sig.)' : 'Límite\nDía $paymentDueDay',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    fontSize: KreditTextSize.caption,
+                    fontSize: AppTextSize.caption,
                     fontWeight: FontWeight.w600,
                     color: payColor,
                     height: 1.3),
@@ -738,7 +755,7 @@ class _BillingCycleTimeline extends StatelessWidget {
               top: tickH + barH + 8,
               right: 0,
               child: Text('31',
-                  style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary)),
+                  style: TextStyle(fontSize: AppTextSize.caption, color: kredit.textTertiary)),
             ),
           ],
         ),
@@ -770,7 +787,7 @@ class _CardQuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
 
     return Container(
@@ -791,7 +808,7 @@ class _CardQuickActions extends StatelessWidget {
                     creditId: credit.id,
                     movementType: CardMovementType.charge,
                   ),
-                  icon: const Icon(Icons.shopping_bag_outlined, size: KreditIconSize.small),
+                  icon: const Icon(Icons.shopping_bag_outlined, size: AppIconSize.small),
                   label: const Text('Nueva compra'),
                 ),
               ),
@@ -802,7 +819,7 @@ class _CardQuickActions extends StatelessWidget {
                     foregroundColor: legibleForegroundOn(accent),
                   ),
                   onPressed: () => _showPaymentTypeSheet(context),
-                  icon: const Icon(Icons.payments_outlined, size: KreditIconSize.small),
+                  icon: const Icon(Icons.payments_outlined, size: AppIconSize.small),
                   label: const Text('Pagar tarjeta'),
                 ),
               ),
@@ -813,7 +830,7 @@ class _CardQuickActions extends StatelessWidget {
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: () => CardAdvanceSheet.show(context, credit: credit),
-              icon: const Icon(Icons.attach_money_outlined, size: KreditIconSize.small),
+              icon: const Icon(Icons.attach_money_outlined, size: AppIconSize.small),
               label: const Text('Registrar avance'),
             ),
           ),
@@ -837,7 +854,7 @@ class _PaymentTypeSheetState extends State<_PaymentTypeSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
 
     return SafeArea(
@@ -863,7 +880,7 @@ class _PaymentTypeSheetState extends State<_PaymentTypeSheet> {
               child: Text(
                 '¿Cómo quieres pagar?',
                 style: TextStyle(
-                  fontSize: KreditTextSize.heading,
+                  fontSize: AppTextSize.heading,
                   fontWeight: FontWeight.w700,
                   color: kredit.textPrimary,
                 ),
@@ -882,7 +899,7 @@ class _PaymentTypeSheetState extends State<_PaymentTypeSheet> {
               ),
               subtitle: Text(
                 'Aplica al extracto más antiguo sin pagar primero',
-                style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
+                style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary),
               ),
               trailing: _selected == 'extracto'
                   ? Icon(Icons.check_circle, color: accent)
@@ -901,7 +918,7 @@ class _PaymentTypeSheetState extends State<_PaymentTypeSheet> {
               ),
               subtitle: Text(
                 'Reduce tu saldo total directamente',
-                style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
+                style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary),
               ),
               trailing: _selected == 'deuda'
                   ? Icon(Icons.check_circle, color: accent)
@@ -945,7 +962,7 @@ class _NotificationOverrideTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final globalSettings = ref.watch(notificationSettingsProvider);
     final hasOverride = credit.notificationDaysBefore != null;
     final effectiveDays = credit.notificationDaysBefore ?? globalSettings.daysBefore;
@@ -958,7 +975,7 @@ class _NotificationOverrideTile extends ConsumerWidget {
           title: Text(
             'Recordatorio personalizado',
             style: TextStyle(
-              fontSize: KreditTextSize.body,
+              fontSize: AppTextSize.body,
               fontWeight: FontWeight.w600,
               color: kredit.textPrimary,
             ),
@@ -967,7 +984,7 @@ class _NotificationOverrideTile extends ConsumerWidget {
             hasOverride
                 ? '$effectiveDays días antes (personalizado)'
                 : '${globalSettings.daysBefore} días antes (global)',
-            style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
+            style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary),
           ),
           value: hasOverride,
           onChanged: (on) {
@@ -980,7 +997,7 @@ class _NotificationOverrideTile extends ConsumerWidget {
             padding: const EdgeInsets.only(left: 4, right: 4, bottom: 4),
             child: Row(
               children: [
-                Text('1', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary)),
+                Text('1', style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary)),
                 Expanded(
                   child: Slider(
                     value: effectiveDays.toDouble().clamp(1, 14),
@@ -994,7 +1011,7 @@ class _NotificationOverrideTile extends ConsumerWidget {
                     },
                   ),
                 ),
-                Text('14', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary)),
+                Text('14', style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary)),
               ],
             ),
           ),

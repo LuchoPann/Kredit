@@ -47,7 +47,7 @@ class MovementsTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final movements = credit.movements.reversed.toList();
 
     // Group by billing cycle (extracto closing date), most-recent-first.
@@ -60,7 +60,7 @@ class MovementsTab extends ConsumerWidget {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.all(KreditSpacing.card),
+          padding: const EdgeInsets.all(AppSpacing.card),
           child: Row(
             children: [
               Expanded(
@@ -70,7 +70,7 @@ class MovementsTab extends ConsumerWidget {
                     creditId: credit.id,
                     movementType: CardMovementType.charge,
                   ),
-                  icon: const Icon(Icons.shopping_bag_outlined, size: KreditIconSize.small),
+                  icon: const Icon(Icons.shopping_bag_outlined, size: AppIconSize.small),
                   label: const Text('Nueva compra'),
                 ),
               ),
@@ -82,7 +82,7 @@ class MovementsTab extends ConsumerWidget {
                     creditId: credit.id,
                     movementType: CardMovementType.payment,
                   ),
-                  icon: const Icon(Icons.payments_outlined, size: KreditIconSize.small),
+                  icon: const Icon(Icons.payments_outlined, size: AppIconSize.small),
                   label: const Text('Pagar tarjeta'),
                 ),
               ),
@@ -112,14 +112,14 @@ class MovementsTab extends ConsumerWidget {
                       children: [
                         Icon(
                           Icons.receipt_long_outlined,
-                          size: KreditIconSize.large,
+                          size: AppIconSize.large,
                           color: kredit.textTertiary,
                         ),
                         const SizedBox(height: 16),
                         Text(
                           'Sin movimientos registrados',
                           style: TextStyle(
-                            fontSize: KreditTextSize.body,
+                            fontSize: AppTextSize.body,
                             fontWeight: FontWeight.w600,
                             color: kredit.textSecondary,
                           ),
@@ -129,7 +129,7 @@ class MovementsTab extends ConsumerWidget {
                           'Los cargos y pagos que registres aparecerán aquí.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: KreditTextSize.body,
+                            fontSize: AppTextSize.body,
                             color: kredit.textTertiary,
                           ),
                         ),
@@ -138,7 +138,7 @@ class MovementsTab extends ConsumerWidget {
                   ),
                 )
               : ListView(
-                  padding: const EdgeInsets.all(KreditSpacing.card),
+                  padding: const EdgeInsets.all(AppSpacing.card),
                   children: [
                     for (var i = 0; i < groups.entries.length; i++)
                       _CycleGroup(
@@ -215,7 +215,7 @@ class _CycleGroupState extends State<_CycleGroup> {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     final cycleEnd = DateTime.tryParse(widget.cycleEndDate);
     final label = cycleEnd != null
@@ -249,7 +249,7 @@ class _CycleGroupState extends State<_CycleGroup> {
               child: Row(
                 children: [
                   Icon(Icons.receipt_long_outlined,
-                      size: KreditIconSize.small, color: kredit.textTertiary),
+                      size: AppIconSize.small, color: kredit.textTertiary),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Column(
@@ -258,7 +258,7 @@ class _CycleGroupState extends State<_CycleGroup> {
                         Text(
                           'EXTRACTO',
                           style: TextStyle(
-                            fontSize: KreditTextSize.body,
+                            fontSize: AppTextSize.body,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.6,
                             color: kredit.textTertiary,
@@ -267,7 +267,7 @@ class _CycleGroupState extends State<_CycleGroup> {
                         Text(
                           label,
                           style: TextStyle(
-                            fontSize: KreditTextSize.body,
+                            fontSize: AppTextSize.body,
                             fontWeight: FontWeight.w600,
                             color: kredit.textSecondary,
                           ),
@@ -282,7 +282,7 @@ class _CycleGroupState extends State<_CycleGroup> {
                         Text(
                           formatCOP(charges),
                           style: TextStyle(
-                            fontSize: KreditTextSize.heading,
+                            fontSize: AppTextSize.heading,
                             fontWeight: FontWeight.w800,
                             color: kredit.textPrimary,
                           ),
@@ -291,7 +291,7 @@ class _CycleGroupState extends State<_CycleGroup> {
                         Text(
                           '–${formatCOP(payments)}',
                           style: TextStyle(
-                            fontSize: KreditTextSize.body,
+                            fontSize: AppTextSize.body,
                             fontWeight: FontWeight.w600,
                             color: accent,
                           ),
@@ -300,7 +300,7 @@ class _CycleGroupState extends State<_CycleGroup> {
                         Text(
                           'Neto: ${formatCOP(net.abs())}',
                           style: TextStyle(
-                            fontSize: KreditTextSize.body,
+                            fontSize: AppTextSize.body,
                             color: kredit.textTertiary,
                           ),
                         ),
@@ -312,7 +312,7 @@ class _CycleGroupState extends State<_CycleGroup> {
                       turns: _expanded ? 0.5 : 0,
                       duration: const Duration(milliseconds: 200),
                       child: Icon(Icons.expand_more,
-                          size: KreditIconSize.small, color: kredit.textTertiary),
+                          size: AppIconSize.small, color: kredit.textTertiary),
                     ),
                   ],
                 ],
@@ -350,7 +350,7 @@ class _MovementTile extends ConsumerWidget {
   });
 
   Future<bool> _confirmDelete(BuildContext context) async {
-    return showKreditConfirmSheet(
+    return showAppConfirmSheet(
       context,
       title: 'Eliminar movimiento',
       message: '¿Eliminar "${_labelFor(movement.type)}" por ${formatCOP(movement.amount)}? El saldo de la tarjeta se recalculará. Esta acción no se puede deshacer.',
@@ -362,7 +362,7 @@ class _MovementTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final m = movement;
     final isCredit = m.type == CardMovementType.payment;
     final accent = Theme.of(context).colorScheme.primary;
@@ -400,7 +400,7 @@ class _MovementTile extends ConsumerWidget {
         children: [
           Icon(
             _iconFor(m.type),
-            size: KreditIconSize.small,
+            size: AppIconSize.small,
             color: isCredit ? accent : kredit.textTertiary,
           ),
           const SizedBox(width: 14),
@@ -412,14 +412,14 @@ class _MovementTile extends ConsumerWidget {
                   _labelFor(m.type),
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
-                    fontSize: KreditTextSize.body,
+                    fontSize: AppTextSize.body,
                     color: kredit.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   m.note.isNotEmpty ? m.note : formatDate(m.date),
-                  style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
+                  style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -436,7 +436,7 @@ class _MovementTile extends ConsumerWidget {
             '${isCredit ? '-' : '+'}${formatCOP(m.amount)}',
             style: TextStyle(
               fontWeight: FontWeight.w800,
-              fontSize: KreditTextSize.body,
+              fontSize: AppTextSize.body,
               color: isCredit ? accent : kredit.textPrimary,
             ),
           ),

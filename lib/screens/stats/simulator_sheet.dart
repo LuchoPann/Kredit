@@ -248,7 +248,7 @@ class _SimulatorSheetState extends ConsumerState<SimulatorSheet>
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final creditsAsync = ref.watch(creditsProvider);
     final credits = creditsAsync.valueOrNull ?? [];
 
@@ -286,13 +286,13 @@ class _SimulatorSheetState extends ConsumerState<SimulatorSheet>
             child: Row(
               children: [
                 Icon(Icons.calculate_outlined,
-                    size: KreditIconSize.small, color: accent),
+                    size: AppIconSize.small, color: accent),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'Simulador financiero',
                     style: TextStyle(
-                      fontSize: KreditTextSize.heading,
+                      fontSize: AppTextSize.heading,
                       fontWeight: FontWeight.w700,
                       color: kredit.textPrimary,
                     ),
@@ -312,7 +312,7 @@ class _SimulatorSheetState extends ConsumerState<SimulatorSheet>
               child: Text(
                 '¿Qué pasaría si…? Resultados aproximados.',
                 style: TextStyle(
-                    fontSize: KreditTextSize.body, color: kredit.textTertiary),
+                    fontSize: AppTextSize.body, color: kredit.textTertiary),
               ),
             ),
           ],
@@ -321,9 +321,9 @@ class _SimulatorSheetState extends ConsumerState<SimulatorSheet>
           TabBar(
             controller: _tabCtrl,
             tabs: const [
-              Tab(icon: Icon(Icons.shopping_cart_outlined, size: KreditIconSize.small), text: 'Simular compra'),
-              Tab(icon: Icon(Icons.payments_outlined, size: KreditIconSize.small), text: 'Abonar extra'),
-              Tab(icon: Icon(Icons.rocket_launch_outlined, size: KreditIconSize.small), text: 'Libertad'),
+              Tab(icon: Icon(Icons.shopping_cart_outlined, size: AppIconSize.small), text: 'Simular compra'),
+              Tab(icon: Icon(Icons.payments_outlined, size: AppIconSize.small), text: 'Abonar extra'),
+              Tab(icon: Icon(Icons.rocket_launch_outlined, size: AppIconSize.small), text: 'Libertad'),
             ],
           ),
           // Content — cada tab maneja su propio ScrollController para evitar

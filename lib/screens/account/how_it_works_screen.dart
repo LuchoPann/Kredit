@@ -7,15 +7,15 @@ class HowItWorksScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Cómo funciona Kredit')),
+      appBar: AppBar(title: const Text('Cómo funciona Krezium')),
       body: ListView(
-        padding: const EdgeInsets.all(KreditSpacing.card),
+        padding: const EdgeInsets.all(AppSpacing.card),
         children: [
           // ── Introducción ─────────────────────────────────────────────────
           const _Lead(
-            'Kredit es una aplicación 100 % local para llevar el control de tus '
+            'Krezium es una aplicación 100 % local para llevar el control de tus '
             'créditos — tarjetas, préstamos y cupos de tienda — sin cuentas, sin '
             'nube y sin servidores externos. Todos los datos viven en tu dispositivo.',
           ),
@@ -34,7 +34,7 @@ class HowItWorksScreen extends StatelessWidget {
                 'opción de cuota de mantenimiento mensual.\n\n'
                 'Cupo de tienda: funciona como un crédito rotativo en una tienda '
                 'específica (Alkosto, Falabella, Éxito, etc.). Registras compras '
-                'como "cargos" y abonos como "pagos"; Kredit genera un voucher visual '
+                'como "cargos" y abonos como "pagos"; Krezium genera un voucher visual '
                 'por cada movimiento para que tengas el comprobante a mano.',
           ),
           Divider(height: 1, color: kredit.borderCard),
@@ -61,12 +61,12 @@ class HowItWorksScreen extends StatelessWidget {
             icon: Icons.add_circle_outline,
             title: 'Registrar un crédito',
             body:
-                'Toca el botón "+" en la pantalla de Créditos. Kredit te pide primero '
+                'Toca el botón "+" en la pantalla de Créditos. Krezium te pide primero '
                 'que elijas el tipo (préstamo, tarjeta o cupo de tienda) y luego la '
                 'entidad bancaria o tienda — esto define el diseño visual y los campos '
                 'disponibles.\n\n'
                 'Préstamo: ingresa el monto total, tasa de interés, número de cuotas '
-                'y fecha del primer pago. Kredit calcula el cronograma completo con '
+                'y fecha del primer pago. Krezium calcula el cronograma completo con '
                 'amortización francesa.\n\n'
                 'Tarjeta: ingresa el cupo total, saldo actual, tasa de interés, fecha '
                 'de corte y fecha límite de pago.\n\n'
@@ -100,13 +100,13 @@ class HowItWorksScreen extends StatelessWidget {
             body:
                 'En cualquier préstamo puedes registrar un abono extraordinario desde '
                 'el menú del detalle. El monto se aplica directamente al capital '
-                'pendiente y Kredit recalcula el cronograma.\n\n'
+                'pendiente y Krezium recalcula el cronograma.\n\n'
                 'Al abonar puedes elegir entre dos estrategias:\n'
                 '• Reducir cuota: el préstamo termina en la misma fecha pero cada '
                 'cuota es más barata.\n'
                 '• Reducir plazo: la cuota se mantiene igual pero el préstamo '
                 'termina antes.\n\n'
-                'Si el monto del abono supera la deuda restante, Kredit lo ajusta '
+                'Si el monto del abono supera la deuda restante, Krezium lo ajusta '
                 'automáticamente para saldar el crédito en cero.',
           ),
           Divider(height: 1, color: kredit.borderCard),
@@ -131,7 +131,7 @@ class HowItWorksScreen extends StatelessWidget {
             icon: Icons.warning_amber_outlined,
             title: 'Mora estimada',
             body:
-                'Cuando una cuota queda vencida, Kredit muestra junto a ella un '
+                'Cuando una cuota queda vencida, Krezium muestra junto a ella un '
                 'interés moratorio estimado (interés simple diario sobre el saldo '
                 'vencido). Es una aproximación informativa — cada banco tiene sus '
                 'propias reglas de mora y este valor no se suma al total de deuda '
@@ -144,7 +144,7 @@ class HowItWorksScreen extends StatelessWidget {
             icon: Icons.policy_outlined,
             title: 'Detector de tasa de usura',
             body:
-                'Al registrar la tasa de interés, Kredit la compara con los rangos '
+                'Al registrar la tasa de interés, Krezium la compara con los rangos '
                 'habituales del mercado colombiano y con el límite legal vigente. Si '
                 'el valor parece inconsistente (por ejemplo, una tasa mensual escrita '
                 'en el campo anual), la app muestra una advertencia sin bloquear el '
@@ -157,14 +157,14 @@ class HowItWorksScreen extends StatelessWidget {
             icon: Icons.backup_outlined,
             title: 'Respaldo de datos',
             body:
-                'Kredit ofrece dos formas de respaldar tus datos:\n\n'
+                'Krezium ofrece dos formas de respaldar tus datos:\n\n'
                 'Manual: desde Cuenta → Datos y respaldos, exporta un archivo JSON '
                 'con toda la información. Puedes importarlo en cualquier momento para '
                 'restaurar — la app pide confirmación antes de reemplazar los datos '
                 'actuales.\n\n'
                 'Automático: configura la frecuencia (diaria, semanal, quincenal o '
                 'mensual) y la hora del respaldo. Los archivos se guardan en la '
-                'carpeta Kredit/backups/ del almacenamiento interno del teléfono, al '
+                'carpeta Krezium/backups/ del almacenamiento interno del teléfono, al '
                 'mismo nivel que Descargas y Documentos. Puedes elegir entre '
                 'sobreescribir siempre el mismo archivo o crear uno nuevo por cada '
                 'respaldo.',
@@ -176,7 +176,7 @@ class HowItWorksScreen extends StatelessWidget {
             icon: Icons.security_outlined,
             title: 'Seguridad y privacidad',
             body:
-                'Puedes proteger la apertura de Kredit con:\n'
+                'Puedes proteger la apertura de Krezium con:\n'
                 '• PIN: código numérico de 4 a 6 dígitos.\n'
                 '• Biometría: huella dactilar o reconocimiento facial (si el '
                 'dispositivo lo soporta).\n\n'
@@ -207,12 +207,12 @@ class HowItWorksScreen extends StatelessWidget {
             icon: Icons.info_outline,
             title: 'Una aproximación, no el número exacto del banco',
             body:
-                'Kredit usa amortización francesa estándar (cuota fija, interés '
+                'Krezium usa amortización francesa estándar (cuota fija, interés '
                 'decreciente, capital creciente) — el modelo de referencia de la '
                 'mayoría de entidades. Tu cuota real puede diferir en unos pesos '
                 'por redondeos, seguros o comisiones propias de cada banco.\n\n'
                 'La fuente de verdad es siempre el estado de cuenta o la app oficial '
-                'de tu entidad. Usa Kredit para planear y controlar tu deuda; '
+                'de tu entidad. Usa Krezium para planear y controlar tu deuda; '
                 'confirma las cifras exactas directamente con el banco.',
           ),
           Divider(height: 1, color: kredit.borderCard),
@@ -222,12 +222,12 @@ class HowItWorksScreen extends StatelessWidget {
             icon: Icons.wifi_off_outlined,
             title: 'Sin conexión, sin cuentas',
             body:
-                'Kredit no requiere internet ni registro. Todos los datos se '
+                'Krezium no requiere internet ni registro. Todos los datos se '
                 'almacenan localmente en tu dispositivo mediante SQLite (Drift). '
                 'La app funciona completamente sin conexión y ninguna información '
                 'tuya sale del teléfono.',
           ),
-          const SizedBox(height: KreditSpacing.section),
+          const SizedBox(height: AppSpacing.section),
         ],
       ),
     );
@@ -240,13 +240,13 @@ class _Lead extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Padding(
       padding: const EdgeInsets.only(bottom: 24),
       child: Text(
         text,
         style: TextStyle(
-          fontSize: KreditTextSize.heading,
+          fontSize: AppTextSize.heading,
           fontWeight: FontWeight.w600,
           height: 1.55,
           color: kredit.textPrimary,
@@ -264,7 +264,7 @@ class _Section extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 20),
@@ -273,13 +273,13 @@ class _Section extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, size: KreditIconSize.small, color: accent),
+              Icon(icon, size: AppIconSize.small, color: accent),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   title,
                   style: TextStyle(
-                    fontSize: KreditTextSize.heading,
+                    fontSize: AppTextSize.heading,
                     fontWeight: FontWeight.w700,
                     color: kredit.textPrimary,
                     letterSpacing: 0.1,
@@ -292,7 +292,7 @@ class _Section extends StatelessWidget {
           Text(
             body,
             style: TextStyle(
-              fontSize: KreditTextSize.body,
+              fontSize: AppTextSize.body,
               height: 1.55,
               color: kredit.textSecondary,
             ),

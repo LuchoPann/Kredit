@@ -1,9 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kredit/data/models/commercial_quota.dart';
-import 'package:kredit/data/models/credit.dart';
-import 'package:kredit/domain/export_import.dart';
+import 'package:krezium/data/models/commercial_quota.dart';
+import 'package:krezium/data/models/credit.dart';
+import 'package:krezium/domain/export_import.dart';
 
 void main() {
   LoanCredit buildLoan() => LoanCredit(

@@ -24,7 +24,7 @@ class BgTonePicker extends ConsumerWidget {
             (value: BgTone.warm, label: 'Arena'),
           ];
 
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -32,7 +32,7 @@ class BgTonePicker extends ConsumerWidget {
           isDark ? 'Variante de Tema Oscuro' : 'Variante de Tema Claro',
           style: TextStyle(color: kredit.textSecondary),
         ),
-        const SizedBox(height: KreditSpacing.tile),
+        const SizedBox(height: AppSpacing.tile),
         Row(
           children: options.map((opt) {
             final isSelected = opt.value == selected;

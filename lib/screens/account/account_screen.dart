@@ -53,7 +53,7 @@ class AccountScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final prefs = ref.watch(themePreferencesProvider);
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final notifSettings = ref.watch(notificationSettingsProvider);
 
     final bgToneLabel = switch (prefs.bgTone) {
@@ -79,7 +79,7 @@ class AccountScreen extends ConsumerWidget {
             ),
             title: Text(
               prefs.profileName.isNotEmpty ? prefs.profileName : 'Cuenta',
-              style: const TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w700),
+              style: const TextStyle(fontSize: AppTextSize.body, fontWeight: FontWeight.w700),
             ),
           ),
 
@@ -109,10 +109,10 @@ class AccountScreen extends ConsumerWidget {
                               icon: Icons.palette_outlined,
                               iconColor: accent,
                               title: 'Apariencia',
-                              subtitle: 'Personaliza el aspecto visual de Kredit',
+                              subtitle: 'Personaliza el aspecto visual de Krezium',
                             ),
                             const SizedBox(height: 24),
-                            _SheetLabel('MODO DE PANTALLA', Theme.of(ctx).extension<KreditColors>()!),
+                            _SheetLabel('MODO DE PANTALLA', Theme.of(ctx).extension<AppThemeColors>()!),
                             const SizedBox(height: 10),
                             Row(
                               children: [
@@ -136,11 +136,11 @@ class AccountScreen extends ConsumerWidget {
                               ],
                             ),
                             const SizedBox(height: 24),
-                            _SheetLabel('COLOR DE ACENTO', Theme.of(ctx).extension<KreditColors>()!),
+                            _SheetLabel('COLOR DE ACENTO', Theme.of(ctx).extension<AppThemeColors>()!),
                             const SizedBox(height: 10),
                             const AccentColorPicker(),
                             const SizedBox(height: 24),
-                            _SheetLabel('TONO DE FONDO', Theme.of(ctx).extension<KreditColors>()!),
+                            _SheetLabel('TONO DE FONDO', Theme.of(ctx).extension<AppThemeColors>()!),
                             const SizedBox(height: 10),
                             const BgTonePicker(),
                             const SizedBox(height: 8),
@@ -161,7 +161,7 @@ class AccountScreen extends ConsumerWidget {
                   onTap: () => _openSheet(
                     context,
                     Consumer(builder: (ctx, ref2, _) {
-                      final kredit2 = Theme.of(ctx).extension<KreditColors>()!;
+                      final kredit2 = Theme.of(ctx).extension<AppThemeColors>()!;
                       return Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -243,7 +243,7 @@ class AccountScreen extends ConsumerWidget {
                   onTap: () => _openSheet(
                     context,
                     Consumer(builder: (ctx, ref2, _) {
-                      final kredit2 = Theme.of(ctx).extension<KreditColors>()!;
+                      final kredit2 = Theme.of(ctx).extension<AppThemeColors>()!;
                       return Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -292,7 +292,7 @@ class AccountScreen extends ConsumerWidget {
                 _SectionDivider(label: 'Información', kredit: kredit),
                 _SettingsTile(
                   icon: Icons.help_outline,
-                  title: 'Cómo funciona Kredit',
+                  title: 'Cómo funciona Krezium',
                   subtitle: 'Guía rápida de la app',
                   onTap: () => Navigator.of(context).push(
                     slidePageRoute((_) => const HowItWorksScreen()),
@@ -305,7 +305,7 @@ class AccountScreen extends ConsumerWidget {
                 _SectionDivider(label: 'Zona de riesgo', kredit: kredit, danger: true),
                 Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: KreditSpacing.card, vertical: 4),
+                      horizontal: AppSpacing.card, vertical: 4),
                   child: const DangerZoneCard(),
                 ),
                 const SizedBox(height: 32),

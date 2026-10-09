@@ -147,7 +147,7 @@ class _ProfileBanner extends ConsumerWidget {
   }
 
   Future<void> _editName(BuildContext context, WidgetRef ref, String current) async {
-    final result = await showKreditInputSheet(
+    final result = await showAppInputSheet(
       context,
       title: 'Nombre de perfil',
       initialValue: current,
@@ -162,7 +162,7 @@ class _ProfileBanner extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final prefs = ref.watch(themePreferencesProvider);
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     final avatarPath = prefs.avatarPath;
     final effectiveAvatarBg = applyBgToneToAccent(
@@ -228,7 +228,7 @@ class _ProfileBanner extends ConsumerWidget {
                   Text(
                     prefs.profileName.isNotEmpty ? prefs.profileName : 'Mi perfil',
                     style: TextStyle(
-                      fontSize: KreditTextSize.heading,
+                      fontSize: AppTextSize.heading,
                       fontWeight: FontWeight.w700,
                       color: kredit.textPrimary,
                     ),
@@ -240,8 +240,8 @@ class _ProfileBanner extends ConsumerWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              'Kredit · Mis créditos',
-              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+              'Krezium · Mis créditos',
+              style: TextStyle(fontSize: AppTextSize.caption, color: kredit.textTertiary),
             ),
             const SizedBox(height: 8),
           ],
@@ -256,7 +256,7 @@ class _ProfileBanner extends ConsumerWidget {
 
 class _SectionDivider extends StatelessWidget {
   final String label;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   final bool danger;
 
   const _SectionDivider({required this.label, required this.kredit, this.danger = false});
@@ -265,11 +265,11 @@ class _SectionDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = danger ? AppColors.danger : kredit.textTertiary;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(KreditSpacing.card, 20, KreditSpacing.card, 4),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.card, 20, AppSpacing.card, 4),
       child: Text(
         label.toUpperCase(),
         style: TextStyle(
-          fontSize: KreditTextSize.caption,
+          fontSize: AppTextSize.caption,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.8,
           color: color,
@@ -280,15 +280,15 @@ class _SectionDivider extends StatelessWidget {
 }
 
 class _Divider extends StatelessWidget {
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   const _Divider(this.kredit);
 
   @override
   Widget build(BuildContext context) {
     return Divider(
       height: 1,
-      indent: KreditSpacing.card + KreditIconSize.small + 16,
-      endIndent: KreditSpacing.card,
+      indent: AppSpacing.card + AppIconSize.small + 16,
+      endIndent: AppSpacing.card,
       color: kredit.borderCard,
     );
   }
@@ -311,17 +311,17 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(
-              horizontal: KreditSpacing.card, vertical: 14),
+              horizontal: AppSpacing.card, vertical: 14),
           child: Row(
             children: [
-              Icon(icon, size: KreditIconSize.small, color: kredit.textSecondary),
+              Icon(icon, size: AppIconSize.small, color: kredit.textSecondary),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -330,7 +330,7 @@ class _SettingsTile extends StatelessWidget {
                     Text(
                       title,
                       style: TextStyle(
-                        fontSize: KreditTextSize.body,
+                        fontSize: AppTextSize.body,
                         fontWeight: FontWeight.w600,
                         color: kredit.textPrimary,
                       ),
@@ -339,7 +339,7 @@ class _SettingsTile extends StatelessWidget {
                     Text(
                       subtitle,
                       style: TextStyle(
-                          fontSize: KreditTextSize.caption,
+                          fontSize: AppTextSize.caption,
                           color: kredit.textTertiary),
                     ),
                   ],
@@ -347,7 +347,7 @@ class _SettingsTile extends StatelessWidget {
               ),
               if (showChevron)
                 Icon(Icons.chevron_right,
-                    size: KreditIconSize.small, color: kredit.textTertiary),
+                    size: AppIconSize.small, color: kredit.textTertiary),
             ],
           ),
         ),
@@ -371,7 +371,7 @@ class _SheetHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -392,7 +392,7 @@ class _SheetHeader extends StatelessWidget {
               Text(
                 title,
                 style: TextStyle(
-                  fontSize: KreditTextSize.emphasis,
+                  fontSize: AppTextSize.emphasis,
                   fontWeight: FontWeight.w800,
                   color: kredit.textPrimary,
                 ),
@@ -400,7 +400,7 @@ class _SheetHeader extends StatelessWidget {
               Text(
                 subtitle,
                 style: TextStyle(
-                  fontSize: KreditTextSize.caption,
+                  fontSize: AppTextSize.caption,
                   color: kredit.textTertiary,
                 ),
               ),
@@ -427,13 +427,13 @@ class _ActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     return Material(
       color: kredit.bgCard,
-      borderRadius: BorderRadius.circular(KreditRadius.tile),
+      borderRadius: BorderRadius.circular(AppRadius.tile),
       child: InkWell(
-        borderRadius: BorderRadius.circular(KreditRadius.tile),
+        borderRadius: BorderRadius.circular(AppRadius.tile),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -456,7 +456,7 @@ class _ActionTile extends StatelessWidget {
                     Text(
                       title,
                       style: TextStyle(
-                        fontSize: KreditTextSize.body,
+                        fontSize: AppTextSize.body,
                         fontWeight: FontWeight.w600,
                         color: kredit.textPrimary,
                       ),
@@ -464,14 +464,14 @@ class _ActionTile extends StatelessWidget {
                     Text(
                       subtitle,
                       style: TextStyle(
-                        fontSize: KreditTextSize.caption,
+                        fontSize: AppTextSize.caption,
                         color: kredit.textTertiary,
                       ),
                     ),
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, size: KreditIconSize.small, color: kredit.textTertiary),
+              Icon(Icons.chevron_right, size: AppIconSize.small, color: kredit.textTertiary),
             ],
           ),
         ),
@@ -495,7 +495,7 @@ class _ModeOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     return GestureDetector(
       onTap: onTap,
@@ -505,7 +505,7 @@ class _ModeOption extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           color: selected ? accent.withValues(alpha: 0.10) : kredit.bgCard,
-          borderRadius: BorderRadius.circular(KreditRadius.tile),
+          borderRadius: BorderRadius.circular(AppRadius.tile),
           border: Border.all(
             color: selected ? accent : kredit.borderCard,
             width: selected ? 1.5 : 1,
@@ -522,7 +522,7 @@ class _ModeOption extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontSize: KreditTextSize.body,
+                fontSize: AppTextSize.body,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 color: selected ? accent : kredit.textSecondary,
               ),
@@ -537,14 +537,14 @@ class _ModeOption extends StatelessWidget {
 
 class _SheetLabel extends StatelessWidget {
   final String text;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   const _SheetLabel(this.text, this.kredit);
 
   @override
   Widget build(BuildContext context) => Text(
         text,
         style: TextStyle(
-          fontSize: KreditTextSize.caption,
+          fontSize: AppTextSize.caption,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.8,
           color: kredit.textTertiary,
@@ -707,7 +707,7 @@ class SheetNavHostState extends State<SheetNavHost> {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final canPop = _stack.isNotEmpty;
     final currentTitle = canPop ? _stack.last.title : null;
 
@@ -749,7 +749,7 @@ class SheetNavHostState extends State<SheetNavHost> {
                         child: Text(
                           currentTitle ?? '',
                           style: const TextStyle(
-                            fontSize: KreditTextSize.heading,
+                            fontSize: AppTextSize.heading,
                             fontWeight: FontWeight.w700,
                           ),
                         ),

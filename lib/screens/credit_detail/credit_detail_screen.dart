@@ -70,7 +70,7 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
   }
 
   Future<void> _confirmDelete(BuildContext context, Credit credit) async {
-    final confirmed = await showKreditConfirmSheet(
+    final confirmed = await showAppConfirmSheet(
       context,
       title: 'Eliminar crédito',
       message: '¿Eliminar "${credit.name}" y todo su historial? Esta acción no se puede deshacer.',
@@ -125,16 +125,16 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
                   child: Container(
                     width: 36, height: 4,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).extension<KreditColors>()!.borderCard,
+                      color: Theme.of(context).extension<AppThemeColors>()!.borderCard,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
                 ),
                 Padding(
                   padding: EdgeInsets.only(
-                    left: KreditSpacing.card,
-                    right: KreditSpacing.card,
-                    bottom: MediaQuery.of(context).viewInsets.bottom + KreditSpacing.card,
+                    left: AppSpacing.card,
+                    right: AppSpacing.card,
+                    bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.card,
                   ),
                   child: StatefulBuilder(
                     builder: (ctx, setModalState) => SingleChildScrollView(
@@ -193,16 +193,16 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
                 child: Container(
                   width: 36, height: 4,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).extension<KreditColors>()!.borderCard,
+                    color: Theme.of(context).extension<AppThemeColors>()!.borderCard,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
         Padding(
         padding: EdgeInsets.only(
-          left: KreditSpacing.card,
-          right: KreditSpacing.card,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + KreditSpacing.card,
+          left: AppSpacing.card,
+          right: AppSpacing.card,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.card,
         ),
         child: Form(
           key: formKey,
@@ -330,7 +330,7 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
           }
         }
         final isGrouped = groupPurchases != null;
-        final kredit = Theme.of(context).extension<KreditColors>()!;
+        final kredit = Theme.of(context).extension<AppThemeColors>()!;
         // La compra que trajo al usuario a este detalle empieza abierta;
         // se ejecuta en cada build pero solo asigna una vez (??=).
         if (isGrouped) {
@@ -516,19 +516,19 @@ class _CreditTypeBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(KreditRadius.chip),
+        borderRadius: BorderRadius.circular(AppRadius.chip),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: KreditIconSize.micro, color: color),
+          Icon(icon, size: AppIconSize.micro, color: color),
           const SizedBox(width: 4),
           Text(
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: KreditTextSize.body,
+              fontSize: AppTextSize.body,
               color: color,
               fontWeight: FontWeight.w700,
             ),
@@ -547,7 +547,7 @@ class _CreditOverviewTiles extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
 
     final String leftLabel;
     final String leftValue;
@@ -579,7 +579,7 @@ class _CreditOverviewTiles extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(KreditSpacing.card, 10, KreditSpacing.card, 10),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.card, 10, AppSpacing.card, 10),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: kredit.borderCard)),
       ),

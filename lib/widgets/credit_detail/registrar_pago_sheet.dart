@@ -114,14 +114,14 @@ class _RegistrarPagoSheetState extends ConsumerState<RegistrarPagoSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final inst = widget.installment;
 
     return Padding(
       padding: EdgeInsets.only(
-        left: KreditSpacing.card,
-        right: KreditSpacing.card,
-        bottom: MediaQuery.of(context).viewInsets.bottom + KreditSpacing.card,
+        left: AppSpacing.card,
+        right: AppSpacing.card,
+        bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.card,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -134,7 +134,7 @@ class _RegistrarPagoSheetState extends ConsumerState<RegistrarPagoSheet> {
           const SizedBox(height: 4),
           Text(
             'Proyectado: ${formatCOP(inst.amount)} · Vence ${formatDate(inst.dueDate)}',
-            style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+            style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
           ),
           const SizedBox(height: 16),
           TextField(
@@ -149,7 +149,7 @@ class _RegistrarPagoSheetState extends ConsumerState<RegistrarPagoSheet> {
           const SizedBox(height: 12),
           InkWell(
             onTap: _pickDate,
-            borderRadius: BorderRadius.circular(KreditRadius.tile),
+            borderRadius: BorderRadius.circular(AppRadius.tile),
             child: InputDecorator(
               decoration: const InputDecoration(
                 labelText: 'Fecha de pago',

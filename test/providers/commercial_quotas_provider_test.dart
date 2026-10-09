@@ -1,10 +1,10 @@
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kredit/data/db/database.dart';
-import 'package:kredit/data/models/commercial_quota.dart';
-import 'package:kredit/providers/commercial_quotas_provider.dart';
-import 'package:kredit/providers/database_provider.dart';
+import 'package:krezium/data/db/database.dart';
+import 'package:krezium/data/models/commercial_quota.dart';
+import 'package:krezium/providers/commercial_quotas_provider.dart';
+import 'package:krezium/providers/database_provider.dart';
 
 void main() {
   test('upsert then read reflects the new quota', () async {

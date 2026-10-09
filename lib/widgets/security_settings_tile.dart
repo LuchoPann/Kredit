@@ -17,7 +17,7 @@ class SecuritySettingsTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final showAmounts = ref.watch(widgetPrivacyProvider);
 
     return Column(
@@ -25,10 +25,10 @@ class SecuritySettingsTile extends ConsumerWidget {
       children: [
         ListTile(
           contentPadding: EdgeInsets.zero,
-          leading: Icon(Icons.security_outlined, size: KreditIconSize.small, color: kredit.textSecondary),
+          leading: Icon(Icons.security_outlined, size: AppIconSize.small, color: kredit.textSecondary),
           title: const Text('Seguridad'),
           subtitle: const Text('Bloqueo con biometría o PIN al abrir la app'),
-          trailing: Icon(Icons.chevron_right, size: KreditIconSize.small, color: kredit.textTertiary),
+          trailing: Icon(Icons.chevron_right, size: AppIconSize.small, color: kredit.textTertiary),
           onTap: () {
             // Si estamos dentro de un sheet con SheetNavHost, deslizamos
             // el contenido internamente. Si no, abrimos pantalla completa.

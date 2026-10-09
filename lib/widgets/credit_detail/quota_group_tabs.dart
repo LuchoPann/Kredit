@@ -36,10 +36,10 @@ class _PurchaseCardHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final radius = BorderRadius.vertical(
-      top: const Radius.circular(KreditRadius.card),
-      bottom: Radius.circular(expanded ? 0 : KreditRadius.card),
+      top: const Radius.circular(AppRadius.card),
+      bottom: Radius.circular(expanded ? 0 : AppRadius.card),
     );
     return InkWell(
       onTap: onTap,
@@ -80,7 +80,7 @@ class _PurchaseCardHeader extends StatelessWidget {
               curve: Curves.easeInOut,
               child: Icon(
                 Icons.expand_more,
-                size: KreditIconSize.small,
+                size: AppIconSize.small,
                 color: kredit.textSecondary,
               ),
             ),
@@ -103,13 +103,13 @@ class _PurchaseCardBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       decoration: BoxDecoration(
         color: kredit.bgCard,
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(KreditRadius.card)),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(AppRadius.card)),
         border: Border(
           left: BorderSide(color: kredit.borderCard.withValues(alpha: 0.78)),
           right: BorderSide(color: kredit.borderCard.withValues(alpha: 0.78)),
@@ -172,7 +172,7 @@ class QuotaGroupSummaryTab extends ConsumerWidget {
 
   Future<void> _confirmDeletePurchase(
       BuildContext context, WidgetRef ref, LoanCredit purchase) async {
-    final confirmed = await showKreditConfirmSheet(
+    final confirmed = await showAppConfirmSheet(
       context,
       title: 'Eliminar compra',
       message: '¿Eliminar "${purchase.name}" y todo su historial? Esta acción no se puede deshacer.',
@@ -194,12 +194,12 @@ class QuotaGroupSummaryTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final q = quota;
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(
-          KreditSpacing.card, KreditSpacing.card, KreditSpacing.card, 16),
+          AppSpacing.card, AppSpacing.card, AppSpacing.card, 16),
       itemCount: purchases.length + (q != null ? 1 : 0),
       itemBuilder: (context, index) {
         if (q != null && index == 0) {
@@ -262,7 +262,7 @@ class QuotaGroupSummaryTab extends ConsumerWidget {
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: () => EditCreditSheet.show(context, purchase),
-                            icon: const Icon(Icons.edit_outlined, size: KreditIconSize.small),
+                            icon: const Icon(Icons.edit_outlined, size: AppIconSize.small),
                             label: const Text('Editar'),
                           ),
                         ),
@@ -274,7 +274,7 @@ class QuotaGroupSummaryTab extends ConsumerWidget {
                               side: const BorderSide(color: AppColors.danger),
                             ),
                             onPressed: () => _confirmDeletePurchase(context, ref, purchase),
-                            icon: const Icon(Icons.delete_outline, size: KreditIconSize.small),
+                            icon: const Icon(Icons.delete_outline, size: AppIconSize.small),
                             label: const Text('Eliminar'),
                           ),
                         ),

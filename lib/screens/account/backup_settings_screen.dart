@@ -142,7 +142,7 @@ class _BackupSettingsBodyState extends State<BackupSettingsBody> {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
 
     if (_loading) {
@@ -150,11 +150,11 @@ class _BackupSettingsBodyState extends State<BackupSettingsBody> {
     }
 
     return Padding(
-      padding: const EdgeInsets.all(KreditSpacing.card),
+      padding: const EdgeInsets.all(AppSpacing.card),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          KreditSectionCard(
+          AppSectionCard(
             label: 'RESPALDO AUTOMÁTICO',
             icon: Icons.backup_outlined,
             children: [
@@ -169,24 +169,24 @@ class _BackupSettingsBodyState extends State<BackupSettingsBody> {
                   _enabled
                       ? 'Se respalda $_frequencyLabel automáticamente'
                       : 'Los respaldos manuales siguen disponibles',
-                  style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+                  style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
                 ),
                 value: _enabled,
                 onChanged: (v) => setState(() => _enabled = v),
               ),
             ],
           ),
-          const SizedBox(height: KreditSpacing.section),
+          const SizedBox(height: AppSpacing.section),
 
           // Carpeta de destino (configurable)
-          KreditSectionCard(
+          AppSectionCard(
             label: 'CARPETA DE DESTINO',
             icon: Icons.folder_outlined,
             children: [
               Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(KreditRadius.tile),
+                  borderRadius: BorderRadius.circular(AppRadius.tile),
                   onTap: _pickFolder,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
@@ -194,7 +194,7 @@ class _BackupSettingsBodyState extends State<BackupSettingsBody> {
                       children: [
                         Icon(
                           _customPath != null ? Icons.folder_open_outlined : Icons.folder_outlined,
-                          size: KreditIconSize.small,
+                          size: AppIconSize.small,
                           color: _customPath != null ? accent : kredit.textSecondary,
                         ),
                         const SizedBox(width: 12),
@@ -205,7 +205,7 @@ class _BackupSettingsBodyState extends State<BackupSettingsBody> {
                               Text(
                                 _customPath != null ? 'Carpeta personalizada' : 'Predeterminada',
                                 style: TextStyle(
-                                  fontSize: KreditTextSize.body,
+                                  fontSize: AppTextSize.body,
                                   fontWeight: FontWeight.w600,
                                   color: kredit.textPrimary,
                                 ),
@@ -213,10 +213,10 @@ class _BackupSettingsBodyState extends State<BackupSettingsBody> {
                               const SizedBox(height: 2),
                               Text(
                                 _customPath != null
-                                    ? '$_customPath/Kredit/backups/'
-                                    : 'Kredit/backups/ (almacenamiento principal)',
+                                    ? '$_customPath/Krezium/backups/'
+                                    : 'Krezium/backups/ (almacenamiento principal)',
                                 style: TextStyle(
-                                  fontSize: KreditTextSize.caption,
+                                  fontSize: AppTextSize.caption,
                                   fontFamily: 'monospace',
                                   color: kredit.textTertiary,
                                 ),
@@ -227,7 +227,7 @@ class _BackupSettingsBodyState extends State<BackupSettingsBody> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Icon(Icons.edit_outlined, size: KreditIconSize.small, color: kredit.textTertiary),
+                        Icon(Icons.edit_outlined, size: AppIconSize.small, color: kredit.textTertiary),
                       ],
                     ),
                   ),
@@ -247,10 +247,10 @@ class _BackupSettingsBodyState extends State<BackupSettingsBody> {
               ],
             ],
           ),
-          const SizedBox(height: KreditSpacing.section),
+          const SizedBox(height: AppSpacing.section),
 
           if (_enabled) ...[
-            KreditSectionCard(
+            AppSectionCard(
               label: 'FRECUENCIA',
               icon: Icons.schedule_outlined,
               children: [
@@ -284,23 +284,23 @@ class _BackupSettingsBodyState extends State<BackupSettingsBody> {
                 ),
               ],
             ),
-            const SizedBox(height: KreditSpacing.section),
+            const SizedBox(height: AppSpacing.section),
 
-            KreditSectionCard(
+            AppSectionCard(
               label: 'HORA DEL RESPALDO',
               icon: Icons.access_time_outlined,
               children: [
                 Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(KreditRadius.tile),
+                    borderRadius: BorderRadius.circular(AppRadius.tile),
                     onTap: _pickTime,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
                       child: Row(
                         children: [
                           Icon(Icons.access_time_outlined,
-                              size: KreditIconSize.small, color: kredit.textSecondary),
+                              size: AppIconSize.small, color: kredit.textSecondary),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
@@ -309,7 +309,7 @@ class _BackupSettingsBodyState extends State<BackupSettingsBody> {
                                 Text(
                                   _timeLabel,
                                   style: TextStyle(
-                                    fontSize: KreditTextSize.emphasis,
+                                    fontSize: AppTextSize.emphasis,
                                     fontWeight: FontWeight.w700,
                                     color: kredit.textPrimary,
                                   ),
@@ -317,14 +317,14 @@ class _BackupSettingsBodyState extends State<BackupSettingsBody> {
                                 Text(
                                   'Toca para cambiar la hora',
                                   style: TextStyle(
-                                      fontSize: KreditTextSize.caption,
+                                      fontSize: AppTextSize.caption,
                                       color: kredit.textTertiary),
                                 ),
                               ],
                             ),
                           ),
                           Icon(Icons.edit_outlined,
-                              size: KreditIconSize.small, color: kredit.textTertiary),
+                              size: AppIconSize.small, color: kredit.textTertiary),
                         ],
                       ),
                     ),
@@ -332,9 +332,9 @@ class _BackupSettingsBodyState extends State<BackupSettingsBody> {
                 ),
               ],
             ),
-            const SizedBox(height: KreditSpacing.section),
+            const SizedBox(height: AppSpacing.section),
 
-            KreditSectionCard(
+            AppSectionCard(
               label: 'MODO DE ARCHIVO',
               icon: Icons.storage_outlined,
               children: [
@@ -354,16 +354,16 @@ class _BackupSettingsBodyState extends State<BackupSettingsBody> {
                 ),
               ],
             ),
-            const SizedBox(height: KreditSpacing.section),
+            const SizedBox(height: AppSpacing.section),
 
-            KreditSectionCard(
+            AppSectionCard(
               label: 'PRÓXIMO RESPALDO',
               icon: Icons.event_outlined,
               children: [
                 Row(
                   children: [
                     Icon(Icons.calendar_today_outlined,
-                        size: KreditIconSize.small, color: kredit.textTertiary),
+                        size: AppIconSize.small, color: kredit.textTertiary),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
@@ -372,7 +372,7 @@ class _BackupSettingsBodyState extends State<BackupSettingsBody> {
                           Text(
                             _nextBackupLabel,
                             style: TextStyle(
-                              fontSize: KreditTextSize.heading,
+                              fontSize: AppTextSize.heading,
                               fontWeight: FontWeight.w700,
                               color: kredit.textPrimary,
                             ),
@@ -380,7 +380,7 @@ class _BackupSettingsBodyState extends State<BackupSettingsBody> {
                           Text(
                             'Frecuencia: $_frequencyLabel · Modo: ${_mode == 'overwrite' ? 'Sobreescribir' : 'Archivo nuevo'}',
                             style: TextStyle(
-                                fontSize: KreditTextSize.body, color: kredit.textTertiary),
+                                fontSize: AppTextSize.body, color: kredit.textTertiary),
                           ),
                         ],
                       ),
@@ -389,7 +389,7 @@ class _BackupSettingsBodyState extends State<BackupSettingsBody> {
                 ),
               ],
             ),
-            const SizedBox(height: KreditSpacing.section),
+            const SizedBox(height: AppSpacing.section),
           ],
 
           FilledButton.icon(
@@ -400,7 +400,7 @@ class _BackupSettingsBodyState extends State<BackupSettingsBody> {
               minimumSize: const Size(double.infinity, 52),
             ),
           ),
-          const SizedBox(height: KreditSpacing.section),
+          const SizedBox(height: AppSpacing.section),
         ],
       ),
     );
@@ -424,18 +424,18 @@ class _RadioOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     final selected = value == groupValue;
     return InkWell(
-      borderRadius: BorderRadius.circular(KreditRadius.tile),
+      borderRadius: BorderRadius.circular(AppRadius.tile),
       onTap: () => onChanged(value),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: selected ? accent.withValues(alpha: 0.08) : kredit.bgCard,
-          borderRadius: BorderRadius.circular(KreditRadius.tile),
+          borderRadius: BorderRadius.circular(AppRadius.tile),
           border: Border.all(
             color: selected ? accent.withValues(alpha: 0.5) : kredit.borderCard,
             width: selected ? 1.5 : 1,
@@ -445,7 +445,7 @@ class _RadioOption extends StatelessWidget {
           children: [
             Icon(
               selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-              size: KreditIconSize.small,
+              size: AppIconSize.small,
               color: selected ? accent : kredit.textTertiary,
             ),
             const SizedBox(width: 12),
@@ -456,14 +456,14 @@ class _RadioOption extends StatelessWidget {
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                       fontWeight: FontWeight.w600,
                       color: kredit.textPrimary,
                     ),
                   ),
                   Text(
                     subtitle,
-                    style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+                    style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
                   ),
                 ],
               ),

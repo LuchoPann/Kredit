@@ -89,7 +89,7 @@ class _LoanAbonoSheetState extends ConsumerState<LoanAbonoSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     return Padding(
       padding: EdgeInsets.only(
@@ -125,7 +125,7 @@ class _LoanAbonoSheetState extends ConsumerState<LoanAbonoSheet> {
                     color: accent.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.savings_outlined, size: KreditIconSize.small, color: accent),
+                  child: Icon(Icons.savings_outlined, size: AppIconSize.small, color: accent),
                 ),
                 const SizedBox(width: 10),
                 Text('Registrar Abono Extra', style: Theme.of(context).textTheme.titleLarge),
@@ -135,7 +135,7 @@ class _LoanAbonoSheetState extends ConsumerState<LoanAbonoSheet> {
             Text(
               'MONTO',
               style: TextStyle(
-                fontSize: KreditTextSize.body,
+                fontSize: AppTextSize.body,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.4,
                 color: kredit.textTertiary,
@@ -147,7 +147,7 @@ class _LoanAbonoSheetState extends ConsumerState<LoanAbonoSheet> {
               keyboardType: TextInputType.number,
               inputFormatters: const [CurrencyInputFormatter()],
               autofocus: true,
-              style: const TextStyle(fontSize: KreditTextSize.emphasis, fontWeight: FontWeight.w700),
+              style: const TextStyle(fontSize: AppTextSize.emphasis, fontWeight: FontWeight.w700),
               decoration: const InputDecoration(prefixText: '\$ ', hintText: 'Ej. 500.000'),
               validator: (v) {
                 final n = double.tryParse(CurrencyInputFormatter.unformat(v ?? ''));
@@ -167,7 +167,7 @@ class _LoanAbonoSheetState extends ConsumerState<LoanAbonoSheet> {
             Text(
               'QUÉ HACER CON EL SALDO',
               style: TextStyle(
-                fontSize: KreditTextSize.body,
+                fontSize: AppTextSize.body,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.4,
                 color: kredit.textTertiary,
@@ -200,7 +200,7 @@ class _LoanAbonoSheetState extends ConsumerState<LoanAbonoSheet> {
               _strategy == AbonoStrategy.reducirCuota
                   ? 'Mismo número de cuotas restantes, pero cada una más barata.'
                   : 'Misma cuota mensual, pero el crédito termina antes.',
-              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+              style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
             ),
             const SizedBox(height: 20),
             SizedBox(

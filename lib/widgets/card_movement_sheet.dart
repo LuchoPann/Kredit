@@ -109,7 +109,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
   @override
   Widget build(BuildContext context) {
     final isCharge = widget.movementType == CardMovementType.charge;
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
 
     final credits = ref.watch(creditsProvider).value ?? [];
@@ -166,7 +166,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
                   ),
                   child: Icon(
                     isCharge ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
-                    size: KreditIconSize.small,
+                    size: AppIconSize.small,
                     color: accent,
                   ),
                 ),
@@ -182,7 +182,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
               isCharge
                   ? 'Registra lo que compraste con la tarjeta — suma a tu saldo.'
                   : 'Registra lo que le pagaste al banco — reduce tu saldo.',
-              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+              style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
             ),
             // Contexto de extracto
             if (credit != null) ...[
@@ -200,12 +200,12 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.receipt_long_outlined, size: KreditIconSize.small, color: accent),
+                        Icon(Icons.receipt_long_outlined, size: AppIconSize.small, color: accent),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             'Esta compra aparecerá en el extracto que cierra el $cutoffLabel.',
-                            style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary, height: 1.4),
+                            style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary, height: 1.4),
                           ),
                         ),
                       ],
@@ -224,12 +224,12 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.account_balance_wallet_outlined, size: KreditIconSize.small, color: accent),
+                        Icon(Icons.account_balance_wallet_outlined, size: AppIconSize.small, color: accent),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             'Estás pagando el extracto cerrado el $cutoffLabel. Fecha límite: $dueLabel.',
-                            style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary, height: 1.4),
+                            style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary, height: 1.4),
                           ),
                         ),
                       ],
@@ -253,7 +253,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
                   Text(
                     'MONTO',
                     style: TextStyle(
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.4,
                       color: kredit.textTertiary,
@@ -265,7 +265,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
                     keyboardType: TextInputType.number,
                     inputFormatters: const [CurrencyInputFormatter()],
                     autofocus: true,
-                    style: const TextStyle(fontSize: KreditTextSize.emphasis, fontWeight: FontWeight.w700),
+                    style: const TextStyle(fontSize: AppTextSize.emphasis, fontWeight: FontWeight.w700),
                     decoration: const InputDecoration(prefixText: '\$ ', hintText: 'Ej. 80.000'),
                     validator: (v) {
                       final n = double.tryParse(CurrencyInputFormatter.unformat(v ?? ''));
@@ -321,13 +321,13 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.info_outline, size: KreditIconSize.small,
+                              Icon(Icons.info_outline, size: AppIconSize.small,
                                   color: Theme.of(ctx).colorScheme.primary),
                               const SizedBox(width: 8),
                               Text(
                                 'Cuota mensual estimada: ${formatCOP(cuota)}',
                                 style: TextStyle(
-                                  fontSize: KreditTextSize.body,
+                                  fontSize: AppTextSize.body,
                                   fontWeight: FontWeight.w600,
                                   color: Theme.of(ctx).colorScheme.primary,
                                 ),
@@ -346,7 +346,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
             Text(
               'SUGERENCIAS',
               style: TextStyle(
-                fontSize: KreditTextSize.body,
+                fontSize: AppTextSize.body,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.4,
                 color: kredit.textTertiary,
@@ -370,7 +370,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
                       ),
                       child: Text(
                         preset,
-                        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
+                        style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary),
                       ),
                     ),
                   ),
@@ -381,7 +381,7 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
               Text(
                 'CATEGORÍA',
                 style: TextStyle(
-                  fontSize: KreditTextSize.body,
+                  fontSize: AppTextSize.body,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.4,
                   color: kredit.textTertiary,
@@ -425,14 +425,14 @@ class _CardMovementSheetState extends ConsumerState<CardMovementSheet> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.info_outline, size: KreditIconSize.small, color: Theme.of(context).colorScheme.error),
+                    Icon(Icons.info_outline, size: AppIconSize.small, color: Theme.of(context).colorScheme.error),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         'Este cargo supera el cupo disponible por ${formatCOP(overlimitBy)}. '
                         'Algunos bancos permiten sobrecupo con un cargo adicional; revisa las '
                         'condiciones de tu tarjeta antes de continuar.',
-                        style: TextStyle(fontSize: KreditTextSize.body, color: Theme.of(context).colorScheme.error),
+                        style: TextStyle(fontSize: AppTextSize.body, color: Theme.of(context).colorScheme.error),
                       ),
                     ),
                   ],
@@ -474,15 +474,15 @@ class _CategoriaChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = Theme.of(context).colorScheme.primary;
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(KreditRadius.chip),
+      borderRadius: BorderRadius.circular(AppRadius.chip),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
           color: selected ? accent.withValues(alpha: 0.18) : kredit.bgCard,
-          borderRadius: BorderRadius.circular(KreditRadius.chip),
+          borderRadius: BorderRadius.circular(AppRadius.chip),
           border: Border.all(
             color: selected ? accent : kredit.borderCard,
             width: selected ? 1.5 : 1,
@@ -491,7 +491,7 @@ class _CategoriaChip extends StatelessWidget {
         child: Text(
           '$emoji $label',
           style: TextStyle(
-            fontSize: KreditTextSize.body,
+            fontSize: AppTextSize.body,
             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
             color: selected ? accent : kredit.textSecondary,
           ),

@@ -11,19 +11,19 @@ class DemoBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Container(
       margin: const EdgeInsets.only(left: 6),
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
       decoration: BoxDecoration(
         color: kredit.textPrimary.withValues(alpha: 0.06),
         border: Border.all(color: kredit.borderCard),
-        borderRadius: BorderRadius.circular(KreditRadius.chip),
+        borderRadius: BorderRadius.circular(AppRadius.chip),
       ),
       child: Text(
         'EJEMPLO',
         style: TextStyle(
-          fontSize: KreditTextSize.body,
+          fontSize: AppTextSize.body,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.3,
           color: kredit.textTertiary,

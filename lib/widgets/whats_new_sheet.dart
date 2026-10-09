@@ -72,7 +72,7 @@ class _WhatsNewContentState extends State<_WhatsNewContent> {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     final latest = changelog.first;
     final older = changelog.skip(1).toList();
@@ -121,7 +121,7 @@ class _WhatsNewContentState extends State<_WhatsNewContent> {
                         Text(
                           'Novedades',
                           style: TextStyle(
-                            fontSize: KreditTextSize.emphasis,
+                            fontSize: AppTextSize.emphasis,
                             fontWeight: FontWeight.w800,
                             color: kredit.textPrimary,
                           ),
@@ -129,7 +129,7 @@ class _WhatsNewContentState extends State<_WhatsNewContent> {
                         Text(
                           'Versión ${latest.version} · ${latest.date}',
                           style: TextStyle(
-                              fontSize: KreditTextSize.caption,
+                              fontSize: AppTextSize.caption,
                               color: kredit.textTertiary),
                         ),
                       ],
@@ -159,7 +159,7 @@ class _WhatsNewContentState extends State<_WhatsNewContent> {
                     Text(
                       'VERSIONES ANTERIORES',
                       style: TextStyle(
-                        fontSize: KreditTextSize.caption,
+                        fontSize: AppTextSize.caption,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.8,
                         color: kredit.textTertiary,
@@ -203,7 +203,7 @@ class _ChangeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
 
     final (icon, color) = switch (item.type) {
@@ -231,7 +231,7 @@ class _ChangeRow extends StatelessWidget {
             child: Text(
               item.description,
               style: TextStyle(
-                fontSize: KreditTextSize.body,
+                fontSize: AppTextSize.body,
                 color: kredit.textSecondary,
                 height: 1.4,
               ),
@@ -256,7 +256,7 @@ class _AccordionVersionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -275,7 +275,7 @@ class _AccordionVersionTile extends StatelessWidget {
                       Text(
                         'Versión ${entry.version}',
                         style: TextStyle(
-                          fontSize: KreditTextSize.body,
+                          fontSize: AppTextSize.body,
                           fontWeight: FontWeight.w700,
                           color: kredit.textPrimary,
                         ),
@@ -283,7 +283,7 @@ class _AccordionVersionTile extends StatelessWidget {
                       Text(
                         entry.date,
                         style: TextStyle(
-                          fontSize: KreditTextSize.caption,
+                          fontSize: AppTextSize.caption,
                           color: kredit.textTertiary,
                         ),
                       ),
@@ -296,7 +296,7 @@ class _AccordionVersionTile extends StatelessWidget {
                   curve: Curves.easeOutCubic,
                   child: Icon(
                     Icons.keyboard_arrow_down_rounded,
-                    size: KreditIconSize.small,
+                    size: AppIconSize.small,
                     color: kredit.textTertiary,
                   ),
                 ),

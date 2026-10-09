@@ -12,12 +12,12 @@ class AccentColorPicker extends ConsumerWidget {
     final prefs = ref.watch(themePreferencesProvider);
     final selected = prefs.accentColor;
     final isDarkMode = prefs.isDarkMode;
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Color de acento', style: TextStyle(color: kredit.textSecondary)),
-        const SizedBox(height: KreditSpacing.tile),
+        const SizedBox(height: AppSpacing.tile),
         Wrap(
           alignment: WrapAlignment.center,
           spacing: 12,
@@ -54,7 +54,7 @@ class AccentColorPicker extends ConsumerWidget {
                   ),
                 ),
                 child: isSelected
-                    ? Icon(Icons.check, size: KreditIconSize.small, color: checkColor)
+                    ? Icon(Icons.check, size: AppIconSize.small, color: checkColor)
                     : null,
               ),
             );

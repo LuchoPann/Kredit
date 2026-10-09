@@ -21,7 +21,7 @@ class _AttackToolsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
 
     void go(Widget screen) {
@@ -113,7 +113,7 @@ class _AttackToolsSheet extends StatelessWidget {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: accent.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(KreditRadius.chip),
+                  borderRadius: BorderRadius.circular(AppRadius.chip),
                 ),
                 child: Icon(Icons.bolt_rounded, color: accent, size: 20),
               ),
@@ -125,14 +125,14 @@ class _AttackToolsSheet extends StatelessWidget {
                     Text(
                       'Herramientas de ataque',
                       style: TextStyle(
-                        fontSize: KreditTextSize.heading,
+                        fontSize: AppTextSize.heading,
                         fontWeight: FontWeight.w700,
                         color: kredit.textPrimary,
                       ),
                     ),
                     Text(
                       'Estrategias para liquidar tu deuda',
-                      style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
+                      style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary),
                     ),
                   ],
                 ),
@@ -169,7 +169,7 @@ class _Tool {
 
 class _ToolTile extends StatelessWidget {
   final _Tool tool;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
 
   const _ToolTile({required this.tool, required this.kredit});
 
@@ -186,15 +186,15 @@ class _ToolTile extends StatelessWidget {
             color: tool.iconColor.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(tool.icon, size: KreditIconSize.small, color: tool.iconColor),
+          child: Icon(tool.icon, size: AppIconSize.small, color: tool.iconColor),
         ),
         title: Text(
           tool.title,
-          style: TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.body, color: kredit.textPrimary),
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSize.body, color: kredit.textPrimary),
         ),
         subtitle: Text(
           tool.subtitle,
-          style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary),
+          style: TextStyle(fontSize: AppTextSize.caption, color: kredit.textSecondary),
         ),
         trailing: Icon(Icons.chevron_right_rounded, color: kredit.textTertiary),
         onTap: tool.onTap,

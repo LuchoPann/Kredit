@@ -1,12 +1,12 @@
 import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kredit/data/models/credit.dart';
-import 'package:kredit/data/models/installment.dart';
-import 'package:kredit/data/models/loan_abono.dart';
-import 'package:kredit/domain/date_utils.dart';
-import 'package:kredit/domain/interest_rate.dart';
-import 'package:kredit/domain/loan_calculator.dart';
+import 'package:krezium/data/models/credit.dart';
+import 'package:krezium/data/models/installment.dart';
+import 'package:krezium/data/models/loan_abono.dart';
+import 'package:krezium/domain/date_utils.dart';
+import 'package:krezium/domain/interest_rate.dart';
+import 'package:krezium/domain/loan_calculator.dart';
 
 /// Standard PMT (cuota francesa) formula, used as an independent oracle to
 /// validate `buildLoanInstallments`'s quota-vs-interest math in at least one

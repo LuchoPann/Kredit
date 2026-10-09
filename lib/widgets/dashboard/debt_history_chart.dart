@@ -23,11 +23,11 @@ class _DebtHistoryChartState extends ConsumerState<DebtHistoryChart> {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     final histAsync = ref.watch(debtHistoryProvider(_months));
 
-    return KreditSectionCard(
+    return AppSectionCard(
       children: [
         Row(
           children: [
@@ -36,7 +36,7 @@ class _DebtHistoryChartState extends ConsumerState<DebtHistoryChart> {
                 'Evolución de deuda',
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
-                  fontSize: KreditTextSize.body,
+                  fontSize: AppTextSize.body,
                   color: kredit.textPrimary,
                 ),
               ),
@@ -60,7 +60,7 @@ class _DebtHistoryChartState extends ConsumerState<DebtHistoryChart> {
             child: Center(
               child: Text(
                 'No se pudo cargar el historial',
-                style: TextStyle(color: kredit.textTertiary, fontSize: KreditTextSize.body),
+                style: TextStyle(color: kredit.textTertiary, fontSize: AppTextSize.body),
               ),
             ),
           ),
@@ -71,7 +71,7 @@ class _DebtHistoryChartState extends ConsumerState<DebtHistoryChart> {
                 child: Center(
                   child: Text(
                     'Agrega más créditos para ver la evolución',
-                    style: TextStyle(color: kredit.textTertiary, fontSize: KreditTextSize.body),
+                    style: TextStyle(color: kredit.textTertiary, fontSize: AppTextSize.body),
                   ),
                 ),
               );
@@ -191,7 +191,7 @@ class _DebtHistoryChartState extends ConsumerState<DebtHistoryChart> {
           children: [
             _Legend(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.45), label: 'Proyectado', dashed: true),
             const SizedBox(width: 16),
-            _Legend(color: Theme.of(context).extension<KreditColors>()!.success, label: 'Real registrado'),
+            _Legend(color: Theme.of(context).extension<AppThemeColors>()!.success, label: 'Real registrado'),
           ],
         ),
       ],
@@ -208,7 +208,7 @@ class _PeriodChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     return GestureDetector(
       onTap: onTap,
@@ -217,7 +217,7 @@ class _PeriodChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
           color: selected ? accent.withValues(alpha: 0.15) : Colors.transparent,
-          borderRadius: BorderRadius.circular(KreditRadius.chip),
+          borderRadius: BorderRadius.circular(AppRadius.chip),
           border: Border.all(
             color: selected ? accent : kredit.borderCard,
             width: 1,
@@ -226,7 +226,7 @@ class _PeriodChip extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            fontSize: KreditTextSize.body,
+            fontSize: AppTextSize.body,
             fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
             color: selected ? accent : kredit.textSecondary,
           ),
@@ -245,7 +245,7 @@ class _Legend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -259,7 +259,7 @@ class _Legend extends StatelessWidget {
         const SizedBox(width: 5),
         Text(
           label,
-          style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+          style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
         ),
       ],
     );

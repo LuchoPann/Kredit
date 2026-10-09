@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kredit/domain/bank_detector.dart';
+import 'package:krezium/domain/bank_detector.dart';
 
 void main() {
   group('detectBank - Falabella sub-entities', () {

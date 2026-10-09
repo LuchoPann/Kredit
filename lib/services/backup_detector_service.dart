@@ -40,7 +40,7 @@ class BackupDetectorService {
       await _scanDir(appDocs, isAuto: false, results: results);
     } catch (_) {}
 
-    // 2. Kredit/backups/ in external storage (auto-backup default path)
+    // 2. Krezium/backups/ in external storage (auto-backup default path)
     try {
       final dir = await _getAutoBackupDir();
       if (dir != null && await dir.exists()) {
@@ -53,7 +53,7 @@ class BackupDetectorService {
       final prefs = await SharedPreferences.getInstance();
       final custom = prefs.getString(kBackupCustomPathPref);
       if (custom != null && custom.isNotEmpty) {
-        final customDir = Directory('$custom/Kredit/backups');
+        final customDir = Directory('$custom/Krezium/backups');
         if (await customDir.exists()) {
           await _scanDir(customDir, isAuto: true, results: results);
         }
@@ -118,6 +118,6 @@ class BackupDetectorService {
     final externalDir = await getExternalStorageDirectory();
     if (externalDir == null) return null;
     final storageRoot = externalDir.parent.parent.parent.parent;
-    return Directory('${storageRoot.path}/Kredit/backups');
+    return Directory('${storageRoot.path}/Krezium/backups');
   }
 }

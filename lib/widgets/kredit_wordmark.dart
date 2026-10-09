@@ -4,10 +4,10 @@ import 'package:path_drawing/path_drawing.dart';
 /// Raw path data from `assets/icons/KREDIT_COMP.svg` (viewBox 0 0 1824 309),
 /// one entry per disconnected letter-piece the artwork was authored with.
 /// Kept as Dart strings (rather than loading the asset through flutter_svg)
-/// because [KreditWordmarkReveal] needs to animate each piece separately —
+/// because [AppWordmarkReveal] needs to animate each piece separately —
 /// flutter_svg renders a whole document as a single opaque [Picture], with
 /// no per-path access.
-const List<String> kKreditWordmarkPaths = [
+const List<String> kAppWordmarkPaths = [
   'M339.20 305.30 c-2.70 -1.25 -4.70 -3.45 -5.65 -6.25 -0.40 -1.25 -0.55 -23.20 -0.55 -81.55 l0 -79.85 1.05 -0.95 c1.05 -0.95 3.50 -0.95 103.65 -1 101.90 -0.05 102.55 -0.05 105.70 -1.10 4.45 -1.45 7.05 -3.10 10.20 -6.55 3.30 -3.50 5.60 -8.55 6.45 -14.10 0.35 -2.35 0.50 -7 0.30 -12.95 -0.25 -8.20 -0.40 -9.65 -1.50 -12.70 -2.25 -6.20 -5.95 -10.35 -11.85 -13.30 -5.10 -2.60 -0.20 -2.50 -106.25 -2.50 -95.35 0 -99.05 -0.05 -101 -0.95 -2.65 -1.25 -5.05 -3.80 -6 -6.50 -1.15 -3.25 -1.15 -51.15 0.05 -53.95 0.95 -2.40 2.95 -4.40 5.45 -5.70 1.95 -1.05 2.35 -1.05 111.50 -1.25 76.90 -0.15 111 -0.05 114.60 0.35 10.55 1.10 20 3.70 27.70 7.65 6.45 3.25 9.75 5.45 14.10 9.30 12.55 11.20 19.75 24.70 22.60 42.40 0.60 3.75 0.75 10.70 0.75 36.80 0 32.75 -0.15 36.40 -2.05 45.45 -1.35 6.50 -2.35 9.30 -5.75 15.95 -3.75 7.30 -7.70 12.50 -13.35 17.55 -8.40 7.40 -15.50 11.45 -25.95 14.60 -12.10 3.65 -7.65 3.50 -95 3.65 l-78.40 0.20 0 49.40 c0 54.05 0.10 52.05 -2.90 55.20 -0.75 0.80 -2.25 1.95 -3.35 2.50 -2 1.10 -2.35 1.10 -32 1.25 l-30 0.10 -2.55 -1.20z',
   'M540.65 306 c-2.10 -0.50 -3.65 -1.50 -7.40 -4.95 -1.70 -1.55 -5.95 -5.40 -9.50 -8.55 -11.75 -10.50 -43.25 -39.10 -48.50 -44 -1.90 -1.85 -5.30 -4.85 -7.50 -6.80 -2.20 -1.90 -7.50 -6.60 -11.75 -10.45 -4.25 -3.85 -9.50 -8.55 -11.60 -10.40 -3.75 -3.30 -3.90 -3.50 -3.90 -5.65 0 -1.80 0.20 -2.30 1.35 -3.05 1.25 -0.85 3.95 -0.90 41.90 -0.90 36.70 0 40.65 0.10 42 0.80 1.50 0.85 5.15 3.95 20.25 17.45 4.50 4 9.20 8.15 10.50 9.25 2.85 2.45 18.55 16.25 30.45 26.80 4.85 4.25 11.40 10 14.55 12.75 17.75 15.25 23.90 20.75 24.20 21.45 0.85 2.30 -0.45 4.60 -3.55 6.20 -1.25 0.65 -78.80 0.70 -81.50 0.05z',
   'M10.55 305.30 c-2.90 -1.05 -5.40 -3.55 -6.50 -6.55 -1.05 -2.75 -1.05 -3.40 -1.05 -54.75 0 -35.40 0.15 -52.40 0.55 -53.35 0.25 -0.75 1.25 -2.15 2.10 -3.10 1.45 -1.50 12.80 -11.20 22.60 -19.30 2 -1.65 6.95 -5.80 11.05 -9.20 27.90 -23.35 35.15 -29.25 37.35 -30.40 2.75 -1.50 7.85 -1.60 10.15 -0.20 0.85 0.50 5.35 4.05 9.95 7.90 4.65 3.80 11.05 9.05 14.25 11.65 3.20 2.60 7.80 6.45 10.30 8.60 2.45 2.10 6.15 5.20 8.20 6.90 2.05 1.65 6.55 5.40 10 8.25 3.45 2.85 9.75 8.10 14 11.60 11.75 9.75 46.50 38.85 59.20 49.65 2.45 2.05 6.05 5.10 8.05 6.75 3.60 3 14.45 12.35 23 19.75 2.50 2.15 8.35 7.20 13 11.25 35.55 30.60 32.25 27.60 32.25 29.70 0 2.40 -1.65 4.20 -4.65 5 -1.55 0.45 -11.55 0.55 -37.60 0.45 -40.85 -0.15 -36.60 0.35 -43 -5.50 -4.55 -4.15 -16.45 -14.60 -30.95 -27.10 -6.35 -5.45 -13.35 -11.55 -15.55 -13.50 -2.20 -2 -8.95 -7.85 -15 -13.05 -6.05 -5.20 -13.35 -11.50 -16.20 -14 -2.85 -2.45 -8.05 -6.95 -11.55 -10 -3.50 -3 -11.80 -10.20 -18.50 -16 -17.75 -15.40 -20.65 -17.75 -21.60 -17.75 -0.85 0 -0.90 2.80 -1 54.95 l-0.15 54.95 -1.50 2.15 c-0.95 1.35 -2.50 2.70 -4.20 3.55 l-2.65 1.40 -26.35 -0.05 c-19.30 0 -26.75 -0.20 -28 -0.65z',
@@ -28,13 +28,13 @@ const List<String> kKreditWordmarkPaths = [
 
 /// Original artboard size the paths above were authored against
 /// (`assets/icons/KREDIT_COMP.svg`'s viewBox).
-const Size kKreditWordmarkArtboardSize = Size(1824, 309);
+const Size kAppWordmarkArtboardSize = Size(1824, 309);
 
-/// Parses [kKreditWordmarkPaths] once into [Path]s (in artboard
+/// Parses [kAppWordmarkPaths] once into [Path]s (in artboard
 /// coordinates) the first time either wordmark widget below needs them,
 /// and reuses the same list afterwards — re-parsing 16 path strings on
 /// every rebuild/frame would be wasted work for a static logo.
-List<Path> _parsedWordmarkPaths = kKreditWordmarkPaths
+List<Path> _parsedWordmarkPaths = kAppWordmarkPaths
     .map((d) => parseSvgPathData(d))
     .toList(growable: false);
 
@@ -42,12 +42,12 @@ List<Path> _parsedWordmarkPaths = kKreditWordmarkPaths
 /// [color] — used wherever the earlier "K chip + REDIT text" combo used to
 /// go (voucher branding, welcome screen) now that a real designed wordmark
 /// exists for it.
-class KreditWordmark extends StatelessWidget {
+class AppWordmark extends StatelessWidget {
   final Color color;
   final double? width;
   final double? height;
 
-  const KreditWordmark({super.key, required this.color, this.width, this.height});
+  const AppWordmark({super.key, required this.color, this.width, this.height});
 
   @override
   Widget build(BuildContext context) {
@@ -57,8 +57,8 @@ class KreditWordmark extends StatelessWidget {
       child: FittedBox(
         fit: BoxFit.contain,
         child: SizedBox(
-          width: kKreditWordmarkArtboardSize.width,
-          height: kKreditWordmarkArtboardSize.height,
+          width: kAppWordmarkArtboardSize.width,
+          height: kAppWordmarkArtboardSize.height,
           child: CustomPaint(painter: _WordmarkPainter(color: color)),
         ),
       ),
@@ -87,14 +87,14 @@ class _WordmarkPainter extends CustomPainter {
 /// the whole logo popping in at once. Meant for the app's startup splash:
 /// covers the brief window while persisted state (theme, onboarding, lock)
 /// loads, so that load never reads as a blank/empty screen.
-class KreditWordmarkReveal extends StatefulWidget {
+class AppWordmarkReveal extends StatefulWidget {
   final Color color;
   final double? width;
   final double? height;
   final Duration duration;
   final VoidCallback? onCompleted;
 
-  const KreditWordmarkReveal({
+  const AppWordmarkReveal({
     super.key,
     required this.color,
     this.width,
@@ -104,10 +104,10 @@ class KreditWordmarkReveal extends StatefulWidget {
   });
 
   @override
-  State<KreditWordmarkReveal> createState() => _KreditWordmarkRevealState();
+  State<AppWordmarkReveal> createState() => _AppWordmarkRevealState();
 }
 
-class _KreditWordmarkRevealState extends State<KreditWordmarkReveal>
+class _AppWordmarkRevealState extends State<AppWordmarkReveal>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   // Piece indices ordered by their leftmost x in the artboard, so the
@@ -142,8 +142,8 @@ class _KreditWordmarkRevealState extends State<KreditWordmarkReveal>
       child: FittedBox(
         fit: BoxFit.contain,
         child: SizedBox(
-          width: kKreditWordmarkArtboardSize.width,
-          height: kKreditWordmarkArtboardSize.height,
+          width: kAppWordmarkArtboardSize.width,
+          height: kAppWordmarkArtboardSize.height,
           child: AnimatedBuilder(
             animation: _controller,
             builder: (context, _) => CustomPaint(

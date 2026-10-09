@@ -205,7 +205,7 @@ class AppLockNotifier extends StateNotifier<AppLockState> with WidgetsBindingObs
   Future<bool> authenticateWithBiometrics() async {
     try {
       final ok = await _localAuth.authenticate(
-        localizedReason: 'Autentícate para acceder a Kredit',
+        localizedReason: 'Autentícate para acceder a Krezium',
         biometricOnly: false,
         persistAcrossBackgrounding: true,
       );

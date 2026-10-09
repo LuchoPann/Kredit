@@ -29,7 +29,7 @@ class WelcomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final notificationsEnabled = ref.watch(notificationSettingsProvider).enabled;
     final theme = Theme.of(context);
-    final kredit = theme.extension<KreditColors>()!;
+    final kredit = theme.extension<AppThemeColors>()!;
     final accentColor = theme.colorScheme.primary;
     final ctaForeground = legibleForegroundOn(accentColor);
 
@@ -41,10 +41,10 @@ class WelcomeScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 24),
-              KreditWordmark(color: kredit.textPrimary, height: 40),
+              AppWordmark(color: kredit.textPrimary, height: 40),
               const SizedBox(height: 16),
               Text(
-                '¡Bienvenido a Kredit!',
+                '¡Bienvenido a Krezium!',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.headlineSmall
                     ?.copyWith(fontWeight: FontWeight.bold),
@@ -132,7 +132,7 @@ class WelcomeScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: KreditSpacing.section),
+              const SizedBox(height: AppSpacing.section),
               Divider(color: kredit.borderCard, height: 1),
               const SizedBox(height: 16),
               FilledButton(
@@ -142,14 +142,14 @@ class WelcomeScreen extends ConsumerWidget {
                   foregroundColor: ctaForeground,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(KreditRadius.tile),
+                    borderRadius: BorderRadius.circular(AppRadius.tile),
                   ),
                 ),
                 child: Text(
                   'Empezar',
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    fontSize: KreditTextSize.body,
+                    fontSize: AppTextSize.body,
                     color: ctaForeground,
                   ),
                 ),
@@ -200,7 +200,7 @@ class _InfoItem extends StatelessWidget {
                   color: iconColor.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: iconColor, size: KreditIconSize.small),
+                child: Icon(icon, color: iconColor, size: AppIconSize.small),
               ),
               const SizedBox(width: 12),
               Expanded(

@@ -7,7 +7,7 @@ class _SubTypeChip extends StatelessWidget {
   final IconData icon;
   final bool selected;
   final VoidCallback onTap;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
 
   const _SubTypeChip({
     required this.label,
@@ -35,13 +35,13 @@ class _SubTypeChip extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Icon(icon, size: KreditIconSize.medium, color: selected ? accent : kredit.textSecondary),
+            Icon(icon, size: AppIconSize.medium, color: selected ? accent : kredit.textSecondary),
             const SizedBox(height: 6),
             Text(
               label,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: KreditTextSize.body,
+                fontSize: AppTextSize.body,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 color: selected ? accent : kredit.textSecondary,
               ),
@@ -58,7 +58,7 @@ class _ModeCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback onTap;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
 
   const _ModeCard({
     required this.icon,
@@ -90,16 +90,16 @@ class _ModeCard extends StatelessWidget {
                 color: accent.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, color: accent, size: KreditIconSize.medium),
+              child: Icon(icon, color: accent, size: AppIconSize.medium),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(fontSize: KreditTextSize.heading, fontWeight: FontWeight.w700, color: kredit.textPrimary)),
+                  Text(title, style: TextStyle(fontSize: AppTextSize.heading, fontWeight: FontWeight.w700, color: kredit.textPrimary)),
                   const SizedBox(height: 2),
-                  Text(subtitle, style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary)),
+                  Text(subtitle, style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary)),
                 ],
               ),
             ),
@@ -115,7 +115,7 @@ class _BankChipPicker extends StatelessWidget {
   final List<String> banks;
   final String? selectedBank;
   final ValueChanged<String> onSelected;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
 
   const _BankChipPicker({
     required this.banks,
@@ -155,13 +155,13 @@ class _InterestUnknownRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return SwitchListTile(
       contentPadding: EdgeInsets.zero,
       value: interestUnknown,
       onChanged: onChanged,
       title: Text('Tasa desconocida', style: TextStyle(fontWeight: FontWeight.w600, color: kredit.textPrimary)),
-      subtitle: Text('Kredit no mostrará tasa ni calculará intereses.', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary)),
+      subtitle: Text('Krezium no mostrará tasa ni calculará intereses.', style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary)),
     );
   }
 }
@@ -173,13 +173,13 @@ class _EarlyPaymentRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return SwitchListTile(
       contentPadding: EdgeInsets.zero,
       value: earlyPaymentWaivesInterest,
       onChanged: onChanged,
       title: Text('Pago anticipado sin interés', style: TextStyle(fontWeight: FontWeight.w600, color: kredit.textPrimary)),
-      subtitle: Text('Actívalo si la entidad condona el interés al pagar antes del vencimiento.', style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary)),
+      subtitle: Text('Actívalo si la entidad condona el interés al pagar antes del vencimiento.', style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary)),
     );
   }
 }
@@ -197,18 +197,18 @@ class _InterestRateWarningHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.warning_amber_rounded, size: KreditIconSize.small, color: AppColors.warning),
+          const Icon(Icons.warning_amber_rounded, size: AppIconSize.small, color: AppColors.warning),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
               text,
-              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+              style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
             ),
           ),
         ],
@@ -219,7 +219,7 @@ class _InterestRateWarningHint extends StatelessWidget {
 
 /// Panel editorial que reacciona en vivo a lo que el usuario va tecleando en
 /// el paso 2 — mismo lenguaje visual que el "DEUDA TOTAL" del dashboard
-/// (cifra protagonista en `KreditTextSize.hero`, eyebrow en mayúsculas), en
+/// (cifra protagonista en `AppTextSize.hero`, eyebrow en mayúsculas), en
 /// vez de que el paso se sienta solo como una fila de campos rellenables.
 /// Para préstamo muestra el valor de cuota ya calculado; para tarjeta,
 /// el cupo disponible resultante de límite menos saldo actual.
@@ -238,7 +238,7 @@ class _LiveFinancialHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
 
     if (type == CreditType.card) {
@@ -251,10 +251,10 @@ class _LiveFinancialHero extends StatelessWidget {
 
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(KreditSpacing.card),
+        padding: const EdgeInsets.all(AppSpacing.card),
         decoration: BoxDecoration(
           color: kredit.bgCard,
-          borderRadius: BorderRadius.circular(KreditRadius.card),
+          borderRadius: BorderRadius.circular(AppRadius.card),
           border: Border.all(color: kredit.borderCard.withValues(alpha: 0.6)),
         ),
         child: Column(
@@ -263,7 +263,7 @@ class _LiveFinancialHero extends StatelessWidget {
             Text(
               'CUPO DISPONIBLE',
               style: TextStyle(
-                fontSize: KreditTextSize.body,
+                fontSize: AppTextSize.body,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.2,
                 color: kredit.textTertiary,
@@ -273,7 +273,7 @@ class _LiveFinancialHero extends StatelessWidget {
             Text(
               hasLimit ? formatCOP(available.toDouble()) : '—',
               style: const TextStyle(
-                fontSize: KreditTextSize.hero,
+                fontSize: AppTextSize.hero,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -1.2,
                 height: 1.0,
@@ -294,7 +294,7 @@ class _LiveFinancialHero extends StatelessWidget {
               hasLimit
                   ? 'Usas ${(usage * 100).round()}% de tu cupo de ${formatCOP(limit)}'
                   : 'Ingresa el límite para ver tu cupo disponible',
-              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+              style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
             ),
           ],
         ),
@@ -306,10 +306,10 @@ class _LiveFinancialHero extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(KreditSpacing.card),
+      padding: const EdgeInsets.all(AppSpacing.card),
       decoration: BoxDecoration(
         color: kredit.bgCard,
-        borderRadius: BorderRadius.circular(KreditRadius.card),
+        borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(color: kredit.borderCard.withValues(alpha: 0.6)),
       ),
       child: Column(
@@ -318,7 +318,7 @@ class _LiveFinancialHero extends StatelessWidget {
           Text(
             'VALOR DE LA CUOTA',
             style: TextStyle(
-              fontSize: KreditTextSize.body,
+              fontSize: AppTextSize.body,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.2,
               color: kredit.textTertiary,
@@ -328,7 +328,7 @@ class _LiveFinancialHero extends StatelessWidget {
           Text(
             hasQuota ? formatCOP(quota) : '—',
             style: const TextStyle(
-              fontSize: KreditTextSize.hero,
+              fontSize: AppTextSize.hero,
               fontWeight: FontWeight.w800,
               letterSpacing: -1.2,
               height: 1.0,
@@ -339,7 +339,7 @@ class _LiveFinancialHero extends StatelessWidget {
             hasQuota
                 ? 'Valor aproximado, calculado con base en el monto, las cuotas y el interés ingresados.'
                 : 'Completa los datos de abajo para calcularla automáticamente.',
-            style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+            style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
           ),
         ],
       ),
@@ -397,18 +397,18 @@ class _CreditTypeOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     return Material(
       color: selected ? accent.withValues(alpha: 0.12) : kredit.bgCard,
-      borderRadius: BorderRadius.circular(KreditRadius.card),
+      borderRadius: BorderRadius.circular(AppRadius.card),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(KreditRadius.card),
+        borderRadius: BorderRadius.circular(AppRadius.card),
         child: Container(
-          padding: const EdgeInsets.all(KreditSpacing.card),
+          padding: const EdgeInsets.all(AppSpacing.card),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(KreditRadius.card),
+            borderRadius: BorderRadius.circular(AppRadius.card),
             border: Border.all(
               color: selected ? accent : kredit.borderCard,
               width: selected ? 1.3 : 1,
@@ -422,9 +422,9 @@ class _CreditTypeOption extends StatelessWidget {
                 height: 44,
                 decoration: BoxDecoration(
                   color: selected ? accent.withValues(alpha: 0.16) : kredit.bgSecondary,
-                  borderRadius: BorderRadius.circular(KreditRadius.tile),
+                  borderRadius: BorderRadius.circular(AppRadius.tile),
                 ),
-                child: Icon(icon, size: KreditIconSize.small, color: selected ? accent : kredit.textTertiary),
+                child: Icon(icon, size: AppIconSize.small, color: selected ? accent : kredit.textTertiary),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -434,7 +434,7 @@ class _CreditTypeOption extends StatelessWidget {
                     Text(
                       title,
                       style: TextStyle(
-                        fontSize: KreditTextSize.body,
+                        fontSize: AppTextSize.body,
                         fontWeight: FontWeight.w800,
                         color: kredit.textPrimary,
                       ),
@@ -443,7 +443,7 @@ class _CreditTypeOption extends StatelessWidget {
                     Text(
                       subtitle,
                       style: TextStyle(
-                        fontSize: KreditTextSize.body,
+                        fontSize: AppTextSize.body,
                         color: kredit.textSecondary,
                         height: 1.35,
                       ),
@@ -454,7 +454,7 @@ class _CreditTypeOption extends StatelessWidget {
               const SizedBox(width: 8),
               Icon(
                 selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                size: KreditIconSize.small,
+                size: AppIconSize.small,
                 color: selected ? accent : kredit.textTertiary,
               ),
             ],
@@ -487,7 +487,7 @@ class _CreditTypeOption extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════════════════════
 
 class _InitialStepIndicator extends StatefulWidget {
-  final KreditColors kredit;
+  final AppThemeColors kredit;
   const _InitialStepIndicator({required this.kredit});
 
   @override
@@ -570,7 +570,7 @@ class _InitialStepIndicatorState extends State<_InitialStepIndicator>
               child: Text(
                 '0',
                 style: TextStyle(
-                  fontSize: KreditTextSize.body,
+                  fontSize: AppTextSize.body,
                   fontWeight: FontWeight.w800,
                   color: Color.lerp(kredit.textTertiary, scaffoldBg, _dotAnim.value),
                 ),
@@ -601,7 +601,7 @@ class _InitialStepIndicatorState extends State<_InitialStepIndicator>
                 3,
                 (i) => FadeTransition(
                   opacity: _chevronAnims[i],
-                  child: Icon(Icons.chevron_right_rounded, size: KreditIconSize.medium, color: accent),
+                  child: Icon(Icons.chevron_right_rounded, size: AppIconSize.medium, color: accent),
                 ),
               ),
             ),
@@ -615,7 +615,7 @@ class _InitialStepIndicatorState extends State<_InitialStepIndicator>
 class _StepProgress extends StatefulWidget {
   final int currentStep;
   final List<String> titles;
-  final KreditColors kredit;
+  final AppThemeColors kredit;
 
   const _StepProgress({
     required this.currentStep,
@@ -719,12 +719,12 @@ class _StepProgressState extends State<_StepProgress>
       ),
       child: done
           ? Icon(Icons.check,
-              size: KreditIconSize.small,
+              size: AppIconSize.small,
               color: Color.lerp(kredit.textTertiary, scaffoldBg, fill))
           : Text(
               '${step + 1}',
               style: TextStyle(
-                fontSize: KreditTextSize.body,
+                fontSize: AppTextSize.body,
                 fontWeight: FontWeight.w700,
                 color: Color.lerp(kredit.textTertiary, scaffoldBg, fill),
               ),
@@ -816,7 +816,7 @@ class _SummaryGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final left = <({String label, String value})>[];
     final right = <({String label, String value})>[];
     for (var i = 0; i < items.length; i++) {
@@ -835,10 +835,10 @@ class _SummaryGrid extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(KreditSpacing.card),
+      padding: const EdgeInsets.all(AppSpacing.card),
       decoration: BoxDecoration(
         color: kredit.bgCard,
-        borderRadius: BorderRadius.circular(KreditRadius.card),
+        borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(color: kredit.borderCard.withValues(alpha: 0.6)),
       ),
       child: Row(
@@ -865,14 +865,14 @@ class _SummaryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label.toUpperCase(),
           style: TextStyle(
-            fontSize: KreditTextSize.body,
+            fontSize: AppTextSize.body,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.5,
             color: kredit.textTertiary,
@@ -881,7 +881,7 @@ class _SummaryTile extends StatelessWidget {
         const SizedBox(height: 3),
         Text(
           value,
-          style: const TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w700),
+          style: const TextStyle(fontSize: AppTextSize.body, fontWeight: FontWeight.w700),
         ),
       ],
     );
@@ -897,7 +897,7 @@ class _NoEntityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
 
     return GestureDetector(
@@ -907,7 +907,7 @@ class _NoEntityCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
           color: selected ? accent.withValues(alpha: 0.08) : kredit.bgCard,
-          borderRadius: BorderRadius.circular(KreditRadius.card),
+          borderRadius: BorderRadius.circular(AppRadius.card),
           border: Border.all(
             color: selected ? accent : kredit.borderCard,
             width: selected ? 1.5 : 1,
@@ -920,7 +920,7 @@ class _NoEntityCard extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(KreditRadius.tile),
+                borderRadius: BorderRadius.circular(AppRadius.tile),
                 border: Border.all(
                   color: selected ? accent.withValues(alpha: 0.4) : kredit.borderCard,
                   width: 1.5,
@@ -930,7 +930,7 @@ class _NoEntityCard extends StatelessWidget {
               ),
               child: Icon(
                 Icons.credit_card_off_outlined,
-                size: KreditIconSize.small,
+                size: AppIconSize.small,
                 color: selected ? accent : kredit.textTertiary,
               ),
             ),
@@ -942,7 +942,7 @@ class _NoEntityCard extends StatelessWidget {
                   Text(
                     'Sin entidad específica',
                     style: TextStyle(
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                       fontWeight: FontWeight.w700,
                       color: selected ? accent : kredit.textPrimary,
                     ),
@@ -951,7 +951,7 @@ class _NoEntityCard extends StatelessWidget {
                   Text(
                     'Registra el crédito sin vincularlo a una entidad.',
                     style: TextStyle(
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                       color: kredit.textTertiary,
                       height: 1.3,
                     ),
@@ -962,7 +962,7 @@ class _NoEntityCard extends StatelessWidget {
             const SizedBox(width: 8),
             Icon(
               selected ? Icons.check_circle : Icons.radio_button_unchecked,
-              size: KreditIconSize.medium,
+              size: AppIconSize.medium,
               color: selected ? accent : kredit.textTertiary,
             ),
           ],
@@ -986,7 +986,7 @@ class _AddEntityButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     final hasEntity = selected && entityName != null;
 
@@ -996,7 +996,7 @@ class _AddEntityButton extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(KreditRadius.card),
+          borderRadius: BorderRadius.circular(AppRadius.card),
           gradient: selected
               ? LinearGradient(
                   colors: [accent.withValues(alpha: 0.18), accent.withValues(alpha: 0.08)],
@@ -1021,7 +1021,7 @@ class _AddEntityButton extends StatelessWidget {
               ),
               child: Icon(
                 hasEntity ? Icons.check : Icons.add,
-                size: KreditIconSize.small,
+                size: AppIconSize.small,
                 color: selected ? Colors.black : kredit.textTertiary,
               ),
             ),
@@ -1033,7 +1033,7 @@ class _AddEntityButton extends StatelessWidget {
                   Text(
                     hasEntity ? entityName! : 'Nueva entidad',
                     style: TextStyle(
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                       fontWeight: FontWeight.w800,
                       color: selected ? accent : kredit.textPrimary,
                     ),
@@ -1041,7 +1041,7 @@ class _AddEntityButton extends StatelessWidget {
                   Text(
                     hasEntity ? 'Toca para editar' : 'Banco, tienda o app',
                     style: TextStyle(
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                       color: kredit.textTertiary,
                     ),
                   ),
@@ -1050,7 +1050,7 @@ class _AddEntityButton extends StatelessWidget {
             ),
             Icon(
               Icons.arrow_forward_ios,
-              size: KreditIconSize.micro,
+              size: AppIconSize.micro,
               color: selected ? accent : kredit.textTertiary,
             ),
           ],
@@ -1075,7 +1075,7 @@ class _EntityTypePill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     return GestureDetector(
       onTap: onTap,
@@ -1084,7 +1084,7 @@ class _EntityTypePill extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
         decoration: BoxDecoration(
           color: selected ? accent.withValues(alpha: 0.14) : kredit.bgSecondary,
-          borderRadius: BorderRadius.circular(KreditRadius.tile),
+          borderRadius: BorderRadius.circular(AppRadius.tile),
           border: Border.all(
             color: selected ? accent : kredit.borderCard,
             width: selected ? 1.3 : 1,
@@ -1093,13 +1093,13 @@ class _EntityTypePill extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: KreditIconSize.small, color: selected ? accent : kredit.textTertiary),
+            Icon(icon, size: AppIconSize.small, color: selected ? accent : kredit.textTertiary),
             const SizedBox(height: 4),
             Text(
               label,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: KreditTextSize.body,
+                fontSize: AppTextSize.body,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 color: selected ? accent : kredit.textSecondary,
               ),
@@ -1161,7 +1161,7 @@ class _EntityPickerCard extends StatelessWidget {
                         color: accent,
                       ),
                       padding: const EdgeInsets.all(2),
-                      child: const Icon(Icons.check, size: KreditIconSize.micro, color: Colors.black),
+                      child: const Icon(Icons.check, size: AppIconSize.micro, color: Colors.black),
                     )
                   : Container(
                       key: const ValueKey('empty'),
@@ -1196,7 +1196,7 @@ class _EduHintExpansion extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     return Container(
       margin: const EdgeInsets.only(top: 8),
@@ -1208,17 +1208,17 @@ class _EduHintExpansion extends StatelessWidget {
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
-          leading: Icon(icon, size: KreditIconSize.small, color: accent),
+          leading: Icon(icon, size: AppIconSize.small, color: accent),
           title: Text(
             text,
-            style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary, height: 1.4),
+            style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary, height: 1.4),
           ),
           tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
           childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
           children: [
             Text(
               detail,
-              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary, height: 1.5),
+              style: TextStyle(fontSize: AppTextSize.caption, color: kredit.textTertiary, height: 1.5),
             ),
           ],
         ),

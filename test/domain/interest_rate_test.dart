@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kredit/domain/interest_rate.dart';
+import 'package:krezium/domain/interest_rate.dart';
 
 void main() {
   group('dailyRateFrom', () {

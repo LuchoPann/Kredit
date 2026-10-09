@@ -244,7 +244,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
   }
 
   Future<bool> _confirmQuotaTooLow(String message) async {
-    return showKreditConfirmSheet(
+    return showAppConfirmSheet(
       context,
       title: 'Cuota insuficiente',
       message: message,
@@ -318,7 +318,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
       if (newDateStr != credit.startDate) {
         if (credit.abonos.isNotEmpty) {
           if (!mounted) return;
-          final ok = await showKreditConfirmSheet(
+          final ok = await showAppConfirmSheet(
             context,
             title: 'Cambiar fecha de inicio',
             message: 'Este crédito tiene abonos registrados. '
@@ -385,7 +385,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: DraggableScrollableSheet(
@@ -406,7 +406,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
 
   // ── shared helpers ───────────────────────────────────────────────────────
 
-  Widget _buildHandle(KreditColors kredit) => Center(
+  Widget _buildHandle(AppThemeColors kredit) => Center(
         child: Container(
           width: 40,
           height: 4,
@@ -423,7 +423,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
     String title,
     IconData icon,
     String typeLabel,
-    KreditColors kredit,
+    AppThemeColors kredit,
   ) {
     final accent = Theme.of(context).colorScheme.primary;
     return Column(
@@ -436,12 +436,12 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
         const SizedBox(height: 6),
         Row(
           children: [
-            Icon(icon, size: KreditIconSize.micro, color: accent),
+            Icon(icon, size: AppIconSize.micro, color: accent),
             const SizedBox(width: 6),
             Text(
               typeLabel,
               style: TextStyle(
-                fontSize: KreditTextSize.caption,
+                fontSize: AppTextSize.caption,
                 color: accent,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.4,
@@ -453,7 +453,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
             Flexible(
               child: Text(
                 widget.credit.name,
-                style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+                style: TextStyle(fontSize: AppTextSize.caption, color: kredit.textTertiary),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -467,7 +467,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
     BuildContext context,
     Credit previewCredit,
     String previewLabel,
-    KreditColors kredit,
+    AppThemeColors kredit,
   ) {
     final accent = Theme.of(context).colorScheme.primary;
     return Container(
@@ -483,7 +483,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
           Text(
             previewLabel,
             style: TextStyle(
-              fontSize: KreditTextSize.caption,
+              fontSize: AppTextSize.caption,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.8,
               color: accent,
@@ -501,7 +501,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
     );
   }
 
-  Widget _buildNotesSection() => KreditSectionCard(
+  Widget _buildNotesSection() => AppSectionCard(
         label: 'NOTAS',
         icon: Icons.sticky_note_2_outlined,
         children: [
@@ -536,16 +536,16 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
         style: FilledButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
       );
 
-  Widget _buildLenderDropdown(KreditColors kredit, {required String label}) =>
+  Widget _buildLenderDropdown(AppThemeColors kredit, {required String label}) =>
       DropdownButtonFormField<String>(
         isExpanded: true,
-        style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textPrimary),
+        style: TextStyle(fontSize: AppTextSize.body, color: kredit.textPrimary),
         initialValue: _selectedLenderPreset,
         decoration: InputDecoration(labelText: label, isDense: true),
         items: _presetLenders
             .map((l) => DropdownMenuItem(
                   value: l,
-                  child: Text(l, style: const TextStyle(fontSize: KreditTextSize.body)),
+                  child: Text(l, style: const TextStyle(fontSize: AppTextSize.body)),
                 ))
             .toList(),
         onChanged: (v) {
@@ -567,7 +567,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
   Widget _buildCardLayout(
     BuildContext context,
     CardCredit card,
-    KreditColors kredit,
+    AppThemeColors kredit,
     ScrollController scrollController,
   ) {
     final previewCredit = CardCredit(
@@ -592,7 +592,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
 
     return ListView(
       controller: scrollController,
-      padding: const EdgeInsets.all(KreditSpacing.card),
+      padding: const EdgeInsets.all(AppSpacing.card),
       children: [
         _buildHandle(kredit),
         _buildTypeHeader(
@@ -607,7 +607,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
         const SizedBox(height: 16),
 
         // ── IDENTIDAD ──────────────────────────────────────────────────────
-        KreditSectionCard(
+        AppSectionCard(
           label: 'IDENTIDAD',
           icon: Icons.badge_outlined,
           children: [
@@ -617,7 +617,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                 Expanded(
                   child: TextFormField(
                     controller: _nameCtrl,
-                    style: const TextStyle(fontSize: KreditTextSize.body),
+                    style: const TextStyle(fontSize: AppTextSize.body),
                     decoration: const InputDecoration(labelText: 'Nombre / Alias', isDense: true),
                     validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
                     onChanged: (_) => setState(() => _hasChanges = true),
@@ -644,7 +644,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
         const SizedBox(height: 16),
 
         // ── CUPO Y SALDO ───────────────────────────────────────────────────
-        KreditSectionCard(
+        AppSectionCard(
           label: 'CUPO Y SALDO',
           icon: Icons.credit_card_outlined,
           children: [
@@ -669,7 +669,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
         const SizedBox(height: 16),
 
         // ── CICLO DE FACTURACIÓN ───────────────────────────────────────────
-        KreditSectionCard(
+        AppSectionCard(
           label: 'CICLO DE FACTURACIÓN',
           icon: Icons.event_repeat_rounded,
           children: [
@@ -682,7 +682,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                 Expanded(
                   child: DropdownButtonFormField<int>(
                     isExpanded: true,
-                    style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textPrimary),
+                    style: TextStyle(fontSize: AppTextSize.body, color: kredit.textPrimary),
                     initialValue: (int.tryParse(_cutoffDayCtrl.text) ?? 15).clamp(1, 31),
                     decoration: const InputDecoration(labelText: 'Día de Corte', isDense: true),
                     items: List.generate(31, (i) => i + 1)
@@ -690,7 +690,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                               value: d,
                               child: Text(
                                 'Día $d',
-                                style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textPrimary),
+                                style: TextStyle(fontSize: AppTextSize.body, color: kredit.textPrimary),
                               ),
                             ))
                         .toList(),
@@ -703,13 +703,13 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                 Expanded(
                   child: DropdownButtonFormField<int>(
                     isExpanded: true,
-                    style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textPrimary),
+                    style: TextStyle(fontSize: AppTextSize.body, color: kredit.textPrimary),
                     initialValue: (int.tryParse(_paymentOffsetCtrl.text) ?? 20).clamp(1, 30),
                     decoration: const InputDecoration(labelText: 'Días para Pagar', isDense: true),
                     items: List.generate(30, (i) => i + 1)
                         .map((d) => DropdownMenuItem(
                               value: d,
-                              child: Text('$d días', style: const TextStyle(fontSize: KreditTextSize.body)),
+                              child: Text('$d días', style: const TextStyle(fontSize: AppTextSize.body)),
                             ))
                         .toList(),
                     onChanged: (v) {
@@ -724,7 +724,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
         const SizedBox(height: 16),
 
         // ── TASAS Y COBROS ─────────────────────────────────────────────────
-        KreditSectionCard(
+        AppSectionCard(
           label: 'TASAS Y COBROS',
           icon: Icons.percent_rounded,
           children: [
@@ -771,17 +771,17 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     isExpanded: true,
-                    style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textPrimary),
+                    style: TextStyle(fontSize: AppTextSize.body, color: kredit.textPrimary),
                     initialValue: _managementFeeFrequency,
                     decoration: const InputDecoration(labelText: 'Frecuencia', isDense: true),
                     items: const [
                       DropdownMenuItem(
                         value: ManagementFeeFrequency.monthly,
-                        child: Text('Mensual', style: TextStyle(fontSize: KreditTextSize.body)),
+                        child: Text('Mensual', style: TextStyle(fontSize: AppTextSize.body)),
                       ),
                       DropdownMenuItem(
                         value: ManagementFeeFrequency.annual,
-                        child: Text('Anual', style: TextStyle(fontSize: KreditTextSize.body)),
+                        child: Text('Anual', style: TextStyle(fontSize: AppTextSize.body)),
                       ),
                     ],
                     onChanged: (v) => setState(() {
@@ -796,7 +796,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
             Text(
               'COMPRAS A 1 CUOTA',
               style: TextStyle(
-                fontSize: KreditTextSize.caption,
+                fontSize: AppTextSize.caption,
                 fontWeight: FontWeight.w600,
                 color: kredit.textTertiary,
               ),
@@ -842,7 +842,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
   Widget _buildLoanLayout(
     BuildContext context,
     LoanCredit loan,
-    KreditColors kredit,
+    AppThemeColors kredit,
     ScrollController scrollController,
   ) {
     final isVoucher = loan.quotaId != null;
@@ -870,7 +870,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
 
     return ListView(
       controller: scrollController,
-      padding: const EdgeInsets.all(KreditSpacing.card),
+      padding: const EdgeInsets.all(AppSpacing.card),
       children: [
         _buildHandle(kredit),
         _buildTypeHeader(
@@ -890,7 +890,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
         const SizedBox(height: 16),
 
         // ── IDENTIDAD (voucher) / DATOS BÁSICOS (préstamo) ─────────────────
-        KreditSectionCard(
+        AppSectionCard(
           label: isVoucher ? 'CUPO DE TIENDA' : 'DATOS BÁSICOS',
           icon: isVoucher ? Icons.storefront_outlined : Icons.badge_outlined,
           children: [
@@ -900,7 +900,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                 Expanded(
                   child: TextFormField(
                     controller: _nameCtrl,
-                    style: const TextStyle(fontSize: KreditTextSize.body),
+                    style: const TextStyle(fontSize: AppTextSize.body),
                     decoration: InputDecoration(
                       labelText: isVoucher ? 'Nombre del cupo' : 'Nombre del Crédito',
                       isDense: true,
@@ -936,13 +936,13 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
 
         // ── ESTABLECIMIENTO (solo préstamos sin quotaId) ───────────────────
         if (!isVoucher) ...[
-          KreditSectionCard(
+          AppSectionCard(
             label: 'DÓNDE Y CON QUÉ',
             icon: Icons.storefront_outlined,
             children: [
               DropdownButtonFormField<String>(
                 isExpanded: true,
-                style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textPrimary),
+                style: TextStyle(fontSize: AppTextSize.body, color: kredit.textPrimary),
                 initialValue: _selectedLocationPreset,
                 decoration: const InputDecoration(
                   labelText: 'Comercio / Establecimiento',
@@ -951,7 +951,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                 items: _presetLocations
                     .map((loc) => DropdownMenuItem(
                           value: loc,
-                          child: Text(loc, style: const TextStyle(fontSize: KreditTextSize.body)),
+                          child: Text(loc, style: const TextStyle(fontSize: AppTextSize.body)),
                         ))
                     .toList(),
                 onChanged: (v) {
@@ -983,7 +983,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
         ],
 
         // ── FECHA DE INICIO ────────────────────────────────────────────────
-        KreditSectionCard(
+        AppSectionCard(
           label: 'FECHA DE INICIO',
           icon: Icons.calendar_today_outlined,
           children: [
@@ -1015,7 +1015,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
                 ),
                 child: Text(
                   formatDate(toDateStr(_startDate)),
-                  style: const TextStyle(fontSize: KreditTextSize.body),
+                  style: const TextStyle(fontSize: AppTextSize.body),
                 ),
               ),
             ),
@@ -1024,7 +1024,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
         const SizedBox(height: 16),
 
         // ── MONTO Y CUOTA ──────────────────────────────────────────────────
-        KreditSectionCard(
+        AppSectionCard(
           label: 'MONTO Y CUOTA',
           icon: Icons.request_quote_outlined,
           children: [
@@ -1063,7 +1063,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
             const SizedBox(height: 6),
             Text(
               'Normalmente se recalcula sola según monto, cuotas e interés, pero puedes sobreescribirla manualmente si renegociaste con el banco.',
-              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+              style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
             ),
           ],
         ),
@@ -1078,7 +1078,7 @@ class _EditCreditSheetState extends ConsumerState<EditCreditSheet> {
   }
 }
 
-Widget _warningBanner(String message, KreditColors kredit) => Container(
+Widget _warningBanner(String message, AppThemeColors kredit) => Container(
   margin: const EdgeInsets.only(bottom: 12),
   padding: const EdgeInsets.all(12),
   decoration: BoxDecoration(
@@ -1094,7 +1094,7 @@ Widget _warningBanner(String message, KreditColors kredit) => Container(
       Expanded(
         child: Text(
           message,
-          style: TextStyle(fontSize: KreditTextSize.caption, fontStyle: FontStyle.italic, color: kredit.textSecondary),
+          style: TextStyle(fontSize: AppTextSize.caption, fontStyle: FontStyle.italic, color: kredit.textSecondary),
         ),
       ),
     ],
@@ -1105,7 +1105,7 @@ Widget _readOnlyField(
   String label,
   String value,
   IconData icon,
-  KreditColors kredit,
+  AppThemeColors kredit,
 ) =>
     Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -1144,7 +1144,7 @@ class _EditInterestRateWarningHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: Row(
@@ -1152,14 +1152,14 @@ class _EditInterestRateWarningHint extends StatelessWidget {
         children: [
           const Icon(
             Icons.warning_amber_rounded,
-            size: KreditIconSize.small,
+            size: AppIconSize.small,
             color: AppColors.warning,
           ),
           const SizedBox(width: 6),
           Expanded(
             child: Text(
               text,
-              style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
+              style: TextStyle(fontSize: AppTextSize.body, color: kredit.textTertiary),
             ),
           ),
         ],

@@ -1,10 +1,10 @@
 import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kredit/data/models/card_movement.dart';
-import 'package:kredit/data/models/credit.dart';
-import 'package:kredit/domain/card_calculator.dart';
-import 'package:kredit/domain/date_utils.dart';
+import 'package:krezium/data/models/card_movement.dart';
+import 'package:krezium/data/models/credit.dart';
+import 'package:krezium/domain/card_calculator.dart';
+import 'package:krezium/domain/date_utils.dart';
 
 void main() {
   group('cutoffDateForMonth', () {

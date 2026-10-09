@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kredit/data/models/credit.dart';
-import 'package:kredit/data/models/installment.dart';
-import 'package:kredit/domain/debt_attack_simulator.dart';
-import 'package:kredit/domain/interest_rate.dart';
+import 'package:krezium/data/models/credit.dart';
+import 'package:krezium/data/models/installment.dart';
+import 'package:krezium/domain/debt_attack_simulator.dart';
+import 'package:krezium/domain/interest_rate.dart';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

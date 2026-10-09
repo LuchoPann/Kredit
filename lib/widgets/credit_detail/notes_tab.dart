@@ -16,7 +16,7 @@ class NotesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final loan = credit is LoanCredit ? credit as LoanCredit : null;
     final hasContent =
         (loan?.location?.isNotEmpty ?? false) ||
@@ -42,7 +42,7 @@ class NotesTab extends StatelessWidget {
         Text(
           'NOTAS Y DETALLES',
           style: TextStyle(
-            fontSize: KreditTextSize.body,
+            fontSize: AppTextSize.body,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.6,
             color: kredit.textTertiary,
@@ -64,7 +64,7 @@ class NotesTab extends StatelessWidget {
     if (embedded) return notesContent;
 
     return ListView(
-      padding: const EdgeInsets.all(KreditSpacing.card),
+      padding: const EdgeInsets.all(AppSpacing.card),
       children: [notesContent],
     );
   }
@@ -78,12 +78,12 @@ class _NoteLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: RichText(
         text: TextSpan(
-          style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
+          style: TextStyle(fontSize: AppTextSize.body, color: kredit.textSecondary),
           children: [
             TextSpan(text: '$label: '),
             TextSpan(

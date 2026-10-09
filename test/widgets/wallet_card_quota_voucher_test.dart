@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kredit/data/models/credit.dart';
-import 'package:kredit/widgets/wallet_card.dart';
+import 'package:krezium/data/models/credit.dart';
+import 'package:krezium/widgets/wallet_card.dart';
 
 void main() {
   LoanCredit buildLoan({String? quotaId}) => LoanCredit(
@@ -26,7 +26,7 @@ void main() {
     ));
 
     expect(find.text('Compra tenis'), findsOneWidget);
-    expect(find.byIcon(Icons.wifi), findsNothing);
+    expect(find.bySemanticsLabel('contactless'), findsNothing);
   });
 
   testWidgets('a normal bank loan (no quotaId) keeps the plastic-card look',
@@ -38,6 +38,6 @@ void main() {
     ));
 
     expect(find.text('Compra tenis'), findsOneWidget);
-    expect(find.byIcon(Icons.wifi), findsOneWidget);
+    expect(find.bySemanticsLabel('contactless'), findsOneWidget);
   });
 }

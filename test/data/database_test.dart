@@ -1,9 +1,9 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kredit/data/db/database.dart';
-import 'package:kredit/data/models/card_movement.dart';
-import 'package:kredit/data/models/credit.dart';
-import 'package:kredit/domain/loan_calculator.dart';
+import 'package:krezium/data/db/database.dart';
+import 'package:krezium/data/models/card_movement.dart';
+import 'package:krezium/data/models/credit.dart';
+import 'package:krezium/domain/loan_calculator.dart';
 
 void main() {
   late AppDatabase db;

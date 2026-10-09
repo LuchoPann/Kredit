@@ -64,7 +64,7 @@ class _ScheduleTabState extends ConsumerState<ScheduleTab> {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final credit = widget.credit;
     final unpaidCount = credit.installments.where((i) => !i.paid).length;
 
@@ -127,7 +127,7 @@ class _ScheduleTabState extends ConsumerState<ScheduleTab> {
                               ),
                         icon: const Icon(
                           Icons.savings_outlined,
-                          size: KreditIconSize.small,
+                          size: AppIconSize.small,
                         ),
                         label: const Text('Abono Extra'),
                       )
@@ -140,7 +140,7 @@ class _ScheduleTabState extends ConsumerState<ScheduleTab> {
                               ),
                         icon: const Icon(
                           Icons.savings_outlined,
-                          size: KreditIconSize.small,
+                          size: AppIconSize.small,
                         ),
                         label: const Text('Abono Extra'),
                       ),
@@ -163,7 +163,7 @@ class _ScheduleTabState extends ConsumerState<ScheduleTab> {
                               ),
                         icon: const Icon(
                           Icons.check,
-                          size: KreditIconSize.small,
+                          size: AppIconSize.small,
                         ),
                         label: const Text('Pago total'),
                       )
@@ -178,7 +178,7 @@ class _ScheduleTabState extends ConsumerState<ScheduleTab> {
                               ),
                         icon: const Icon(
                           Icons.check,
-                          size: KreditIconSize.small,
+                          size: AppIconSize.small,
                         ),
                         label: const Text('Pago total'),
                       ),
@@ -280,7 +280,7 @@ class _AbonoTile extends ConsumerWidget {
   const _AbonoTile({required this.creditId, required this.abono, this.impact});
 
   Future<void> _confirmAndDelete(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showKreditConfirmSheet(
+    final confirmed = await showAppConfirmSheet(
       context,
       title: 'Eliminar abono',
       message: '¿Eliminar el abono de ${formatCOP(abono.amount)}? Las cuotas que este abono adelantó volverán a marcarse como pendientes. Esta acción no se puede deshacer.',
@@ -303,7 +303,7 @@ class _AbonoTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 11),
@@ -325,7 +325,7 @@ class _AbonoTile extends ConsumerWidget {
                       : 'Abono a capital',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
-                    fontSize: KreditTextSize.body,
+                    fontSize: AppTextSize.body,
                     color: kredit.textPrimary,
                   ),
                 ),
@@ -333,7 +333,7 @@ class _AbonoTile extends ConsumerWidget {
                 Text(
                   abono.note.isNotEmpty ? abono.note : formatDate(abono.date),
                   style: TextStyle(
-                    fontSize: KreditTextSize.body,
+                    fontSize: AppTextSize.body,
                     color: kredit.textSecondary,
                   ),
                   maxLines: 1,
@@ -346,7 +346,7 @@ class _AbonoTile extends ConsumerWidget {
                       'Cuota bajó de ${formatCOP(impact!.quotaBefore!)} a '
                       '${formatCOP(impact!.quotaAfter!)}',
                       style: TextStyle(
-                        fontSize: KreditTextSize.body,
+                        fontSize: AppTextSize.body,
                         fontWeight: FontWeight.w600,
                         color: kredit.success,
                       ),
@@ -356,7 +356,7 @@ class _AbonoTile extends ConsumerWidget {
                       'Terminas ${impact!.installmentsSaved} cuota'
                       '${impact!.installmentsSaved == 1 ? '' : 's'} antes',
                       style: TextStyle(
-                        fontSize: KreditTextSize.body,
+                        fontSize: AppTextSize.body,
                         fontWeight: FontWeight.w600,
                         color: kredit.success,
                       ),
@@ -367,7 +367,7 @@ class _AbonoTile extends ConsumerWidget {
                       '${formatCOP(impact!.estimatedInterestSaving)} en '
                       'intereses estimados',
                       style: TextStyle(
-                        fontSize: KreditTextSize.body,
+                        fontSize: AppTextSize.body,
                         fontWeight: FontWeight.w600,
                         color: kredit.success,
                       ),
@@ -401,7 +401,7 @@ class _AbonoTile extends ConsumerWidget {
                 '-${formatCOP(abono.amount)}',
                 style: TextStyle(
                   fontWeight: FontWeight.w800,
-                  fontSize: KreditTextSize.body,
+                  fontSize: AppTextSize.body,
                   color: accent,
                 ),
               ),
@@ -410,7 +410,7 @@ class _AbonoTile extends ConsumerWidget {
           IconButton(
             icon: Icon(
               Icons.delete_outline,
-              size: KreditIconSize.small,
+              size: AppIconSize.small,
               color: kredit.textTertiary,
             ),
             visualDensity: VisualDensity.compact,
@@ -445,7 +445,7 @@ class _SectionGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final showChildren = !collapsible || expanded;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -454,7 +454,7 @@ class _SectionGroup extends StatelessWidget {
         children: [
           InkWell(
             onTap: collapsible ? onToggle : null,
-            borderRadius: BorderRadius.circular(KreditRadius.chip),
+            borderRadius: BorderRadius.circular(AppRadius.chip),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 6),
               child: Row(
@@ -462,7 +462,7 @@ class _SectionGroup extends StatelessWidget {
                   Text(
                     title.toUpperCase(),
                     style: TextStyle(
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.6,
                       color: emphasized
@@ -474,7 +474,7 @@ class _SectionGroup extends StatelessWidget {
                   Text(
                     '($count)',
                     style: TextStyle(
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                       fontWeight: FontWeight.w600,
                       color: kredit.textTertiary,
                     ),
@@ -486,7 +486,7 @@ class _SectionGroup extends StatelessWidget {
                       // Slightly larger than the section label/count next to
                       // it — this is a real money figure someone scans for
                       // ("how much is overdue"), not just decorative meta.
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                       fontWeight: FontWeight.w700,
                       color: emphasized
                           ? kredit.textPrimary
@@ -497,7 +497,7 @@ class _SectionGroup extends StatelessWidget {
                     const SizedBox(width: 6),
                     Icon(
                       expanded ? Icons.expand_less : Icons.expand_more,
-                      size: KreditIconSize.small,
+                      size: AppIconSize.small,
                       color: kredit.textTertiary,
                     ),
                   ],
@@ -526,7 +526,7 @@ class _InstallmentTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final status = getInstallmentStatus(inst);
     final isOverdue = !inst.paid && status.state == InstallmentState.overdue;
     final mora = isOverdue ? estimateMoraInterest(credit, inst) : 0.0;
@@ -558,14 +558,14 @@ class _InstallmentTile extends ConsumerWidget {
                   color: inst.paid ? kredit.success : kredit.textTertiary,
                   width: 1.5,
                 ),
-                borderRadius: BorderRadius.circular(KreditRadius.chip),
+                borderRadius: BorderRadius.circular(AppRadius.chip),
               ),
               child: AnimatedOpacity(
                 duration: const Duration(milliseconds: 150),
                 opacity: inst.paid ? 1 : 0,
                 child: const Icon(
                   Icons.check,
-                  size: KreditIconSize.small,
+                  size: AppIconSize.small,
                   color: Colors.white,
                 ),
               ),
@@ -579,7 +579,7 @@ class _InstallmentTile extends ConsumerWidget {
                     'Cuota ${inst.number} — ${formatCOP(inst.amount)}',
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                       color: kredit.textPrimary,
                     ),
                   ),
@@ -587,7 +587,7 @@ class _InstallmentTile extends ConsumerWidget {
                   Text(
                     'Vence: ${formatDate(inst.dueDate)}',
                     style: TextStyle(
-                      fontSize: KreditTextSize.body,
+                      fontSize: AppTextSize.body,
                       color: kredit.textSecondary,
                     ),
                   ),
@@ -603,7 +603,7 @@ class _InstallmentTile extends ConsumerWidget {
                         children: [
                           Icon(
                             Icons.warning_amber_rounded,
-                            size: KreditIconSize.small,
+                            size: AppIconSize.small,
                             color: kredit.warning,
                           ),
                           const SizedBox(width: 4),
@@ -612,7 +612,7 @@ class _InstallmentTile extends ConsumerWidget {
                               '+ ~${formatCOP(mora)} de mora estimada '
                               '($daysLate días de atraso)',
                               style: TextStyle(
-                                fontSize: KreditTextSize.body,
+                                fontSize: AppTextSize.body,
                                 fontWeight: FontWeight.w600,
                                 color: kredit.warning,
                               ),
@@ -729,7 +729,7 @@ class _RegisterPaymentSheetState extends ConsumerState<_RegisterPaymentSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final kredit = Theme.of(context).extension<AppThemeColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
     return Padding(
       padding: EdgeInsets.only(
@@ -767,7 +767,7 @@ class _RegisterPaymentSheetState extends ConsumerState<_RegisterPaymentSheet> {
                   ),
                   child: Icon(
                     Icons.check_circle_outline,
-                    size: KreditIconSize.small,
+                    size: AppIconSize.small,
                     color: accent,
                   ),
                 ),
@@ -784,9 +784,9 @@ class _RegisterPaymentSheetState extends ConsumerState<_RegisterPaymentSheet> {
             Divider(height: 1, color: kredit.borderCard),
             const SizedBox(height: 16),
             Text(
-              'Valor calculado por Kredit: ${formatCOP(widget.inst.amount)}',
+              'Valor calculado por Krezium: ${formatCOP(widget.inst.amount)}',
               style: TextStyle(
-                fontSize: KreditTextSize.body,
+                fontSize: AppTextSize.body,
                 color: kredit.textSecondary,
               ),
             ),
@@ -794,7 +794,7 @@ class _RegisterPaymentSheetState extends ConsumerState<_RegisterPaymentSheet> {
             Text(
               'MONTO REALMENTE PAGADO',
               style: TextStyle(
-                fontSize: KreditTextSize.body,
+                fontSize: AppTextSize.body,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.4,
                 color: kredit.textTertiary,
@@ -807,7 +807,7 @@ class _RegisterPaymentSheetState extends ConsumerState<_RegisterPaymentSheet> {
               inputFormatters: const [CurrencyInputFormatter()],
               autofocus: true,
               style: const TextStyle(
-                fontSize: KreditTextSize.emphasis,
+                fontSize: AppTextSize.emphasis,
                 fontWeight: FontWeight.w700,
               ),
               decoration: const InputDecoration(prefixText: '\$ '),
@@ -827,7 +827,7 @@ class _RegisterPaymentSheetState extends ConsumerState<_RegisterPaymentSheet> {
                 padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 12),
                 decoration: BoxDecoration(
                   color: kredit.bgCard,
-                  borderRadius: BorderRadius.circular(KreditRadius.tile),
+                  borderRadius: BorderRadius.circular(AppRadius.tile),
                   border: Border.all(color: kredit.borderCard),
                 ),
                 child: Row(
@@ -849,7 +849,7 @@ class _RegisterPaymentSheetState extends ConsumerState<_RegisterPaymentSheet> {
                                   'excedente (estimado) se restará del capital de la '
                                   'siguiente cuota pendiente.',
                         style: TextStyle(
-                          fontSize: KreditTextSize.caption,
+                          fontSize: AppTextSize.caption,
                           fontStyle: FontStyle.italic,
                           color: kredit.textTertiary,
                         ),

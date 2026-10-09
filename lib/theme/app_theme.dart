@@ -48,7 +48,7 @@ class AppColors {
 /// on the same handful of values instead of ad-hoc numbers per widget
 /// (audit found 9 distinct radii in use: 2/4/6/8/10/12/14/16/20 — this file
 /// is the single source of truth going forward).
-class KreditRadius {
+class AppRadius {
   /// Top-level content cards (matches `CardThemeData` below), sheets, and
   /// any full-width container that reads as its own "surface".
   static const card = 16.0;
@@ -62,7 +62,7 @@ class KreditRadius {
   static const chip = 8.0;
 }
 
-/// Shared font-size tokens, same rationale as [KreditRadius]/[KreditSpacing]:
+/// Shared font-size tokens, same rationale as [AppRadius]/[AppSpacing]:
 /// an audit of every inline `TextStyle(fontSize: ...)` across the app found
 /// ~20 distinct raw values (9, 10, 10.5, 11, 11.5, 12, 12.5, 13, 13.5, 14,
 /// 14.5, 15, 16, 17, 18, 19, 20, 22, 26, 38) — mostly the same handful of
@@ -85,7 +85,7 @@ class KreditRadius {
 /// four roles. The only exception is the 28px numeral in the billing-cycle
 /// timeline (day-of-cut / payment-limit indicator), which is hardcoded at
 /// its call site because it is a one-off display treatment, not a role.
-class KreditTextSize {
+class AppTextSize {
   /// Compact diagram labels, chart ticks, timeline day numbers, and any
   /// text that is deliberately tiny (on a diagram, not in body copy).
   static const caption = 12.0;
@@ -112,12 +112,12 @@ class KreditTextSize {
   static const cardValue   = 21.0; // emphasis−3: stat values inside card corners
 }
 
-/// Exactly two icon sizes for the whole app (the `KreditLogo` brand mark is
+/// Exactly two icon sizes for the whole app (the `AppLogo` brand mark is
 /// the one deliberate exception, sized per its own context) — same
-/// "small fixed set of named roles" rationale as [KreditTextSize].
+/// "small fixed set of named roles" rationale as [AppTextSize].
 /// Four-level icon scale matching the text scale. Every Icon size uses one
 /// of these tokens — no bare numeric size literals anywhere in the app.
-class KreditIconSize {
+class AppIconSize {
   /// Micro: inline status indicators, tiny badge decorations, dense chips.
   static const micro = 14.0;
 
@@ -132,8 +132,8 @@ class KreditIconSize {
   static const large = 48.0;
 }
 
-/// Shared padding tokens, same rationale as [KreditRadius].
-class KreditSpacing {
+/// Shared padding tokens, same rationale as [AppRadius].
+class AppSpacing {
   /// Standard inner padding for a top-level card/sheet.
   static const card = 16.0;
 
@@ -193,12 +193,12 @@ const _bgToneWarm = _BgToneColors(
 );
 
 /// Tokens that vary by [bgTone] ('pure' | 'cool' | 'warm'), exposed via
-/// `Theme.of(context).extension<KreditColors>()!` so widgets outside
+/// `Theme.of(context).extension<AppThemeColors>()!` so widgets outside
 /// `app_theme.dart` can read the current tone instead of the hardcoded
 /// [AppColors] constants — this lets `MaterialApp.themeAnimationDuration`
 /// (see lib/main.dart) interpolate these colors smoothly via [lerp] when
 /// `bgTone` changes, instead of jumping.
-class KreditColors extends ThemeExtension<KreditColors> {
+class AppThemeColors extends ThemeExtension<AppThemeColors> {
   final Color bgPrimary;
   final Color bgSecondary;
   final Color bgCard;
@@ -212,7 +212,7 @@ class KreditColors extends ThemeExtension<KreditColors> {
   final Color info;
   final Color cardBorderSubtle;
 
-  const KreditColors({
+  const AppThemeColors({
     required this.bgPrimary,
     required this.bgSecondary,
     required this.bgCard,
@@ -228,7 +228,7 @@ class KreditColors extends ThemeExtension<KreditColors> {
   });
 
   @override
-  KreditColors copyWith({
+  AppThemeColors copyWith({
     Color? bgPrimary,
     Color? bgSecondary,
     Color? bgCard,
@@ -242,7 +242,7 @@ class KreditColors extends ThemeExtension<KreditColors> {
     Color? info,
     Color? cardBorderSubtle,
   }) {
-    return KreditColors(
+    return AppThemeColors(
       bgPrimary: bgPrimary ?? this.bgPrimary,
       bgSecondary: bgSecondary ?? this.bgSecondary,
       bgCard: bgCard ?? this.bgCard,
@@ -259,9 +259,9 @@ class KreditColors extends ThemeExtension<KreditColors> {
   }
 
   @override
-  KreditColors lerp(ThemeExtension<KreditColors>? other, double t) {
-    if (other is! KreditColors) return this;
-    return KreditColors(
+  AppThemeColors lerp(ThemeExtension<AppThemeColors>? other, double t) {
+    if (other is! AppThemeColors) return this;
+    return AppThemeColors(
       bgPrimary: Color.lerp(bgPrimary, other.bgPrimary, t)!,
       bgSecondary: Color.lerp(bgSecondary, other.bgSecondary, t)!,
       bgCard: Color.lerp(bgCard, other.bgCard, t)!,
@@ -504,40 +504,40 @@ ThemeData buildAppTheme({
       bodyLarge: const TextStyle(
         fontFamily: 'Outfit',
         fontWeight: FontWeight.w500,
-        fontSize: KreditTextSize.body,
+        fontSize: AppTextSize.body,
         height: 1.3,
       ),
       bodyMedium: TextStyle(
         fontFamily: 'Outfit',
         fontWeight: FontWeight.w400,
-        fontSize: KreditTextSize.body,
+        fontSize: AppTextSize.body,
         height: 1.35,
         color: textSecondary,
       ),
       bodySmall: TextStyle(
         fontFamily: 'Outfit',
         fontWeight: FontWeight.w400,
-        fontSize: KreditTextSize.body,
+        fontSize: AppTextSize.body,
         height: 1.3,
         color: textTertiary,
       ),
       labelLarge: const TextStyle(
         fontFamily: 'Outfit',
         fontWeight: FontWeight.w700,
-        fontSize: KreditTextSize.body,
+        fontSize: AppTextSize.body,
         letterSpacing: 0.4,
       ),
       labelMedium: TextStyle(
         fontFamily: 'Outfit',
         fontWeight: FontWeight.w600,
-        fontSize: KreditTextSize.body,
+        fontSize: AppTextSize.body,
         letterSpacing: 0.6,
         color: textSecondary,
       ),
       labelSmall: TextStyle(
         fontFamily: 'Outfit',
         fontWeight: FontWeight.w600,
-        fontSize: KreditTextSize.body,
+        fontSize: AppTextSize.body,
         letterSpacing: 1.1,
         color: textTertiary,
       ),
@@ -555,7 +555,7 @@ ThemeData buildAppTheme({
       elevation: 0,
       titleTextStyle: TextStyle(
         fontFamily: 'SpaceGrotesk',
-        fontSize: KreditTextSize.emphasis,
+        fontSize: AppTextSize.emphasis,
         fontWeight: FontWeight.w700,
         color: textPrimary,
       ),
@@ -608,7 +608,7 @@ ThemeData buildAppTheme({
       }),
     ),
     extensions: [
-      KreditColors(
+      AppThemeColors(
         bgPrimary: bgPrimary,
         bgSecondary: bgSecondary,
         bgCard: bgCard,
