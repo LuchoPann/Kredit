@@ -77,6 +77,9 @@ class PayoffEntry {
 class StatsData {
   final List<FinancialRecommendation> risks;
   final Map<MonthKey, double> monthlyProjection;
+  /// Per-credit breakdown for each month: {MonthKey → {creditName → amount}}.
+  /// Used by the bar chart tooltip to show which credits contribute to each bar.
+  final Map<MonthKey, Map<String, double>> monthlyBreakdown;
   final List<LenderSlice> distribution;
   final double totalOwed;
   final double totalLimit;
@@ -94,6 +97,7 @@ class StatsData {
   const StatsData({
     required this.risks,
     required this.monthlyProjection,
+    required this.monthlyBreakdown,
     required this.distribution,
     required this.totalOwed,
     required this.totalLimit,
@@ -118,6 +122,7 @@ final statsDataProvider = Provider<StatsData?>((ref) {
 
   final risks = buildRiskRecommendations(credits);
   final monthlyProjection = _computeMonthlyDebt(credits);
+  final monthlyBreakdown = _computeMonthlyBreakdown(credits);
   final distribution = _computeDistributionByLender(credits);
   final payoffProjections = _computePayoffProjections(credits);
 
@@ -161,6 +166,7 @@ final statsDataProvider = Provider<StatsData?>((ref) {
   return StatsData(
     risks: risks,
     monthlyProjection: monthlyProjection,
+    monthlyBreakdown: monthlyBreakdown,
     distribution: distribution,
     totalOwed: totalOwed,
     totalLimit: totalLimit,
@@ -220,6 +226,45 @@ Map<MonthKey, double> _computeMonthlyDebt(
   }
 
   return {for (final m in months) m: buckets[m] ?? 0.0};
+}
+
+/// Same bucketing as [_computeMonthlyDebt] but keyed by credit name so the
+/// bar chart tooltip can show a per-credit breakdown for each month.
+Map<MonthKey, Map<String, double>> _computeMonthlyBreakdown(
+  List<Credit> credits, {
+  int monthsAhead = 6,
+}) {
+  final now = DateTime.now();
+  final start = MonthKey(now.year, now.month);
+  final months = <MonthKey>[];
+  for (var i = 0; i < monthsAhead; i++) {
+    final totalMonth0 = (start.month - 1) + i;
+    final y = start.year + totalMonth0 ~/ 12;
+    final m = totalMonth0 % 12 + 1;
+    months.add(MonthKey(y, m));
+  }
+  final result = {for (final m in months) m: <String, double>{}};
+
+  for (final credit in credits) {
+    if (credit is LoanCredit) {
+      for (final inst in credit.installments) {
+        if (inst.paid) continue;
+        final due = parseDateStr(inst.dueDate);
+        final key = MonthKey(due.year, due.month);
+        if (!result.containsKey(key)) continue;
+        result[key]![credit.name] =
+            (result[key]![credit.name] ?? 0) + inst.amount;
+      }
+    } else if (credit is CardCredit) {
+      if (credit.currentBalance <= 0) continue;
+      final dates = getCardCycleDates(credit);
+      final key = MonthKey(dates.dueDate.year, dates.dueDate.month);
+      if (!result.containsKey(key)) continue;
+      result[key]![credit.name] =
+          (result[key]![credit.name] ?? 0) + credit.currentBalance;
+    }
+  }
+  return result;
 }
 
 List<LenderSlice> _computeDistributionByLender(List<Credit> credits) {

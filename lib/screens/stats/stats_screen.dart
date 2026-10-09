@@ -68,7 +68,10 @@ class StatsScreen extends ConsumerWidget {
                     subtitle: 'Próximos 6 meses, según cuotas y saldos vigentes',
                   ),
                   const SizedBox(height: 12),
-                  _MonthlyDebtChart(data: statsData.monthlyProjection),
+                  _MonthlyDebtChart(
+                    data: statsData.monthlyProjection,
+                    breakdown: statsData.monthlyBreakdown,
+                  ),
                   _InsightLine(text: statsData.monthlyDebtInsight),
                 ],
               ),
@@ -689,10 +692,11 @@ class _LegendItem extends StatelessWidget {
 /// padre para que sus redraws (animación, tooltip) no invaliden la pantalla.
 class _MonthlyDebtChart extends StatelessWidget {
   final Map<MonthKey, double> data;
+  final Map<MonthKey, Map<String, double>> breakdown;
   // maxY pre-computado fuera de build() — evita fold por cada rebuild del tema/layout.
   final double maxY;
 
-  _MonthlyDebtChart({required this.data})
+  _MonthlyDebtChart({required this.data, required this.breakdown})
       : maxY = data.values.fold(0, (m, v) => v > m ? v : m);
 
   String _fmtY(double v) {
@@ -739,13 +743,30 @@ class _MonthlyDebtChart extends StatelessWidget {
               borderData: FlBorderData(show: false),
               barTouchData: BarTouchData(
                 touchTooltipData: BarTouchTooltipData(
+                  maxContentWidth: 220,
                   getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                    final idx = group.x.toInt();
+                    final monthKey = idx >= 0 && idx < entries.length
+                        ? entries[idx].key
+                        : null;
+                    final byCredit =
+                        monthKey != null ? (breakdown[monthKey] ?? {}) : {};
+                    // Sort by amount descending for readability
+                    final sorted = byCredit.entries.toList()
+                      ..sort((a, b) => b.value.compareTo(a.value));
+                    final lines = sorted
+                        .map((e) =>
+                            '${e.key.length > 14 ? '${e.key.substring(0, 12)}…' : e.key.padRight(14)}  ${formatCOP(e.value)}')
+                        .join('\n');
+                    final header = 'Total  ${formatCOP(rod.toY)}';
+                    final body = sorted.length > 1 ? '\n$lines' : '';
                     return BarTooltipItem(
-                      formatCOP(rod.toY),
+                      '$header$body',
                       TextStyle(
                         color: kredit.textPrimary,
                         fontSize: KreditTextSize.body,
                         fontWeight: FontWeight.bold,
+                        fontFamily: 'SpaceGrotesk',
                       ),
                     );
                   },
