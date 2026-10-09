@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../screens/stats/attack_plan_screen.dart';
+import '../screens/stats/calculator_sheet.dart';
 import '../screens/stats/credit_comparison_screen.dart';
 import '../screens/stats/payment_goals_screen.dart';
 import '../screens/stats/spending_breakdown_screen.dart';
@@ -28,7 +29,23 @@ class _AttackToolsSheet extends StatelessWidget {
       Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
     }
 
+    void goSheet(Widget sheet) {
+      Navigator.pop(context);
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => sheet,
+      );
+    }
+
     final tools = [
+      _Tool(
+        icon: Icons.calculate_outlined,
+        iconColor: kredit.textSecondary,
+        title: 'Calcular cuota',
+        subtitle: 'Simula el pago mensual de un crédito nuevo',
+        onTap: () => goSheet(const CalculatorSheet()),
+      ),
       _Tool(
         icon: Icons.bolt_rounded,
         iconColor: accent,
