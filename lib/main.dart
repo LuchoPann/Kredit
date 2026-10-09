@@ -14,6 +14,7 @@ import 'screens/credits/add_credit_sheet.dart';
 import 'screens/credits/credits_list_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/stats/stats_screen.dart';
+import 'widgets/backup_restore_sheet.dart';
 import 'widgets/kredit_logo.dart';
 import 'widgets/whats_new_sheet.dart';
 import 'providers/app_lock_provider.dart';
@@ -170,6 +171,9 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
       });
       Future.delayed(const Duration(milliseconds: 1200), () {
         if (mounted) _checkAndRunAutoBackup();
+      });
+      Future.delayed(const Duration(milliseconds: 1800), () {
+        if (mounted) showBackupRestoreSheet(context, ref, onlyIfEmpty: true);
       });
       // Listeners registered once here instead of inside build() — avoids
       // re-registering on every rebuild (Riverpod still deduplicates but
