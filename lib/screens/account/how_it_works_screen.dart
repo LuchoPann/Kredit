@@ -34,8 +34,9 @@ class HowItWorksScreen extends StatelessWidget {
                 'opción de cuota de mantenimiento mensual.\n\n'
                 'Cupo de tienda: funciona como un crédito rotativo en una tienda '
                 'específica (Alkosto, Falabella, Éxito, etc.). Registras compras '
-                'como "cargos" y abonos como "pagos"; Krezium genera un voucher visual '
-                'por cada movimiento para que tengas el comprobante a mano.',
+                'como "cargos" y abonos como "pagos"; Krezium genera un voucher '
+                'visual por cada movimiento — cada tienda tiene su propio diseño '
+                'de tarjeta — para que tengas el comprobante a mano.',
           ),
           Divider(height: 1, color: kredit.borderCard),
 
@@ -88,8 +89,9 @@ class HowItWorksScreen extends StatelessWidget {
                 'un cargo (compra) o un pago. La aplicación recalcula el saldo e '
                 'intereses al instante.\n\n'
                 'Cupo de tienda: en la pestaña de movimientos registra compras y '
-                'abonos. Cada movimiento genera un voucher descargable con el detalle '
-                'de la transacción.',
+                'abonos. Cada movimiento genera un voucher con el detalle de la '
+                'transacción — el diseño visual varía según la tienda para '
+                'facilitar la identificación rápida.',
           ),
           Divider(height: 1, color: kredit.borderCard),
 
@@ -193,12 +195,16 @@ class HowItWorksScreen extends StatelessWidget {
             icon: Icons.palette_outlined,
             title: 'Personalización',
             body:
-                'Desde Cuenta → Apariencia puedes ajustar:\n'
-                '• Tema: claro (Puro, Nube o Arena) u oscuro.\n'
-                '• Color de acento: el color principal de botones, iconos y '
-                'elementos destacados en toda la app.\n'
-                '• Foto y nombre de perfil: visibles en el header de la pantalla '
-                'de cuenta y en el dashboard.',
+                'Desde Cuenta → Apariencia puedes ajustar:\n\n'
+                '• Tema: oscuro — Puro (negro intenso), Frío (azul medianoche) '
+                'o Cálido (grafito ámbar). Claro — Puro (fondo slate), Nube '
+                '(azul pálido) o Arena (crema cálida).\n\n'
+                '• Color de acento: 14 opciones de color más el neutro '
+                'blanco/negro — define el tono de botones, iconos activos y '
+                'elementos destacados en toda la app. El acento se adapta '
+                'automáticamente al tono de fondo elegido.\n\n'
+                '• Foto y nombre de perfil: visibles en el encabezado de la '
+                'pantalla de cuenta.',
           ),
           Divider(height: 1, color: kredit.borderCard),
 

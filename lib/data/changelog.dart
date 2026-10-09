@@ -29,6 +29,22 @@ enum ChangeType { nuevo, mejora, correccion }
 
 const List<VersionEntry> changelog = [
   VersionEntry(
+    version: '1.1.0',
+    date: 'Octubre 2026',
+    changes: [
+      ChangeItem(ChangeType.nuevo,
+          'La app es ahora Krezium — nueva identidad visual con animación de apertura renovada y logotipo actualizado en toda la interfaz.'),
+      ChangeItem(ChangeType.mejora,
+          'El modo claro ahora muestra los textos en tonos oscuros bien definidos, igual que el modo oscuro muestra blancos nítidos. La jerarquía visual es clara en ambos temas.'),
+      ChangeItem(ChangeType.mejora,
+          'El patrón decorativo del perfil (KREZIUM_OUTLINE) ahora se adapta al tema: oscuro en modo claro, blanco en modo oscuro.'),
+      ChangeItem(ChangeType.mejora,
+          'La animación del splash tiene dirección de aparición personalizada para cada segmento del logotipo KREZIUM.'),
+      ChangeItem(ChangeType.mejora,
+          'La sección "Cómo funciona" está actualizada con información precisa sobre los tonos de tema, los estilos de voucher y el acento adaptativo.'),
+    ],
+  ),
+  VersionEntry(
     version: '1.0.0',
     date: 'Octubre 2026',
     changes: [
