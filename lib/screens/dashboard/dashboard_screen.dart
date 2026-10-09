@@ -16,6 +16,7 @@ import '../../domain/bank_detector.dart';
 import '../../widgets/kredit_logo.dart';
 import '../../widgets/kredit_section_card.dart';
 import '../../widgets/progress_ring.dart';
+import '../stats/attack_plan_screen.dart';
 import '../stats/simulator_sheet.dart';
 
 /// Dashboard ("Inicio") screen — answers "¿Qué tengo que pagar pronto?":
@@ -362,6 +363,24 @@ class _DashboardBody extends ConsumerWidget {
                 ),
                 subtitle: Text(
                   'Simula una compra en cuotas o un abono extra a capital',
+                  style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
+                ),
+                trailing: Icon(Icons.chevron_right, color: kredit.textTertiary),
+                ),
+              ),
+              Divider(height: 1, color: kredit.borderCard),
+              Material(
+                color: Colors.transparent,
+                child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AttackPlanScreen())),
+                leading: Icon(Icons.bolt_rounded, color: Theme.of(context).colorScheme.primary),
+                title: const Text(
+                  'Plan de ataque',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: KreditTextSize.body),
+                ),
+                subtitle: Text(
+                  'Snowball o Avalanche: liquida tus deudas más rápido',
                   style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
                 ),
                 trailing: Icon(Icons.chevron_right, color: kredit.textTertiary),
