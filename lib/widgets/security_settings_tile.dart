@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/widget_privacy_provider.dart';
+import '../screens/account/account_screen.dart' show SheetNav;
 import '../screens/lock/setup_lock_screen.dart';
 import '../theme/app_theme.dart';
+import '../utils/nav_utils.dart';
 
 /// "Seguridad" section for the Cuenta screen: the app-lock entry point
 /// (navigating to [SetupLockScreen]) plus the home screen widget privacy
@@ -28,9 +30,17 @@ class SecuritySettingsTile extends ConsumerWidget {
           subtitle: const Text('Bloqueo con biometría o PIN al abrir la app'),
           trailing: Icon(Icons.chevron_right, size: KreditIconSize.small, color: kredit.textTertiary),
           onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SetupLockScreen()),
-            );
+            // Si estamos dentro de un sheet con SheetNavHost, deslizamos
+            // el contenido internamente. Si no, abrimos pantalla completa.
+            final sheetNav = context
+                .getInheritedWidgetOfExactType<SheetNav>();
+            if (sheetNav != null) {
+              sheetNav.push('Seguridad', const SetupLockBody());
+            } else {
+              Navigator.of(context).push(
+                slidePageRoute((_) => const SetupLockScreen()),
+              );
+            }
           },
         ),
         SwitchListTile(

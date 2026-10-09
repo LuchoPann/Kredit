@@ -44,7 +44,9 @@ CardCycleDates getCardCycleDates(CardCredit credit, [DateTime? refDate]) {
   final cutoffDay = _clampCutoffDay(credit.cutoffDay);
 
   var lastCutoff = cutoffDateForMonth(today.year, today.month, cutoffDay);
-  if (lastCutoff.isAfter(today)) {
+  // Cutoff day opens the new period at 00:00 — so if today IS the cutoff,
+  // the prior cycle already closed and lastCutoff must move to the previous month.
+  if (!lastCutoff.isBefore(today)) {
     final prevMonthRef = DateTime(today.year, today.month - 1, 1);
     lastCutoff = cutoffDateForMonth(
         prevMonthRef.year, prevMonthRef.month, cutoffDay);
@@ -192,6 +194,7 @@ void registerCardMovement(
   double amount, {
   String note = '',
   String? categoria,
+  int? chargeInstallments,
 }) {
   final delta = type == CardMovementType.payment ? -amount.abs() : amount.abs();
   credit.currentBalance =
@@ -202,6 +205,7 @@ void registerCardMovement(
     amount: amount.abs(),
     note: note,
     categoria: categoria,
+    chargeInstallments: type == CardMovementType.charge ? chargeInstallments : null,
   ));
 }
 

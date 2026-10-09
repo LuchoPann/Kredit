@@ -473,8 +473,9 @@ class VoucherWaveCornerPainter extends CustomPainter {
 /// mirroring #detail-wallet-card in legacy_pwa/index.html (~L358-379).
 class WalletCard extends ConsumerWidget {
   final Credit credit;
+  final VoucherPattern? previewPattern;
 
-  const WalletCard({super.key, required this.credit});
+  const WalletCard({super.key, required this.credit, this.previewPattern});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -498,16 +499,18 @@ class WalletCard extends ConsumerWidget {
 
     // Luminancia promedio cacheada — evita fold+computeLuminance por build.
     final avgLuminance = _avgLuminanceFor(bank.cssClass, credit.color);
-    // Patrón del voucher: select() para no reconstruir si cambia otra quota.
+    // Patrón del voucher: previewPattern tiene prioridad (para previews de
+    // confirmación donde quotaId es un placeholder que no existe en el provider).
     final quotaPattern = isQuotaVoucher
-        ? VoucherPattern.fromName(
-            ref.watch(commercialQuotasProvider.select(
-              (quotas) => quotas.valueOrNull
-                  ?.where((q) => q.id == (credit as LoanCredit).quotaId)
-                  .firstOrNull
-                  ?.voucherPattern,
-            )),
-          )
+        ? (previewPattern ??
+            VoucherPattern.fromName(
+              ref.watch(commercialQuotasProvider.select(
+                (quotas) => quotas.valueOrNull
+                    ?.where((q) => q.id == (credit as LoanCredit).quotaId)
+                    .firstOrNull
+                    ?.voucherPattern,
+              )),
+            ))
         : VoucherPattern.diagonalLines;
     final isLightFace = isBankVoucher ||
         (cardDesign?.isLightBackground ?? false) ||
@@ -816,7 +819,7 @@ class WalletCard extends ConsumerWidget {
                                 'DEUDA RESTANTE',
                                 style: TextStyle(
                                   color: bottomInkFaint,
-                                  fontSize: KreditTextSize.body,
+                                  fontSize: KreditTextSize.cardCaption,
                                   fontWeight: FontWeight.w600,
                                   letterSpacing: 1,
                                 ),
@@ -828,7 +831,7 @@ class WalletCard extends ConsumerWidget {
                                 style: TextStyle(
                                   color: bottomInkStrong,
                                   fontWeight: FontWeight.w800,
-                                  fontSize: KreditTextSize.emphasis,
+                                  fontSize: KreditTextSize.cardValue,
                                   letterSpacing: -0.5,
                                 ),
                               ),
@@ -872,15 +875,21 @@ void showCardDesignPicker(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (_) => _DesignPickerSheet(
-      current: current,
-      c1: c1,
-      c2: c2,
-      c3: c3,
-      onSelected: (d) {
-        Navigator.of(context).pop();
-        onSelected(d);
-      },
+    builder: (_) => ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: Material(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        child: _DesignPickerSheet(
+          current: current,
+          c1: c1,
+          c2: c2,
+          c3: c3,
+          onSelected: (d) {
+            Navigator.of(context).pop();
+            onSelected(d);
+          },
+        ),
+      ),
     ),
   );
 }
@@ -906,12 +915,9 @@ class _DesignPickerSheet extends StatelessWidget {
       ...CardDesign.values.map((d) => (d, d.label)),
     ];
 
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.75,
@@ -919,13 +925,15 @@ class _DesignPickerSheet extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.max,
           children: [
-            Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: scheme.outlineVariant,
-                borderRadius: BorderRadius.circular(2),
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: kredit.borderCard,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
             Text(
@@ -1145,7 +1153,7 @@ class _CardStatColumn extends StatelessWidget {
           primary.label.toUpperCase(),
           style: TextStyle(
             color: captionColor,
-            fontSize: KreditTextSize.body,
+            fontSize: KreditTextSize.cardCaption,
             fontWeight: FontWeight.w600,
             letterSpacing: 1,
           ),
@@ -1157,7 +1165,7 @@ class _CardStatColumn extends StatelessWidget {
           style: TextStyle(
             color: valueColor,
             fontWeight: FontWeight.w800,
-            fontSize: KreditTextSize.emphasis,
+            fontSize: KreditTextSize.cardValue,
             letterSpacing: -0.5,
           ),
         ),
@@ -1170,7 +1178,7 @@ class _CardStatColumn extends StatelessWidget {
             style: TextStyle(
               color: secondaryColor,
               fontWeight: FontWeight.w600,
-              fontSize: KreditTextSize.body,
+              fontSize: KreditTextSize.cardCaption,
               letterSpacing: 0.4,
             ),
           ),
@@ -1395,7 +1403,7 @@ class EntityCardFace extends StatelessWidget {
                         bottomLabel,
                         style: TextStyle(
                           color: inkFaint,
-                          fontSize: KreditTextSize.body,
+                          fontSize: KreditTextSize.cardCaption,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 1,
                         ),
@@ -1407,7 +1415,7 @@ class EntityCardFace extends StatelessWidget {
                         style: TextStyle(
                           color: ink,
                           fontWeight: FontWeight.w800,
-                          fontSize: KreditTextSize.emphasis,
+                          fontSize: KreditTextSize.cardValue,
                           letterSpacing: -0.5,
                         ),
                       ),

@@ -5,54 +5,29 @@ import '../../providers/app_lock_provider.dart';
 import '../../providers/credits_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../theme/app_theme.dart';
+import '../kredit_bottom_dialogs.dart';
 
 class DangerZoneCard extends ConsumerWidget {
   const DangerZoneCard({super.key});
 
   Future<void> _confirmAndClear(BuildContext context, WidgetRef ref) async {
-    final firstConfirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Borrar base de datos'),
-        content: const Text(
-          '¿Estás seguro de que quieres borrar TODOS tus créditos? Esta acción '
-          'no se puede deshacer.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Continuar'),
-          ),
-        ],
-      ),
+    final firstConfirm = await showKreditConfirmSheet(
+      context,
+      title: 'Borrar base de datos',
+      message: '¿Estás seguro de que quieres borrar TODOS tus créditos? Esta acción no se puede deshacer.',
+      confirmLabel: 'Continuar',
+      isDanger: true,
+      icon: Icons.warning_amber_rounded,
     );
     if (firstConfirm != true || !context.mounted) return;
 
-    final secondConfirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Última confirmación'),
-        content: const Text(
-          'Esta es tu última oportunidad para cancelar. Todos tus créditos, '
-          'cuotas y movimientos se eliminarán permanentemente. ¿Continuar?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Borrar todo'),
-          ),
-        ],
-      ),
+    final secondConfirm = await showKreditConfirmSheet(
+      context,
+      title: 'Última confirmación',
+      message: 'Esta es tu última oportunidad para cancelar. Todos tus créditos, cuotas y movimientos se eliminarán permanentemente. ¿Continuar?',
+      confirmLabel: 'Borrar todo',
+      isDanger: true,
+      icon: Icons.delete_forever_outlined,
     );
     if (secondConfirm != true || !context.mounted) return;
 
@@ -95,52 +70,82 @@ class DangerZoneCard extends ConsumerWidget {
       return ref.read(appLockProvider.notifier).authenticateWithBiometrics();
     }
     final pinCtrl = TextEditingController();
-    String? error;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showModalBottomSheet<bool>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) => AlertDialog(
-          title: const Text('Confirma tu PIN'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Ingresa tu PIN para confirmar que quieres borrar todo.'),
-              const SizedBox(height: 12),
-              TextField(
-                controller: pinCtrl,
-                autofocus: true,
-                obscureText: true,
-                keyboardType: TextInputType.number,
-                maxLength: 6,
-                decoration: InputDecoration(
-                  labelText: 'PIN',
-                  errorText: error,
-                  counterText: '',
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar'),
-            ),
-            TextButton(
-              style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-              onPressed: () async {
-                final ok = await ref.read(appLockProvider.notifier).verifyPin(pinCtrl.text);
-                if (ok) {
-                  if (ctx.mounted) Navigator.pop(ctx, true);
-                } else {
-                  setState(() => error = 'PIN incorrecto');
-                }
-              },
-              child: const Text('Confirmar'),
-            ),
-          ],
-        ),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      builder: (ctx) {
+        final kredit = Theme.of(ctx).extension<KreditColors>()!;
+        String? pinError;
+        return StatefulBuilder(
+          builder: (ctx, setState) => Padding(
+            padding: EdgeInsets.only(
+              left: 24, right: 24, top: 16,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36, height: 4,
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: kredit.borderCard,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const Icon(Icons.lock_outline, size: 28, color: AppColors.danger),
+                const SizedBox(height: 12),
+                Text('Confirma tu PIN',
+                    style: TextStyle(fontSize: KreditTextSize.heading, fontWeight: FontWeight.w700, color: kredit.textPrimary)),
+                const SizedBox(height: 8),
+                Text('Ingresa tu PIN para confirmar que quieres borrar todo.',
+                    style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary)),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: pinCtrl,
+                  autofocus: true,
+                  obscureText: true,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  decoration: InputDecoration(
+                    labelText: 'PIN',
+                    errorText: pinError,
+                    counterText: '',
+                  ),
+                ),
+                const SizedBox(height: 20),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.danger,
+                    minimumSize: const Size(double.infinity, 50),
+                  ),
+                  onPressed: () async {
+                    final ok = await ref.read(appLockProvider.notifier).verifyPin(pinCtrl.text);
+                    if (ok) {
+                      if (ctx.mounted) Navigator.pop(ctx, true);
+                    } else {
+                      setState(() => pinError = 'PIN incorrecto');
+                    }
+                  },
+                  child: const Text('Confirmar'),
+                ),
+                const SizedBox(height: 10),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  style: TextButton.styleFrom(minimumSize: const Size(double.infinity, 46)),
+                  child: Text('Cancelar', style: TextStyle(color: kredit.textSecondary)),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
     return confirmed == true;
   }

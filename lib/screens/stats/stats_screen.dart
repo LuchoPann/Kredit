@@ -48,7 +48,6 @@ class StatsScreen extends ConsumerWidget {
                 totalPaidHistorico: statsData.totalPaidHistorico,
                 progressPct: statsData.progressPct,
                 activeCount: statsData.activeCount,
-                abonoCount: statsData.abonoCount,
                 installmentsAdvanced: statsData.installmentsAdvanced,
                 risks: statsData.risks,
               ),
@@ -83,7 +82,6 @@ class StatsScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   _PayoffTimeline(entries: statsData.payoffProjections),
-                  _InsightLine(text: statsData.bestPrepayment),
                 ],
               ),
               const SizedBox(height: 28),
@@ -134,7 +132,6 @@ class _ResumenPanel extends StatelessWidget {
   final double totalPaidHistorico;
   final double progressPct;
   final int activeCount;
-  final int abonoCount;
   final int installmentsAdvanced;
   final List<FinancialRecommendation> risks;
 
@@ -144,7 +141,6 @@ class _ResumenPanel extends StatelessWidget {
     required this.totalPaidHistorico,
     required this.progressPct,
     required this.activeCount,
-    required this.abonoCount,
     required this.installmentsAdvanced,
     required this.risks,
   });
@@ -224,14 +220,6 @@ class _ResumenPanel extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: _StatChip(
-                value: '$abonoCount',
-                label: 'Abonos\nextra',
-                color: kredit.success,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _StatChip(
                 value: '$installmentsAdvanced',
                 label: 'Cuotas\nadelant.',
                 color: kredit.warning,
@@ -293,47 +281,6 @@ class _StatChip extends StatelessWidget {
 /// Secondary metric expressed purely through typography — a mid-weight
 /// value over a small-caps label, no surrounding box. Misma jerarquía que
 /// `_SecondaryStat` (dashboard_screen.dart) y `_StatTile`
-/// (widgets/account/stats_grid.dart) — las tres son el mismo patrón de "fila
-/// de métricas separadas por una línea fina".
-class _StatColumn extends StatelessWidget {
-  final String label;
-  final String value;
-  const _StatColumn({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: KreditTextSize.heading,
-            letterSpacing: -0.3,
-            fontFeatures: [FontFeature.tabularFigures()],
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        const SizedBox(height: 3),
-        Text(
-          label.toUpperCase(),
-          style: TextStyle(
-            fontSize: KreditTextSize.body,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.6,
-            color: kredit.textTertiary,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
-    );
-  }
-}
 
 /// Pill discreto que adelanta cuántos riesgos hay detectados, junto al
 /// anillo de progreso — se oculta por completo cuando no hay ninguno, para
@@ -603,58 +550,32 @@ class _PayoffTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
-
     if (entries.isEmpty) {
       return const _InlineEmptyCard(text: 'No hay créditos con cuotas pendientes.');
     }
 
-    final maxMonths = entries.map((e) => e.monthsFromNow).reduce((a, b) => a > b ? a : b);
-    if (maxMonths <= 0) {
-      return const _InlineEmptyCard(text: 'Todos los créditos terminan este mes.');
-    }
-
-    final latestEntry = entries.reduce((a, b) => a.monthsFromNow > b.monthsFromNow ? a : b);
-
     return Column(
       children: [
-        Row(
-          children: [
-            const SizedBox(width: 92),
-            Expanded(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('HOY', style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600, color: kredit.textTertiary, letterSpacing: 0.5)),
-                  if (maxMonths > 3)
-                    Text(
-                      '${maxMonths ~/ 2} meses',
-                      style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600, color: kredit.textTertiary, letterSpacing: 0.5),
-                    ),
-                  Text(
-                    formatDate(toDateStr(latestEntry.endDate)),
-                    style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600, color: kredit.textTertiary, letterSpacing: 0.5),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
         for (var i = 0; i < entries.length; i++) ...[
-          if (i > 0) const SizedBox(height: 12),
-          _TimelineRow(entry: entries[i], maxMonths: maxMonths),
+          if (i > 0) const SizedBox(height: 14),
+          _TimelineRow(entry: entries[i]),
         ],
-        const SizedBox(height: 12),
-        Divider(height: 1, color: kredit.borderCard),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            _LegendItem(color: kredit.borderCard, label: 'Pagado'),
-            const SizedBox(width: 16),
-            _LegendItem(color: kredit.textSecondary, label: 'Restante'),
-          ],
-        ),
+        const SizedBox(height: 14),
+        _TimelineLegend(),
+      ],
+    );
+  }
+}
+
+class _TimelineLegend extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    return Row(
+      children: [
+        _LegendItem(color: kredit.success.withValues(alpha: 0.5), label: 'Pagado'),
+        const SizedBox(width: 16),
+        _LegendItem(color: kredit.textTertiary.withValues(alpha: 0.4), label: 'Pendiente'),
       ],
     );
   }
@@ -662,59 +583,71 @@ class _PayoffTimeline extends StatelessWidget {
 
 class _TimelineRow extends StatelessWidget {
   final PayoffEntry entry;
-  final int maxMonths;
-  const _TimelineRow({required this.entry, required this.maxMonths});
+  const _TimelineRow({required this.entry});
 
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
     final color = _payoffUrgencyColor(kredit, entry.monthsFromNow);
-    final remainFraction = maxMonths > 0 ? (entry.monthsFromNow / maxMonths).clamp(0.0, 1.0) : 0.0;
-    final paidFraction = 1.0 - remainFraction;
+    final paidFraction = entry.paidFraction.clamp(0.0, 1.0);
+    final remainFraction = 1.0 - paidFraction;
+    final paidLabel = '${entry.paidInstallments}/${entry.totalInstallments}';
+    final pct = (paidFraction * 100).round();
 
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: 84,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
+        Row(
+          children: [
+            Expanded(
+              child: Text(
                 entry.name,
                 style: const TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 2),
-              Text(
-                formatDate(toDateStr(entry.endDate)),
-                style: TextStyle(fontSize: KreditTextSize.body, fontWeight: FontWeight.w600, color: color),
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '$paidLabel cuotas · $pct%',
+              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+            ),
+          ],
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(5),
-            child: SizedBox(
-              height: 10,
-              child: Row(
-                children: [
-                  if (paidFraction > 0)
-                    Flexible(
-                      flex: (paidFraction * 100).round(),
-                      child: Container(color: color.withValues(alpha: 0.22)),
-                    ),
-                  if (remainFraction > 0)
-                    Flexible(
-                      flex: (remainFraction * 100).round(),
-                      child: Container(color: color),
-                    ),
-                ],
-              ),
+        const SizedBox(height: 5),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(5),
+          child: SizedBox(
+            height: 8,
+            child: Row(
+              children: [
+                if (paidFraction > 0)
+                  Flexible(
+                    flex: (paidFraction * 100).round().clamp(1, 99),
+                    child: Container(color: kredit.success.withValues(alpha: 0.55)),
+                  ),
+                if (remainFraction > 0)
+                  Flexible(
+                    flex: (remainFraction * 100).round().clamp(1, 99),
+                    child: Container(color: kredit.textTertiary.withValues(alpha: 0.25)),
+                  ),
+              ],
             ),
           ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Text(
+              'Termina ${formatDate(toDateStr(entry.endDate))}',
+              style: TextStyle(fontSize: KreditTextSize.caption, color: color, fontWeight: FontWeight.w600),
+            ),
+            const Spacer(),
+            Text(
+              'Resta ${formatCOP(entry.remainingAmount)}',
+              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary),
+            ),
+          ],
         ),
       ],
     );
@@ -1117,142 +1050,3 @@ class _LenderBar extends StatelessWidget {
   }
 }
 
-/// Lista de proyecciones de fin de pago. Recibe entradas pre-computadas
-/// desde [statsDataProvider] — solo convierte [DateTime] a texto con
-/// [toDateStr] + [formatDate], que son operaciones O(1).
-class _PayoffProjectionList extends StatelessWidget {
-  final List<PayoffEntry> entries;
-  const _PayoffProjectionList({required this.entries});
-
-  @override
-  Widget build(BuildContext context) {
-    final kredit = Theme.of(context).extension<KreditColors>()!;
-
-    if (entries.isEmpty) {
-      return const _InlineEmptyCard(
-        text: 'No hay créditos con cuotas pendientes.',
-      );
-    }
-
-    return Column(
-      children: [
-        for (var i = 0; i < entries.length; i++) ...[
-          if (i > 0) Divider(height: 1, color: kredit.borderCard),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.event_available_outlined,
-                  size: KreditIconSize.small,
-                  color: _payoffUrgencyColor(kredit, entries[i].monthsFromNow),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        entries[i].name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: KreditTextSize.body,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        entries[i].monthsFromNow <= 0
-                            ? 'Termina este mes'
-                            : 'Termina en ${entries[i].monthsFromNow} mes${entries[i].monthsFromNow == 1 ? '' : 'es'}',
-                        style: TextStyle(
-                          fontSize: KreditTextSize.body,
-                          color: _payoffUrgencyColor(kredit, entries[i].monthsFromNow),
-                          fontWeight: entries[i].monthsFromNow <= 6 ? FontWeight.w600 : FontWeight.w400,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  formatDate(toDateStr(entries[i].endDate)),
-                  style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textTertiary),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Historial real de abonos extra
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Resumen de abonos extra. Recibe valores pre-computados desde
-/// [statsDataProvider] — no itera créditos en build().
-class _AbonosHistorySummary extends StatelessWidget {
-  final int abonoCount;
-  final double abonoTotal;
-  final int installmentsAdvanced;
-
-  const _AbonosHistorySummary({
-    required this.abonoCount,
-    required this.abonoTotal,
-    required this.installmentsAdvanced,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (abonoCount == 0) {
-      return const _InlineEmptyCard(
-        text:
-            'Aún no has registrado abonos extra. Cuando abones desde el '
-            'simulador o desde el detalle de un préstamo, aquí verás el '
-            'impacto real de esos abonos.',
-      );
-    }
-
-    final kredit = Theme.of(context).extension<KreditColors>()!;
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: _StatColumn(
-            label: 'Abonos realizados',
-            value: '$abonoCount',
-          ),
-        ),
-        Container(
-          width: 1,
-          height: 34,
-          margin: const EdgeInsets.symmetric(horizontal: 18),
-          color: kredit.borderCard,
-        ),
-        Expanded(
-          child: _StatColumn(
-            label: 'Adelantos',
-            value: '$installmentsAdvanced',
-          ),
-        ),
-        Container(
-          width: 1,
-          height: 34,
-          margin: const EdgeInsets.symmetric(horizontal: 18),
-          color: kredit.borderCard,
-        ),
-        Expanded(
-          child: _StatColumn(
-            label: 'Suma abonada',
-            value: formatCOP(abonoTotal),
-          ),
-        ),
-      ],
-    );
-  }
-}

@@ -3,29 +3,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/card_movement.dart';
 import '../../data/models/credit.dart';
-import '../../domain/card_calculator.dart';
 import '../../domain/date_utils.dart';
 import '../../providers/credits_provider.dart';
 import '../../theme/app_theme.dart';
 import '../card_movement_sheet.dart';
 import '../../utils/credit_display_utils.dart';
-import 'stat_box.dart';
+import '../kredit_bottom_dialogs.dart';
 
-const _monthsEs = [
-  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
-];
-
-String _humanDate(DateTime d) =>
-    '${d.day} de ${_monthsEs[d.month - 1]} de ${d.year}';
 
 /// Returns the closing cutoff date (YYYY-MM-DD) of the billing cycle that
 /// contains [movementDate], given [cutoffDay]. Used to group movements by
 /// extracto instead of calendar month.
 ///
-/// If the movement falls on or before [cutoffDay] of its month → the cycle
+/// Cutoff day opens the new period at 00:00, so a purchase on the cutoff day
+/// itself belongs to the NEW extracto (the one that just opened).
+/// If the movement falls strictly before [cutoffDay] of its month → the cycle
 /// closes on cutoffDay of that same month.
-/// If the movement falls after [cutoffDay] → the cycle closes on cutoffDay
+/// If the movement falls on or after [cutoffDay] → the cycle closes on cutoffDay
 /// of the FOLLOWING month.
 String _cycleKeyFor(String movementDate, int cutoffDay) {
   if (movementDate.length < 10) return movementDate;
@@ -33,7 +27,7 @@ String _cycleKeyFor(String movementDate, int cutoffDay) {
   if (d == null) return movementDate;
   final clampedCutoff = cutoffDay.clamp(1, 28);
   DateTime cycleEnd;
-  if (d.day <= clampedCutoff) {
+  if (d.day < clampedCutoff) {
     cycleEnd = DateTime(d.year, d.month, clampedCutoff);
   } else {
     final nextMonth = d.month == 12 ? 1 : d.month + 1;
@@ -54,7 +48,6 @@ class MovementsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
-    final dates = getCardCycleDates(credit);
     final movements = credit.movements.reversed.toList();
 
     // Group by billing cycle (extracto closing date), most-recent-first.
@@ -64,67 +57,34 @@ class MovementsTab extends ConsumerWidget {
       groups.putIfAbsent(key, () => []).add(m);
     }
 
-    // Fecha de corte y fecha límite de pago en formato legible.
-    final nextCutoffLabel = _humanDate(dates.nextCutoff);
-    final dueDateLabel = _humanDate(dates.dueDate);
-
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.all(KreditSpacing.card),
-          child: Column(
+          child: Row(
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: StatBox(
-                      label: 'Fecha de corte',
-                      value: nextCutoffLabel,
-                      icon: Icons.event_repeat,
-                    ),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => CardMovementSheet.show(
+                    context,
+                    creditId: credit.id,
+                    movementType: CardMovementType.charge,
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: StatBox(
-                      label: 'Límite de pago',
-                      value: dueDateLabel,
-                      icon: Icons.event_available,
-                    ),
-                  ),
-                ],
+                  icon: const Icon(Icons.shopping_bag_outlined, size: KreditIconSize.small),
+                  label: const Text('Nueva compra'),
+                ),
               ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => CardMovementSheet.show(
-                        context,
-                        creditId: credit.id,
-                        movementType: CardMovementType.charge,
-                      ),
-                      icon: const Icon(Icons.shopping_bag_outlined, size: KreditIconSize.small),
-                      label: const Text('Nueva compra'),
-                    ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () => CardMovementSheet.show(
+                    context,
+                    creditId: credit.id,
+                    movementType: CardMovementType.payment,
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    // Filled/primary here, matching the same priority given
-                    // to "Registrar Pago" in summary_tab.dart's quick
-                    // actions — paying down the balance is the recommended
-                    // action, registering a new charge is secondary.
-                    child: FilledButton.icon(
-                      onPressed: () => CardMovementSheet.show(
-                        context,
-                        creditId: credit.id,
-                        movementType: CardMovementType.payment,
-                      ),
-                      icon: const Icon(Icons.payments_outlined, size: KreditIconSize.small),
-                      label: const Text('Pagar tarjeta'),
-                    ),
-                  ),
-                ],
+                  icon: const Icon(Icons.payments_outlined, size: KreditIconSize.small),
+                  label: const Text('Pagar tarjeta'),
+                ),
               ),
             ],
           ),
@@ -198,21 +158,27 @@ class MovementsTab extends ConsumerWidget {
   }
 }
 
+const _monthsEs = [
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+];
+
 /// Builds a human-readable "6 Sep – 5 Oct" range label for a billing cycle
 /// that ends on [cycleEnd], given [cutoffDay].
 String _cycleRangeLabel(DateTime cycleEnd, int cutoffDay) {
   final clampedCutoff = cutoffDay.clamp(1, 28);
-  // Cycle start = day after cutoffDay of the previous month.
+  // Cycle start = cutoffDay of the previous month (cutoff day opens the new
+  // period at 00:00; the prior period's last day is cutoffDay - 1).
   final prevMonth = cycleEnd.month == 1 ? 12 : cycleEnd.month - 1;
   final prevYear = cycleEnd.month == 1 ? cycleEnd.year - 1 : cycleEnd.year;
-  final startDay = clampedCutoff + 1;
+  final startDay = clampedCutoff;
+  final endDay = clampedCutoff > 1 ? clampedCutoff - 1 : 28;
   final startMonthLabel = _monthsEs[(prevMonth - 1).clamp(0, 11)];
   final endMonthLabel = _monthsEs[(cycleEnd.month - 1).clamp(0, 11)];
-  // If both sides fall in the same month label, use short form.
   if (prevMonth == cycleEnd.month && prevYear == cycleEnd.year) {
-    return '$startDay–$clampedCutoff $endMonthLabel ${cycleEnd.year}';
+    return '$startDay–$endDay $endMonthLabel ${cycleEnd.year}';
   }
-  return '$startDay $startMonthLabel – $clampedCutoff $endMonthLabel ${cycleEnd.year}';
+  return '$startDay $startMonthLabel – $endDay $endMonthLabel ${cycleEnd.year}';
 }
 
 class _CycleGroup extends StatefulWidget {
@@ -384,28 +350,14 @@ class _MovementTile extends ConsumerWidget {
   });
 
   Future<bool> _confirmDelete(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Eliminar movimiento'),
-        content: Text(
-          '¿Eliminar "${_labelFor(movement.type)}" por ${formatCOP(movement.amount)}? '
-          'El saldo de la tarjeta se recalculará. Esta acción no se puede deshacer.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: Theme.of(ctx).colorScheme.error),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
+    return showKreditConfirmSheet(
+      context,
+      title: 'Eliminar movimiento',
+      message: '¿Eliminar "${_labelFor(movement.type)}" por ${formatCOP(movement.amount)}? El saldo de la tarjeta se recalculará. Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      isDanger: true,
+      icon: Icons.delete_outline,
     );
-    return confirmed == true;
   }
 
   @override
@@ -471,6 +423,11 @@ class _MovementTile extends ConsumerWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+                if (m.type == CardMovementType.charge && m.chargeInstallments != null && m.chargeInstallments! > 1)
+                  Text(
+                    '${m.chargeInstallments} cuotas',
+                    style: TextStyle(fontSize: 11, color: kredit.textTertiary),
+                  ),
               ],
             ),
           ),

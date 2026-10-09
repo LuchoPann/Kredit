@@ -4,18 +4,31 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/app_lock_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/nav_utils.dart';
 
-/// "Seguridad" setup screen, reached from Cuenta. Lets the user pick a
-/// lock method (none / biometric if available / PIN); choosing PIN asks
-/// for the digits twice to confirm before saving.
-class SetupLockScreen extends ConsumerStatefulWidget {
+/// Pantalla completa de seguridad (acceso directo desde cuenta, fuera de sheet).
+class SetupLockScreen extends StatelessWidget {
   const SetupLockScreen({super.key});
 
   @override
-  ConsumerState<SetupLockScreen> createState() => _SetupLockScreenState();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Seguridad')),
+      body: const SetupLockBody(),
+    );
+  }
 }
 
-class _SetupLockScreenState extends ConsumerState<SetupLockScreen> {
+/// Body embebible — funciona dentro del sheet de configuración Y como cuerpo
+/// de [SetupLockScreen]. Sin Scaffold ni AppBar.
+class SetupLockBody extends ConsumerStatefulWidget {
+  const SetupLockBody({super.key});
+
+  @override
+  ConsumerState<SetupLockBody> createState() => _SetupLockBodyState();
+}
+
+class _SetupLockBodyState extends ConsumerState<SetupLockBody> {
   bool? _biometricAvailable;
 
   @override
@@ -49,7 +62,7 @@ class _SetupLockScreenState extends ConsumerState<SetupLockScreen> {
 
   Future<void> _selectPin() async {
     final pin = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => const _PinSetupFlow()),
+      slidePageRoute((_) => const _PinSetupFlow()),
     );
     if (pin != null) {
       await ref.read(appLockProvider.notifier).setupPin(pin);
@@ -66,46 +79,47 @@ class _SetupLockScreenState extends ConsumerState<SetupLockScreen> {
     final method = ref.watch(appLockProvider).method;
     final kredit = Theme.of(context).extension<KreditColors>()!;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Seguridad')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            'Elige cómo proteger el acceso a Kredit al abrir la app.',
-            style: TextStyle(color: kredit.textSecondary),
-          ),
-          const SizedBox(height: KreditSpacing.section),
-          Divider(height: 1, color: kredit.borderCard),
-          _LockOptionTile(
-            icon: Icons.lock_open_outlined,
-            title: 'Ninguno',
-            subtitle: 'La app abre directamente',
-            selected: method == LockMethod.none,
-            onTap: _selectNone,
-          ),
-          Divider(height: 1, color: kredit.borderCard),
-          _LockOptionTile(
-            icon: Icons.fingerprint,
-            title: 'Biometría',
-            subtitle: _biometricAvailable == false
-                ? 'No disponible en este dispositivo'
-                : 'Huella dactilar o reconocimiento facial',
-            selected: method == LockMethod.biometric,
-            enabled: _biometricAvailable == true,
-            onTap: () {
-              if (_biometricAvailable == true) _selectBiometric();
-            },
-          ),
-          Divider(height: 1, color: kredit.borderCard),
-          _LockOptionTile(
-            icon: Icons.pin_outlined,
-            title: 'PIN',
-            subtitle: 'Código numérico de 4 a 6 dígitos',
-            selected: method == LockMethod.pin,
-            onTap: _selectPin,
-          ),
-          Divider(height: 1, color: kredit.borderCard),
+        Text(
+          'Elige cómo proteger el acceso a Kredit al abrir la app.',
+          style: TextStyle(color: kredit.textSecondary),
+        ),
+        const SizedBox(height: KreditSpacing.section),
+        Divider(height: 1, color: kredit.borderCard),
+        _LockOptionTile(
+          icon: Icons.lock_open_outlined,
+          title: 'Ninguno',
+          subtitle: 'La app abre directamente',
+          selected: method == LockMethod.none,
+          onTap: _selectNone,
+        ),
+        Divider(height: 1, color: kredit.borderCard),
+        _LockOptionTile(
+          icon: Icons.fingerprint,
+          title: 'Biometría',
+          subtitle: _biometricAvailable == false
+              ? 'No disponible en este dispositivo'
+              : 'Huella dactilar o reconocimiento facial',
+          selected: method == LockMethod.biometric,
+          enabled: _biometricAvailable == true,
+          onTap: () {
+            if (_biometricAvailable == true) _selectBiometric();
+          },
+        ),
+        Divider(height: 1, color: kredit.borderCard),
+        _LockOptionTile(
+          icon: Icons.pin_outlined,
+          title: 'PIN',
+          subtitle: 'Código numérico de 4 a 6 dígitos',
+          selected: method == LockMethod.pin,
+          onTap: _selectPin,
+        ),
+        Divider(height: 1, color: kredit.borderCard),
         ],
       ),
     );

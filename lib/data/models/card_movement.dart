@@ -33,6 +33,11 @@ class CardMovement {
   /// 'entretenimiento' | 'servicios' | 'viajes' | 'otro'.
   final String? categoria;
 
+  /// Para charges: número de cuotas (null = pago único / rotativo)
+  final int? chargeInstallments;
+  /// Para charges: tasa mensual override (null = usar la de la tarjeta)
+  final double? chargeMonthlyRate;
+
   CardMovement({
     required this.date,
     required this.type,
@@ -45,6 +50,8 @@ class CardMovement {
     this.advanceFirstPaymentDate,
     this.advanceDestination,
     this.categoria,
+    this.chargeInstallments,
+    this.chargeMonthlyRate,
   });
 
   Map<String, dynamic> toJson() => {
@@ -59,6 +66,8 @@ class CardMovement {
         'advanceFirstPaymentDate': advanceFirstPaymentDate,
         'advanceDestination': advanceDestination,
         'categoria': categoria,
+        'chargeInstallments': chargeInstallments,
+        'chargeMonthlyRate': chargeMonthlyRate,
       };
 
   factory CardMovement.fromJson(Map<String, dynamic> json) => CardMovement(
@@ -73,5 +82,7 @@ class CardMovement {
         advanceFirstPaymentDate: json['advanceFirstPaymentDate'] as String?,
         advanceDestination: json['advanceDestination'] as String?,
         categoria: json['categoria'] as String?,
+        chargeInstallments: json['chargeInstallments'] as int?,
+        chargeMonthlyRate: (json['chargeMonthlyRate'] as num?)?.toDouble(),
       );
 }

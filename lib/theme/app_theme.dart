@@ -86,12 +86,16 @@ class KreditRadius {
 /// timeline (day-of-cut / payment-limit indicator), which is hardcoded at
 /// its call site because it is a one-off display treatment, not a role.
 class KreditTextSize {
+  /// Compact diagram labels, chart ticks, timeline day numbers, and any
+  /// text that is deliberately tiny (on a diagram, not in body copy).
+  static const caption = 12.0;
+
   /// Default for all body copy, section info, labels, eyebrows, metadata,
-  /// chart ticks, hints, and any text that is not a title or a number.
-  static const body = 14.0;
+  /// hints, and any readable text that is not a title or a number.
+  static const body = 16.0;
 
   /// Subtitles, secondary headings, prominent labels — one step above body.
-  static const heading = 16.0;
+  static const heading = 18.0;
 
   /// Screen-level titles: greeting headers ("Buenos días, Usuario"),
   /// view titles, stat call-outs that need prominence.
@@ -100,6 +104,12 @@ class KreditTextSize {
   /// Large display numerals: dashboard total-debt hero figure and other
   /// big stat treatments where the number IS the message.
   static const hero = 38.0;
+
+  /// Card-exclusive sizes — used ONLY in wallet_card.dart for the lower-corner
+  /// text blocks (captions, stat values, secondary labels). 2px smaller than
+  /// the equivalent global token so text fits the physical card proportions.
+  static const cardCaption = 13.0; // body−3: eyebrow labels inside card corners
+  static const cardValue   = 21.0; // emphasis−3: stat values inside card corners
 }
 
 /// Exactly two icon sizes for the whole app (the `KreditLogo` brand mark is
@@ -274,28 +284,28 @@ class KreditColors extends ThemeExtension<KreditColors> {
 // relationship dark mode has (bgCard #121212 on bgPrimary #000000).
 // bgPrimary is never pure white so cards have a surface to elevate from.
 
-// Blanco Puro — neutral light gray bg, white cards
+// Blanco Puro — slate-100 bg, pure-white cards (máximo contraste bg↔card)
 const _bgToneLightPure = _BgToneColors(
-  bgPrimary: Color(0xFFF0F4F8),
-  bgSecondary: Color(0xFFE2E8F0),
-  bgCard: Color(0xFFFFFFFF),
-  borderCard: Color(0xFFCAD2DD),
+  bgPrimary: Color(0xFFF1F5F9),   // slate-100: más fresco que gris genérico
+  bgSecondary: Color(0xFFE2E8F0), // slate-200
+  bgCard: Color(0xFFFFFFFF),      // blanco puro — las cards elevan claramente
+  borderCard: Color(0xFFCBD5E1),  // slate-300: más definido que el anterior
 );
 
-// Nube — cool blue-tinted bg (analogous to dark Medianoche's subtle blue)
+// Nube — cool blue-tinted bg, bgCard con toque azul (no blanco neutro)
 const _bgToneLightCool = _BgToneColors(
-  bgPrimary: Color(0xFFE8F0FB),
-  bgSecondary: Color(0xFFD5E3F5),
-  bgCard: Color(0xFFFFFFFF),
-  borderCard: Color(0xFFB8CEE8),
+  bgPrimary: Color(0xFFE4EEFA),   // azul pálido más saturado
+  bgSecondary: Color(0xFFCFE2F5), // un escalón más azulado
+  bgCard: Color(0xFFF4F8FF),      // blanco-azulado: card distinta del fondo
+  borderCard: Color(0xFFAAC6E4),  // borde azul-grisáceo con presencia
 );
 
-// Arena — warm cream-tinted bg (analogous to dark Ámbar's subtle warm)
+// Arena — warm cream-tinted bg, bgCard cálido (no frío)
 const _bgToneLightWarm = _BgToneColors(
-  bgPrimary: Color(0xFFF5EDE0),
-  bgSecondary: Color(0xFFEDD9C4),
-  bgCard: Color(0xFFFFFFFF),
-  borderCard: Color(0xFFD4BEA0),
+  bgPrimary: Color(0xFFF6EDE2),   // crema más pronunciada
+  bgSecondary: Color(0xFFEDD9C4), // naranja muy desaturado
+  bgCard: Color(0xFFFFFAF3),      // blanco-cálido: distinguible del fondo crema
+  borderCard: Color(0xFFD8C0A0),  // borde cálido con presencia real
 );
 
 _BgToneColors _resolveBgTone(String bgTone, bool isDarkMode) {
@@ -337,14 +347,14 @@ Color resolveEffectiveAccent(Color accent, bool isDarkMode) {
 // Warm: ámbar (naranja suave) — Cool: azul cielo.
 const _warmTintRef = Color(0xFFFFA040);
 const _coolTintRef = Color(0xFF4090FF);
-// Factor 0.25 → cambio visible (~25% mezcla) pero no tan extremo
-// que el color pierda su identidad.
-const _toneLerpFactor = 0.25;
+// Factor oscuro 0.25 → cambio visible (~25% mezcla) sin perder identidad.
+// Factor claro 0.15 → acentos vibrantes no se apagan sobre fondos blancos/crema.
+const _toneLerpFactorDark = 0.25;
+const _toneLerpFactorLight = 0.15;
 
 /// Desplaza [accent] hacia la temperatura del [bgTone] seleccionado:
-/// 'warm' → mezcla 25% hacia ámbar, 'cool' → 25% hacia azul claro.
-/// Todos los acentos reciben exactamente el mismo grado de desplazamiento,
-/// así la diferencia entre tonos se percibe de forma consistente.
+/// 'warm' → mezcla hacia ámbar, 'cool' → mezcla hacia azul claro.
+/// El factor es menor en claro para que los acentos saturados no se apaguen.
 /// El neutro blanco/negro queda excluido — siempre pasa sin cambio.
 Color applyBgToneToAccent(Color accent, String bgTone, bool isDarkMode) {
   final isNeutral = accent == AppColors.accentPrimaryDefault ||
@@ -352,11 +362,12 @@ Color applyBgToneToAccent(Color accent, String bgTone, bool isDarkMode) {
       accent == const Color(0xFF0F172A);
   if (isNeutral || bgTone == 'pure') return accent;
 
+  final factor = isDarkMode ? _toneLerpFactorDark : _toneLerpFactorLight;
   switch (bgTone) {
     case 'warm':
-      return Color.lerp(accent, _warmTintRef, _toneLerpFactor)!;
+      return Color.lerp(accent, _warmTintRef, factor)!;
     case 'cool':
-      return Color.lerp(accent, _coolTintRef, _toneLerpFactor)!;
+      return Color.lerp(accent, _coolTintRef, factor)!;
     default:
       return accent;
   }
@@ -399,13 +410,12 @@ ThemeData buildAppTheme({
   final bgSecondary = tone.bgSecondary;
   final bgCard = tone.bgCard;
   final borderCard = tone.borderCard;
-  // Dark mode: full-strength white for all levels (hierarchy via size/weight).
-  // Light mode: 3-level slate scale — primary=dark navy, secondary=medium
-  // slate, tertiary=lighter slate — mirrors the depth that dark-mode backgrounds
-  // provide naturally, giving both modes the same visual hierarchy.
-  final textPrimary = isDarkMode ? const Color(0xFFFFFFFF) : const Color(0xFF0F172A);
-  final textSecondary = isDarkMode ? const Color(0xFFFFFFFF) : const Color(0xFF334155);
-  final textTertiary = isDarkMode ? const Color(0xFFFFFFFF) : const Color(0xFF64748B);
+  // Dark mode: blanco puro en los 3 niveles — la jerarquía se logra con
+  // peso tipográfico (bold = importante) e italic (avisos / texto secundario),
+  // no con variación de color. Light mode mantiene escala de grises slate.
+  final textPrimary   = isDarkMode ? const Color(0xFFFFFFFF) : const Color(0xFF0F172A);
+  final textSecondary = isDarkMode ? const Color(0xFFFFFFFF) : const Color(0xFF475569);
+  final textTertiary  = isDarkMode ? const Color(0xFFFFFFFF) : const Color(0xFF94A3B8);
 
   final effectiveAccent = applyBgToneToAccent(
     resolveEffectiveAccent(accent, isDarkMode),
@@ -420,9 +430,15 @@ ThemeData buildAppTheme({
     splashColor: (isDarkMode ? Colors.white : Colors.black).withValues(alpha: 0.05),
     colorScheme: base.colorScheme.copyWith(
       surface: bgCard,
+      surfaceContainer: bgCard,
+      surfaceContainerLow: bgCard,
+      surfaceContainerHigh: bgCard,
+      surfaceContainerLowest: bgPrimary,
+      surfaceContainerHighest: bgCard,
       primary: effectiveAccent,
       secondary: effectiveAccent,
       error: Colors.redAccent,
+      surfaceTint: Colors.transparent,
     ),
     // Dual typographic system:
     // 1. Display / Metrics / Headings: 'SpaceGrotesk' (aesthetic, geometric character)
@@ -556,6 +572,7 @@ ThemeData buildAppTheme({
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
+        foregroundColor: textPrimary,
         textStyle: const TextStyle(fontFamily: 'SpaceGrotesk', fontWeight: FontWeight.w600),
       ),
     ),
@@ -570,7 +587,14 @@ ThemeData buildAppTheme({
     dividerColor: borderCard,
     canvasColor: bgCard,
     dialogTheme: DialogThemeData(backgroundColor: bgCard),
-    bottomSheetTheme: BottomSheetThemeData(backgroundColor: bgCard),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: bgPrimary,
+      modalBackgroundColor: bgPrimary,
+      surfaceTintColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+    ),
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith<Color?>((states) {
         if (states.contains(WidgetState.selected)) {

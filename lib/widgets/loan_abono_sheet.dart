@@ -17,7 +17,14 @@ class LoanAbonoSheet extends ConsumerStatefulWidget {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => LoanAbonoSheet(creditId: creditId),
+      backgroundColor: Colors.transparent,
+      builder: (_) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: Material(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: LoanAbonoSheet(creditId: creditId),
+        ),
+      ),
     );
   }
 
@@ -88,7 +95,7 @@ class _LoanAbonoSheetState extends ConsumerState<LoanAbonoSheet> {
       padding: EdgeInsets.only(
         left: 20,
         right: 20,
-        top: 12,
+        top: 0,
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
       ),
       child: Form(
@@ -99,9 +106,9 @@ class _LoanAbonoSheetState extends ConsumerState<LoanAbonoSheet> {
           children: [
             Center(
               child: Container(
-                width: 40,
+                width: 36,
                 height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
+                margin: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
                   color: kredit.borderCard,
                   borderRadius: BorderRadius.circular(2),

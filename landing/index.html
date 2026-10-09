@@ -1,0 +1,660 @@
+<title>Kredit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600&display=swap">
+
+<style>
+/* ── Tokens (sistema exacto de la app) ────────────────────── */
+:root {
+  --bg:      #000000;
+  --bg-2:    #0a0a0a;
+  --bg-card: #121212;
+  --border:  #262626;
+  --border-a:#525252;
+  --fg:      #ffffff;
+  --fg-2:    #a3a3a3;
+  --fg-3:    #737373;
+  --success: #10b981;
+  --danger:  #ef4444;
+  --r:       16px;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'Outfit', system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  overflow-x: hidden;
+}
+h1,h2,h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 800; text-wrap: balance; }
+.wrap {
+  max-width: 1080px;
+  margin-inline: auto;
+  padding-inline: clamp(16px, 4vw, 56px);
+}
+section { padding-block: clamp(48px, 8vw, 80px); }
+
+/* ── NAV ──────────────────────────────────────────────────── */
+nav {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 100;
+  background: rgba(0,0,0,.88);
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 1080px;
+  margin-inline: auto;
+  padding-inline: clamp(16px, 4vw, 56px);
+  padding-block: 11px;
+}
+.nav-logo svg { height: 20px; width: auto; display: block; }
+.nav-right { display: flex; align-items: center; gap: 24px; }
+.nav-link {
+  font-size: .82rem; font-weight: 500;
+  color: var(--fg-3); text-decoration: none;
+  transition: color .15s;
+}
+.nav-link:hover { color: var(--fg); }
+.btn-pill {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: .8rem; font-weight: 700;
+  background: var(--fg); color: var(--bg);
+  padding: 8px 20px; border-radius: 8px;
+  text-decoration: none; white-space: nowrap;
+  transition: opacity .15s;
+}
+.btn-pill:hover { opacity: .85; }
+
+/* ── HERO MANUAL BADGE ────────────────────────────────── */
+.hero-manual-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 20px;
+  padding: 7px 14px;
+  border: 1px solid var(--border-a);
+  border-radius: 999px;
+  font-size: .78rem;
+  font-weight: 500;
+  color: var(--fg-2);
+  letter-spacing: .01em;
+}
+
+/* ── HERO ─────────────────────────────────────────────────── */
+.hero {
+  border-bottom: 1px solid var(--border);
+  padding-block: clamp(40px, 7vw, 72px);
+}
+.hero-text { max-width: 780px; }
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: .7rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--fg-3); border: 1px solid var(--border);
+  border-radius: 4px; padding: 5px 10px; margin-bottom: 22px;
+}
+.hero-tag-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--fg); }
+.hero h1 {
+  font-size: clamp(3rem, 8vw, 6.5rem);
+  letter-spacing: -0.045em; line-height: .92;
+  margin-bottom: 24px;
+}
+.hero-sub {
+  color: var(--fg-2); font-size: clamp(.95rem, 1.8vw, 1.1rem);
+  max-width: 520px; line-height: 1.7; margin-bottom: 36px;
+}
+.hero-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; }
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 9px;
+  background: var(--fg); color: var(--bg);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: .95rem; font-weight: 800;
+  padding: 14px 28px; border-radius: var(--r);
+  text-decoration: none; letter-spacing: -0.01em;
+  transition: opacity .15s;
+}
+.btn-primary:hover { opacity: .88; }
+.btn-ghost {
+  font-size: .875rem; color: var(--fg-3);
+  text-decoration: none;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: color .15s;
+}
+.btn-ghost:hover { color: var(--fg); }
+.hero-stats {
+  display: flex; flex-wrap: wrap; gap: 0;
+  margin-top: 52px; border-top: 1px solid var(--border);
+}
+.h-stat {
+  padding: 20px 32px 0 0;
+  margin-right: 32px;
+  border-right: 1px solid var(--border);
+}
+.h-stat:last-child { border-right: none; }
+.h-stat-num {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.75rem; font-weight: 800;
+  letter-spacing: -0.03em; line-height: 1;
+}
+.h-stat-label { font-size: .78rem; color: var(--fg-2); margin-top: 4px; }
+
+/* ── MARQUEE ──────────────────────────────────────────────── */
+.marquee-wrap {
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-2); overflow: hidden;
+  padding-block: 0;
+}
+.marquee-label {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: .6rem; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--fg-3); padding: 12px clamp(16px, 4vw, 56px) 0;
+}
+.marquee-track {
+  display: flex; padding-block: 12px;
+  overflow: hidden; position: relative;
+}
+.marquee-track::before,
+.marquee-track::after {
+  content: ''; position: absolute; top: 0; bottom: 0; width: 64px; z-index: 2; pointer-events: none;
+}
+.marquee-track::before { left: 0; background: linear-gradient(90deg, var(--bg-2), transparent); }
+.marquee-track::after  { right: 0; background: linear-gradient(-90deg, var(--bg-2), transparent); }
+.marquee-inner {
+  display: flex; gap: 36px; flex-shrink: 0;
+  align-items: center; padding-inline: 56px;
+  animation: marquee 32s linear infinite;
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.m-item {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: .72rem; font-weight: 700;
+  letter-spacing: .06em; color: var(--fg-3);
+  white-space: nowrap; flex-shrink: 0;
+}
+
+/* ── COMMON SECTION HEADER ────────────────────────────────── */
+.s-eyebrow {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: .68rem; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--fg-3); margin-bottom: 10px;
+}
+.s-title {
+  font-size: clamp(1.7rem, 3.5vw, 2.6rem);
+  letter-spacing: -0.03em; line-height: 1.05; margin-bottom: 12px;
+}
+.s-sub { color: var(--fg-2); font-size: .95rem; line-height: 1.7; max-width: 540px; }
+
+/* ── PILARES (3 tipos de crédito) ─────────────────────────── */
+.pillars {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  margin-top: 36px;
+}
+.pilar {
+  background: var(--bg);
+  padding: 28px 24px 26px;
+  display: flex; flex-direction: column; gap: 12px;
+  transition: background .15s;
+}
+.pilar:hover { background: var(--bg-card); }
+.pilar-icon {
+  width: 36px; height: 36px;
+  border: 1px solid var(--border-a);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--fg-2);
+}
+.pilar-label {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: .6rem; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--fg-3);
+}
+.pilar-name {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.15rem; font-weight: 800;
+  letter-spacing: -0.025em; line-height: 1.1;
+}
+.pilar-desc { font-size: .875rem; color: var(--fg-2); line-height: 1.65; }
+.pilar-examples {
+  margin-top: auto; padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: .75rem; color: var(--fg-3);
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600; letter-spacing: .04em;
+}
+
+/* ── POR QUÉ (valor diferencial) ─────────────────────────── */
+.why-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  margin-top: 32px;
+}
+.why-cell {
+  background: var(--bg);
+  padding: 24px 24px 22px;
+  display: flex; flex-direction: column; gap: 10px;
+  transition: background .15s;
+}
+.why-cell:hover { background: var(--bg-card); }
+.why-num {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: .65rem; font-weight: 700;
+  letter-spacing: .12em; color: var(--fg-3);
+  font-variant-numeric: tabular-nums;
+}
+.why-name {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1rem; font-weight: 800;
+  letter-spacing: -0.02em; line-height: 1.1;
+}
+.why-desc { font-size: .845rem; color: var(--fg-2); line-height: 1.6; }
+
+/* ── SIMULATOR ────────────────────────────────────────────── */
+.sim-bg { background: var(--bg-2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.sim-grid {
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  gap: 16px; margin-top: 32px; align-items: start;
+}
+.sim-panel {
+  border: 1px solid var(--border); border-radius: var(--r);
+  background: var(--bg-card); overflow: hidden;
+}
+.sim-head {
+  padding: 12px 18px; border-bottom: 1px solid var(--border);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: .65rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--fg-3);
+}
+.sim-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 10px 18px; border-bottom: 1px solid var(--border);
+  font-size: .845rem;
+}
+.sim-row:last-child { border-bottom: none; }
+.sim-row-l { color: var(--fg-2); }
+.sim-row-v { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pos { color: var(--success); }
+.neg { color: var(--danger); }
+.sim-note {
+  padding: 10px 18px; background: var(--bg);
+  border-top: 1px solid var(--border);
+  font-size: .72rem; color: var(--fg-3); font-style: italic;
+}
+.sim-arrow {
+  display: flex; align-items: center; justify-content: center;
+  color: var(--fg-3); font-size: 1.2rem; padding-top: 56px;
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+}
+
+/* ── PRIVACY ──────────────────────────────────────────────── */
+.priv-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  border: 1px solid var(--border); border-radius: var(--r);
+  overflow: hidden; margin-top: 32px;
+}
+.priv-cell {
+  padding: 22px 20px;
+  border-right: 1px solid var(--border);
+}
+.priv-cell:last-child { border-right: none; }
+.priv-ico {
+  width: 32px; height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--fg-2); margin-bottom: 10px; flex-shrink: 0;
+}
+.priv-title { font-family: 'Space Grotesk', sans-serif; font-size: .88rem; font-weight: 700; margin-bottom: 5px; }
+.priv-text { font-size: .82rem; color: var(--fg-2); line-height: 1.55; }
+
+/* ── CTA / DOWNLOAD ───────────────────────────────────────── */
+.cta-section {
+  position: relative; overflow: hidden;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+/* Patrón brickwork KREDIT outline — igual que la pantalla de perfil de la app
+   App: logoW=170, gapX=36(+extra), gapY=14, rotate=-0.47rad (~27°), opacity=0.09
+   stepX=206, stepY≈43 → brickwork offset: stepX/2=103, stepY=43 */
+.cta-pattern {
+  position: absolute; inset: 0;
+  overflow: hidden; pointer-events: none;
+  z-index: 0;
+}
+.cta-pattern-inner {
+  position: absolute;
+  width: 240%; height: 240%;
+  top: -70%; left: -70%;
+  transform: rotate(-27deg);
+  --tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 210 86' width='210' height='86'%3E%3Cg transform='scale(0.09320 0.09385)' fill='none' stroke='%23ffffff' stroke-width='18' stroke-linejoin='round'%3E%3Cpath d='M339.20 305.30 c-2.70 -1.25 -4.70 -3.45 -5.65 -6.25 -0.40 -1.25 -0.55 -23.20 -0.55 -81.55 l0 -79.85 1.05 -0.95 c1.05 -0.95 3.50 -0.95 103.65 -1 101.90 -0.05 102.55 -0.05 105.70 -1.10 4.45 -1.45 7.05 -3.10 10.20 -6.55 3.30 -3.50 5.60 -8.55 6.45 -14.10 0.35 -2.35 0.50 -7 0.30 -12.95 -0.25 -8.20 -0.40 -9.65 -1.50 -12.70 -2.25 -6.20 -5.95 -10.35 -11.85 -13.30 -5.10 -2.60 -0.20 -2.50 -106.25 -2.50 -95.35 0 -99.05 -0.05 -101 -0.95 -2.65 -1.25 -5.05 -3.80 -6 -6.50 -1.15 -3.25 -1.15 -51.15 0.05 -53.95 0.95 -2.40 2.95 -4.40 5.45 -5.70 1.95 -1.05 2.35 -1.05 111.50 -1.25 76.90 -0.15 111 -0.05 114.60 0.35 10.55 1.10 20 3.70 27.70 7.65 6.45 3.25 9.75 5.45 14.10 9.30 12.55 11.20 19.75 24.70 22.60 42.40 0.60 3.75 0.75 10.70 0.75 36.80 0 32.75 -0.15 36.40 -2.05 45.45 -1.35 6.50 -2.35 9.30 -5.75 15.95 -3.75 7.30 -7.70 12.50 -13.35 17.55 -8.40 7.40 -15.50 11.45 -25.95 14.60 -12.10 3.65 -7.65 3.50 -95 3.65 l-78.40 0.20 0 49.40 c0 54.05 0.10 52.05 -2.90 55.20 -0.75 0.80 -2.25 1.95 -3.35 2.50 -2 1.10 -2.35 1.10 -32 1.25 l-30 0.10 -2.55 -1.20z'/%3E%3Cpath d='M540.65 306 c-2.10 -0.50 -3.65 -1.50 -7.40 -4.95 -1.70 -1.55 -5.95 -5.40 -9.50 -8.55 -11.75 -10.50 -43.25 -39.10 -48.50 -44 -1.90 -1.85 -5.30 -4.85 -7.50 -6.80 -2.20 -1.90 -7.50 -6.60 -11.75 -10.45 -4.25 -3.85 -9.50 -8.55 -11.60 -10.40 -3.75 -3.30 -3.90 -3.50 -3.90 -5.65 0 -1.80 0.20 -2.30 1.35 -3.05 1.25 -0.85 3.95 -0.90 41.90 -0.90 36.70 0 40.65 0.10 42 0.80 1.50 0.85 5.15 3.95 20.25 17.45 4.50 4 9.20 8.15 10.50 9.25 2.85 2.45 18.55 16.25 30.45 26.80 4.85 4.25 11.40 10 14.55 12.75 17.75 15.25 23.90 20.75 24.20 21.45 0.85 2.30 -0.45 4.60 -3.55 6.20 -1.25 0.65 -78.80 0.70 -81.50 0.05z'/%3E%3Cpath d='M10.55 305.30 c-2.90 -1.05 -5.40 -3.55 -6.50 -6.55 -1.05 -2.75 -1.05 -3.40 -1.05 -54.75 0 -35.40 0.15 -52.40 0.55 -53.35 0.25 -0.75 1.25 -2.15 2.10 -3.10 1.45 -1.50 12.80 -11.20 22.60 -19.30 2 -1.65 6.95 -5.80 11.05 -9.20 27.90 -23.35 35.15 -29.25 37.35 -30.40 2.75 -1.50 7.85 -1.60 10.15 -0.20 0.85 0.50 5.35 4.05 9.95 7.90 4.65 3.80 11.05 9.05 14.25 11.65 3.20 2.60 7.80 6.45 10.30 8.60 2.45 2.10 6.15 5.20 8.20 6.90 2.05 1.65 6.55 5.40 10 8.25 3.45 2.85 9.75 8.10 14 11.60 11.75 9.75 46.50 38.85 59.20 49.65 2.45 2.05 6.05 5.10 8.05 6.75 3.60 3 14.45 12.35 23 19.75 2.50 2.15 8.35 7.20 13 11.25 35.55 30.60 32.25 27.60 32.25 29.70 0 2.40 -1.65 4.20 -4.65 5 -1.55 0.45 -11.55 0.55 -37.60 0.45 -40.85 -0.15 -36.60 0.35 -43 -5.50 -4.55 -4.15 -16.45 -14.60 -30.95 -27.10 -6.35 -5.45 -13.35 -11.55 -15.55 -13.50 -2.20 -2 -8.95 -7.85 -15 -13.05 -6.05 -5.20 -13.35 -11.50 -16.20 -14 -2.85 -2.45 -8.05 -6.95 -11.55 -10 -3.50 -3 -11.80 -10.20 -18.50 -16 -17.75 -15.40 -20.65 -17.75 -21.60 -17.75 -0.85 0 -0.90 2.80 -1 54.95 l-0.15 54.95 -1.50 2.15 c-0.95 1.35 -2.50 2.70 -4.20 3.55 l-2.65 1.40 -26.35 -0.05 c-19.30 0 -26.75 -0.20 -28 -0.65z'/%3E%3Cpath d='M1068.35 304.95 c-1 -0.75 -1.35 -1.45 -1.35 -2.80 0 -1.55 0.50 -2.30 3.90 -5.65 11.25 -11.25 61.55 -59.90 62.85 -60.80 3.25 -2.20 2.70 -2.20 65.60 -2.20 58.15 0 60.10 -0.05 63.85 -1 5.15 -1.30 8.30 -3.10 12.40 -6.95 4.05 -3.80 7.10 -9.40 7.85 -14.45 0.30 -1.95 0.40 -24.45 0.25 -59.50 -0.25 -61.55 -0.10 -58.50 -3.20 -64.55 -2.85 -5.65 -7.80 -9.90 -14.35 -12.35 -3.80 -1.40 -4.65 -2.20 -4.65 -4.35 0 -1.65 0.80 -2.50 10.50 -11.30 6.70 -6.05 30.75 -28.50 40.25 -37.50 3.55 -3.40 7.25 -6.50 8.15 -6.90 1.55 -0.65 1.90 -0.60 4.45 0.55 6.25 2.90 16.85 12.80 22.45 21.05 5.70 8.35 9.25 16.55 12.05 27.60 l1.40 5.40 0 83.75 c0 89.70 0.05 86.90 -2.55 96.75 -1.45 5.65 -4.65 13.55 -7.15 17.75 -2.95 4.95 -9.10 12.90 -12.65 16.35 -7.30 7.10 -21.10 15.25 -31.40 18.55 -11.25 3.60 -1.25 3.30 -125.55 3.50 l-111.80 0.10 -1.30 -1.05z'/%3E%3Cpath d='M1412.60 305.05 c-3.20 -1.10 -5.35 -3.05 -6.80 -6.05 l-1.05 -2.25 -0.15 -141 c-0.10 -105.30 0 -141.70 0.40 -143.70 0.45 -2 1.15 -3.25 2.70 -4.95 3.90 -4.25 2.60 -4.10 34.30 -4.10 26.25 0 28.05 0.05 30.10 0.95 2.60 1.15 5.05 3.60 6.10 6.15 0.70 1.65 0.80 16.65 0.80 143.30 0 158.65 0.35 144.80 -3.75 148.85 -3.75 3.75 -3.65 3.75 -33.70 3.75 -24.15 -0.05 -26.50 -0.10 -28.95 -0.95z'/%3E%3Cpath d='M1632.40 305.50 c-4.05 -1.20 -6.95 -4 -8.30 -7.95 -0.45 -1.25 -0.60 -25.05 -0.60 -94.95 0 -87.45 0.05 -93.45 0.90 -96.05 1 -3.25 0.15 -2.35 18.35 -19.60 15.80 -15 22.50 -21.05 23.65 -21.55 0.45 -0.20 2.30 -0.35 4.10 -0.35 l3.20 -0.05 11.65 11.60 c8.85 8.85 11.80 12.05 12.15 13.40 0.30 1.10 0.50 39.15 0.50 104.05 l0 102.25 -1.30 2.65 c-0.80 1.60 -2.15 3.20 -3.35 4.10 -4 2.90 -4.50 2.95 -33.30 2.90 -14.45 0 -26.90 -0.20 -27.65 -0.45z'/%3E%3Cpath d='M678.25 303.80 c-3 -1.40 -4.35 -2.80 -5.70 -5.80 -1 -2.15 -1.05 -3.15 -1.05 -29.05 l0 -26.75 1.30 -2.60 c1.50 -3.05 4 -5.25 7.15 -6.35 2.50 -0.85 18.95 -0.95 51.30 -0.30 14.20 0.30 17.85 0.50 19.25 1.15 1.85 0.80 62.40 61.15 64.15 63.95 1.25 1.90 0.85 4.80 -0.75 6.05 -1.10 0.85 -5.05 0.90 -67.15 0.90 l-66 0 -2.50 -1.20z'/%3E%3Cpath d='M846.45 303.80 c-2.90 -0.75 -3.25 -1.05 -11.70 -9.80 -3.85 -3.95 -11.80 -12.05 -17.70 -18 -5.85 -5.90 -16.40 -16.55 -23.40 -23.60 l-12.80 -12.90 0.25 -2.55 c0.30 -3.05 1.50 -4.25 4.65 -4.70 1.10 -0.15 47.90 -0.25 104 -0.15 l102 0.15 2.10 1.10 c1.10 0.60 2.75 1.95 3.60 3 3.05 3.70 3.05 3.80 3.05 31.90 0 22.50 -0.10 25.85 -0.85 28.05 -1.10 3.35 -2.80 5.40 -5.30 6.60 -2.05 0.95 -3.90 1 -73.85 1.25 -56.10 0.20 -72.25 0.15 -74.05 -0.35z'/%3E%3Cpath d='M1042.95 296.25 c-0.75 -0.40 -1.60 -1.45 -1.90 -2.30 -0.40 -1.15 -0.55 -40.65 -0.55 -141.90 0.05 -115.90 0.15 -140.65 0.70 -142.20 1.05 -2.90 3.10 -5.25 5.95 -6.70 l2.60 -1.35 112.15 -0.20 c116.75 -0.20 123.85 -0.10 133.85 1.90 5.95 1.20 7.45 2.10 7.65 4.70 0.15 1.70 -0.10 2.05 -2.70 4.45 -1.60 1.45 -6.60 6.10 -11.15 10.35 -4.60 4.25 -14.50 13.55 -22.05 20.60 -7.55 7.05 -16.40 15.30 -19.60 18.35 -5.05 4.75 -6.25 5.60 -8.50 6.25 -2.20 0.60 -10.15 0.75 -44.90 1 -23.25 0.20 -50.05 0.30 -59.55 0.35 -9.50 0 -17.75 0.15 -18.35 0.30 l-1.10 0.25 0 79.40 0 79.35 -1.50 3 c-0.85 1.75 -2.55 4 -3.90 5.20 -1.30 1.15 -9.65 9.20 -18.60 17.90 -30.65 29.80 -42.50 40.90 -44.25 41.55 -1.75 0.65 -2.75 0.60 -4.30 -0.25z'/%3E%3Cpath d='M679.50 186.70 c-0.95 -0.40 -2.40 -1.35 -3.15 -2.10 -2.85 -2.70 -2.85 -2.45 -2.85 -30.45 l0 -25.70 1.25 -2.45 c0.80 -1.60 2.05 -3 3.35 -3.85 l2.10 -1.40 123.75 -0.15 c68.10 -0.05 124.55 0 125.45 0.15 2.10 0.40 5 2.95 6.15 5.50 0.85 1.85 0.95 3.90 0.95 27.75 0 24 -0.10 25.90 -0.95 27.75 -1.20 2.55 -2.80 4.05 -5.50 5 -1.95 0.65 -15.90 0.75 -125.50 0.75 -109.05 -0.05 -123.50 -0.15 -125.05 -0.80z'/%3E%3Cpath d='M4.10 155.25 l-1.10 -1.40 0 -70.60 c0 -79.40 -0.30 -73.60 3.75 -77.15 1.20 -1.05 3.05 -2.20 4.15 -2.50 3 -0.90 52.70 -0.80 55.25 0.10 2.85 1.05 5.10 3 6.30 5.50 1.05 2.30 1.05 2.35 1.05 48.25 0 39.50 -0.10 46.20 -0.75 47.70 -0.60 1.40 -3.10 3.60 -11.85 10.25 -13.30 10.15 -31.45 24.25 -47.10 36.50 -6.20 4.85 -8 5.50 -9.70 3.35z'/%3E%3Cpath d='M141.55 149.95 c-0.65 -0.25 -4.75 -3.55 -9.20 -7.35 -4.40 -3.75 -9.85 -8.40 -12.10 -10.35 -2.25 -1.90 -6.30 -5.30 -9.05 -7.50 -2.70 -2.20 -6 -5.05 -7.30 -6.30 -2.15 -2.05 -2.40 -2.55 -2.40 -4.50 0 -3 1.05 -4.50 6.30 -9.20 2.45 -2.20 7.05 -6.35 10.20 -9.30 3.15 -2.90 9.35 -8.55 13.80 -12.50 4.40 -3.95 11.70 -10.55 16.20 -14.70 4.50 -4.10 10.45 -9.50 13.25 -12 2.80 -2.45 10.25 -9.10 16.55 -14.75 6.30 -5.60 16.75 -14.95 23.20 -20.70 6.45 -5.75 13.05 -11.70 14.65 -13.15 5.55 -5.05 1.75 -4.65 42.90 -4.65 l36.05 0 1.70 1.70 c2.15 2.15 2.25 4.20 0.35 6.25 -0.80 0.80 -4.10 3.90 -7.40 6.85 -7.85 7 -14.70 13.30 -21.15 19.35 -2.85 2.70 -7.55 7 -10.45 9.65 -2.90 2.60 -10.10 9.30 -16.05 14.85 -14.25 13.35 -30.85 28.80 -35.35 32.85 -5.55 5 -37.25 34.65 -48.35 45.15 -11.15 10.60 -12.90 11.70 -16.35 10.30z'/%3E%3Cpath d='M1521.30 69.25 c-2.35 -0.80 -4.55 -2.85 -5.85 -5.35 -0.90 -1.75 -0.95 -3.25 -0.95 -27 0 -25.15 0 -25.20 1.15 -27.40 0.75 -1.55 1.85 -2.70 3.55 -3.75 l2.45 -1.50 90.90 -0.15 c86.05 -0.10 90.90 -0.05 91.90 0.75 0.60 0.50 1.20 1.75 1.40 2.80 0.25 1.80 0.15 2 -2.65 4.75 -1.65 1.60 -15.30 14.90 -30.45 29.65 -23 22.35 -27.85 26.80 -29.55 27.35 -3.20 0.95 -119.20 0.85 -121.90 -0.15z'/%3E%3Cpath d='M1690.70 62.40 c-7.65 -7.60 -7.70 -7.65 -7.70 -9.90 l0 -2.25 9.40 -9.25 c23 -22.70 36.35 -35.15 38.85 -36.30 l2.50 -1.20 38.75 0 c23.60 0 39.45 0.20 40.50 0.50 2.45 0.65 5.45 3.30 6.55 5.70 0.85 1.90 0.95 3.80 0.95 27.05 0 23.10 -0.10 25.15 -0.95 27 -1.15 2.55 -3.95 5.05 -6.40 5.70 -1.30 0.35 -20.50 0.55 -58.35 0.55 l-56.40 0 -7.70 -7.60z'/%3E%3Cpath d='M934 68.70 c-1.10 -0.45 -12.50 -11.50 -30.35 -29.35 -28.50 -28.45 -28.65 -28.60 -28.65 -30.65 0 -1.55 0.30 -2.30 1.30 -3.25 l1.30 -1.20 59 0.15 c56.35 0.15 59.10 0.20 60.85 1.05 2.05 1.10 3.10 2.15 4.25 4.40 0.70 1.40 0.80 4.55 0.80 26.75 0 25.15 0 25.15 -1.15 27.15 -0.60 1.05 -2.05 2.65 -3.20 3.45 -1.95 1.35 -2.65 1.50 -7.75 1.85 -3.10 0.20 -16.65 0.40 -30.15 0.40 -20.95 0 -24.75 -0.10 -26.25 -0.75z'/%3E%3Cpath d='M681.65 68.50 c-3.95 -0.40 -7 -3.20 -8.15 -7.55 -0.35 -1.25 -0.50 -10.30 -0.40 -25.30 l0.15 -23.40 1.25 -2.25 c0.70 -1.20 2.25 -2.90 3.40 -3.75 l2.20 -1.50 81.05 -0.15 c60.55 -0.10 81.80 0 83.80 0.45 3.30 0.70 1.70 -0.80 36.20 33.10 24 23.60 24.85 24.50 24.85 26.30 0 1.30 -0.35 2.20 -1.15 2.95 l-1.15 1.10 -109.75 0.10 c-60.30 0.10 -110.85 0.05 -112.30 -0.10z'/%3E%3C/g%3E%3C/svg%3E");
+  /* Brickwork: tile 210×86 (wordmark 170×29 + gaps), 2 capas offset (105,43) */
+  background-image: var(--tile), var(--tile);
+  background-size: 179px 86px, 179px 86px;
+  background-position: 0 0, 90px 43px;
+  background-repeat: repeat, repeat;
+  opacity: .06;
+}
+.cta-content { position: relative; z-index: 1; }
+.cta-inner {
+  max-width: 600px; margin-inline: auto;
+}
+.cta-title {
+  font-size: clamp(2.4rem, 6vw, 4.5rem);
+  letter-spacing: -0.045em; line-height: .9;
+  margin-bottom: 18px;
+}
+.cta-sub {
+  color: var(--fg-2); margin-bottom: 36px;
+  font-size: 1rem; line-height: 1.7;
+  max-width: 440px; margin-inline: auto; margin-bottom: 36px;
+}
+.dl-btn {
+  display: inline-flex; align-items: center; gap: 11px;
+  background: var(--fg); color: var(--bg);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1rem; font-weight: 800;
+  padding: 16px 36px; border-radius: var(--r);
+  text-decoration: none; letter-spacing: -0.01em;
+  transition: opacity .15s;
+}
+.dl-btn:hover { opacity: .87; }
+.dl-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+.dl-meta {
+  margin-top: 20px;
+  font-size: .76rem; color: var(--fg-3);
+  display: flex; justify-content: center; align-items: center;
+  gap: 20px; flex-wrap: wrap;
+}
+.dl-meta span { display: flex; align-items: center; gap: 5px; }
+
+/* ── FOOTER ───────────────────────────────────────────────── */
+footer {
+  border-top: 1px solid var(--border); padding-block: 22px;
+}
+.footer-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px;
+  max-width: 1080px; margin-inline: auto;
+  padding-inline: clamp(16px, 4vw, 56px);
+}
+.footer-logo svg { height: 18px; width: auto; display: block; }
+.footer-r { font-size: .76rem; color: var(--fg-3); display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+
+/* ── RESPONSIVE ───────────────────────────────────────────── */
+@media (max-width: 760px) {
+  .pillars { grid-template-columns: 1fr; }
+  .why-grid { grid-template-columns: 1fr; }
+  .sim-grid { grid-template-columns: 1fr; }
+  .sim-arrow { display: none; }
+  .priv-grid { grid-template-columns: 1fr; }
+  .priv-cell { border-right: none; border-bottom: 1px solid var(--border); }
+  .priv-cell:last-child { border-bottom: none; }
+  .nav-right .nav-link { display: none; }
+  .h-stat { border-right: none; padding-right: 0; margin-right: 16px; }
+}
+</style>
+
+<!-- SVG wordmark reutilizable (KREDIT_COMP inline) -->
+<template id="kredit-wordmark">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1824 309" fill="white" aria-label="KREDIT">
+    <path d="M339.20 305.30 c-2.70 -1.25 -4.70 -3.45 -5.65 -6.25 -0.40 -1.25 -0.55 -23.20 -0.55 -81.55 l0 -79.85 1.05 -0.95 c1.05 -0.95 3.50 -0.95 103.65 -1 101.90 -0.05 102.55 -0.05 105.70 -1.10 4.45 -1.45 7.05 -3.10 10.20 -6.55 3.30 -3.50 5.60 -8.55 6.45 -14.10 0.35 -2.35 0.50 -7 0.30 -12.95 -0.25 -8.20 -0.40 -9.65 -1.50 -12.70 -2.25 -6.20 -5.95 -10.35 -11.85 -13.30 -5.10 -2.60 -0.20 -2.50 -106.25 -2.50 -95.35 0 -99.05 -0.05 -101 -0.95 -2.65 -1.25 -5.05 -3.80 -6 -6.50 -1.15 -3.25 -1.15 -51.15 0.05 -53.95 0.95 -2.40 2.95 -4.40 5.45 -5.70 1.95 -1.05 2.35 -1.05 111.50 -1.25 76.90 -0.15 111 -0.05 114.60 0.35 10.55 1.10 20 3.70 27.70 7.65 6.45 3.25 9.75 5.45 14.10 9.30 12.55 11.20 19.75 24.70 22.60 42.40 0.60 3.75 0.75 10.70 0.75 36.80 0 32.75 -0.15 36.40 -2.05 45.45 -1.35 6.50 -2.35 9.30 -5.75 15.95 -3.75 7.30 -7.70 12.50 -13.35 17.55 -8.40 7.40 -15.50 11.45 -25.95 14.60 -12.10 3.65 -7.65 3.50 -95 3.65 l-78.40 0.20 0 49.40 c0 54.05 0.10 52.05 -2.90 55.20 -0.75 0.80 -2.25 1.95 -3.35 2.50 -2 1.10 -2.35 1.10 -32 1.25 l-30 0.10 -2.55 -1.20z"/>
+    <path d="M540.65 306 c-2.10 -0.50 -3.65 -1.50 -7.40 -4.95 -1.70 -1.55 -5.95 -5.40 -9.50 -8.55 -11.75 -10.50 -43.25 -39.10 -48.50 -44 -1.90 -1.85 -5.30 -4.85 -7.50 -6.80 -2.20 -1.90 -7.50 -6.60 -11.75 -10.45 -4.25 -3.85 -9.50 -8.55 -11.60 -10.40 -3.75 -3.30 -3.90 -3.50 -3.90 -5.65 0 -1.80 0.20 -2.30 1.35 -3.05 1.25 -0.85 3.95 -0.90 41.90 -0.90 36.70 0 40.65 0.10 42 0.80 1.50 0.85 5.15 3.95 20.25 17.45 4.50 4 9.20 8.15 10.50 9.25 2.85 2.45 18.55 16.25 30.45 26.80 4.85 4.25 11.40 10 14.55 12.75 17.75 15.25 23.90 20.75 24.20 21.45 0.85 2.30 -0.45 4.60 -3.55 6.20 -1.25 0.65 -78.80 0.70 -81.50 0.05z"/>
+    <path d="M10.55 305.30 c-2.90 -1.05 -5.40 -3.55 -6.50 -6.55 -1.05 -2.75 -1.05 -3.40 -1.05 -54.75 0 -35.40 0.15 -52.40 0.55 -53.35 0.25 -0.75 1.25 -2.15 2.10 -3.10 1.45 -1.50 12.80 -11.20 22.60 -19.30 2 -1.65 6.95 -5.80 11.05 -9.20 27.90 -23.35 35.15 -29.25 37.35 -30.40 2.75 -1.50 7.85 -1.60 10.15 -0.20 0.85 0.50 5.35 4.05 9.95 7.90 4.65 3.80 11.05 9.05 14.25 11.65 3.20 2.60 7.80 6.45 10.30 8.60 2.45 2.10 6.15 5.20 8.20 6.90 2.05 1.65 6.55 5.40 10 8.25 3.45 2.85 9.75 8.10 14 11.60 11.75 9.75 46.50 38.85 59.20 49.65 2.45 2.05 6.05 5.10 8.05 6.75 3.60 3 14.45 12.35 23 19.75 2.50 2.15 8.35 7.20 13 11.25 35.55 30.60 32.25 27.60 32.25 29.70 0 2.40 -1.65 4.20 -4.65 5 -1.55 0.45 -11.55 0.55 -37.60 0.45 -40.85 -0.15 -36.60 0.35 -43 -5.50 -4.55 -4.15 -16.45 -14.60 -30.95 -27.10 -6.35 -5.45 -13.35 -11.55 -15.55 -13.50 -2.20 -2 -8.95 -7.85 -15 -13.05 -6.05 -5.20 -13.35 -11.50 -16.20 -14 -2.85 -2.45 -8.05 -6.95 -11.55 -10 -3.50 -3 -11.80 -10.20 -18.50 -16 -17.75 -15.40 -20.65 -17.75 -21.60 -17.75 -0.85 0 -0.90 2.80 -1 54.95 l-0.15 54.95 -1.50 2.15 c-0.95 1.35 -2.50 2.70 -4.20 3.55 l-2.65 1.40 -26.35 -0.05 c-19.30 0 -26.75 -0.20 -28 -0.65z"/>
+    <path d="M1068.35 304.95 c-1 -0.75 -1.35 -1.45 -1.35 -2.80 0 -1.55 0.50 -2.30 3.90 -5.65 11.25 -11.25 61.55 -59.90 62.85 -60.80 3.25 -2.20 2.70 -2.20 65.60 -2.20 58.15 0 60.10 -0.05 63.85 -1 5.15 -1.30 8.30 -3.10 12.40 -6.95 4.05 -3.80 7.10 -9.40 7.85 -14.45 0.30 -1.95 0.40 -24.45 0.25 -59.50 -0.25 -61.55 -0.10 -58.50 -3.20 -64.55 -2.85 -5.65 -7.80 -9.90 -14.35 -12.35 -3.80 -1.40 -4.65 -2.20 -4.65 -4.35 0 -1.65 0.80 -2.50 10.50 -11.30 6.70 -6.05 30.75 -28.50 40.25 -37.50 3.55 -3.40 7.25 -6.50 8.15 -6.90 1.55 -0.65 1.90 -0.60 4.45 0.55 6.25 2.90 16.85 12.80 22.45 21.05 5.70 8.35 9.25 16.55 12.05 27.60 l1.40 5.40 0 83.75 c0 89.70 0.05 86.90 -2.55 96.75 -1.45 5.65 -4.65 13.55 -7.15 17.75 -2.95 4.95 -9.10 12.90 -12.65 16.35 -7.30 7.10 -21.10 15.25 -31.40 18.55 -11.25 3.60 -1.25 3.30 -125.55 3.50 l-111.80 0.10 -1.30 -1.05z"/>
+    <path d="M1412.60 305.05 c-3.20 -1.10 -5.35 -3.05 -6.80 -6.05 l-1.05 -2.25 -0.15 -141 c-0.10 -105.30 0 -141.70 0.40 -143.70 0.45 -2 1.15 -3.25 2.70 -4.95 3.90 -4.25 2.60 -4.10 34.30 -4.10 26.25 0 28.05 0.05 30.10 0.95 2.60 1.15 5.05 3.60 6.10 6.15 0.70 1.65 0.80 16.65 0.80 143.30 0 158.65 0.35 144.80 -3.75 148.85 -3.75 3.75 -3.65 3.75 -33.70 3.75 -24.15 -0.05 -26.50 -0.10 -28.95 -0.95z"/>
+    <path d="M1632.40 305.50 c-4.05 -1.20 -6.95 -4 -8.30 -7.95 -0.45 -1.25 -0.60 -25.05 -0.60 -94.95 0 -87.45 0.05 -93.45 0.90 -96.05 1 -3.25 0.15 -2.35 18.35 -19.60 15.80 -15 22.50 -21.05 23.65 -21.55 0.45 -0.20 2.30 -0.35 4.10 -0.35 l3.20 -0.05 11.65 11.60 c8.85 8.85 11.80 12.05 12.15 13.40 0.30 1.10 0.50 39.15 0.50 104.05 l0 102.25 -1.30 2.65 c-0.80 1.60 -2.15 3.20 -3.35 4.10 -4 2.90 -4.50 2.95 -33.30 2.90 -14.45 0 -26.90 -0.20 -27.65 -0.45z"/>
+    <path d="M678.25 303.80 c-3 -1.40 -4.35 -2.80 -5.70 -5.80 -1 -2.15 -1.05 -3.15 -1.05 -29.05 l0 -26.75 1.30 -2.60 c1.50 -3.05 4 -5.25 7.15 -6.35 2.50 -0.85 18.95 -0.95 51.30 -0.30 14.20 0.30 17.85 0.50 19.25 1.15 1.85 0.80 62.40 61.15 64.15 63.95 1.25 1.90 0.85 4.80 -0.75 6.05 -1.10 0.85 -5.05 0.90 -67.15 0.90 l-66 0 -2.50 -1.20z"/>
+    <path d="M846.45 303.80 c-2.90 -0.75 -3.25 -1.05 -11.70 -9.80 -3.85 -3.95 -11.80 -12.05 -17.70 -18 -5.85 -5.90 -16.40 -16.55 -23.40 -23.60 l-12.80 -12.90 0.25 -2.55 c0.30 -3.05 1.50 -4.25 4.65 -4.70 1.10 -0.15 47.90 -0.25 104 -0.15 l102 0.15 2.10 1.10 c1.10 0.60 2.75 1.95 3.60 3 3.05 3.70 3.05 3.80 3.05 31.90 0 22.50 -0.10 25.85 -0.85 28.05 -1.10 3.35 -2.80 5.40 -5.30 6.60 -2.05 0.95 -3.90 1 -73.85 1.25 -56.10 0.20 -72.25 0.15 -74.05 -0.35z"/>
+    <path d="M1042.95 296.25 c-0.75 -0.40 -1.60 -1.45 -1.90 -2.30 -0.40 -1.15 -0.55 -40.65 -0.55 -141.90 0.05 -115.90 0.15 -140.65 0.70 -142.20 1.05 -2.90 3.10 -5.25 5.95 -6.70 l2.60 -1.35 112.15 -0.20 c116.75 -0.20 123.85 -0.10 133.85 1.90 5.95 1.20 7.45 2.10 7.65 4.70 0.15 1.70 -0.10 2.05 -2.70 4.45 -1.60 1.45 -6.60 6.10 -11.15 10.35 -4.60 4.25 -14.50 13.55 -22.05 20.60 -7.55 7.05 -16.40 15.30 -19.60 18.35 -5.05 4.75 -6.25 5.60 -8.50 6.25 -2.20 0.60 -10.15 0.75 -44.90 1 -23.25 0.20 -50.05 0.30 -59.55 0.35 -9.50 0 -17.75 0.15 -18.35 0.30 l-1.10 0.25 0 79.40 0 79.35 -1.50 3 c-0.85 1.75 -2.55 4 -3.90 5.20 -1.30 1.15 -9.65 9.20 -18.60 17.90 -30.65 29.80 -42.50 40.90 -44.25 41.55 -1.75 0.65 -2.75 0.60 -4.30 -0.25z"/>
+    <path d="M679.50 186.70 c-0.95 -0.40 -2.40 -1.35 -3.15 -2.10 -2.85 -2.70 -2.85 -2.45 -2.85 -30.45 l0 -25.70 1.25 -2.45 c0.80 -1.60 2.05 -3 3.35 -3.85 l2.10 -1.40 123.75 -0.15 c68.10 -0.05 124.55 0 125.45 0.15 2.10 0.40 5 2.95 6.15 5.50 0.85 1.85 0.95 3.90 0.95 27.75 0 24 -0.10 25.90 -0.95 27.75 -1.20 2.55 -2.80 4.05 -5.50 5 -1.95 0.65 -15.90 0.75 -125.50 0.75 -109.05 -0.05 -123.50 -0.15 -125.05 -0.80z"/>
+    <path d="M4.10 155.25 l-1.10 -1.40 0 -70.60 c0 -79.40 -0.30 -73.60 3.75 -77.15 1.20 -1.05 3.05 -2.20 4.15 -2.50 3 -0.90 52.70 -0.80 55.25 0.10 2.85 1.05 5.10 3 6.30 5.50 1.05 2.30 1.05 2.35 1.05 48.25 0 39.50 -0.10 46.20 -0.75 47.70 -0.60 1.40 -3.10 3.60 -11.85 10.25 -13.30 10.15 -31.45 24.25 -47.10 36.50 -6.20 4.85 -8 5.50 -9.70 3.35z"/>
+    <path d="M141.55 149.95 c-0.65 -0.25 -4.75 -3.55 -9.20 -7.35 -4.40 -3.75 -9.85 -8.40 -12.10 -10.35 -2.25 -1.90 -6.30 -5.30 -9.05 -7.50 -2.70 -2.20 -6 -5.05 -7.30 -6.30 -2.15 -2.05 -2.40 -2.55 -2.40 -4.50 0 -3 1.05 -4.50 6.30 -9.20 2.45 -2.20 7.05 -6.35 10.20 -9.30 3.15 -2.90 9.35 -8.55 13.80 -12.50 4.40 -3.95 11.70 -10.55 16.20 -14.70 4.50 -4.10 10.45 -9.50 13.25 -12 2.80 -2.45 10.25 -9.10 16.55 -14.75 6.30 -5.60 16.75 -14.95 23.20 -20.70 6.45 -5.75 13.05 -11.70 14.65 -13.15 5.55 -5.05 1.75 -4.65 42.90 -4.65 l36.05 0 1.70 1.70 c2.15 2.15 2.25 4.20 0.35 6.25 -0.80 0.80 -4.10 3.90 -7.40 6.85 -7.85 7 -14.70 13.30 -21.15 19.35 -2.85 2.70 -7.55 7 -10.45 9.65 -2.90 2.60 -10.10 9.30 -16.05 14.85 -14.25 13.35 -30.85 28.80 -35.35 32.85 -5.55 5 -37.25 34.65 -48.35 45.15 -11.15 10.60 -12.90 11.70 -16.35 10.30z"/>
+    <path d="M1521.30 69.25 c-2.35 -0.80 -4.55 -2.85 -5.85 -5.35 -0.90 -1.75 -0.95 -3.25 -0.95 -27 0 -25.15 0 -25.20 1.15 -27.40 0.75 -1.55 1.85 -2.70 3.55 -3.75 l2.45 -1.50 90.90 -0.15 c86.05 -0.10 90.90 -0.05 91.90 0.75 0.60 0.50 1.20 1.75 1.40 2.80 0.25 1.80 0.15 2 -2.65 4.75 -1.65 1.60 -15.30 14.90 -30.45 29.65 -23 22.35 -27.85 26.80 -29.55 27.35 -3.20 0.95 -119.20 0.85 -121.90 -0.15z"/>
+    <path d="M1690.70 62.40 c-7.65 -7.60 -7.70 -7.65 -7.70 -9.90 l0 -2.25 9.40 -9.25 c23 -22.70 36.35 -35.15 38.85 -36.30 l2.50 -1.20 38.75 0 c23.60 0 39.45 0.20 40.50 0.50 2.45 0.65 5.45 3.30 6.55 5.70 0.85 1.90 0.95 3.80 0.95 27.05 0 23.10 -0.10 25.15 -0.95 27 -1.15 2.55 -3.95 5.05 -6.40 5.70 -1.30 0.35 -20.50 0.55 -58.35 0.55 l-56.40 0 -7.70 -7.60z"/>
+    <path d="M934 68.70 c-1.10 -0.45 -12.50 -11.50 -30.35 -29.35 -28.50 -28.45 -28.65 -28.60 -28.65 -30.65 0 -1.55 0.30 -2.30 1.30 -3.25 l1.30 -1.20 59 0.15 c56.35 0.15 59.10 0.20 60.85 1.05 2.05 1.10 3.10 2.15 4.25 4.40 0.70 1.40 0.80 4.55 0.80 26.75 0 25.15 0 25.15 -1.15 27.15 -0.60 1.05 -2.05 2.65 -3.20 3.45 -1.95 1.35 -2.65 1.50 -7.75 1.85 -3.10 0.20 -16.65 0.40 -30.15 0.40 -20.95 0 -24.75 -0.10 -26.25 -0.75z"/>
+    <path d="M681.65 68.50 c-3.95 -0.40 -7 -3.20 -8.15 -7.55 -0.35 -1.25 -0.50 -10.30 -0.40 -25.30 l0.15 -23.40 1.25 -2.25 c0.70 -1.20 2.25 -2.90 3.40 -3.75 l2.20 -1.50 81.05 -0.15 c60.55 -0.10 81.80 0 83.80 0.45 3.30 0.70 1.70 -0.80 36.20 33.10 24 23.60 24.85 24.50 24.85 26.30 0 1.30 -0.35 2.20 -1.15 2.95 l-1.15 1.10 -109.75 0.10 c-60.30 0.10 -110.85 0.05 -112.30 -0.10z"/>
+  </svg>
+</template>
+
+
+<!-- ═══ NAV ════════════════════════════════════════════════ -->
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="nav-logo" aria-label="Kredit"><span class="wordmark-slot"></span></a>
+    <div class="nav-right">
+      <a href="#creditos" class="nav-link">Créditos</a>
+      <a href="#por-que" class="nav-link">Por qué Kredit</a>
+      <a href="#simulador" class="nav-link">Simulador</a>
+      <a href="#privacidad" class="nav-link">Privacidad</a>
+      <a href="#descarga" class="btn-pill">Descargar</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══ HERO ═══════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-text">
+      <h1>Tu deuda,<br>bajo control.</h1>
+      <p class="hero-sub">En Colombia la deuda viene de muchos frentes: la tarjeta del banco, el cupo de la tienda, el crédito del fintech. Kredit los reúne en un solo lugar, funciona sin internet y no le pide nada a nadie.</p>
+      <div class="hero-actions">
+        <a href="#descarga" class="btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Descargar gratis
+        </a>
+        <a href="#creditos" class="btn-ghost">Cómo funciona <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></a>
+      </div>
+      <div class="hero-stats">
+        <div class="h-stat"><div class="h-stat-num">2</div><div class="h-stat-label">tipos de crédito soportados</div></div>
+        <div class="h-stat"><div class="h-stat-num">0 COP</div><div class="h-stat-label">costo permanente</div></div>
+        <div class="h-stat"><div class="h-stat-num">100%</div><div class="h-stat-label">offline · sin registro</div></div>
+      </div>
+      <div class="hero-manual-badge">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Gestión 100% manual — tú ingresas tus datos, nadie más los toca
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ MARQUEE ════════════════════════════════════════════ -->
+<div class="marquee-wrap">
+  <div class="marquee-label">Trabaja con tus entidades habituales</div>
+  <div class="marquee-track">
+    <div class="marquee-inner">
+      <span class="m-item">BANCOLOMBIA</span><span class="m-item">· NEQUI</span><span class="m-item">· Nu</span><span class="m-item">· BBVA</span><span class="m-item">· DAVIVIENDA</span><span class="m-item">· DAVIPLATA</span><span class="m-item">· FALABELLA</span><span class="m-item">· TUYA</span><span class="m-item">· ITAÚ</span><span class="m-item">· LULO BANK</span><span class="m-item">· BANCO DE BOGOTÁ</span><span class="m-item">· AV VILLAS</span><span class="m-item">· RAPPI PAY</span><span class="m-item">· ALKOSTO</span><span class="m-item">· ÉXITO</span><span class="m-item">· TOTTO</span><span class="m-item">· LILI PINK</span><span class="m-item">· STUDIO F</span><span class="m-item">· ADDI</span><span class="m-item">· SISTECRÉDITO</span>
+      <span class="m-item">· BANCOLOMBIA</span><span class="m-item">· NEQUI</span><span class="m-item">· Nu</span><span class="m-item">· BBVA</span><span class="m-item">· DAVIVIENDA</span><span class="m-item">· DAVIPLATA</span><span class="m-item">· FALABELLA</span><span class="m-item">· TUYA</span><span class="m-item">· ITAÚ</span><span class="m-item">· LULO BANK</span><span class="m-item">· BANCO DE BOGOTÁ</span><span class="m-item">· AV VILLAS</span><span class="m-item">· RAPPI PAY</span><span class="m-item">· ALKOSTO</span><span class="m-item">· ÉXITO</span><span class="m-item">· TOTTO</span><span class="m-item">· LILI PINK</span><span class="m-item">· STUDIO F</span><span class="m-item">· ADDI</span><span class="m-item">· SISTECRÉDITO</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ LOS 3 PILARES ═════════════════════════════════════ -->
+<section id="creditos">
+  <div class="wrap">
+    <div class="s-eyebrow">Créditos</div>
+    <h2 class="s-title">Toda la deuda colombiana<br>en un solo lugar</h2>
+    <p class="s-sub">Kredit entiende cómo funciona cada tipo de crédito del país y los maneja con su propia lógica, no con fórmulas genéricas.</p>
+    <div class="pillars">
+      <div class="pilar">
+        <div class="pilar-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        </div>
+        <div class="pilar-label">Tipo 01</div>
+        <div class="pilar-name">Tarjeta de crédito</div>
+        <div class="pilar-desc">Crédito revolving con ciclo de facturación: fecha de corte, fecha límite de pago, cupo disponible, cuota mínima e interés mensual. Kredit calcula exactamente cuánto te cuesta cada compra y cuándo pagar para no pagar más de lo necesario.</div>
+        <div class="pilar-examples">Bancolombia · Davivienda · Falabella · Nu · BBVA · Rappi Pay · y más</div>
+      </div>
+      <div class="pilar">
+        <div class="pilar-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        </div>
+        <div class="pilar-label">Tipo 02</div>
+        <div class="pilar-name">Cupo de tienda</div>
+        <div class="pilar-desc">Compras a cuotas en almacenes físicos o apps de financiamiento. Kredit lleva el cronograma completo de cada compra, te dice cuánto queda por pagar en cada fecha y estima la mora si te atrasas.</div>
+        <div class="pilar-examples">Alkosto · Éxito · Totto · Lili Pink · Studio F · Addi · Sistecrédito · y más</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ POR QUÉ KREDIT ════════════════════════════════════ -->
+<section id="por-que" style="border-top:1px solid var(--border); background:var(--bg-2);">
+  <div class="wrap">
+    <div class="s-eyebrow">Por qué Kredit</div>
+    <h2 class="s-title">Lo que ninguna app<br>del banco te da</h2>
+    <p class="s-sub">Los bancos muestran solo su extracto. Kredit ve el panorama completo, sin importar cuántas entidades tengas.</p>
+    <div class="why-grid">
+      <div class="why-cell">
+        <div class="why-num">01</div>
+        <div class="why-name">Visión unificada de tu deuda</div>
+        <div class="why-desc">Suma en tiempo real cuánto debes en total, cuánto vence esta semana y cuánto pagas en intereses cada mes. Sin abrir cinco apps ni hacer cuentas en papel.</div>
+      </div>
+      <div class="why-cell">
+        <div class="why-num">02</div>
+        <div class="why-name">Decisiones antes de gastar</div>
+        <div class="why-desc">Antes de hacer una compra o un abono extra, el simulador te muestra el impacto real: cuánto más vas a pagar, cuántos meses menos vas a tardar, cuánto ahorras.</div>
+      </div>
+      <div class="why-cell">
+        <div class="why-num">03</div>
+        <div class="why-name">Control total, entrada manual</div>
+        <div class="why-desc">Kredit no se conecta a tu banco ni lee tus extractos. Tú ingresas cada crédito y cada movimiento a mano — eso significa cero permisos bancarios, cero riesgo de filtración y cero dependencia de una API que puede fallar.</div>
+      </div>
+      <div class="why-cell">
+        <div class="why-num">04</div>
+        <div class="why-name">Nunca más una mora por olvido</div>
+        <div class="why-desc">Recordatorios locales configurables antes de cada corte y vencimiento. Llegan aunque no tengas datos. Un aviso a tiempo vale más que cualquier calculadora.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ SIMULATOR ═════════════════════════════════════════ -->
+<section class="sim-bg" id="simulador">
+  <div class="wrap">
+    <div class="s-eyebrow">Simulador</div>
+    <h2 class="s-title">Decide con números,<br>no con intuición</h2>
+    <p class="s-sub">Antes de ejecutar un abono extra o una compra nueva, el simulador calcula en tiempo real qué pasa con tu deuda. Así se ve en la práctica:</p>
+    <div class="sim-grid">
+      <div class="sim-panel">
+        <div class="sim-head">Situación actual · solo mínimo</div>
+        <div class="sim-row"><div class="sim-row-l">Deuda total</div><div class="sim-row-v">$ 4.820.000</div></div>
+        <div class="sim-row"><div class="sim-row-l">Pago mínimo mensual</div><div class="sim-row-v">$ 243.000</div></div>
+        <div class="sim-row"><div class="sim-row-l">Interés mensual estimado</div><div class="sim-row-v neg">$ 134.960</div></div>
+        <div class="sim-row"><div class="sim-row-l">Tiempo para quedar libre</div><div class="sim-row-v">52 meses</div></div>
+        <div class="sim-row"><div class="sim-row-l">Total intereses a pagar</div><div class="sim-row-v neg">$ 3.244.800</div></div>
+        <div class="sim-note">Pagando solo el mínimo cada mes</div>
+      </div>
+      <div class="sim-arrow">→</div>
+      <div class="sim-panel">
+        <div class="sim-head">Con abono extra de $ 200.000/mes</div>
+        <div class="sim-row"><div class="sim-row-l">Deuda total</div><div class="sim-row-v">$ 4.820.000</div></div>
+        <div class="sim-row"><div class="sim-row-l">Pago mensual total</div><div class="sim-row-v">$ 443.000</div></div>
+        <div class="sim-row"><div class="sim-row-l">Interés mensual estimado</div><div class="sim-row-v neg">$ 134.960</div></div>
+        <div class="sim-row"><div class="sim-row-l">Tiempo para quedar libre</div><div class="sim-row-v pos">24 meses</div></div>
+        <div class="sim-row"><div class="sim-row-l">Ahorro en intereses</div><div class="sim-row-v pos">+ $ 1.892.400</div></div>
+        <div class="sim-note">28 meses menos · estrategia Avalanche aplicada</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PRIVACIDAD ════════════════════════════════════════ -->
+<section id="privacidad" style="border-top:1px solid var(--border);">
+  <div class="wrap">
+    <div class="s-eyebrow">Privacidad</div>
+    <h2 class="s-title">Tus finanzas no son<br>de nadie más</h2>
+    <p class="s-sub">Kredit no tiene servidores propios. No hay cuenta de usuario. No hay publicidad. Tus datos no salen del teléfono.</p>
+    <div class="priv-grid">
+      <div class="priv-cell">
+        <div class="priv-ico">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.56 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+        </div>
+        <div class="priv-title">Funciona offline</div>
+        <div class="priv-text">No necesita internet. Tus datos viven en tu teléfono, no en la nube de nadie.</div>
+      </div>
+      <div class="priv-cell">
+        <div class="priv-ico">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
+        </div>
+        <div class="priv-title">Sin cuenta ni registro</div>
+        <div class="priv-text">No hay correo, no hay contraseña, no hay perfil. Abre la app y ya es tuya.</div>
+      </div>
+      <div class="priv-cell">
+        <div class="priv-ico">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div class="priv-title">Biometría opcional</div>
+        <div class="priv-text">Bloquea con huella o Face ID. Nadie accede sin tu permiso explícito.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ DOWNLOAD (patrón brickwork KREDIT outline) ════════ -->
+<section class="cta-section" id="descarga">
+  <div class="cta-pattern" aria-hidden="true">
+    <div class="cta-pattern-inner"></div>
+  </div>
+  <div class="wrap cta-content">
+    <div class="cta-inner">
+      <div class="s-eyebrow" style="text-align:center;">Descargar</div>
+      <h2 class="cta-title">Empieza hoy.<br>Es gratis.</h2>
+      <p class="cta-sub">Sin suscripción. Sin publicidad. Sin servidores. Solo tu teléfono y el control de tu deuda.</p>
+      <a href="https://github.com/LuchoPann/Kredit/releases/latest/download/kredit.apk" class="dl-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Descargar Kredit
+      </a>
+      <div class="dl-meta">
+        <span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg> Android 5.0+</span>
+        <span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Versión 1.0.0 · 2026</span>
+        <span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> 0 permisos innecesarios</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ════════════════════════════════════════════ -->
+<footer>
+  <div class="footer-inner">
+    <a href="#" aria-label="Kredit" class="footer-logo"><span class="wordmark-slot"></span></a>
+    <div class="footer-r">
+      <span>Hecho en Colombia</span>
+      <span>Tus datos, tu propiedad</span>
+      <span>v1.0.0 · 2026</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('.wordmark-slot').forEach(el => {
+  const t = document.getElementById('kredit-wordmark');
+  el.appendChild(t.content.cloneNode(true));
+});
+</script>

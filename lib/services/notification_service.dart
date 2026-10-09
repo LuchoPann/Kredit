@@ -55,7 +55,7 @@ class NotificationService {
       // to if the fixed zone lookup ever fails.
     }
 
-    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidInit = AndroidInitializationSettings('@drawable/ic_notification');
     const darwinInit = DarwinInitializationSettings();
     const initSettings = InitializationSettings(
       android: androidInit,
@@ -113,6 +113,7 @@ class NotificationService {
             channelDescription: _channelDescription,
             importance: Importance.high,
             priority: Priority.high,
+            icon: '@drawable/ic_notification',
           ),
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
@@ -135,6 +136,7 @@ class NotificationService {
               channelDescription: _channelDescription,
               importance: Importance.high,
               priority: Priority.high,
+              icon: '@drawable/ic_notification',
             ),
           ),
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
@@ -240,6 +242,27 @@ class NotificationService {
   /// the simplest way to keep scheduled notifications in sync with the
   /// current credit list — call it whenever the credits list, or the
   /// notification settings, change.
+  /// Fires an immediate test notification so the user can verify that
+  /// notifications are working without waiting for a due date.
+  Future<void> showTestNotification() async {
+    await init();
+    await _plugin.show(
+      id: 999999,
+      title: 'Kredit · Prueba',
+      body: '¡Las notificaciones están funcionando correctamente! 🎉',
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _channelId,
+          _channelName,
+          channelDescription: _channelDescription,
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@drawable/ic_notification',
+        ),
+      ),
+    );
+  }
+
   Future<void> rescheduleAll(
     List<Credit> credits,
     int daysBefore, {

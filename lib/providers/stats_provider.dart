@@ -53,11 +53,23 @@ class PayoffEntry {
   final String name;
   final DateTime endDate;
   final int monthsFromNow;
+  final int totalInstallments;
+  final int paidInstallments;
+  final double totalAmount;
+  final double remainingAmount;
+
   const PayoffEntry({
     required this.name,
     required this.endDate,
     required this.monthsFromNow,
+    required this.totalInstallments,
+    required this.paidInstallments,
+    required this.totalAmount,
+    required this.remainingAmount,
   });
+
+  double get paidFraction =>
+      totalInstallments > 0 ? paidInstallments / totalInstallments : 0.0;
 }
 
 /// All derived stats for StatsScreen, computed once per [creditsProvider]
@@ -245,17 +257,25 @@ List<PayoffEntry> _computePayoffProjections(List<Credit> credits) {
 
   for (final credit in credits) {
     if (credit is! LoanCredit) continue;
-    final unpaid = credit.installments.where((i) => !i.paid).toList();
+    final all = credit.installments;
+    if (all.isEmpty) continue;
+    final unpaid = all.where((i) => !i.paid).toList();
     if (unpaid.isEmpty) continue;
     final lastDue = unpaid
         .map((i) => parseDateStr(i.dueDate))
         .reduce((a, b) => a.isAfter(b) ? a : b);
     final months = ((lastDue.difference(today).inDays) / 30).ceil();
+    final totalAmt = all.fold(0.0, (s, i) => s + i.amount);
+    final remainAmt = unpaid.fold(0.0, (s, i) => s + i.amount);
     entries.add(
       PayoffEntry(
         name: credit.name,
         endDate: lastDue,
         monthsFromNow: months < 0 ? 0 : months,
+        totalInstallments: all.length,
+        paidInstallments: all.length - unpaid.length,
+        totalAmount: totalAmt,
+        remainingAmount: remainAmt,
       ),
     );
   }

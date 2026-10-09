@@ -3,14 +3,19 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'domain/export_import.dart';
+import 'providers/commercial_quotas_provider.dart';
+import 'providers/last_backup_provider.dart';
 import 'screens/account/account_screen.dart';
 import 'screens/splash_screen.dart';
+import 'services/backup_service.dart';
 import 'screens/credit_detail/credit_detail_screen.dart';
 import 'screens/credits/add_credit_sheet.dart';
 import 'screens/credits/credits_list_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/stats/stats_screen.dart';
 import 'widgets/kredit_logo.dart';
+import 'widgets/whats_new_sheet.dart';
 import 'providers/app_lock_provider.dart';
 import 'data/models/credit.dart';
 import 'providers/credits_provider.dart';
@@ -159,6 +164,13 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _syncNotifications();
+      // Muestra novedades una vez por versión, después de que la UI esté lista
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (mounted) showWhatsNewIfUpdated(context);
+      });
+      Future.delayed(const Duration(milliseconds: 1200), () {
+        if (mounted) _checkAndRunAutoBackup();
+      });
       // Listeners registered once here instead of inside build() — avoids
       // re-registering on every rebuild (Riverpod still deduplicates but
       // registering in initState is zero-cost on subsequent builds).
@@ -173,14 +185,69 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
         _rescheduleNotifications(credits);
         _syncHomeWidget(credits);
       });
-      ref.listen(notificationSettingsProvider, (_, __) {
+      ref.listen(notificationSettingsProvider, (_, _) {
         final credits = ref.read(creditsProvider).value;
         if (credits == null) return;
         _rescheduleNotifications(credits);
       });
-      ref.listen(widgetPrivacyProvider, (_, __) => _syncHomeWidget());
-      ref.listen(themePreferencesProvider, (_, __) => _syncHomeWidget());
+      ref.listen(widgetPrivacyProvider, (_, _) => _syncHomeWidget());
+      ref.listen(themePreferencesProvider, (_, _) => _syncHomeWidget());
     });
+  }
+
+  Future<void> _checkAndRunAutoBackup() async {
+    final prefs = await SharedPreferences.getInstance();
+    final enabled = prefs.getBool('backup_enabled') ?? false;
+    if (!enabled) return;
+
+    // Leer directamente de SharedPreferences para evitar race condition con
+    // LastBackupNotifier._load() (async): el provider puede valer null aunque
+    // ya exista un backup guardado.
+    final raw = prefs.getString('last_backup_at');
+    final lastBackup = raw != null ? DateTime.tryParse(raw) : null;
+    final now = DateTime.now();
+
+    final frequency = prefs.getString('backup_frequency') ?? 'weekly';
+    final bool isDue;
+    if (lastBackup == null) {
+      isDue = true;
+    } else if (frequency == 'daily') {
+      isDue = now.difference(lastBackup).inHours >= 24;
+    } else if (frequency == 'monthly') {
+      isDue = now.difference(lastBackup).inDays >= 30;
+    } else if (frequency == 'biweekly') {
+      isDue = now.difference(lastBackup).inDays >= 15;
+    } else {
+      // weekly
+      isDue = now.difference(lastBackup).inDays >= 7;
+    }
+    if (!isDue) return;
+
+    try {
+      final credits = ref.read(creditsProvider).value ?? [];
+      final quotas = ref.read(commercialQuotasProvider).value ?? [];
+      final json = exportStateToJson(credits, quotas);
+      final mode = prefs.getString('backup_mode') ?? 'overwrite';
+      final file = await BackupService.saveBackup(json, newFile: mode == 'new_file');
+      if (file != null) {
+        await ref.read(lastBackupProvider.notifier).markBackedUpNow();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Respaldo automático completado')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Auto-backup failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo completar el respaldo automático'),
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _syncNotifications() async {

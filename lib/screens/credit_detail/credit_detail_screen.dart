@@ -19,10 +19,12 @@ import '../../widgets/credit_detail/schedule_tab.dart';
 import '../../widgets/credit_detail/summary_tab.dart';
 import '../../domain/card_calculator.dart';
 import '../../domain/credit_calculator.dart';
+import '../../domain/date_utils.dart';
 import '../../utils/credit_display_utils.dart';
 import '../../widgets/credit_detail/stat_box.dart';
 import '../../widgets/demo_badge.dart';
 import 'edit_credit_sheet.dart';
+import '../../widgets/kredit_bottom_dialogs.dart';
 
 /// Detail screen for a single credit, with 2 tabs mirroring
 /// #view-credit-detail in legacy_pwa/index.html (~L340-489): Resumen (which
@@ -68,25 +70,13 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
   }
 
   Future<void> _confirmDelete(BuildContext context, Credit credit) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Eliminar Crédito'),
-        content: Text(
-          '¿Eliminar "${credit.name}" y todo su historial? Esta acción no se puede deshacer.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
+    final confirmed = await showKreditConfirmSheet(
+      context,
+      title: 'Eliminar crédito',
+      message: '¿Eliminar "${credit.name}" y todo su historial? Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      isDanger: true,
+      icon: Icons.delete_outline,
     );
     if (confirmed != true) return;
     try {
@@ -119,39 +109,60 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
     // never re-evaluates it without local state driving a rebuild).
     showModalBottomSheet(
       context: context,
-      showDragHandle: true,
       isScrollControlled: true,
-      builder: (ctx) {
+      backgroundColor: Colors.transparent,
+      builder: (_) {
         var current = VoucherPattern.fromName(quota.voucherPattern);
-        return StatefulBuilder(
-          builder: (ctx, setModalState) => Padding(
-            padding: EdgeInsets.only(
-              left: KreditSpacing.card,
-              right: KreditSpacing.card,
-              bottom: MediaQuery.of(ctx).viewInsets.bottom + KreditSpacing.card,
-            ),
-            child: SingleChildScrollView(
-              child: VoucherPatternPicker(
-                selected: current,
-                accent: accent,
-                onSelect: (pattern) {
-                  setModalState(() => current = pattern);
-                  ref.read(commercialQuotasProvider.notifier).upsert(
-                    CommercialQuota(
-                      id: quota.id,
-                      brand: quota.brand,
-                      limit: quota.limit,
-                      notes: quota.notes,
-                      voucherPattern: pattern.name,
-                      entityType: quota.entityType,
-                      cutoffDay: quota.cutoffDay,
-                      paymentOffsetDays: quota.paymentOffsetDays,
-                      managementFee: quota.managementFee,
-                      managementFeeFrequency: quota.managementFeeFrequency,
+        return ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: Material(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Container(
+                    width: 36, height: 4,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).extension<KreditColors>()!.borderCard,
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                  );
-                },
-              ),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.only(
+                    left: KreditSpacing.card,
+                    right: KreditSpacing.card,
+                    bottom: MediaQuery.of(context).viewInsets.bottom + KreditSpacing.card,
+                  ),
+                  child: StatefulBuilder(
+                    builder: (ctx, setModalState) => SingleChildScrollView(
+                      child: VoucherPatternPicker(
+                        selected: current,
+                        accent: accent,
+                        onSelect: (pattern) {
+                          setModalState(() => current = pattern);
+                          ref.read(commercialQuotasProvider.notifier).upsert(
+                            CommercialQuota(
+                              id: quota.id,
+                              brand: quota.brand,
+                              limit: quota.limit,
+                              notes: quota.notes,
+                              voucherPattern: pattern.name,
+                              entityType: quota.entityType,
+                              cutoffDay: quota.cutoffDay,
+                              paymentOffsetDays: quota.paymentOffsetDays,
+                              managementFee: quota.managementFee,
+                              managementFeeFrequency: quota.managementFeeFrequency,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -168,9 +179,26 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
 
     showModalBottomSheet(
       context: context,
-      showDragHandle: true,
       isScrollControlled: true,
-      builder: (ctx) => Padding(
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: Material(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Container(
+                  width: 36, height: 4,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).extension<KreditColors>()!.borderCard,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+        Padding(
         padding: EdgeInsets.only(
           left: KreditSpacing.card,
           right: KreditSpacing.card,
@@ -239,6 +267,10 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
                 },
                 child: const Text('Guardar cambios'),
               ),
+            ],
+          ),
+        ),
+        ),
             ],
           ),
         ),
@@ -537,13 +569,13 @@ class _CreditOverviewTiles extends StatelessWidget {
       rightIcon = Icons.checklist_outlined;
     } else {
       final card = credit as CardCredit;
-      final available = getCardAvailableLimit(card);
-      leftLabel = 'Disponible';
-      leftValue = card.creditLimit > 0 ? formatCOP(available) : 'Sin límite';
-      leftIcon = Icons.credit_score_outlined;
-      rightLabel = 'Saldo utilizado';
-      rightValue = formatCOP(card.currentBalance);
-      rightIcon = Icons.account_balance_wallet_outlined;
+      final dates = getCardCycleDates(card);
+      leftLabel = 'Fecha de corte';
+      leftValue = toDateStr(dates.nextCutoff);
+      leftIcon = Icons.event_repeat_outlined;
+      rightLabel = 'Límite de pago';
+      rightValue = toDateStr(dates.dueDate);
+      rightIcon = Icons.event_available_outlined;
     }
 
     return Container(

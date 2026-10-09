@@ -152,26 +152,38 @@ FinancialRecommendation buildPrimaryRecommendation(
 
   final payment = payments.first;
   final days = payment.daysUntilDue(now);
+
   if (days < 0) {
+    final overdueCount = payments.where((p) => p.daysUntilDue(now) < 0).length;
+    final extra = overdueCount > 1
+        ? ' (y ${overdueCount - 1} más vencido${overdueCount > 2 ? 's' : ''})'
+        : '';
     return FinancialRecommendation(
-      title: 'Resolver pago vencido',
-      description: 'Conviene pagar ${payment.credit.name} antes de revisar compromisos futuros.',
+      title: overdueCount > 1 ? 'Pagos vencidos' : 'Resolver pago vencido',
+      description:
+          'Conviene pagar ${payment.credit.name} antes de revisar compromisos futuros$extra.',
       severity: RecommendationSeverity.danger,
       payment: payment,
     );
   }
+
   if (days == 0) {
+    final todayCount = payments.where((p) => p.daysUntilDue(now) == 0).length;
+    final extra = todayCount > 1 ? ' (+${todayCount - 1} más hoy)' : '';
     return FinancialRecommendation(
-      title: 'Pagar hoy',
-      description: '${payment.credit.name} vence hoy. Si ya pagaste, marcalo para limpiar tu agenda.',
+      title: todayCount > 1 ? 'Pagos para hoy' : 'Pagar hoy',
+      description:
+          '${payment.credit.name} vence hoy$extra. Si ya pagaste, márcalo para limpiar tu agenda.',
       severity: RecommendationSeverity.warning,
       payment: payment,
     );
   }
+
   if (days <= 3) {
     return FinancialRecommendation(
       title: 'Preparar pago cercano',
-      description: '${payment.credit.name} esta dentro de la ventana critica de los proximos 3 dias.',
+      description:
+          '${payment.credit.name} está dentro de la ventana crítica de los próximos 3 días.',
       severity: RecommendationSeverity.warning,
       payment: payment,
     );
@@ -179,7 +191,7 @@ FinancialRecommendation buildPrimaryRecommendation(
 
   return FinancialRecommendation(
     title: 'Siguiente compromiso',
-    description: '${payment.credit.name} es el proximo pago en tu calendario.',
+    description: '${payment.credit.name} es el próximo pago en tu calendario.',
     severity: RecommendationSeverity.info,
     payment: payment,
   );

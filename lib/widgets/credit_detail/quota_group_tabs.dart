@@ -9,6 +9,7 @@ import '../../providers/credits_provider.dart';
 import '../../screens/credit_detail/edit_credit_sheet.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/credit_display_utils.dart';
+import '../kredit_bottom_dialogs.dart';
 import 'schedule_tab.dart';
 import 'stat_box.dart';
 import 'summary_tab.dart';
@@ -171,25 +172,13 @@ class QuotaGroupSummaryTab extends ConsumerWidget {
 
   Future<void> _confirmDeletePurchase(
       BuildContext context, WidgetRef ref, LoanCredit purchase) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Eliminar Compra'),
-        content: Text(
-          '¿Eliminar "${purchase.name}" y todo su historial? Esta acción no se puede deshacer.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
+    final confirmed = await showKreditConfirmSheet(
+      context,
+      title: 'Eliminar compra',
+      message: '¿Eliminar "${purchase.name}" y todo su historial? Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      isDanger: true,
+      icon: Icons.delete_outline,
     );
     if (confirmed != true) return;
     try {

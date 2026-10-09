@@ -54,16 +54,17 @@ class SummaryTab extends ConsumerWidget {
       children: [
         WalletCard(credit: credit),
         if (credit is CardCredit) ...[
-          const SizedBox(height: 16),
-          Divider(height: 1, color: kredit.borderCard),
-          const SizedBox(height: 16),
-          _CardCycleSummary(credit: credit as CardCredit),
-          const SizedBox(height: 16),
-          Divider(height: 1, color: kredit.borderCard),
-          const SizedBox(height: 16),
-        ] else
           const SizedBox(height: 12),
-        if (credit is LoanCredit) ...[
+          _CardUtilization(credit: credit as CardCredit),
+          const SizedBox(height: 16),
+          Divider(height: 1, color: kredit.borderCard),
+          const SizedBox(height: 16),
+          _CardCycleSummaryRow(credit: credit as CardCredit),
+          const SizedBox(height: 16),
+          Divider(height: 1, color: kredit.borderCard),
+          const SizedBox(height: 16),
+          _CardQuickActions(credit: credit as CardCredit),
+        ] else ...[
           const SizedBox(height: 12),
           Divider(height: 1, color: kredit.borderCard),
           const SizedBox(height: 20),
@@ -72,17 +73,6 @@ class SummaryTab extends ConsumerWidget {
           Divider(height: 1, color: kredit.borderCard),
           const SizedBox(height: 20),
           _NextInstallmentCard(credit: credit as LoanCredit),
-        ] else ...[
-          const SizedBox(height: 18),
-          Divider(height: 1, color: kredit.borderCard),
-          const SizedBox(height: 20),
-          _CardUtilization(credit: credit as CardCredit),
-          const SizedBox(height: 20),
-          Divider(height: 1, color: kredit.borderCard),
-          const SizedBox(height: 20),
-          _CardCycleInfo(credit: credit as CardCredit),
-          const SizedBox(height: 18),
-          _CardQuickActions(credit: credit as CardCredit),
         ],
         const SizedBox(height: 20),
         Divider(height: 1, color: kredit.borderCard),
@@ -388,8 +378,6 @@ class _CardUtilization extends StatelessWidget {
   }
 }
 
-/// Consumo del ciclo actual + días para fecha límite de pago — datos que
-/// no aparecen en la tarjeta visual y que el usuario necesita de un vistazo.
 const _monthsEs = [
   'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
@@ -398,18 +386,21 @@ const _monthsEs = [
 String _humanDate(DateTime d) =>
     '${d.day} de ${_monthsEs[d.month - 1]} de ${d.year}';
 
-class _CardCycleSummary extends StatelessWidget {
+/// StatBox de próximo vencimiento + rich billing cycle timeline, en columna.
+class _CardCycleSummaryRow extends StatelessWidget {
   final CardCredit credit;
 
-  const _CardCycleSummary({required this.credit});
+  const _CardCycleSummaryRow({required this.credit});
 
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accent = Theme.of(context).colorScheme.primary;
     final dates = getCardCycleDates(credit);
     final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
     final due = dates.dueDate;
-    final daysUntilDue = due.difference(DateTime(today.year, today.month, today.day)).inDays;
+    final daysUntilDue = due.difference(todayDate).inDays;
 
     String dueLabel;
     Color dueColor = kredit.textPrimary;
@@ -426,106 +417,516 @@ class _CardCycleSummary extends StatelessWidget {
       dueLabel = 'En $daysUntilDue días';
     }
 
-    return StatBox(
-      label: 'Próximo vencimiento',
-      value: dueLabel,
-      caption: _humanDate(due),
-      icon: Icons.timer_outlined,
-      valueColor: dueColor,
-    );
-  }
-}
+    final cutoff = dates.nextCutoff;
+    final daysUntilCutoff = cutoff.difference(todayDate).inDays;
+    final cutoffLabel = daysUntilCutoff == 0
+        ? 'Hoy'
+        : daysUntilCutoff == 1
+            ? 'Mañana'
+            : daysUntilCutoff < 0
+                ? 'Pasado'
+                : 'En $daysUntilCutoff días';
+    final cutoffColor = daysUntilCutoff <= 1
+        ? Colors.orange.shade300
+        : kredit.textPrimary;
 
-/// Cutoff/due-date at-a-glance so a cardholder doesn't need to open the
-/// movements list just to know when the next bill closes.
-class _CardCycleInfo extends StatelessWidget {
-  final CardCredit credit;
-
-  const _CardCycleInfo({required this.credit});
-
-  @override
-  Widget build(BuildContext context) {
-    final dates = getCardCycleDates(credit);
-    // `.start`, not `.stretch` — this Row lives inside SummaryTab's
-    // ListView, which gives it an unbounded height; `.stretch` tries to
-    // force children to fill that height, which Flutter can't resolve
-    // against an infinite constraint and throws
-    // "BoxConstraints forces an infinite height".
-    return Row(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: StatBox(
-            label: 'Próxima Fecha de Corte',
-            value: toDateStr(dates.nextCutoff),
-            icon: Icons.event_repeat,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: StatBox(
+                label: 'Próximo vencimiento',
+                value: dueLabel,
+                caption: _humanDate(due),
+                icon: Icons.timer_outlined,
+                valueColor: dueColor,
+              ),
+            ),
+            Container(width: 1, height: 52, color: kredit.borderCard, margin: const EdgeInsets.symmetric(horizontal: 16)),
+            Expanded(
+              child: StatBox(
+                label: 'Próximo corte',
+                value: cutoffLabel,
+                caption: _humanDate(cutoff),
+                icon: Icons.content_cut_rounded,
+                valueColor: cutoffColor,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Divider(color: kredit.borderCard, height: 1),
+        const SizedBox(height: 14),
+        Text(
+          'CICLO DE FACTURACIÓN',
+          style: TextStyle(
+            fontSize: KreditTextSize.body,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.6,
+            color: kredit.textTertiary,
           ),
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: StatBox(
-            label: 'Fecha Límite de Pago',
-            value: toDateStr(dates.dueDate),
-            icon: Icons.event_available,
-          ),
+        const SizedBox(height: 8),
+        _BillingCycleTimeline(
+          cutoffDay: credit.cutoffDay,
+          paymentDueDay: credit.paymentDueDay > 0
+              ? credit.paymentDueDay
+              : (credit.cutoffDay + credit.paymentDueOffsetDays - 1) % 31 + 1,
+          todayDay: today.day,
+          accent: accent,
+          kredit: kredit,
+          isOverdue: daysUntilDue < 0,
         ),
       ],
     );
   }
 }
 
-/// Direct access to the two actions someone reaches for constantly on a
-/// card — registering a charge or a payment — without leaving Resumen.
+/// Rich billing cycle timeline, identical in spirit to the one shown at card
+/// creation — spending period (teal) + payment window (accent) across a
+/// 1-31 day axis, with a dynamic TODAY marker.
+class _BillingCycleTimeline extends StatelessWidget {
+  final int cutoffDay;
+  final int paymentDueDay;
+  final int todayDay;
+  final Color accent;
+  final KreditColors kredit;
+  final bool isOverdue;
+
+  const _BillingCycleTimeline({
+    required this.cutoffDay,
+    required this.paymentDueDay,
+    required this.todayDay,
+    required this.accent,
+    required this.kredit,
+    this.isOverdue = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const spendColor = Color(0xFF4CAF93);
+    final payColor = accent;
+    final wraps = paymentDueDay <= cutoffDay;
+
+    double frac(int day) => (day - 1) / 30.0;
+    final cutFrac = frac(cutoffDay.clamp(1, 31));
+    final dueFrac = frac(paymentDueDay.clamp(1, 31));
+    final todayFrac = frac(todayDay.clamp(1, 31));
+
+    final todayColor = isOverdue ? Colors.red.shade400 : accent;
+
+    return LayoutBuilder(builder: (ctx, box) {
+      final w = box.maxWidth;
+      final cutX = w * cutFrac;
+      final dueX = w * dueFrac;
+      final todayX = (w * todayFrac).clamp(0.0, w);
+
+      const barH = 10.0;
+      const labelH = 14.0;
+      const labelGap = 4.0;
+      const nextH = 5.0;
+      const nextGap = 8.0;
+      const tickH = labelH + labelGap + nextH + nextGap;
+      const dotR = 5.5;
+      const totalH = tickH + barH + 50.0;
+
+      return SizedBox(
+        height: totalH,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // ── "Nuevo extracto →" label above cutoff ──────────────────────
+            Positioned(
+              top: 0,
+              left: (cutX + 4).clamp(0, w - 130),
+              child: Text(
+                'Nuevo extracto →',
+                style: TextStyle(
+                  fontSize: KreditTextSize.caption,
+                  fontWeight: FontWeight.w600,
+                  color: spendColor,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+            // ── Dashed next-cycle bar ───────────────────────────────────────
+            Positioned(
+              top: labelH + labelGap,
+              left: cutX,
+              right: 0,
+              child: Row(
+                children: List.generate(
+                  30,
+                  (i) => Expanded(
+                    child: Container(
+                      height: nextH,
+                      margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                      decoration: BoxDecoration(
+                        color: spendColor.withValues(
+                            alpha: i == 0 ? 0.85 : (0.6 - i * 0.015).clamp(0.1, 1.0)),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            // ── Full background bar ─────────────────────────────────────────
+            Positioned(
+              top: tickH,
+              left: 0,
+              right: 0,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: Container(height: barH, color: kredit.borderCard),
+              ),
+            ),
+            // ── Spending segment (1 → corte) ────────────────────────────────
+            Positioned(
+              top: tickH,
+              left: 0,
+              width: cutX.clamp(0, w),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(6), bottomLeft: Radius.circular(6)),
+                child: Container(height: barH, color: spendColor.withValues(alpha: 0.75)),
+              ),
+            ),
+            // ── Payment segment (corte → límite, no-wrap) ───────────────────
+            if (!wraps && dueX > cutX)
+              Positioned(
+                top: tickH,
+                left: cutX,
+                width: (dueX - cutX).clamp(0, w - cutX),
+                child: Container(height: barH, color: payColor.withValues(alpha: 0.6)),
+              ),
+            // ── Payment wrap: right side (corte → 31) ──────────────────────
+            if (wraps)
+              Positioned(
+                top: tickH,
+                left: cutX,
+                right: 0,
+                child: Container(height: barH, color: payColor.withValues(alpha: 0.6)),
+              ),
+            // ── Payment wrap: left side (1 → límite) ───────────────────────
+            if (wraps && dueX > 0)
+              Positioned(
+                top: tickH,
+                left: 0,
+                width: dueX.clamp(0, w),
+                child: Container(height: barH, color: payColor.withValues(alpha: 0.35)),
+              ),
+
+            // ── Tick + dot: corte ───────────────────────────────────────────
+            Positioned(
+              top: 0,
+              left: cutX - 1,
+              child: Container(width: 2, height: tickH + barH + 4, color: spendColor),
+            ),
+            Positioned(
+              top: tickH - dotR + barH / 2,
+              left: cutX - dotR,
+              child: Container(
+                width: dotR * 2,
+                height: dotR * 2,
+                decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: spendColor,
+                    border: Border.all(color: kredit.bgCard, width: 2)),
+              ),
+            ),
+            // ── Tick + dot: límite ──────────────────────────────────────────
+            Positioned(
+              top: 0,
+              left: dueX - 1,
+              child: Container(width: 2, height: tickH + barH + 4, color: payColor),
+            ),
+            Positioned(
+              top: tickH - dotR + barH / 2,
+              left: dueX - dotR,
+              child: Container(
+                width: dotR * 2,
+                height: dotR * 2,
+                decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: payColor,
+                    border: Border.all(color: kredit.bgCard, width: 2)),
+              ),
+            ),
+
+            // ── TODAY marker ────────────────────────────────────────────────
+            // Small vertical tick + "Hoy" label above
+            Positioned(
+              top: labelH + labelGap + nextH + nextGap - 2,
+              left: todayX - 1,
+              child: Container(
+                width: 2,
+                height: barH + 4,
+                color: todayColor.withValues(alpha: 0.9),
+              ),
+            ),
+            Positioned(
+              top: tickH - dotR + barH / 2,
+              left: todayX - dotR,
+              child: Container(
+                width: dotR * 2,
+                height: dotR * 2,
+                decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: todayColor,
+                    border: Border.all(color: kredit.bgCard, width: 2.5)),
+              ),
+            ),
+            // "Hoy" label — positioned above the tick, nudged to stay in bounds
+            Positioned(
+              top: 0,
+              left: (todayX - 12).clamp(0, w - 28),
+              child: Text(
+                'Hoy',
+                style: TextStyle(
+                  fontSize: KreditTextSize.caption,
+                  fontWeight: FontWeight.w700,
+                  color: todayColor,
+                ),
+              ),
+            ),
+
+            // ── Labels below bar ────────────────────────────────────────────
+            Positioned(
+              top: tickH + barH + 8,
+              left: 0,
+              child: Text('1',
+                  style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary)),
+            ),
+            Positioned(
+              top: tickH + barH + 8,
+              left: (cutX - 26).clamp(0, w - 52),
+              width: 52,
+              child: Text(
+                'Corte\nDía $cutoffDay',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: KreditTextSize.caption,
+                    fontWeight: FontWeight.w600,
+                    color: spendColor,
+                    height: 1.3),
+              ),
+            ),
+            Positioned(
+              top: tickH + barH + 8,
+              left: (dueX - 26).clamp(0, w - 52),
+              width: 52,
+              child: Text(
+                wraps ? 'Límite\n(mes sig.)' : 'Límite\nDía $paymentDueDay',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: KreditTextSize.caption,
+                    fontWeight: FontWeight.w600,
+                    color: payColor,
+                    height: 1.3),
+              ),
+            ),
+            Positioned(
+              top: tickH + barH + 8,
+              right: 0,
+              child: Text('31',
+                  style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary)),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+}
+
+/// Direct access to the actions someone reaches for constantly on a card.
 class _CardQuickActions extends StatelessWidget {
   final CardCredit credit;
 
   const _CardQuickActions({required this.credit});
 
+  void _showPaymentTypeSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: Material(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: _PaymentTypeSheet(credit: credit),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
     final accent = Theme.of(context).colorScheme.primary;
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => CardMovementSheet.show(
-                  context,
-                  creditId: credit.id,
-                  movementType: CardMovementType.charge,
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: kredit.borderCard),
+        color: kredit.bgCard,
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => CardMovementSheet.show(
+                    context,
+                    creditId: credit.id,
+                    movementType: CardMovementType.charge,
+                  ),
+                  icon: const Icon(Icons.shopping_bag_outlined, size: KreditIconSize.small),
+                  label: const Text('Nueva compra'),
                 ),
-                icon: const Icon(Icons.arrow_upward, size: KreditIconSize.small),
-                label: const Text('Cargo/Compra'),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    foregroundColor: legibleForegroundOn(accent),
+                  ),
+                  onPressed: () => _showPaymentTypeSheet(context),
+                  icon: const Icon(Icons.payments_outlined, size: KreditIconSize.small),
+                  label: const Text('Pagar tarjeta'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => CardAdvanceSheet.show(context, credit: credit),
+              icon: const Icon(Icons.attach_money_outlined, size: KreditIconSize.small),
+              label: const Text('Registrar avance'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PaymentTypeSheet extends StatefulWidget {
+  final CardCredit credit;
+
+  const _PaymentTypeSheet({required this.credit});
+
+  @override
+  State<_PaymentTypeSheet> createState() => _PaymentTypeSheetState();
+}
+
+class _PaymentTypeSheetState extends State<_PaymentTypeSheet> {
+  String _selected = 'extracto';
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accent = Theme.of(context).colorScheme.primary;
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: kredit.borderCard,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  foregroundColor: legibleForegroundOn(accent),
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                '¿Cómo quieres pagar?',
+                style: TextStyle(
+                  fontSize: KreditTextSize.heading,
+                  fontWeight: FontWeight.w700,
+                  color: kredit.textPrimary,
                 ),
-                onPressed: () => CardMovementSheet.show(
-                  context,
-                  creditId: credit.id,
-                  movementType: CardMovementType.payment,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: Icon(Icons.receipt_long_outlined,
+                  color: _selected == 'extracto' ? accent : kredit.textSecondary),
+              title: Text(
+                'Pagar extracto',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: kredit.textPrimary,
                 ),
-                icon: const Icon(Icons.arrow_downward, size: KreditIconSize.small),
-                label: const Text('Registrar Pago'),
+              ),
+              subtitle: Text(
+                'Aplica al extracto más antiguo sin pagar primero',
+                style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
+              ),
+              trailing: _selected == 'extracto'
+                  ? Icon(Icons.check_circle, color: accent)
+                  : Icon(Icons.radio_button_unchecked, color: kredit.borderCard),
+              onTap: () => setState(() => _selected = 'extracto'),
+            ),
+            ListTile(
+              leading: Icon(Icons.account_balance_wallet_outlined,
+                  color: _selected == 'deuda' ? accent : kredit.textSecondary),
+              title: Text(
+                'Abono a la deuda',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: kredit.textPrimary,
+                ),
+              ),
+              subtitle: Text(
+                'Reduce tu saldo total directamente',
+                style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
+              ),
+              trailing: _selected == 'deuda'
+                  ? Icon(Icons.check_circle, color: accent)
+                  : Icon(Icons.radio_button_unchecked, color: kredit.borderCard),
+              onTap: () => setState(() => _selected = 'deuda'),
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    foregroundColor: legibleForegroundOn(accent),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    CardMovementSheet.show(
+                      context,
+                      creditId: widget.credit.id,
+                      movementType: CardMovementType.payment,
+                    );
+                  },
+                  child: const Text('Continuar'),
+                ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () => CardAdvanceSheet.show(context, credit: credit),
-            icon: const Icon(Icons.attach_money_outlined, size: KreditIconSize.small),
-            label: const Text('Registrar avance'),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

@@ -13,6 +13,7 @@ import '../loan_abono_sheet.dart';
 import '../../utils/credit_display_utils.dart';
 import '../../utils/currency_input_formatter.dart';
 import 'status_badge.dart';
+import '../kredit_bottom_dialogs.dart';
 
 /// Cronograma de cuotas, grouped by urgency instead of a flat chronological
 /// list — with many installments a plain list becomes a monotonous scroll
@@ -59,7 +60,7 @@ Future<void> _markAllPaid(
 
 class _ScheduleTabState extends ConsumerState<ScheduleTab> {
   bool _paidExpanded = false;
-  bool _abonosExpanded = false;
+  bool _abonosExpanded = true;
 
   @override
   Widget build(BuildContext context) {
@@ -279,29 +280,13 @@ class _AbonoTile extends ConsumerWidget {
   const _AbonoTile({required this.creditId, required this.abono, this.impact});
 
   Future<void> _confirmAndDelete(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Eliminar abono'),
-        content: Text(
-          '¿Eliminar el abono de ${formatCOP(abono.amount)}? Las cuotas que este '
-          'abono adelantó volverán a marcarse como pendientes. Esta acción no se '
-          'puede deshacer.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(ctx).colorScheme.error,
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
+    final confirmed = await showKreditConfirmSheet(
+      context,
+      title: 'Eliminar abono',
+      message: '¿Eliminar el abono de ${formatCOP(abono.amount)}? Las cuotas que este abono adelantó volverán a marcarse como pendientes. Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      isDanger: true,
+      icon: Icons.delete_outline,
     );
     if (confirmed != true || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
@@ -392,13 +377,35 @@ class _AbonoTile extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Text(
-            '-${formatCOP(abono.amount)}',
-            style: TextStyle(
-              fontWeight: FontWeight.w800,
-              fontSize: KreditTextSize.body,
-              color: accent,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (impact != null)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: kredit.success.withValues(alpha: 0.13),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    'Reciente',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: kredit.success,
+                    ),
+                  ),
+                ),
+              Text(
+                '-${formatCOP(abono.amount)}',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: KreditTextSize.body,
+                  color: accent,
+                ),
+              ),
+            ],
           ),
           IconButton(
             icon: Icon(
@@ -652,7 +659,14 @@ class _RegisterPaymentSheet extends ConsumerStatefulWidget {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => _RegisterPaymentSheet(creditId: creditId, inst: inst),
+      backgroundColor: Colors.transparent,
+      builder: (_) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: Material(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: _RegisterPaymentSheet(creditId: creditId, inst: inst),
+        ),
+      ),
     );
   }
 
@@ -721,7 +735,7 @@ class _RegisterPaymentSheetState extends ConsumerState<_RegisterPaymentSheet> {
       padding: EdgeInsets.only(
         left: 20,
         right: 20,
-        top: 12,
+        top: 0,
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
       ),
       child: Form(
@@ -732,9 +746,9 @@ class _RegisterPaymentSheetState extends ConsumerState<_RegisterPaymentSheet> {
           children: [
             Center(
               child: Container(
-                width: 40,
+                width: 36,
                 height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
+                margin: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
                   color: kredit.borderCard,
                   borderRadius: BorderRadius.circular(2),
@@ -808,31 +822,41 @@ class _RegisterPaymentSheetState extends ConsumerState<_RegisterPaymentSheet> {
             ),
             if (_diff.abs() >= 0.5) ...[
               const SizedBox(height: 10),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    size: KreditIconSize.small,
-                    color: kredit.textTertiary,
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      _diff > 0
-                          ? 'Pagaste ${formatCOP(_diff)} menos de lo calculado — ese '
-                                'faltante (estimado) se sumará al capital de la siguiente '
-                                'cuota pendiente.'
-                          : 'Pagaste ${formatCOP(-_diff)} más de lo calculado — ese '
-                                'excedente (estimado) se restará del capital de la '
-                                'siguiente cuota pendiente.',
-                      style: TextStyle(
-                        fontSize: KreditTextSize.body,
-                        color: kredit.textTertiary,
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: kredit.bgCard,
+                  borderRadius: BorderRadius.circular(KreditRadius.tile),
+                  border: Border.all(color: kredit.borderCard),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 14,
+                      color: kredit.textTertiary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _diff > 0
+                            ? 'Pagaste ${formatCOP(_diff)} menos de lo calculado — ese '
+                                  'faltante (estimado) se sumará al capital de la siguiente '
+                                  'cuota pendiente.'
+                            : 'Pagaste ${formatCOP(-_diff)} más de lo calculado — ese '
+                                  'excedente (estimado) se restará del capital de la '
+                                  'siguiente cuota pendiente.',
+                        style: TextStyle(
+                          fontSize: KreditTextSize.caption,
+                          fontStyle: FontStyle.italic,
+                          color: kredit.textTertiary,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
             const SizedBox(height: 20),

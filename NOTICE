@@ -1,0 +1,43 @@
+Kredit
+Copyright 2026 LuchoPann
+
+Este proyecto está licenciado bajo la Apache License 2.0.
+Consulta el archivo LICENSE para los términos completos.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+RESERVA DE MARCA
+
+El nombre "Kredit", el logotipo (wordmark y símbolo), la identidad visual
+y el diseño de interfaz de usuario son marcas y obras protegidas propiedad
+de LuchoPann y NO están incluidos en la licencia Apache 2.0.
+
+Queda prohibido usar el nombre "Kredit", el logotipo o cualquier elemento
+de diseño de la interfaz original en trabajos derivados sin autorización
+escrita expresa del autor.
+
+Los trabajos derivados deben:
+  - Usar un nombre distinto que no genere confusión con "Kredit".
+  - Usar su propio logotipo e identidad visual.
+  - Incluir una atribución visible que indique que el software está
+    basado en el código fuente de Kredit (ej: "Basado en Kredit,
+    de LuchoPann — github.com/LuchoPann/Kredit").
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TRADEMARK NOTICE (English)
+
+The name "Kredit", the logo (wordmark and symbol), the visual identity
+and the user interface design are trademarks and protected works owned
+by LuchoPann and are NOT covered by the Apache 2.0 license.
+
+You may NOT use the name "Kredit", the logo, or any original UI design
+elements in derivative works without express written permission from
+the author.
+
+Derivative works must:
+  - Use a different name that does not cause confusion with "Kredit".
+  - Use their own logo and visual identity.
+  - Include a visible attribution stating the software is based on
+    Kredit's source code (e.g. "Based on Kredit by LuchoPann —
+    github.com/LuchoPann/Kredit").
