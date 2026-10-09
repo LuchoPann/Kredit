@@ -13,7 +13,6 @@ import '../../providers/commercial_quotas_provider.dart';
 import '../../providers/credits_provider.dart';
 import '../../providers/last_backup_provider.dart';
 import '../../services/backup_service.dart';
-import '../backup_restore_sheet.dart';
 import '../kredit_bottom_dialogs.dart';
 import '../../theme/app_theme.dart';
 
@@ -474,16 +473,6 @@ class _DataToolsCardState extends ConsumerState<DataToolsCard> {
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 10),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () => showBackupRestoreSheet(context, ref),
-            icon: const Icon(Icons.restore_outlined),
-            label: const Text('Restaurar desde respaldo'),
-            style: OutlinedButton.styleFrom(minimumSize: const Size(0, 50)),
-          ),
         ),
       ],
     );
