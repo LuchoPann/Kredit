@@ -11,7 +11,6 @@ void showAttackToolsSheet(BuildContext context) {
   showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: Colors.transparent,
     builder: (_) => const _AttackToolsSheet(),
   );
 }
@@ -67,75 +66,69 @@ class _AttackToolsSheet extends StatelessWidget {
       ),
     ];
 
-    return SafeArea(
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(KreditRadius.card),
-          border: Border.all(color: kredit.borderCard),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle
-            Padding(
-              padding: const EdgeInsets.only(top: 12, bottom: 4),
-              child: Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: kredit.textTertiary.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 28,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Handle
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: kredit.textTertiary.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          // Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(KreditRadius.chip),
+                ),
+                child: Icon(Icons.bolt_rounded, color: accent, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Herramientas de ataque',
+                      style: TextStyle(
+                        fontSize: KreditTextSize.heading,
+                        fontWeight: FontWeight.w700,
+                        color: kredit.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      'Estrategias para liquidar tu deuda',
+                      style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary),
+                    ),
+                  ],
                 ),
               ),
-            ),
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-              child: Row(
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(Icons.bolt_rounded, size: KreditIconSize.small, color: accent),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Herramientas de ataque',
-                        style: TextStyle(
-                          fontSize: KreditTextSize.heading,
-                          fontWeight: FontWeight.w700,
-                          color: kredit.textPrimary,
-                        ),
-                      ),
-                      Text(
-                        'Estrategias para liquidar tu deuda',
-                        style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textSecondary),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Divider(height: 1, color: kredit.borderCard),
-            // Tool list
-            for (int i = 0; i < tools.length; i++) ...[
-              _ToolTile(tool: tools[i], kredit: kredit),
-              if (i < tools.length - 1) Divider(height: 1, color: kredit.borderCard),
             ],
-            const SizedBox(height: 8),
+          ),
+          const SizedBox(height: 20),
+          // Tool list
+          for (int i = 0; i < tools.length; i++) ...[
+            _ToolTile(tool: tools[i], kredit: kredit),
+            if (i < tools.length - 1) Divider(height: 1, color: kredit.borderCard),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -168,7 +161,7 @@ class _ToolTile extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
         leading: Container(
           width: 36,
           height: 36,
