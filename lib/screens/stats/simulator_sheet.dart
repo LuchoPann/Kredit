@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/card_movement.dart';
 import '../../data/models/commercial_quota.dart';
 import '../../data/models/credit.dart';
+import '../../domain/card_calculator.dart';
 import '../../domain/date_utils.dart';
 import '../../domain/interest_rate.dart';
 import '../../domain/loan_calculator.dart';
@@ -557,10 +558,7 @@ class _PurchaseTabState extends ConsumerState<_PurchaseTab> {
           target.card.interestRate > 0 ? (target.card.interestRate / 100 / 365) : 0.0;
       final monthlyRate = dailyRate * 30;
       if (monthlyRate > 0) {
-        final r = monthlyRate;
-        final n = quotas;
-        final pmt = (amount * r * math.pow(1 + r, n)) / (math.pow(1 + r, n) - 1);
-        totalInterestCost = (pmt * n) - amount;
+        totalInterestCost = frenchTotalInterest(amount, monthlyRate, quotas);
       }
     }
 

@@ -236,3 +236,20 @@ double getCardRemainingBalance(CardCredit credit) => credit.currentBalance;
 /// Available credit limit (renderCardDetailPanel, app.js ~L1469).
 double getCardAvailableLimit(CardCredit credit) =>
     math.max(0.0, credit.creditLimit - credit.currentBalance);
+
+// ─── French amortization helpers (shared with simulator) ─────────────────────
+
+/// Monthly payment (PMT) under the French amortization formula.
+/// Returns [principal] / [months] when [monthlyRate] is zero.
+double frenchMonthlyPayment(double principal, double monthlyRate, int months) {
+  if (monthlyRate == 0 || months <= 0) {
+    return months > 0 ? principal / months : 0;
+  }
+  final r = monthlyRate;
+  final factor = math.pow(1 + r, months);
+  return principal * r * factor / (factor - 1);
+}
+
+/// Total interest paid over the life of a French-amortized loan.
+double frenchTotalInterest(double principal, double monthlyRate, int months) =>
+    frenchMonthlyPayment(principal, monthlyRate, months) * months - principal;
