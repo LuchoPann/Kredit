@@ -1180,3 +1180,49 @@ class _EntityPickerCard extends StatelessWidget {
     );
   }
 }
+
+/// Widget educativo expandible para el formulario de crédito.
+/// Muestra [text] siempre visible y [detail] en un panel colapsable.
+class _EduHintExpansion extends StatelessWidget {
+  final String text;
+  final String detail;
+  final IconData icon;
+
+  const _EduHintExpansion({
+    required this.text,
+    required this.detail,
+    this.icon = Icons.lightbulb_outline,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accent = Theme.of(context).colorScheme.primary;
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: accent.withValues(alpha: 0.15)),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          leading: Icon(icon, size: KreditIconSize.small, color: accent),
+          title: Text(
+            text,
+            style: TextStyle(fontSize: KreditTextSize.body, color: kredit.textSecondary, height: 1.4),
+          ),
+          tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+          children: [
+            Text(
+              detail,
+              style: TextStyle(fontSize: KreditTextSize.caption, color: kredit.textTertiary, height: 1.5),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

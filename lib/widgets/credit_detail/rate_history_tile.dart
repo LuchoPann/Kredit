@@ -37,6 +37,7 @@ class RateHistoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final kredit = Theme.of(context).extension<KreditColors>()!;
+    final accent = Theme.of(context).colorScheme.primary;
     final rate = credit.interestRate;
     final type = credit.interestRateType;
     final hasRate = rate > 0;
@@ -67,17 +68,17 @@ class RateHistoryTile extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: kredit.accent.withValues(alpha: 0.10),
+                  color: accent.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(KreditRadius.chip),
                   border: Border.all(
-                      color: kredit.accent.withValues(alpha: 0.25)),
+                      color: accent.withValues(alpha: 0.25)),
                 ),
                 child: Text(
                   '${rate.toStringAsFixed(rate % 1 == 0 ? 0 : 2)}% ${_rateLabel(type)} ${_ratePeriod(type)}',
                   style: TextStyle(
                     fontSize: KreditTextSize.body,
                     fontWeight: FontWeight.w700,
-                    color: kredit.accent,
+                    color: accent,
                   ),
                 ),
               ),
