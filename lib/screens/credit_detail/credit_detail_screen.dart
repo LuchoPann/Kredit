@@ -13,6 +13,7 @@ import '../../widgets/card_design_painter.dart';
 import '../../widgets/voucher_pattern.dart';
 import '../../widgets/wallet_card.dart';
 import '../../widgets/credit_detail/movements_tab.dart';
+import '../../widgets/credit_detail/pagos_tab.dart';
 import '../../widgets/credit_detail/quota_group_tabs.dart';
 import '../../widgets/credit_detail/schedule_tab.dart';
 import '../../widgets/credit_detail/summary_tab.dart';
@@ -47,10 +48,17 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
   // pestaña nunca "pierda" cuál compra se estaba revisando.
   String? _expandedPurchaseId;
 
+  int _tabCount() {
+    final credit = ref.read(creditsProvider).value?.where((c) => c.id == widget.creditId).firstOrNull;
+    // Non-grouped LoanCredit gets a third "Pagos" tab.
+    if (credit is LoanCredit && credit.quotaId == null) return 3;
+    return 2;
+  }
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: _tabCount(), vsync: this);
   }
 
   @override
@@ -369,6 +377,7 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
               tabs: [
                 const Tab(text: 'Resumen'),
                 Tab(text: isLoan ? 'Cronograma' : 'Movimientos'),
+                if (isLoan && !isGrouped) const Tab(text: 'Pagos'),
               ],
             ),
           ),
@@ -407,6 +416,8 @@ class _CreditDetailScreenState extends ConsumerState<CreditDetailScreen>
                           ScheduleTab(credit: loan)
                         else
                           MovementsTab(credit: credit as CardCredit),
+                        if (credit case LoanCredit loan when !isGrouped)
+                          PagosTab(credit: loan),
                       ],
                     ),
                   ),

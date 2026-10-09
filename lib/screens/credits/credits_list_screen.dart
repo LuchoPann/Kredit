@@ -5,6 +5,7 @@ import '../../data/db/database.dart' show QuotaHasActivePurchasesException;
 import '../../data/models/credit.dart';
 import '../../domain/bank_detector.dart';
 import '../../domain/credit_calculator.dart';
+import '../../domain/date_utils.dart';
 import '../../domain/urgency_score.dart';
 import '../../data/models/commercial_quota.dart';
 import '../../providers/commercial_quotas_provider.dart';
@@ -856,14 +857,36 @@ class _CreditComparisonStrip extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text(
-                  label.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: KreditTextSize.body,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.5,
-                    color: kredit.textTertiary,
-                  ),
+                child: Row(
+                  children: [
+                    Text(
+                      label.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: KreditTextSize.body,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                        color: kredit.textTertiary,
+                      ),
+                    ),
+                    if (credit is LoanCredit && _cuotasEnMora(credit as LoanCredit) > 0) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.danger,
+                          borderRadius: BorderRadius.circular(KreditRadius.chip),
+                        ),
+                        child: Text(
+                          '${_cuotasEnMora(credit as LoanCredit)} en mora',
+                          style: const TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
               Text(
@@ -930,5 +953,15 @@ Color _stripColor(BuildContext context, Credit credit) {
     if (progress >= 0.65) return kredit.warning;
     return accent;
   }
+  if (credit is LoanCredit && _cuotasEnMora(credit) > 0) {
+    return AppColors.danger;
+  }
   return accent;
+}
+
+int _cuotasEnMora(LoanCredit credit) {
+  final now = DateTime.now();
+  return credit.installments
+      .where((i) => !i.paid && parseDateStr(i.dueDate).isBefore(now))
+      .length;
 }
