@@ -526,6 +526,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       Future.delayed(const Duration(milliseconds: 200), () {
         if (mounted) setState(() {}); // trigger a rebuild to evaluate _dataReady
       });
+      // Safety timeout: if the DB hasn't responded in 5 s, proceed anyway
+      // so the app never stays permanently frozen on the splash.
+      Future.delayed(const Duration(seconds: 5), () {
+        if (mounted && !_dataReady) {
+          _dataReady = true;
+          _tryHide();
+        }
+      });
     });
   }
 
