@@ -11,12 +11,14 @@ class MonthlySnapshot {
   final double totalDebt;
   final double totalPayment;
   final String? attackedCreditName; // nombre del crédito que recibió el extra
+  final int creditsRemaining; // créditos con saldo > 0 al final del mes
 
   const MonthlySnapshot({
     required this.month,
     required this.totalDebt,
     required this.totalPayment,
     this.attackedCreditName,
+    this.creditsRemaining = 0,
   });
 }
 
@@ -183,12 +185,14 @@ AttackPlanResult simulateAttackPlan(
 
     final totalDebt =
         simCredits.fold<double>(0, (s, c) => s + math.max(0, c.balance));
+    final remaining = simCredits.where((c) => c.balance > 0.01).length;
 
     snapshots.add(MonthlySnapshot(
       month: currentMonth,
       totalDebt: totalDebt,
       totalPayment: monthTotal,
       attackedCreditName: attackedName,
+      creditsRemaining: remaining,
     ));
 
     currentMonth = DateTime(currentMonth.year, currentMonth.month + 1);
@@ -289,10 +293,12 @@ StrategyRecommendation recommendStrategy(
   final monthsDiff =
       snowball.months.length - avalanche.months.length; // >0 = avalanche faster
 
-  // 4. First-win speed with snowball: credit with lowest remaining balance
+  // 4. First-win speed with snowball: mes real en que baja el conteo de créditos.
+  // Se extrae directamente de los snapshots de la simulación Snowball — no estimado.
   String? firstCreditName;
   int? firstWinMonths;
   {
+    // El crédito atacado primero por snowball = el de menor balance
     Credit? smallest;
     double smallestBalance = double.infinity;
     for (final c in credits) {
@@ -311,13 +317,14 @@ StrategyRecommendation recommendStrategy(
     }
     if (smallest != null && snowball.months.isNotEmpty) {
       firstCreditName = smallest.name;
-      // Estimate: balance / (monthly minimum + proportional share of extra)
-      final share = credits.length > 0
-          ? extraMonthlyPayment / math.max(1, credits.length)
-          : 0.0;
-      final monthlyAttack = math.max(smallestBalance * 0.1, share + smallestBalance * 0.1);
-      firstWinMonths =
-          (smallestBalance / monthlyAttack).ceil().clamp(1, 24);
+      // Leer la simulación real: primer mes donde creditsRemaining baja
+      final initialCount = snowball.months.first.creditsRemaining + 1;
+      for (int i = 0; i < snowball.months.length; i++) {
+        if (snowball.months[i].creditsRemaining < initialCount) {
+          firstWinMonths = i + 1; // meses 1-indexed
+          break;
+        }
+      }
     }
   }
 
