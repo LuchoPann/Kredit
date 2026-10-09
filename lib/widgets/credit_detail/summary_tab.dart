@@ -150,6 +150,23 @@ class _LoanProgress extends StatelessWidget {
             color: kredit.textTertiary,
           ),
         ),
+        const SizedBox(height: 6),
+        if (credit.interestUnknown)
+          Text(
+            'Cuenta sin intereses registrados',
+            style: TextStyle(
+              fontSize: AppTextSize.body,
+              color: kredit.textTertiary,
+            ),
+          )
+        else
+          Text(
+            '${(credit.interestRate * 100).toStringAsFixed(1)}% ${credit.interestRateType ?? ''}',
+            style: TextStyle(
+              fontSize: AppTextSize.body,
+              color: kredit.textTertiary,
+            ),
+          ),
       ],
     );
   }

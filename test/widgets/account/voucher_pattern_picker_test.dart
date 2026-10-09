@@ -23,10 +23,20 @@ void main() {
           ),
         );
 
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await pump(VoucherPattern.diagonalLines);
     await tester.pumpAndSettle();
 
     for (final pattern in VoucherPattern.values) {
+      await tester.scrollUntilVisible(
+        find.text(pattern.label),
+        100,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text(pattern.label), findsOneWidget);
     }
 

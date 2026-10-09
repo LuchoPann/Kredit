@@ -26,7 +26,7 @@ void main() {
     ));
 
     expect(find.text('Compra tenis'), findsOneWidget);
-    expect(find.byIcon(Icons.wifi), findsNothing);
+    expect(find.bySemanticsLabel('contactless'), findsNothing);
   });
 
   testWidgets('a normal bank loan (no quotaId) keeps the plastic-card look',
@@ -38,6 +38,6 @@ void main() {
     ));
 
     expect(find.text('Compra tenis'), findsOneWidget);
-    expect(find.byIcon(Icons.wifi), findsOneWidget);
+    expect(find.bySemanticsLabel('contactless'), findsOneWidget);
   });
 }

@@ -340,8 +340,10 @@ class _NfcIcon extends StatelessWidget {
   const _NfcIcon({required this.color, this.size = 22});
 
   @override
-  Widget build(BuildContext context) =>
-      CustomPaint(size: Size(size, size), painter: _NfcPainter(color: color));
+  Widget build(BuildContext context) => Semantics(
+        label: 'contactless',
+        child: CustomPaint(size: Size(size, size), painter: _NfcPainter(color: color)),
+      );
 }
 
 class _NfcPainter extends CustomPainter {
