@@ -1,4 +1,4 @@
-package com.luchopan.kredit
+package com.luchopan.krezium
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
