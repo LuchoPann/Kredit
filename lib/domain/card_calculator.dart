@@ -105,6 +105,15 @@ void accrueCardCredit(CardCredit credit, [DateTime? now]) {
   }
 
   final cutoffDay = _clampCutoffDay(credit.cutoffDay);
+
+  // Early-exit guard: compute next cutoff from the last accrual point and
+  // skip everything if it hasn't passed yet — avoids computing dailyRate
+  // and entering the loop on the common "already up-to-date" app launch.
+  final lastCursor = parseDateStr(credit.lastAccrualCutoff!);
+  final earlyNextRef = DateTime(lastCursor.year, lastCursor.month + 1, 1);
+  final earlyNext = cutoffDateForMonth(earlyNextRef.year, earlyNextRef.month, cutoffDay);
+  if (earlyNext.isAfter(todayMidnight)) return;
+
   final dailyRate = dailyRateFrom(credit.interestRate, credit.interestRateType);
 
   var cursorStr = credit.lastAccrualCutoff!;
