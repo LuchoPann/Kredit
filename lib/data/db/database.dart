@@ -563,7 +563,9 @@ class AppDatabase extends _$AppDatabase {
         // constraint (credits.quotaId → commercialQuotas.id) and silently
         // mis-group the credit. Nullifying it lets it render as a standalone
         // credit instead.
-        if (c.quotaId != null && !quotaIds.contains(c.quotaId)) {
+        if (c is CardCredit && c.quotaId != null && !quotaIds.contains(c.quotaId)) {
+          c.quotaId = null;
+        } else if (c is LoanCredit && c.quotaId != null && !quotaIds.contains(c.quotaId)) {
           c.quotaId = null;
         }
         await upsertCredit(c);

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../data/models/credit.dart';
 import '../providers/backup_detector_provider.dart';
 import '../providers/credits_provider.dart';
 import '../services/backup_detector_service.dart';
@@ -81,7 +82,7 @@ class _BackupRestoreSheetState extends ConsumerState<_BackupRestoreSheet> {
           msg.write(', $q cupo${q == 1 ? '' : 's'} de tienda');
         } else {
           // Check if any credit had a quotaId — backup predates cupos feature
-          final hadQuotas = imported.credits.any((c) => c.quotaId != null);
+          final hadQuotas = imported.credits.any((c) => (c is CardCredit && c.quotaId != null) || (c is LoanCredit && c.quotaId != null));
           if (hadQuotas) {
             msg.write('. Los cupos de tienda no estaban en este respaldo — créalos de nuevo');
           }
@@ -90,7 +91,7 @@ class _BackupRestoreSheetState extends ConsumerState<_BackupRestoreSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(msg.toString()),
-            duration: Duration(seconds: q == 0 && imported.credits.any((c) => c.quotaId != null) ? 6 : 3),
+            duration: Duration(seconds: q == 0 && imported.credits.any((c) => (c is CardCredit && c.quotaId != null) || (c is LoanCredit && c.quotaId != null)) ? 6 : 3),
           ),
         );
       }
