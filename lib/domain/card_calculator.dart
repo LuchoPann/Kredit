@@ -44,9 +44,10 @@ CardCycleDates getCardCycleDates(CardCredit credit, [DateTime? refDate]) {
   final cutoffDay = _clampCutoffDay(credit.cutoffDay);
 
   var lastCutoff = cutoffDateForMonth(today.year, today.month, cutoffDay);
-  // Cutoff day opens the new period at 00:00 — so if today IS the cutoff,
-  // the prior cycle already closed and lastCutoff must move to the previous month.
-  if (!lastCutoff.isBefore(today)) {
+  // The cutoff day belongs to the CURRENT cycle until 23:59:59 — the new cycle
+  // starts the following day at 00:00. Move to previous month only when the
+  // cutoff date is strictly after today (i.e. today < cutoffDay this month).
+  if (lastCutoff.isAfter(today)) {
     final prevMonthRef = DateTime(today.year, today.month - 1, 1);
     lastCutoff = cutoffDateForMonth(
         prevMonthRef.year, prevMonthRef.month, cutoffDay);
