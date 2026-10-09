@@ -20,7 +20,7 @@ class _DiagonalPatternState extends State<_DiagonalPattern> {
   }
 
   Future<void> _loadImage() async {
-    final data = await rootBundle.load('assets/icons/KREDIT_OUTLINE.png');
+    final data = await rootBundle.load('assets/icons/KREZIUM_OUTLINE.png');
     final bytes = data.buffer.asUint8List();
     final codec = await ui.instantiateImageCodec(bytes);
     final frame = await codec.getNextFrame();

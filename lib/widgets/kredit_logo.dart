@@ -13,8 +13,8 @@ class KreditLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final asset = isDark
-        ? 'assets/brand/kredit_logo_dark.svg'
-        : 'assets/brand/kredit_logo_light.svg';
+        ? 'assets/brand/krezium_logo_dark.svg'
+        : 'assets/brand/krezium_logo_light.svg';
     return SvgPicture.asset(asset, height: height);
   }
 }
