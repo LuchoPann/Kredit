@@ -6,6 +6,8 @@ part of 'account_screen.dart';
 /// Patrón brickwork diagonal: carga la imagen real y la pinta en tile con
 /// CustomPainter para obtener dimensiones exactas y alineación perfecta.
 class _DiagonalPattern extends StatefulWidget {
+  final Color color;
+  const _DiagonalPattern({required this.color});
   @override
   State<_DiagonalPattern> createState() => _DiagonalPatternState();
 }
@@ -34,7 +36,7 @@ class _DiagonalPatternState extends State<_DiagonalPattern> {
     return Transform.rotate(
       angle: -0.47, // ~27°
       child: CustomPaint(
-        painter: _BrickworkPainter(image),
+        painter: _BrickworkPainter(image, widget.color),
         size: const Size(700, 500),
       ),
     );
@@ -43,7 +45,8 @@ class _DiagonalPatternState extends State<_DiagonalPattern> {
 
 class _BrickworkPainter extends CustomPainter {
   final ui.Image image;
-  _BrickworkPainter(this.image);
+  final Color color;
+  _BrickworkPainter(this.image, this.color);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -56,7 +59,8 @@ class _BrickworkPainter extends CustomPainter {
     final cols = (size.width / stepX).ceil() + 3;
     final rows = (size.height / stepY).ceil() + 3;
 
-    final paint = Paint()..color = Colors.white.withValues(alpha: 0.09);
+    final paint = Paint()
+      ..colorFilter = ColorFilter.mode(color.withValues(alpha: 0.09), BlendMode.srcIn);
     final src = Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
 
     for (var row = -1; row < rows; row++) {
@@ -74,7 +78,7 @@ class _BrickworkPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _BrickworkPainter old) => old.image != image;
+  bool shouldRepaint(covariant _BrickworkPainter old) => old.image != image || old.color != color;
 }
 
 class _ProfileBanner extends ConsumerWidget {
@@ -183,7 +187,7 @@ class _ProfileBanner extends ConsumerWidget {
                 child: OverflowBox(
                   maxWidth: double.infinity,
                   maxHeight: double.infinity,
-                  child: _DiagonalPattern(),
+                  child: _DiagonalPattern(color: kredit.textPrimary),
                 ),
               ),
             ),
