@@ -72,9 +72,9 @@ extension _PeriodoLabel on _Periodo {
 // ─── Screen ────────────────────────────────────────────────────────────────────
 
 class FinanzasEstadisticasScreen extends ConsumerStatefulWidget {
-  final FinanceAccount libroInicial;
+  final FinanceAccount? libroInicial;
 
-  const FinanzasEstadisticasScreen({super.key, required this.libroInicial});
+  const FinanzasEstadisticasScreen({super.key, this.libroInicial});
 
   @override
   ConsumerState<FinanzasEstadisticasScreen> createState() =>
@@ -83,7 +83,7 @@ class FinanzasEstadisticasScreen extends ConsumerStatefulWidget {
 
 class _FinanzasEstadisticasScreenState
     extends ConsumerState<FinanzasEstadisticasScreen> {
-  late FinanceAccount _libroActual;
+  FinanceAccount? _libroActual;
   _Periodo _periodo = _Periodo.esteMes;
   int? _touchedPieIndex;
 
@@ -99,14 +99,22 @@ class _FinanzasEstadisticasScreenState
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (_libroActual == null) {
+      final accounts = ref.read(financeAccountsProvider);
+      final rows = accounts.valueOrNull;
+      if (rows != null && rows.isNotEmpty) {
+        _libroActual = FinanceAccount.fromRow(rows.first);
+      }
+    }
     _reloadTx();
   }
 
   void _reloadTx() {
+    if (_libroActual == null) return;
     final db = ref.read(databaseProvider);
     _allTxFuture = db
         .getFinanceTransactionsByLibro(
-          libroId: _libroActual.id,
+          libroId: _libroActual!.id,
           mes: null,
           tipo: null,
         )
@@ -134,7 +142,7 @@ class _FinanzasEstadisticasScreenState
     return (
       ingresos: ing,
       gastos: gas,
-      balance: _libroActual.saldoInicial + ing - gas,
+      balance: (_libroActual?.saldoInicial ?? 0) + ing - gas,
     );
   }
 
@@ -197,7 +205,24 @@ class _FinanzasEstadisticasScreenState
     final asyncLibros = ref.watch(financeAccountsProvider);
     final asyncCats   = ref.watch(allFinanceCategoriesProvider);
     final colors      = Theme.of(context).extension<AppThemeColors>()!;
-    final libroColor  = _colorFromHex(_libroActual.color);
+
+    // Auto-set libro from provider if still null (first frame after accounts load)
+    if (_libroActual == null) {
+      final rows = asyncLibros.valueOrNull;
+      if (rows != null && rows.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            setState(() {
+              _libroActual = FinanceAccount.fromRow(rows.first);
+              _reloadTx();
+            });
+          }
+        });
+      }
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final libroColor  = _colorFromHex(_libroActual!.color);
 
     return Scaffold(
       appBar: AppBar(
@@ -205,7 +230,7 @@ class _FinanzasEstadisticasScreenState
           data: (rows) {
             final libros = rows.map(FinanceAccount.fromRow).toList();
             return DropdownButton<String>(
-              value: _libroActual.id,
+              value: _libroActual!.id,
               underline: const SizedBox(),
               dropdownColor: colors.bgCard,
               icon: const Icon(Icons.arrow_drop_down),

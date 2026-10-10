@@ -33,7 +33,7 @@ import 'services/home_widget_service.dart';
 import 'services/notification_service.dart';
 import 'theme/app_theme.dart';
 import 'screens/finanzas/finanzas_cuentas_screen.dart';
-import 'screens/finanzas/finanzas_presupuesto_screen.dart';
+import 'screens/finanzas/finanzas_plantillas_screen.dart';
 import 'screens/finanzas/finanzas_estadisticas_screen.dart';
 import 'providers/entorno_provider.dart';
 
@@ -312,7 +312,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
     ];
     final finanzasScreens = const [
       FinanzasCuentasScreen(),
-      FinanzasPresupuestoScreen(),
+      FinanzasPlantillasScreen(),
       FinanzasEstadisticasScreen(),
     ];
     final screens = isCreditos ? creditosScreens : finanzasScreens;
@@ -422,8 +422,8 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
             const NavigationDestination(icon: Icon(Icons.space_dashboard_outlined), selectedIcon: Icon(Icons.space_dashboard), label: 'Inicio'),
             const NavigationDestination(icon: Icon(Icons.credit_card_outlined), selectedIcon: Icon(Icons.credit_card), label: 'Créditos'),
           ] else ...[
-            const NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Transac.'),
-            const NavigationDestination(icon: Icon(Icons.pie_chart_outline_outlined), selectedIcon: Icon(Icons.pie_chart), label: 'Presupuesto'),
+            const NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), selectedIcon: Icon(Icons.account_balance_wallet), label: 'Cuentas'),
+            const NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Plantillas'),
           ],
           NavigationDestination(icon: switchIcon, selectedIcon: switchIcon, label: ''),
           const NavigationDestination(icon: Icon(Icons.bar_chart_outlined), selectedIcon: Icon(Icons.bar_chart), label: 'Estadísticas'),
