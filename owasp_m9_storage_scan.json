@@ -1,0 +1,14 @@
+{
+  "total_files_scanned": 68,
+  "total_findings": 1,
+  "findings": [
+    {
+      "file": "android/app/src/main/AndroidManifest.xml",
+      "line": 0,
+      "issue": "Backup not explicitly configured",
+      "code": "<application>",
+      "severity": "MEDIUM",
+      "recommendation": "Set android:allowBackup=\"false\" or configure android:fullBackupContent"
+    }
+  ]
+}

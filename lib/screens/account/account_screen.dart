@@ -26,6 +26,7 @@ import '../lock/setup_lock_screen.dart';
 import '../../providers/widget_privacy_provider.dart';
 import '../../utils/nav_utils.dart';
 import '../../widgets/kredit_bottom_dialogs.dart';
+import '../../providers/entorno_provider.dart';
 
 part 'account_screen_widgets.dart';
 
@@ -143,6 +144,65 @@ class AccountScreen extends ConsumerWidget {
                             _SheetLabel('TONO DE FONDO', Theme.of(ctx).extension<AppThemeColors>()!),
                             const SizedBox(height: 10),
                             const BgTonePicker(),
+                            const SizedBox(height: 8),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                _Divider(kredit),
+                _SettingsTile(
+                  icon: Icons.view_quilt_outlined,
+                  title: 'Vista',
+                  subtitle: ref.watch(entornoProvider) == Entorno.creditos ? 'Créditos' : 'Finanzas',
+                  onTap: () => _openSheet(
+                    context,
+                    Consumer(
+                      builder: (ctx, ref2, _) {
+                        final current = ref2.watch(entornoProvider);
+                        final accent = Theme.of(ctx).colorScheme.primary;
+                        final kredit2 = Theme.of(ctx).extension<AppThemeColors>()!;
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _SheetHeader(
+                              icon: Icons.view_quilt_outlined,
+                              iconColor: accent,
+                              title: 'Vista predeterminada',
+                              subtitle: 'Elige qué módulo quieres ver al abrir Krezium',
+                            ),
+                            const SizedBox(height: 24),
+                            _SheetLabel('MÓDULO', kredit2),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _ModeOption(
+                                    icon: Icons.credit_card_outlined,
+                                    label: 'Créditos',
+                                    selected: current == Entorno.creditos,
+                                    onTap: () async {
+                                      ref2.read(entornoProvider.notifier).state = Entorno.creditos;
+                                      await savePreferredEntorno(Entorno.creditos);
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: _ModeOption(
+                                    icon: Icons.account_balance_wallet_outlined,
+                                    label: 'Finanzas',
+                                    selected: current == Entorno.finanzas,
+                                    onTap: () async {
+                                      ref2.read(entornoProvider.notifier).state = Entorno.finanzas;
+                                      await savePreferredEntorno(Entorno.finanzas);
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
                             const SizedBox(height: 8),
                           ],
                         );
