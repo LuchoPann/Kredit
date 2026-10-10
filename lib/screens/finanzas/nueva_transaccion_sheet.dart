@@ -89,7 +89,9 @@ class _NuevaTransaccionSheetState
       _ordenanteCtrl.text = t.personaSitio ?? '';
       _notaCtrl.text = t.nota ?? '';
       if (t.monto != null) {
-        _montoCtrl.text = t.monto!.toStringAsFixed(0);
+        _montoCtrl.text = t.monto! % 1 == 0
+            ? t.monto!.toStringAsFixed(0)
+            : t.monto!.toStringAsFixed(2);
       }
       // Buscar categoría del template en el catálogo
       try {
@@ -674,73 +676,10 @@ class _Paso2 extends ConsumerWidget {
         // Ordenante / Lugar
         _SectionLabel('Lugar / Ordenante', tc),
         const SizedBox(height: 6),
-        Autocomplete<FinancePlace>(
-          optionsBuilder: (textEditingValue) {
-            if (textEditingValue.text.isEmpty) return placesSorted;
-            return placesSorted.where((p) => p.nombre
-                .toLowerCase()
-                .contains(textEditingValue.text.toLowerCase()));
-          },
-          displayStringForOption: (p) => p.nombre,
-          fieldViewBuilder: (ctx, ctrl, focusNode, onSubmit) {
-            // Sync con ordenanteCtrl external para lectura en onGuardar
-            ctrl.text = ordenanteCtrl.text;
-            ctrl.addListener(() {
-              if (ctrl.text != ordenanteCtrl.text) {
-                ordenanteCtrl.text = ctrl.text;
-              }
-            });
-            return TextField(
-              controller: ctrl,
-              focusNode: focusNode,
-              onEditingComplete: onSubmit,
-              decoration: InputDecoration(
-                hintText: 'Tienda, persona, lugar…',
-                hintStyle: TextStyle(color: tc.textTertiary, fontSize: AppTextSize.body),
-                prefixIcon: Icon(Icons.place_outlined, size: AppIconSize.small, color: tc.textTertiary),
-                filled: true,
-                fillColor: tc.bgSecondary,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.tile),
-                  borderSide: BorderSide(color: tc.borderCard),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.tile),
-                  borderSide: BorderSide(color: tc.borderCard),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.tile),
-                  borderSide: BorderSide(color: tc.textSecondary),
-                ),
-              ),
-            );
-          },
-          onSelected: (p) => ordenanteCtrl.text = p.nombre,
-          optionsViewBuilder: (ctx, onSelected, options) => Align(
-            alignment: Alignment.topLeft,
-            child: Material(
-              color: tc.bgCard,
-              borderRadius: BorderRadius.circular(AppRadius.tile),
-              elevation: 4,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 200, maxWidth: 320),
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: options.length,
-                  itemBuilder: (_, i) {
-                    final p = options.elementAt(i);
-                    return ListTile(
-                      dense: true,
-                      leading: Icon(Icons.place_outlined, size: AppIconSize.small, color: tc.textSecondary),
-                      title: Text(p.nombre, style: TextStyle(color: tc.textPrimary, fontSize: AppTextSize.body)),
-                      subtitle: Text('${p.usados}x', style: TextStyle(color: tc.textTertiary, fontSize: AppTextSize.caption)),
-                      onTap: () => onSelected(p),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ),
+        _OrdenanteField(
+          ordenanteCtrl: ordenanteCtrl,
+          placesSorted: placesSorted,
+          tc: tc,
         ),
         const SizedBox(height: 20),
 
@@ -866,6 +805,116 @@ class _SectionLabel extends StatelessWidget {
           letterSpacing: 0.8,
         ),
       );
+}
+
+// ─── Ordenante autocomplete (stateful para evitar listener leak) ──────────────
+class _OrdenanteField extends StatefulWidget {
+  final TextEditingController ordenanteCtrl;
+  final List<FinancePlace> placesSorted;
+  final AppThemeColors tc;
+
+  const _OrdenanteField({
+    required this.ordenanteCtrl,
+    required this.placesSorted,
+    required this.tc,
+  });
+
+  @override
+  State<_OrdenanteField> createState() => _OrdenanteFieldState();
+}
+
+class _OrdenanteFieldState extends State<_OrdenanteField> {
+  late TextEditingController _innerCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _innerCtrl = TextEditingController(text: widget.ordenanteCtrl.text);
+    _innerCtrl.addListener(_syncToExternal);
+  }
+
+  void _syncToExternal() {
+    if (_innerCtrl.text != widget.ordenanteCtrl.text) {
+      widget.ordenanteCtrl.text = _innerCtrl.text;
+    }
+  }
+
+  @override
+  void dispose() {
+    _innerCtrl.removeListener(_syncToExternal);
+    _innerCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tc = widget.tc;
+    return Autocomplete<FinancePlace>(
+      optionsBuilder: (textEditingValue) {
+        if (textEditingValue.text.isEmpty) return widget.placesSorted;
+        return widget.placesSorted.where((p) => p.nombre
+            .toLowerCase()
+            .contains(textEditingValue.text.toLowerCase()));
+      },
+      displayStringForOption: (p) => p.nombre,
+      fieldViewBuilder: (ctx, ctrl, focusNode, onSubmit) {
+        return TextField(
+          controller: ctrl,
+          focusNode: focusNode,
+          onEditingComplete: onSubmit,
+          onChanged: (val) => widget.ordenanteCtrl.text = val,
+          decoration: InputDecoration(
+            hintText: 'Tienda, persona, lugar…',
+            hintStyle: TextStyle(color: tc.textTertiary, fontSize: AppTextSize.body),
+            prefixIcon: Icon(Icons.place_outlined, size: AppIconSize.small, color: tc.textTertiary),
+            filled: true,
+            fillColor: tc.bgSecondary,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.tile),
+              borderSide: BorderSide(color: tc.borderCard),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.tile),
+              borderSide: BorderSide(color: tc.borderCard),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.tile),
+              borderSide: BorderSide(color: tc.textSecondary),
+            ),
+          ),
+        );
+      },
+      onSelected: (p) {
+        widget.ordenanteCtrl.text = p.nombre;
+        _innerCtrl.text = p.nombre;
+      },
+      optionsViewBuilder: (ctx, onSelected, options) => Align(
+        alignment: Alignment.topLeft,
+        child: Material(
+          color: tc.bgCard,
+          borderRadius: BorderRadius.circular(AppRadius.tile),
+          elevation: 4,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 200, maxWidth: 320),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: options.length,
+              itemBuilder: (_, i) {
+                final p = options.elementAt(i);
+                return ListTile(
+                  dense: true,
+                  leading: Icon(Icons.place_outlined, size: AppIconSize.small, color: tc.textSecondary),
+                  title: Text(p.nombre, style: TextStyle(color: tc.textPrimary, fontSize: AppTextSize.body)),
+                  subtitle: Text('${p.usados}x', style: TextStyle(color: tc.textTertiary, fontSize: AppTextSize.caption)),
+                  onTap: () => onSelected(p),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _DateTimeRow extends StatelessWidget {
