@@ -52,20 +52,17 @@ final finanzasFiltrosProvider = StateProvider<FinanzasFiltros>(
 // Libro activo (ID del libro seleccionado en Tab 0)
 final finanzasLibroActivoProvider = StateProvider<String?>((_) => null);
 
-// Transacciones del libro activo aplicando filtros
+// Historial completo del libro activo (sin recorte por mes: la pantalla
+// muestra todo el listado en una sola vista continua, agrupado visualmente).
 final finanzasLibroTxProvider =
     FutureProvider.family<List<FinanceTransaction>, String>(
         (ref, libroId) async {
   final db = ref.watch(databaseProvider);
   final filtros = ref.watch(finanzasFiltrosProvider);
-  final now = DateTime.now();
-  final mes = filtros.periodo == 'mensual'
-      ? '${now.year}-${now.month.toString().padLeft(2, '0')}'
-      : null;
   final tipo = filtros.tipoFiltro == 'todos' ? null : filtros.tipoFiltro;
   final rows = await db.getFinanceTransactionsByLibro(
     libroId: libroId,
-    mes: mes,
+    mes: null,
     tipo: tipo,
     ascending: filtros.ascending,
   );
