@@ -65,7 +65,7 @@ class FinanzasPresupuestoScreen extends ConsumerWidget {
                     final progreso = b.montoLimite > 0 ? (gasto / b.montoLimite).clamp(0.0, 1.0) : 0.0;
                     final cat = catalogoFinanzas.firstWhere(
                       (c) => c.id == b.categoryId,
-                      orElse: () => CatalogoCategoria(id: '', nombre: b.categoryId, icono: Icons.label, color: Colors.grey, tipo: 'gasto'),
+                      orElse: () => CatalogoCategoria(id: '', nombre: b.categoryId, icono: Icons.label, color: Colors.grey, tipo: 'gasto', iconoKey: 'more_horiz'),
                     );
                     return _BudgetItem(cat: cat, gasto: gasto, limite: b.montoLimite, progreso: progreso, fmt: fmt);
                   }),

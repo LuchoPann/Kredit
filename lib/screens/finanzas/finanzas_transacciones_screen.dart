@@ -155,7 +155,7 @@ class _TxItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final cat = catalogoFinanzas.firstWhere(
       (c) => c.id == tx.categoryId,
-      orElse: () => CatalogoCategoria(id: '', nombre: tx.categoryId, icono: Icons.label, color: Colors.grey, tipo: 'gasto'),
+      orElse: () => CatalogoCategoria(id: '', nombre: tx.categoryId, icono: Icons.label, color: Colors.grey, tipo: 'gasto', iconoKey: 'more_horiz'),
     );
     final isIngreso = tx.tipo == 'ingreso';
     return ListTile(

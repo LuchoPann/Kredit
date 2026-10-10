@@ -42,7 +42,7 @@ class FinanzasEstadisticasScreen extends ConsumerWidget {
                     sections: top5.map((e) {
                       final cat = catalogoFinanzas.firstWhere(
                         (c) => c.id == e.key,
-                        orElse: () => CatalogoCategoria(id: '', nombre: e.key, icono: Icons.label, color: Colors.grey, tipo: 'gasto'),
+                        orElse: () => CatalogoCategoria(id: '', nombre: e.key, icono: Icons.label, color: Colors.grey, tipo: 'gasto', iconoKey: 'more_horiz'),
                       );
                       return PieChartSectionData(
                         value: e.value,
