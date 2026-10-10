@@ -73,10 +73,12 @@ class _NuevaTransaccionSheetState
   final _notaCtrl = TextEditingController();
   final _montoFocus = FocusNode();
   bool _guardando = false;
+  bool _montoValido = false;
 
   @override
   void initState() {
     super.initState();
+    _montoCtrl.addListener(_onMontoChanged);
     _fecha = DateTime.now();
     _hora = TimeOfDay.now();
     _libroId = widget.libroIdInicial;
@@ -104,8 +106,15 @@ class _NuevaTransaccionSheetState
     }
   }
 
+  void _onMontoChanged() {
+    final v = double.tryParse(_montoCtrl.text.replaceAll(',', '.'));
+    final valid = v != null && v > 0;
+    if (valid != _montoValido) setState(() => _montoValido = valid);
+  }
+
   @override
   void dispose() {
+    _montoCtrl.removeListener(_onMontoChanged);
     _montoCtrl.dispose();
     _ordenanteCtrl.dispose();
     _notaCtrl.dispose();
@@ -277,6 +286,7 @@ class _NuevaTransaccionSheetState
                         notaCtrl: _notaCtrl,
                         montoFocus: _montoFocus,
                         guardando: _guardando,
+                        montoValido: _montoValido,
                         scrollCtrl: scrollCtrl,
                         onSeleccionarCategoria: _seleccionarCategoria,
                         onPickFecha: _pickFecha,
@@ -527,6 +537,7 @@ class _Paso2 extends ConsumerWidget {
   final TextEditingController notaCtrl;
   final FocusNode montoFocus;
   final bool guardando;
+  final bool montoValido;
   final ScrollController scrollCtrl;
   final VoidCallback onSeleccionarCategoria;
   final VoidCallback onPickFecha;
@@ -551,6 +562,7 @@ class _Paso2 extends ConsumerWidget {
     required this.notaCtrl,
     required this.montoFocus,
     required this.guardando,
+    required this.montoValido,
     required this.scrollCtrl,
     required this.onSeleccionarCategoria,
     required this.onPickFecha,
@@ -757,7 +769,7 @@ class _Paso2 extends ConsumerWidget {
           width: double.infinity,
           height: 52,
           child: FilledButton(
-            onPressed: guardando ? null : onGuardar,
+            onPressed: guardando || !montoValido ? null : onGuardar,
             style: FilledButton.styleFrom(backgroundColor: color),
             child: guardando
                 ? const SizedBox(

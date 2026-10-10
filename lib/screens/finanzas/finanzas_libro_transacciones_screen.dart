@@ -109,6 +109,37 @@ class _FinanzasLibroTransaccionesScreenState
 
   // ─── Filtros sheet ─────────────────────────────────────────────────────────
 
+  void _mostrarBusqueda(BuildContext context, List<FinanceTransaction> txs) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => _BusquedaSheet(
+        txs: txs,
+        onTap: (tx) {
+          Navigator.pop(ctx);
+          showNuevaTransaccionSheet(context, libroId: _libroActual.id);
+        },
+      ),
+    );
+  }
+
+  void _mostrarPlantillasSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => _PlantillasSheet(
+        libroId: _libroActual.id,
+        onPlantillaSeleccionada: (template) {
+          Navigator.pop(ctx);
+          showNuevaTransaccionSheet(context, libroId: _libroActual.id, template: template);
+        },
+      ),
+    );
+  }
+
   void _mostrarFiltrosSheet() {
     showModalBottomSheet(
       context: context,
@@ -255,9 +286,7 @@ class _FinanzasLibroTransaccionesScreenState
               actions: [
                 IconButton(
                   icon: const Icon(Icons.search_outlined),
-                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Búsqueda — Próximamente')),
-                  ),
+                  onPressed: () => _mostrarBusqueda(context, txs),
                 ),
                 IconButton(
                   icon: const Icon(Icons.tune_outlined),
@@ -441,9 +470,7 @@ class _FinanzasLibroTransaccionesScreenState
           // FAB secundario — plantillas
           FloatingActionButton.small(
             heroTag: 'fab_plantillas',
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Plantillas — Próximamente')),
-            ),
+            onPressed: _mostrarPlantillasSheet,
             child: const Icon(Icons.description_outlined),
           ),
           const SizedBox(height: 8),
@@ -707,6 +734,223 @@ class _FiltrosSheetState extends State<_FiltrosSheet> {
             const SizedBox(height: 8),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─── Búsqueda sheet ───────────────────────────────────────────────────────────
+class _BusquedaSheet extends StatefulWidget {
+  final List<FinanceTransaction> txs;
+  final void Function(FinanceTransaction) onTap;
+
+  const _BusquedaSheet({required this.txs, required this.onTap});
+
+  @override
+  State<_BusquedaSheet> createState() => _BusquedaSheetState();
+}
+
+class _BusquedaSheetState extends State<_BusquedaSheet> {
+  final _ctrl = TextEditingController();
+  List<FinanceTransaction> _results = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _results = widget.txs;
+    _ctrl.addListener(_filtrar);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.removeListener(_filtrar);
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _filtrar() {
+    final q = _ctrl.text.toLowerCase();
+    setState(() {
+      _results = widget.txs.where((t) {
+        return t.nota.toLowerCase().contains(q) ||
+            (t.personaSitio?.toLowerCase().contains(q) ?? false) ||
+            t.monto.toString().contains(q) ||
+            t.fecha.contains(q);
+      }).toList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tc = Theme.of(context).extension<AppThemeColors>()!;
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.85,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (ctx, scroll) => Container(
+        decoration: BoxDecoration(
+          color: tc.bgCard,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Column(
+                children: [
+                  Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(color: tc.borderCard, borderRadius: BorderRadius.circular(2)),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _ctrl,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText: 'Buscar transacciones…',
+                      prefixIcon: const Icon(Icons.search),
+                      filled: true,
+                      fillColor: tc.bgSecondary,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.tile),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: _results.isEmpty
+                  ? Center(child: Text('Sin resultados', style: TextStyle(color: tc.textSecondary)))
+                  : ListView.builder(
+                      controller: scroll,
+                      itemCount: _results.length,
+                      itemBuilder: (_, i) {
+                        final tx = _results[i];
+                        final isIngreso = tx.tipo == 'ingreso';
+                        final titulo = tx.personaSitio?.isNotEmpty == true
+                            ? tx.personaSitio!
+                            : tx.nota.isNotEmpty
+                                ? tx.nota
+                                : tx.tipo;
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: isIngreso
+                                ? const Color(0xFF22C55E).withValues(alpha: 0.15)
+                                : const Color(0xFFEF4444).withValues(alpha: 0.15),
+                            child: Icon(
+                              isIngreso ? Icons.arrow_downward : Icons.arrow_upward,
+                              size: 16,
+                              color: isIngreso ? const Color(0xFF22C55E) : const Color(0xFFEF4444),
+                            ),
+                          ),
+                          title: Text(titulo, maxLines: 1, overflow: TextOverflow.ellipsis),
+                          subtitle: Text(tx.fecha, style: TextStyle(fontSize: AppTextSize.caption, color: tc.textSecondary)),
+                          trailing: Text(
+                            '\$${tx.monto.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: isIngreso ? const Color(0xFF22C55E) : const Color(0xFFEF4444),
+                            ),
+                          ),
+                          onTap: () => widget.onTap(tx),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Plantillas sheet (selección rápida) ──────────────────────────────────────
+class _PlantillasSheet extends ConsumerWidget {
+  final String libroId;
+  final void Function(FinanceTemplate) onPlantillaSeleccionada;
+
+  const _PlantillasSheet({
+    required this.libroId,
+    required this.onPlantillaSeleccionada,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tc = Theme.of(context).extension<AppThemeColors>()!;
+    final asyncTemplates = ref.watch(financeTemplatesByTipoProvider(null));
+
+    return Container(
+      decoration: BoxDecoration(
+        color: tc.bgCard,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(color: tc.borderCard, borderRadius: BorderRadius.circular(2)),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text('Usar plantilla', style: TextStyle(fontSize: AppTextSize.heading, fontWeight: FontWeight.bold, color: tc.textPrimary)),
+          const SizedBox(height: 12),
+          asyncTemplates.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Text('Error: $e'),
+            data: (templates) {
+              if (templates.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 32),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Icon(Icons.description_outlined, size: AppIconSize.large, color: tc.textSecondary),
+                        const SizedBox(height: 8),
+                        Text('Sin plantillas creadas', style: TextStyle(color: tc.textSecondary)),
+                      ],
+                    ),
+                  ),
+                );
+              }
+              return SizedBox(
+                height: 280,
+                child: ListView.builder(
+                  itemCount: templates.length,
+                  itemBuilder: (_, i) {
+                    final t = templates[i];
+                    final isIngreso = t.tipo == 'ingreso';
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: isIngreso
+                            ? const Color(0xFF22C55E).withValues(alpha: 0.15)
+                            : const Color(0xFFEF4444).withValues(alpha: 0.15),
+                        child: Icon(
+                          isIngreso ? Icons.arrow_downward : Icons.arrow_upward,
+                          size: 18,
+                          color: isIngreso ? const Color(0xFF22C55E) : const Color(0xFFEF4444),
+                        ),
+                      ),
+                      title: Text(t.nombre),
+                      subtitle: t.monto != null
+                          ? Text('\$${t.monto!.toStringAsFixed(2)}', style: TextStyle(color: tc.textSecondary, fontSize: AppTextSize.caption))
+                          : null,
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+                      onTap: () => onPlantillaSeleccionada(t),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
