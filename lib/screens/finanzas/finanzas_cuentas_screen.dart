@@ -231,83 +231,96 @@ class _LibroCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: colors.bgCard,
             borderRadius: BorderRadius.circular(AppRadius.card),
-            border: Border(
-              left: BorderSide(color: libroColor, width: 4),
-              top: BorderSide(color: colors.borderCard),
-              right: BorderSide(color: colors.borderCard),
-              bottom: BorderSide(color: colors.borderCard),
-            ),
+            border: Border.all(color: colors.borderCard),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.card),
+          clipBehavior: Clip.antiAlias,
+          child: IntrinsicHeight(
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Hero(
-                  tag: 'libro_icon_${libro.id}',
-                  child: CircleAvatar(
-                    backgroundColor: libroColor.withValues(alpha: 0.2),
-                    radius: 24,
-                    child: Text(
-                      libro.icono.isNotEmpty ? libro.icono[0].toUpperCase() : '?',
-                      style: TextStyle(
-                        color: libroColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: AppTextSize.heading,
-                      ),
+                // Barra de color lateral
+                Container(width: 5, color: libroColor),
+                // Contenido
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.card,
+                      vertical: 14,
+                    ),
+                    child: Row(
+                      children: [
+                        // Avatar inicial
+                        Hero(
+                          tag: 'libro_icon_${libro.id}',
+                          child: Container(
+                            width: 46,
+                            height: 46,
+                            decoration: BoxDecoration(
+                              color: libroColor.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              libro.nombre.isNotEmpty
+                                  ? libro.nombre[0].toUpperCase()
+                                  : '?',
+                              style: TextStyle(
+                                color: libroColor,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 20,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Info
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      libro.nombre,
+                                      style: TextStyle(
+                                        fontSize: AppTextSize.body,
+                                        fontWeight: FontWeight.w700,
+                                        color: colors.textPrimary,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  if (libro.esFavorito)
+                                    const Padding(
+                                      padding: EdgeInsets.only(left: 4),
+                                      child: Icon(Icons.star_rounded, color: Colors.amber, size: 16),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Saldo inicial: \$${libro.saldoInicial % 1 == 0 ? libro.saldoInicial.toStringAsFixed(0) : libro.saldoInicial.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: AppTextSize.caption,
+                                  color: colors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Flecha
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          color: colors.textTertiary,
+                          size: 20,
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                const SizedBox(width: AppSpacing.tile),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        libro.nombre,
-                        style: const TextStyle(
-                          fontSize: AppTextSize.body,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        libro.tipo,
-                        style: TextStyle(
-                          fontSize: AppTextSize.caption,
-                          color: colors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '\$${libro.saldoInicial.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontSize: AppTextSize.heading,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          Text(
-                            'Ingresos: —',
-                            style: TextStyle(
-                              fontSize: AppTextSize.caption,
-                              color: colors.success,
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.tile),
-                          Text(
-                            'Gastos: —',
-                            style: TextStyle(
-                              fontSize: AppTextSize.caption,
-                              color: colors.danger,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                if (libro.esFavorito)
-                  const Icon(Icons.star, color: Colors.amber, size: AppIconSize.small),
               ],
             ),
           ),
