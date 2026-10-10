@@ -23,6 +23,18 @@ class FinanceAccount {
     this.esFavorito = false,
   });
 
+  factory FinanceAccount.fromRow(FinanceAccountRow row) => FinanceAccount(
+    id: row.id,
+    nombre: row.nombre,
+    tipo: row.tipo,
+    icono: row.icono,
+    color: row.color,
+    saldoInicial: row.saldoInicial,
+    activa: row.activa,
+    orden: row.orden,
+    esFavorito: row.esFavorito,
+  );
+
   Map<String, dynamic> toJson() => {
     'id': id, 'nombre': nombre, 'tipo': tipo, 'icono': icono,
     'color': color, 'saldoInicial': saldoInicial, 'activa': activa,
@@ -56,6 +68,16 @@ class FinanceCategory {
     required this.color, required this.tipo, required this.archivada,
     this.parentId,
   });
+
+  factory FinanceCategory.fromRow(FinanceCategoryRow row) => FinanceCategory(
+    id: row.id,
+    nombre: row.nombre,
+    icono: row.icono,
+    color: row.color,
+    tipo: row.tipo,
+    archivada: row.archivada,
+    parentId: row.parentId,
+  );
 
   Map<String, dynamic> toJson() => {
     'id': id, 'nombre': nombre, 'icono': icono,
@@ -94,6 +116,21 @@ class FinanceTransaction {
     required this.nota, required this.esRecurrente, this.recurrenciaConfig,
     this.personaSitio, this.hora, this.transferToAccountId,
   });
+
+  factory FinanceTransaction.fromRow(FinanceTransactionRow row) => FinanceTransaction(
+    id: row.id,
+    accountId: row.accountId,
+    categoryId: row.categoryId,
+    tipo: row.tipo,
+    monto: row.monto,
+    fecha: row.fecha,
+    nota: row.nota,
+    esRecurrente: row.esRecurrente,
+    recurrenciaConfig: row.recurrenciaConfig,
+    personaSitio: row.personaSitio,
+    hora: row.hora,
+    transferToAccountId: row.transferToAccountId,
+  );
 
   Map<String, dynamic> toJson() => {
     'id': id, 'accountId': accountId, 'categoryId': categoryId,
