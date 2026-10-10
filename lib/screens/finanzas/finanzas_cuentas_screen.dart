@@ -30,9 +30,19 @@ class _FinanzasCuentasScreenState extends ConsumerState<FinanzasCuentasScreen> {
   @override
   void initState() {
     super.initState();
+    // listenManual (no ref.listen): permite fireImmediately fuera de build.
+    ref.listenManual<AsyncValue<List<FinanceAccountRow>>>(
+      financeAccountsProvider,
+      (prev, next) {
+        if (next.hasValue && !_autoPushDone) {
+          _checkAndAutoPush(next.value!);
+        }
+      },
+      fireImmediately: true,
+    );
   }
 
-  Future<void> _checkAndAutoPush(List<dynamic> rows) async {
+  Future<void> _checkAndAutoPush(List<FinanceAccountRow> rows) async {
     if (_autoPushDone) return;
     final prefs = await SharedPreferences.getInstance();
     final defaultId = prefs.getString('finanzas_libro_default');
@@ -59,12 +69,6 @@ class _FinanzasCuentasScreenState extends ConsumerState<FinanzasCuentasScreen> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<AsyncValue<List<dynamic>>>(financeAccountsProvider, (prev, next) {
-      if (prev?.isLoading == true && next.hasValue && !_autoPushDone) {
-        _checkAndAutoPush(next.value!);
-      }
-    });
-
     final asyncLibros = ref.watch(financeAccountsProvider);
 
     return Scaffold(
