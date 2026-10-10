@@ -61,7 +61,7 @@ class _NuevaTransaccionSheet extends ConsumerStatefulWidget {
 class _NuevaTransaccionSheetState
     extends ConsumerState<_NuevaTransaccionSheet> {
   // ── estado ────────────────────────────────────────────────────────────────
-  int _paso = 1;
+  late int _paso;
   String _tipo = 'gasto';
   String? _libroId;
   String? _libroDestinoId; // solo transferencia
@@ -82,6 +82,8 @@ class _NuevaTransaccionSheetState
     _fecha = DateTime.now();
     _hora = TimeOfDay.now();
     _libroId = widget.libroIdInicial;
+    // Si ya viene un libro preseleccionado, ir directo al paso de detalle
+    _paso = widget.libroIdInicial != null ? 2 : 1;
     _categoriaSeleccionada = widget.categoriaInicial;
 
     final t = widget.template;
@@ -305,7 +307,9 @@ class _NuevaTransaccionSheetState
                           final total = mins % 1440;
                           setState(() => _hora = TimeOfDay(hour: total ~/ 60, minute: total % 60));
                         },
-                        onVolver: () => setState(() => _paso = 1),
+                        onVolver: widget.libroIdInicial != null
+                            ? () => Navigator.of(context).pop()
+                            : () => setState(() => _paso = 1),
                         onGuardar: () => _guardar(libros),
                         formatFecha: _formatFecha,
                         formatHora: _formatHora,
