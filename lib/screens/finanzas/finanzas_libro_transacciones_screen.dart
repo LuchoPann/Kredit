@@ -104,7 +104,7 @@ class _FinanzasLibroTransaccionesScreenState
       if (t.tipo == 'ingreso') ing += t.monto;
       if (t.tipo == 'gasto') gas += t.monto;
     }
-    return (ingresos: ing, gastos: gas, balance: ing - gas);
+    return (ingresos: ing, gastos: gas, balance: _libroActual.saldoInicial + ing - gas);
   }
 
   // ─── Filtros sheet ─────────────────────────────────────────────────────────
@@ -196,9 +196,27 @@ class _FinanzasLibroTransaccionesScreenState
               pinned: true,
               floating: false,
               expandedHeight: 140,
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => Navigator.pop(context),
+              leading: Hero(
+                tag: 'libro_icon_${_libroActual.id}',
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: CircleAvatar(
+                      backgroundColor: libroColor.withValues(alpha: 0.3),
+                      child: Text(
+                        _libroActual.icono.isNotEmpty
+                            ? _libroActual.icono[0].toUpperCase()
+                            : '?',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
               title: asyncLibros.maybeWhen(
                 data: (rows) {
@@ -396,11 +414,9 @@ class _FinanzasLibroTransaccionesScreenState
                         tx: tx,
                         cat: cat,
                         compacto: filtros.densidad == 'compacto',
-                        onDismiss: () async {
-                          final ok =
-                              await _confirmarEliminar(context, tx);
-                          if (ok) await _eliminar(tx);
-                        },
+                        onConfirmDismiss: () =>
+                            _confirmarEliminar(context, tx),
+                        onDismissed: () => _eliminar(tx),
                         colors: colors,
                       );
                     },
@@ -489,14 +505,16 @@ class _TxRow extends StatelessWidget {
   final FinanceTransaction tx;
   final CatalogoCategoria? cat;
   final bool compacto;
-  final VoidCallback onDismiss;
+  final Future<bool> Function() onConfirmDismiss;
+  final VoidCallback onDismissed;
   final AppThemeColors colors;
 
   const _TxRow({
     required this.tx,
     required this.cat,
     required this.compacto,
-    required this.onDismiss,
+    required this.onConfirmDismiss,
+    required this.onDismissed,
     required this.colors,
   });
 
@@ -528,10 +546,8 @@ class _TxRow extends StatelessWidget {
         color: const Color(0xFFEF4444).withValues(alpha: 0.2),
         child: const Icon(Icons.delete_outline, color: Color(0xFFEF4444)),
       ),
-      confirmDismiss: (_) async {
-        onDismiss();
-        return false; // Manejamos nosotros la eliminación
-      },
+      confirmDismiss: (_) => onConfirmDismiss(),
+      onDismissed: (_) => onDismissed(),
       child: ListTile(
         dense: compacto,
         minVerticalPadding: compacto ? 4 : 8,
