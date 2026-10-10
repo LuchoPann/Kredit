@@ -8,6 +8,7 @@ import 'package:krezium/providers/database_provider.dart';
 import 'package:krezium/providers/finance_provider.dart';
 import 'package:krezium/screens/finanzas/finanzas_libro_transacciones_screen.dart';
 import 'package:krezium/theme/app_theme.dart';
+import 'package:krezium/widgets/color_picker_field.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
@@ -328,20 +329,8 @@ class _NuevoRegistroSheet extends ConsumerStatefulWidget {
 class _NuevoRegistroSheetState extends ConsumerState<_NuevoRegistroSheet> {
   final _nombreController = TextEditingController();
   final _saldoController = TextEditingController(text: '0');
-  String _colorHex = 'EF4444';
+  Color _color = const Color(0xFFEF4444);
   bool _guardando = false;
-
-  static const _colores = [
-    ('EF4444', 'Rojo'),
-    ('3B82F6', 'Azul'),
-    ('22C55E', 'Verde'),
-    ('F59E0B', 'Amarillo'),
-    ('8B5CF6', 'Morado'),
-    ('EC4899', 'Rosa'),
-    ('14B8A6', 'Verde azul'),
-    ('F97316', 'Naranja'),
-    ('6B7280', 'Gris'),
-  ];
 
   @override
   void dispose() {
@@ -362,7 +351,7 @@ class _NuevoRegistroSheetState extends ConsumerState<_NuevoRegistroSheet> {
       nombre: nombre,
       tipo: 'registro',
       icono: nombre,
-      color: '#$_colorHex',
+      color: '#${colorToHex(_color)}',
       saldoInicial: Value(inicial),
     ));
     widget.onCreado();
@@ -417,25 +406,9 @@ class _NuevoRegistroSheetState extends ConsumerState<_NuevoRegistroSheet> {
           const SizedBox(height: 16),
           Text('Color', style: TextStyle(fontSize: AppTextSize.caption, color: kredit.textSecondary)),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _colores.map((c) {
-              final selected = _colorHex == c.$1;
-              final color = Color(int.parse('FF${c.$1}', radix: 16));
-              return GestureDetector(
-                onTap: () => setState(() => _colorHex = c.$1),
-                child: Container(
-                  width: 36, height: 36,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                    border: selected ? Border.all(color: theme.colorScheme.onSurface, width: 3) : null,
-                  ),
-                  child: selected ? const Icon(Icons.check, color: Colors.white, size: 18) : null,
-                ),
-              );
-            }).toList(),
+          ColorPickerField(
+            color: _color,
+            onColorChanged: (c) => setState(() => _color = c),
           ),
           const SizedBox(height: 24),
           SizedBox(
