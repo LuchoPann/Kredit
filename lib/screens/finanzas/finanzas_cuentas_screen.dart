@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:drift/drift.dart' show Value;
@@ -12,6 +13,7 @@ import 'package:krezium/providers/theme_provider.dart';
 import 'package:krezium/screens/finanzas/finanzas_libro_transacciones_screen.dart';
 import 'package:krezium/theme/app_theme.dart';
 import 'package:krezium/widgets/color_picker_field.dart';
+import 'package:krezium/widgets/kredit_logo.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
@@ -196,6 +198,14 @@ class _PatternPainter extends CustomPainter {
       old.pattern != pattern || old.color != color;
 }
 
+// ─── Saludo por hora del día ──────────────────────────────────────────────────
+final _greeting = () {
+  final hour = DateTime.now().hour;
+  if (hour >= 5 && hour < 12) return 'Buenos días';
+  if (hour >= 12 && hour < 18) return 'Buenas tardes';
+  return 'Buenas noches';
+}();
+
 // ─── Public screen ────────────────────────────────────────────────────────────
 class FinanzasCuentasScreen extends ConsumerStatefulWidget {
   const FinanzasCuentasScreen({super.key});
@@ -375,6 +385,13 @@ class _GlobalHeader extends ConsumerWidget {
     final colors = Theme.of(context).extension<AppThemeColors>()!;
     final topPad = MediaQuery.of(context).padding.top;
 
+    final profileName = ref.watch(
+      themePreferencesProvider.select((p) => p.profileName),
+    );
+    final avatarPath = ref.watch(
+      themePreferencesProvider.select((p) => p.avatarPath),
+    );
+
     return SliverToBoxAdapter(
       child: Padding(
         padding: EdgeInsets.fromLTRB(
@@ -383,6 +400,55 @@ class _GlobalHeader extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ── Saludo (mismo patrón que el dashboard) ──────────────────
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                CircleAvatar(
+                  radius: 22,
+                  backgroundColor: accentColor.withValues(alpha: 0.18),
+                  backgroundImage: avatarPath != null ? FileImage(File(avatarPath)) : null,
+                  child: avatarPath == null
+                      ? Text(
+                          profileName.isNotEmpty ? profileName[0].toUpperCase() : '?',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: accentColor,
+                          ),
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '$_greeting, $profileName',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Tu salud financiera',
+                        style: TextStyle(
+                          fontSize: AppTextSize.body,
+                          color: colors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const AppLogo(height: 26),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.section),
             // ── Título ──────────────────────────────────────────────────
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
