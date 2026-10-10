@@ -6,6 +6,7 @@ import 'package:krezium/data/db/database.dart';
 import 'package:krezium/data/models/finance_models.dart';
 import 'package:krezium/providers/database_provider.dart';
 import 'package:krezium/providers/finance_provider.dart';
+import 'package:krezium/screens/finanzas/finanzas_libro_transacciones_screen.dart';
 import 'package:krezium/theme/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -317,17 +318,3 @@ class _LibroCard extends StatelessWidget {
   }
 }
 
-// ─── Placeholder — será reemplazada en Task 7 ─────────────────────────────────
-class FinanzasLibroTransaccionesScreen extends StatelessWidget {
-  final FinanceAccount libro;
-  const FinanzasLibroTransaccionesScreen({
-    super.key,
-    required this.libro,
-  });
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(libro.nombre)),
-        body: const Center(child: Text('Próximamente')),
-      );
-}
