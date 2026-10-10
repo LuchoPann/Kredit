@@ -27,11 +27,24 @@ class FinanzasLibroTransaccionesScreen extends ConsumerStatefulWidget {
       _FinanzasLibroTransaccionesScreenState();
 }
 
+const _kMeses = [
+  '', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+];
+const _kMesesCorto = [
+  '', 'ene', 'feb', 'mar', 'abr', 'may', 'jun',
+  'jul', 'ago', 'sep', 'oct', 'nov', 'dic',
+];
+const _kDiasCorto = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
+
+DateTime _parseFecha(String fecha) {
+  final parts = fecha.split('-');
+  return DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+}
+
 class _FinanzasLibroTransaccionesScreenState
     extends ConsumerState<FinanzasLibroTransaccionesScreen> {
   late FinanceAccount _libroActual;
-  // Offset de mes para navegación de período mensual (0 = mes actual)
-  int _mesOffset = 0;
 
   @override
   void initState() {
@@ -39,60 +52,69 @@ class _FinanzasLibroTransaccionesScreenState
     _libroActual = widget.libro;
   }
 
-  // ─── Período activo ────────────────────────────────────────────────────────
+  // ─── Agrupar — listado único, agrupación puramente visual ───────────────────
+  // Ya no filtra por mes: siempre se agrupa el histórico completo recibido.
+  // La clave de grupo cambia según filtros.periodo (diario/semanal/mensual),
+  // pero los datos mostrados son siempre los mismos.
 
-  DateTime get _mesActivo {
-    final now = DateTime.now();
-    return DateTime(now.year, now.month + _mesOffset);
+  String _claveGrupo(FinanceTransaction tx, String periodo) {
+    final d = _parseFecha(tx.fecha);
+    switch (periodo) {
+      case 'semanal':
+        final inicioSemana = d.subtract(Duration(days: d.weekday - 1));
+        return '${inicioSemana.year}-${inicioSemana.month.toString().padLeft(2, '0')}-${inicioSemana.day.toString().padLeft(2, '0')}';
+      case 'mensual':
+        return '${d.year}-${d.month.toString().padLeft(2, '0')}';
+      case 'diario':
+      default:
+        return tx.fecha;
+    }
   }
-
-  String get _mesActivoLabel {
-    const meses = [
-      '', 'ene', 'feb', 'mar', 'abr', 'may', 'jun',
-      'jul', 'ago', 'sep', 'oct', 'nov', 'dic',
-    ];
-    final d = _mesActivo;
-    return '${meses[d.month]} ${d.year}';
-  }
-
-  // ─── Agrupar por fecha ─────────────────────────────────────────────────────
 
   Map<String, List<FinanceTransaction>> _agrupar(
-      List<FinanceTransaction> txs, bool ascending) {
-    // Filtrar por mes si el período es mensual
-    final filtros = ref.read(finanzasFiltrosProvider);
-    List<FinanceTransaction> filtradas = txs;
-    if (filtros.periodo == 'mensual') {
-      final prefix =
-          '${_mesActivo.year}-${_mesActivo.month.toString().padLeft(2, '0')}';
-      filtradas = txs.where((t) => t.fecha.startsWith(prefix)).toList();
-    }
-
+      List<FinanceTransaction> txs, String periodo, bool ascending) {
     final mapa = <String, List<FinanceTransaction>>{};
-    for (final tx in filtradas) {
-      mapa.putIfAbsent(tx.fecha, () => []).add(tx);
+    for (final tx in txs) {
+      mapa.putIfAbsent(_claveGrupo(tx, periodo), () => []).add(tx);
     }
-    // Ordenar claves
     final keys = mapa.keys.toList()
       ..sort((a, b) => ascending ? a.compareTo(b) : b.compareTo(a));
     return {for (final k in keys) k: mapa[k]!};
   }
 
+  String _grupoLabel(String clave, String periodo) {
+    switch (periodo) {
+      case 'semanal':
+        final inicio = _parseFecha(clave);
+        final fin = inicio.add(const Duration(days: 6));
+        if (inicio.month == fin.month) {
+          return 'Semana del ${inicio.day} al ${fin.day} de ${_kMesesCorto[fin.month]}';
+        }
+        return 'Semana del ${inicio.day} ${_kMesesCorto[inicio.month]} al ${fin.day} ${_kMesesCorto[fin.month]}';
+      case 'mensual':
+        final parts = clave.split('-');
+        final mes = int.parse(parts[1]);
+        return '${_kMeses[mes][0].toUpperCase()}${_kMeses[mes].substring(1)} ${parts[0]}';
+      case 'diario':
+      default:
+        return _fechaLabel(clave);
+    }
+  }
+
   String _fechaLabel(String fecha) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final parts = fecha.split('-');
-    if (parts.length != 3) return fecha;
-    final d = DateTime(
-        int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+    final d = _parseFecha(fecha);
     if (d == today) return 'Hoy';
     if (d == today.subtract(const Duration(days: 1))) return 'Ayer';
-    const dias = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
-    const meses = [
-      '', 'ene', 'feb', 'mar', 'abr', 'may', 'jun',
-      'jul', 'ago', 'sep', 'oct', 'nov', 'dic',
-    ];
-    return '${dias[d.weekday - 1]} ${d.day} ${meses[d.month]}';
+    return '${_kDiasCorto[d.weekday - 1]} ${d.day} ${_kMesesCorto[d.month]}';
+  }
+
+  // Fecha corta para mostrar dentro de cada fila — mantiene el registro
+  // autocontenido aunque el usuario pierda de vista el encabezado de grupo.
+  String _fechaCorta(String fecha) {
+    final d = _parseFecha(fecha);
+    return '${d.day} ${_kMesesCorto[d.month]}';
   }
 
   // ─── Totales ───────────────────────────────────────────────────────────────
@@ -201,15 +223,8 @@ class _FinanzasLibroTransaccionesScreenState
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (txs) {
-          final grupos = _agrupar(txs, filtros.ascending);
-          final tot = _totales(txs.where((t) {
-            if (filtros.periodo == 'mensual') {
-              final prefix =
-                  '${_mesActivo.year}-${_mesActivo.month.toString().padLeft(2, '0')}';
-              return t.fecha.startsWith(prefix);
-            }
-            return true;
-          }).toList());
+          final grupos = _agrupar(txs, filtros.periodo, filtros.ascending);
+          final tot = _totales(txs);
 
           final catMap = asyncCats.valueOrNull != null
               ? {
@@ -299,31 +314,7 @@ class _FinanzasLibroTransaccionesScreenState
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      // Navegación mensual
-                      if (filtros.periodo == 'mensual')
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.chevron_left, size: 20),
-                              onPressed: () =>
-                                  setState(() => _mesOffset--),
-                            ),
-                            Text(
-                              'Período: $_mesActivoLabel',
-                              style: const TextStyle(
-                                fontSize: AppTextSize.caption,
-                                color: Colors.white70,
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.chevron_right, size: 20),
-                              onPressed: () =>
-                                  setState(() => _mesOffset++),
-                            ),
-                          ],
-                        ),
-                      // Resumen
+                      // Resumen (histórico completo — ya no recortado por mes)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
@@ -389,15 +380,15 @@ class _FinanzasLibroTransaccionesScreenState
             );
           } else {
             for (final entry in grupos.entries) {
-              final fecha = entry.key;
-              final dayTxs = entry.value;
-              final dayTot = dayTxs.fold<double>(
+              final clave = entry.key;
+              final grupoTxs = entry.value;
+              final grupoTot = grupoTxs.fold<double>(
                 0,
                 (sum, t) =>
                     sum + (t.tipo == 'ingreso' ? t.monto : -t.monto),
               );
 
-              // Day header
+              // Encabezado de grupo (diario / semanal / mensual según filtro)
               slivers.add(
                 SliverToBoxAdapter(
                   child: Padding(
@@ -407,7 +398,7 @@ class _FinanzasLibroTransaccionesScreenState
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          _fechaLabel(fecha),
+                          _grupoLabel(clave, filtros.periodo),
                           style: TextStyle(
                             fontSize: AppTextSize.caption,
                             color: colors.textSecondary,
@@ -415,10 +406,10 @@ class _FinanzasLibroTransaccionesScreenState
                           ),
                         ),
                         Text(
-                          '${dayTot >= 0 ? '+' : ''}\$${dayTot.abs().toStringAsFixed(2)}',
+                          '${grupoTot >= 0 ? '+' : ''}\$${grupoTot.abs().toStringAsFixed(2)}',
                           style: TextStyle(
                             fontSize: AppTextSize.caption,
-                            color: dayTot >= 0
+                            color: grupoTot >= 0
                                 ? const Color(0xFF22C55E)
                                 : const Color(0xFFEF4444),
                             fontFeatures: const [
@@ -432,16 +423,18 @@ class _FinanzasLibroTransaccionesScreenState
                 ),
               );
 
-              // Transactions
+              // Transacciones del grupo — cada fila lleva su propia fecha
+              // corta para que el registro sea legible por sí solo.
               slivers.add(
                 SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (ctx, i) {
-                      final tx = dayTxs[i];
+                      final tx = grupoTxs[i];
                       final cat = catMap[tx.categoryId];
                       return _TxRow(
                         tx: tx,
                         cat: cat,
+                        fechaCorta: _fechaCorta(tx.fecha),
                         compacto: filtros.densidad == 'compacto',
                         onConfirmDismiss: () =>
                             _confirmarEliminar(context, tx),
@@ -449,7 +442,7 @@ class _FinanzasLibroTransaccionesScreenState
                         colors: colors,
                       );
                     },
-                    childCount: dayTxs.length,
+                    childCount: grupoTxs.length,
                   ),
                 ),
               );
@@ -531,6 +524,7 @@ class _ResumenChip extends StatelessWidget {
 class _TxRow extends StatelessWidget {
   final FinanceTransaction tx;
   final CatalogoCategoria? cat;
+  final String fechaCorta;
   final bool compacto;
   final Future<bool> Function() onConfirmDismiss;
   final VoidCallback onDismissed;
@@ -539,6 +533,7 @@ class _TxRow extends StatelessWidget {
   const _TxRow({
     required this.tx,
     required this.cat,
+    required this.fechaCorta,
     required this.compacto,
     required this.onConfirmDismiss,
     required this.onDismissed,
@@ -615,14 +610,17 @@ class _TxRow extends StatelessWidget {
                 fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
-            if (tx.hora != null && tx.hora!.isNotEmpty)
-              Text(
-                tx.hora!,
-                style: TextStyle(
-                  fontSize: AppTextSize.caption,
-                  color: colors.textSecondary,
-                ),
+            // Siempre visible — el registro se entiende sin depender del
+            // encabezado de grupo, aunque el usuario esté lejos de él al hacer scroll.
+            Text(
+              tx.hora != null && tx.hora!.isNotEmpty
+                  ? '$fechaCorta · ${tx.hora}'
+                  : fechaCorta,
+              style: TextStyle(
+                fontSize: AppTextSize.caption,
+                color: colors.textSecondary,
               ),
+            ),
           ],
         ),
       ),
@@ -684,16 +682,16 @@ class _FiltrosSheetState extends State<_FiltrosSheet> {
             ),
             const SizedBox(height: 20),
 
-            // Período
-            const Text('Período',
+            // Agrupación visual — todo el historial se muestra siempre;
+            // esto solo decide cómo se agrupan los encabezados de sección.
+            const Text('Agrupar por',
                 style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             SegmentedButton<String>(
               segments: const [
-                ButtonSegment(value: 'mensual', label: Text('Mensual')),
-                ButtonSegment(value: 'semanal', label: Text('Semanal')),
-                ButtonSegment(value: 'diario', label: Text('Diario')),
-                ButtonSegment(value: 'todo', label: Text('Todo')),
+                ButtonSegment(value: 'diario', label: Text('Día')),
+                ButtonSegment(value: 'semanal', label: Text('Semana')),
+                ButtonSegment(value: 'mensual', label: Text('Mes')),
               ],
               selected: {_f.periodo},
               onSelectionChanged: (s) =>

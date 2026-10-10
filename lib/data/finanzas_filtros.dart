@@ -1,5 +1,7 @@
 class FinanzasFiltros {
-  final String periodo; // 'diario'|'semanal'|'mensual'|'todo'
+  // Agrupación visual del listado único de registros — ya no filtra datos,
+  // solo decide el tipo de encabezado de sección ('diario'|'semanal'|'mensual').
+  final String periodo;
   final bool ascending;
   final String densidad; // 'comodo'|'compacto'
   final String tipoFiltro; // 'todos'|'ingreso'|'gasto'
