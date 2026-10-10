@@ -34,6 +34,7 @@ class QuotaHasActivePurchasesException implements Exception {
 @DriftDatabase(tables: [
   Credits, Installments, CardMovements, LoanAbonos, CommercialQuotas, PagosRealizados,
   FinanceAccounts, FinanceCategories, FinanceTransactions, FinanceBudgets,
+  FinancePlaces, FinanceTemplates,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(openConnection());
@@ -42,7 +43,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -111,6 +112,15 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(financeCategories);
             await m.createTable(financeTransactions);
             await m.createTable(financeBudgets);
+          }
+          if (from < 14) {
+            await m.addColumn(financeAccounts, financeAccounts.esFavorito);
+            await m.addColumn(financeCategories, financeCategories.parentId);
+            await m.addColumn(financeTransactions, financeTransactions.personaSitio);
+            await m.addColumn(financeTransactions, financeTransactions.hora);
+            await m.addColumn(financeTransactions, financeTransactions.transferToAccountId);
+            await m.createTable(financePlaces);
+            await m.createTable(financeTemplates);
           }
           if (from < 12) {
             // notification_days_before may already exist on devices that ran
@@ -569,6 +579,46 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> deleteFinanceTransaction(String id) =>
       (delete(financeTransactions)..where((t) => t.id.equals(id))).go();
+
+  // --- Finance Places ---
+
+  Future<List<FinancePlaceRow>> getFinancePlaces() =>
+      (select(financePlaces)..orderBy([(t) => OrderingTerm.desc(t.usados)])).get();
+
+  Future<void> upsertFinancePlace(FinancePlacesCompanion place) =>
+      into(financePlaces).insertOnConflictUpdate(place);
+
+  // --- Finance Templates ---
+
+  Future<List<FinanceTemplateRow>> getFinanceTemplates({String? tipo}) {
+    final q = select(financeTemplates);
+    if (tipo != null) q.where((t) => t.tipo.equals(tipo));
+    return q.get();
+  }
+
+  Future<void> upsertFinanceTemplate(FinanceTemplatesCompanion template) =>
+      into(financeTemplates).insertOnConflictUpdate(template);
+
+  Future<void> deleteFinanceTemplate(String id) =>
+      (delete(financeTemplates)..where((t) => t.id.equals(id))).go();
+
+  // --- Finance Transactions by libro ---
+
+  Future<List<FinanceTransactionRow>> getFinanceTransactionsByLibro({
+    required String libroId,
+    String? mes, // 'YYYY-MM'
+    String? tipo, // 'ingreso'|'gasto'|null
+    bool ascending = false,
+  }) {
+    final q = select(financeTransactions)
+      ..where((t) => t.accountId.equals(libroId));
+    if (mes != null) q.where((t) => t.fecha.like('$mes%'));
+    if (tipo != null) q.where((t) => t.tipo.equals(tipo));
+    q.orderBy([(t) => ascending
+        ? OrderingTerm.asc(t.fecha)
+        : OrderingTerm.desc(t.fecha)]);
+    return q.get();
+  }
 
   // --- Finance Budgets ---
 
