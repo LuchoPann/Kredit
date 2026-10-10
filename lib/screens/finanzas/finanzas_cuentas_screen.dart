@@ -356,7 +356,6 @@ class _GlobalHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Observa los resúmenes de todos los libros
     double totalIngresos = 0;
     double totalGastos = 0;
     double totalInicial = 0;
@@ -377,136 +376,131 @@ class _GlobalHeader extends ConsumerWidget {
 
     final balance = totalInicial + totalIngresos - totalGastos;
     final colors = Theme.of(context).extension<AppThemeColors>()!;
+    final topPad = MediaQuery.of(context).padding.top;
 
     return SliverToBoxAdapter(
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(0, 0, 0, 0),
-        child: Stack(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.card, topPad + AppSpacing.card, AppSpacing.card, AppSpacing.tile,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Fondo con gradiente del acento
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top + 16,
-                left: 20,
-                right: 20,
-                bottom: 28,
-              ),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    accentColor,
-                    accentColor.withValues(alpha: 0.75),
-                  ],
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Top row: título + botón añadir
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // ── Título + acción ──────────────────────────────────────────
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Mis registros',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.75),
-                              fontSize: 13,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${libros.length} ${libros.length == 1 ? 'registro' : 'registros'}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
+                      Text(
+                        'MIS REGISTROS',
+                        style: TextStyle(
+                          fontSize: AppTextSize.caption,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.4,
+                          color: colors.textTertiary,
+                        ),
                       ),
-                      GestureDetector(
-                        onTap: onAdd,
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(Icons.add_rounded, color: Colors.white, size: 22),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${libros.length} ${libros.length == 1 ? 'registro' : 'registros'}',
+                        style: TextStyle(
+                          fontSize: AppTextSize.body,
+                          fontWeight: FontWeight.w600,
+                          color: colors.textSecondary,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  // Balance total
+                ),
+                GestureDetector(
+                  onTap: onAdd,
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppRadius.tile),
+                    ),
+                    child: Icon(Icons.add_rounded, color: accentColor, size: AppIconSize.medium),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.section),
+            // ── Card de balance ──────────────────────────────────────────
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppSpacing.card),
+              decoration: BoxDecoration(
+                color: colors.bgCard,
+                borderRadius: BorderRadius.circular(AppRadius.card),
+                border: Border.all(color: colors.borderCard),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    'Balance total',
+                    'BALANCE TOTAL',
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.7),
-                      fontSize: 12,
-                      letterSpacing: 0.8,
+                      fontSize: AppTextSize.caption,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.4,
+                      color: colors.textTertiary,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   loading
-                      ? const SizedBox(
-                          height: 36,
+                      ? SizedBox(
+                          height: AppTextSize.hero,
                           child: Align(
                             alignment: Alignment.centerLeft,
                             child: SizedBox(
                               width: 20, height: 20,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              child: CircularProgressIndicator(
+                                color: accentColor, strokeWidth: 2,
+                              ),
                             ),
                           ),
                         )
                       : Text(
                           '\$${_fmt(balance)}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 36,
+                          style: TextStyle(
+                            fontSize: AppTextSize.hero,
                             fontWeight: FontWeight.w800,
-                            letterSpacing: -0.5,
+                            letterSpacing: -1.2,
+                            height: 1.0,
+                            color: colors.textPrimary,
                           ),
                         ),
-                  const SizedBox(height: 16),
-                  // Chips ingresos / gastos
-                  if (!loading)
+                  if (!loading) ...[
+                    const SizedBox(height: AppSpacing.card),
+                    // Separador
+                    Divider(color: colors.borderCard, height: 1),
+                    const SizedBox(height: AppSpacing.card),
+                    // Fila ingresos / gastos
                     Row(
                       children: [
-                        _HeaderChip(
-                          icon: Icons.arrow_downward_rounded,
+                        _BalanceStat(
                           label: 'Ingresos',
                           value: '\$${_fmt(totalIngresos)}',
-                          color: Colors.white,
+                          icon: Icons.arrow_downward_rounded,
+                          iconColor: const Color(0xFF22C55E),
+                          colors: colors,
                         ),
-                        const SizedBox(width: 12),
-                        _HeaderChip(
-                          icon: Icons.arrow_upward_rounded,
+                        const SizedBox(width: AppSpacing.section),
+                        _BalanceStat(
                           label: 'Gastos',
                           value: '\$${_fmt(totalGastos)}',
-                          color: Colors.white,
+                          icon: Icons.arrow_upward_rounded,
+                          iconColor: const Color(0xFFEF4444),
+                          colors: colors,
                         ),
                       ],
                     ),
+                  ],
                 ],
-              ),
-            ),
-            // Wave / curva inferior decorativa
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: CustomPaint(
-                size: const Size(double.infinity, 24),
-                painter: _WaveClipper(colors.bgPrimary),
               ),
             ),
           ],
@@ -516,77 +510,59 @@ class _GlobalHeader extends ConsumerWidget {
   }
 }
 
-class _HeaderChip extends StatelessWidget {
-  final IconData icon;
+class _BalanceStat extends StatelessWidget {
   final String label;
   final String value;
-  final Color color;
+  final IconData icon;
+  final Color iconColor;
+  final AppThemeColors colors;
 
-  const _HeaderChip({
-    required this.icon,
+  const _BalanceStat({
     required this.label,
     required this.value,
-    required this.color,
+    required this.icon,
+    required this.iconColor,
+    required this.colors,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color.withValues(alpha: 0.9), size: 14),
-          const SizedBox(width: 6),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  color: color.withValues(alpha: 0.7),
-                  fontSize: 10,
-                  letterSpacing: 0.3,
-                ),
-              ),
-              Text(
-                value,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: iconColor.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(AppRadius.chip),
           ),
-        ],
-      ),
+          child: Icon(icon, color: iconColor, size: AppIconSize.micro),
+        ),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: AppTextSize.caption,
+                color: colors.textTertiary,
+              ),
+            ),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: AppTextSize.body,
+                fontWeight: FontWeight.w700,
+                color: colors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
-}
-
-class _WaveClipper extends CustomPainter {
-  final Color color;
-  _WaveClipper(this.color);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = color;
-    final path = Path()
-      ..moveTo(0, size.height)
-      ..quadraticBezierTo(size.width * 0.25, 0, size.width * 0.5, size.height * 0.5)
-      ..quadraticBezierTo(size.width * 0.75, size.height, size.width, 0)
-      ..lineTo(size.width, size.height)
-      ..close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(_WaveClipper old) => old.color != color;
 }
 
 // ─── Empty state ──────────────────────────────────────────────────────────────
