@@ -30,7 +30,6 @@ class FinanceCategories extends Table {
 
 @DataClassName('FinanceTransactionRow')
 class FinanceTransactions extends Table {
-  IntColumn get rowId => integer().autoIncrement()();
   TextColumn get id => text()();
   TextColumn get accountId =>
       text().references(FinanceAccounts, #id, onDelete: KeyAction.restrict)();

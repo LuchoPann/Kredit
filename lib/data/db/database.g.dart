@@ -5836,19 +5836,6 @@ class $FinanceTransactionsTable extends FinanceTransactions
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $FinanceTransactionsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _rowIdMeta = const VerificationMeta('rowId');
-  @override
-  late final GeneratedColumn<int> rowId = GeneratedColumn<int>(
-    'row_id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
-  );
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
@@ -5949,7 +5936,6 @@ class $FinanceTransactionsTable extends FinanceTransactions
       );
   @override
   List<GeneratedColumn> get $columns => [
-    rowId,
     id,
     accountId,
     categoryId,
@@ -5972,14 +5958,6 @@ class $FinanceTransactionsTable extends FinanceTransactions
   }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
-    if (data.containsKey('row_id')) {
-      context.handle(
-        _rowIdMeta,
-        rowId.isAcceptableOrUnknown(data['row_id']!, _rowIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_rowIdMeta);
-    }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
@@ -6058,10 +6036,6 @@ class $FinanceTransactionsTable extends FinanceTransactions
   FinanceTransactionRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return FinanceTransactionRow(
-      rowId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}row_id'],
-      )!,
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}id'],
@@ -6109,7 +6083,6 @@ class $FinanceTransactionsTable extends FinanceTransactions
 
 class FinanceTransactionRow extends DataClass
     implements Insertable<FinanceTransactionRow> {
-  final int rowId;
   final String id;
   final String accountId;
   final String categoryId;
@@ -6120,7 +6093,6 @@ class FinanceTransactionRow extends DataClass
   final bool esRecurrente;
   final String? recurrenciaConfig;
   const FinanceTransactionRow({
-    required this.rowId,
     required this.id,
     required this.accountId,
     required this.categoryId,
@@ -6134,7 +6106,6 @@ class FinanceTransactionRow extends DataClass
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['row_id'] = Variable<int>(rowId);
     map['id'] = Variable<String>(id);
     map['account_id'] = Variable<String>(accountId);
     map['category_id'] = Variable<String>(categoryId);
@@ -6151,7 +6122,6 @@ class FinanceTransactionRow extends DataClass
 
   FinanceTransactionsCompanion toCompanion(bool nullToAbsent) {
     return FinanceTransactionsCompanion(
-      rowId: Value(rowId),
       id: Value(id),
       accountId: Value(accountId),
       categoryId: Value(categoryId),
@@ -6172,7 +6142,6 @@ class FinanceTransactionRow extends DataClass
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return FinanceTransactionRow(
-      rowId: serializer.fromJson<int>(json['rowId']),
       id: serializer.fromJson<String>(json['id']),
       accountId: serializer.fromJson<String>(json['accountId']),
       categoryId: serializer.fromJson<String>(json['categoryId']),
@@ -6190,7 +6159,6 @@ class FinanceTransactionRow extends DataClass
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'rowId': serializer.toJson<int>(rowId),
       'id': serializer.toJson<String>(id),
       'accountId': serializer.toJson<String>(accountId),
       'categoryId': serializer.toJson<String>(categoryId),
@@ -6204,7 +6172,6 @@ class FinanceTransactionRow extends DataClass
   }
 
   FinanceTransactionRow copyWith({
-    int? rowId,
     String? id,
     String? accountId,
     String? categoryId,
@@ -6215,7 +6182,6 @@ class FinanceTransactionRow extends DataClass
     bool? esRecurrente,
     Value<String?> recurrenciaConfig = const Value.absent(),
   }) => FinanceTransactionRow(
-    rowId: rowId ?? this.rowId,
     id: id ?? this.id,
     accountId: accountId ?? this.accountId,
     categoryId: categoryId ?? this.categoryId,
@@ -6230,7 +6196,6 @@ class FinanceTransactionRow extends DataClass
   );
   FinanceTransactionRow copyWithCompanion(FinanceTransactionsCompanion data) {
     return FinanceTransactionRow(
-      rowId: data.rowId.present ? data.rowId.value : this.rowId,
       id: data.id.present ? data.id.value : this.id,
       accountId: data.accountId.present ? data.accountId.value : this.accountId,
       categoryId: data.categoryId.present
@@ -6252,7 +6217,6 @@ class FinanceTransactionRow extends DataClass
   @override
   String toString() {
     return (StringBuffer('FinanceTransactionRow(')
-          ..write('rowId: $rowId, ')
           ..write('id: $id, ')
           ..write('accountId: $accountId, ')
           ..write('categoryId: $categoryId, ')
@@ -6268,7 +6232,6 @@ class FinanceTransactionRow extends DataClass
 
   @override
   int get hashCode => Object.hash(
-    rowId,
     id,
     accountId,
     categoryId,
@@ -6283,7 +6246,6 @@ class FinanceTransactionRow extends DataClass
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is FinanceTransactionRow &&
-          other.rowId == this.rowId &&
           other.id == this.id &&
           other.accountId == this.accountId &&
           other.categoryId == this.categoryId &&
@@ -6297,7 +6259,6 @@ class FinanceTransactionRow extends DataClass
 
 class FinanceTransactionsCompanion
     extends UpdateCompanion<FinanceTransactionRow> {
-  final Value<int> rowId;
   final Value<String> id;
   final Value<String> accountId;
   final Value<String> categoryId;
@@ -6309,7 +6270,6 @@ class FinanceTransactionsCompanion
   final Value<String?> recurrenciaConfig;
   final Value<int> rowid;
   const FinanceTransactionsCompanion({
-    this.rowId = const Value.absent(),
     this.id = const Value.absent(),
     this.accountId = const Value.absent(),
     this.categoryId = const Value.absent(),
@@ -6322,7 +6282,6 @@ class FinanceTransactionsCompanion
     this.rowid = const Value.absent(),
   });
   FinanceTransactionsCompanion.insert({
-    required int rowId,
     required String id,
     required String accountId,
     required String categoryId,
@@ -6333,15 +6292,13 @@ class FinanceTransactionsCompanion
     this.esRecurrente = const Value.absent(),
     this.recurrenciaConfig = const Value.absent(),
     this.rowid = const Value.absent(),
-  }) : rowId = Value(rowId),
-       id = Value(id),
+  }) : id = Value(id),
        accountId = Value(accountId),
        categoryId = Value(categoryId),
        tipo = Value(tipo),
        monto = Value(monto),
        fecha = Value(fecha);
   static Insertable<FinanceTransactionRow> custom({
-    Expression<int>? rowId,
     Expression<String>? id,
     Expression<String>? accountId,
     Expression<String>? categoryId,
@@ -6354,7 +6311,6 @@ class FinanceTransactionsCompanion
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
-      if (rowId != null) 'row_id': rowId,
       if (id != null) 'id': id,
       if (accountId != null) 'account_id': accountId,
       if (categoryId != null) 'category_id': categoryId,
@@ -6369,7 +6325,6 @@ class FinanceTransactionsCompanion
   }
 
   FinanceTransactionsCompanion copyWith({
-    Value<int>? rowId,
     Value<String>? id,
     Value<String>? accountId,
     Value<String>? categoryId,
@@ -6382,7 +6337,6 @@ class FinanceTransactionsCompanion
     Value<int>? rowid,
   }) {
     return FinanceTransactionsCompanion(
-      rowId: rowId ?? this.rowId,
       id: id ?? this.id,
       accountId: accountId ?? this.accountId,
       categoryId: categoryId ?? this.categoryId,
@@ -6399,9 +6353,6 @@ class FinanceTransactionsCompanion
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    if (rowId.present) {
-      map['row_id'] = Variable<int>(rowId.value);
-    }
     if (id.present) {
       map['id'] = Variable<String>(id.value);
     }
@@ -6438,7 +6389,6 @@ class FinanceTransactionsCompanion
   @override
   String toString() {
     return (StringBuffer('FinanceTransactionsCompanion(')
-          ..write('rowId: $rowId, ')
           ..write('id: $id, ')
           ..write('accountId: $accountId, ')
           ..write('categoryId: $categoryId, ')
@@ -10791,7 +10741,6 @@ typedef $$FinanceCategoriesTableProcessedTableManager =
     >;
 typedef $$FinanceTransactionsTableCreateCompanionBuilder =
     FinanceTransactionsCompanion Function({
-      required int rowId,
       required String id,
       required String accountId,
       required String categoryId,
@@ -10805,7 +10754,6 @@ typedef $$FinanceTransactionsTableCreateCompanionBuilder =
     });
 typedef $$FinanceTransactionsTableUpdateCompanionBuilder =
     FinanceTransactionsCompanion Function({
-      Value<int> rowId,
       Value<String> id,
       Value<String> accountId,
       Value<String> categoryId,
@@ -10859,11 +10807,6 @@ class $$FinanceTransactionsTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<int> get rowId => $composableBuilder(
-    column: $table.rowId,
-    builder: (column) => ColumnFilters(column),
-  );
-
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnFilters(column),
@@ -10937,11 +10880,6 @@ class $$FinanceTransactionsTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<int> get rowId => $composableBuilder(
-    column: $table.rowId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnOrderings(column),
@@ -11015,9 +10953,6 @@ class $$FinanceTransactionsTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<int> get rowId =>
-      $composableBuilder(column: $table.rowId, builder: (column) => column);
-
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
@@ -11108,7 +11043,6 @@ class $$FinanceTransactionsTableTableManager
               ),
           updateCompanionCallback:
               ({
-                Value<int> rowId = const Value.absent(),
                 Value<String> id = const Value.absent(),
                 Value<String> accountId = const Value.absent(),
                 Value<String> categoryId = const Value.absent(),
@@ -11120,7 +11054,6 @@ class $$FinanceTransactionsTableTableManager
                 Value<String?> recurrenciaConfig = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FinanceTransactionsCompanion(
-                rowId: rowId,
                 id: id,
                 accountId: accountId,
                 categoryId: categoryId,
@@ -11134,7 +11067,6 @@ class $$FinanceTransactionsTableTableManager
               ),
           createCompanionCallback:
               ({
-                required int rowId,
                 required String id,
                 required String accountId,
                 required String categoryId,
@@ -11146,7 +11078,6 @@ class $$FinanceTransactionsTableTableManager
                 Value<String?> recurrenciaConfig = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FinanceTransactionsCompanion.insert(
-                rowId: rowId,
                 id: id,
                 accountId: accountId,
                 categoryId: categoryId,
