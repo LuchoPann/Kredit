@@ -26,12 +26,7 @@ class ColorPickerField extends StatelessWidget {
     Color(0xFFF59E0B), // Amarillo
     Color(0xFF8B5CF6), // Morado
     Color(0xFFEC4899), // Rosa
-    Color(0xFF14B8A6), // Verde azul
-    Color(0xFFF97316), // Naranja
     Color(0xFF6B7280), // Gris
-    Color(0xFF0EA5E9), // Celeste
-    Color(0xFFD97706), // Ámbar
-    Color(0xFF10B981), // Esmeralda
   ];
 
   Future<void> _abrirCuentagotas(BuildContext context) async {
