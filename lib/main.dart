@@ -152,7 +152,7 @@ class RootScaffold extends ConsumerStatefulWidget {
 
 class _RootScaffoldState extends ConsumerState<RootScaffold> {
   final Set<int> _visitedCreditos = {0};
-  final Set<int> _visitedFinanzas = <int>{};
+  final Set<int> _visitedFinanzas = {0};
 
   @override
   void initState() {
