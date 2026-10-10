@@ -11229,6 +11229,58 @@ final class $$FinanceAccountsTableReferences
     super.$_typedResult,
   );
 
+  static MultiTypedResultKey<
+    $FinanceTransactionsTable,
+    List<FinanceTransactionRow>
+  >
+  _financeTransactionsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.financeTransactions,
+        aliasName: 'finance_accounts__id__finance_transactions__account_id',
+      );
+
+  $$FinanceTransactionsTableProcessedTableManager get financeTransactionsRefs {
+    final manager = $$FinanceTransactionsTableTableManager(
+      $_db,
+      $_db.financeTransactions,
+    ).filter((f) => f.accountId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _financeTransactionsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<
+    $FinanceTransactionsTable,
+    List<FinanceTransactionRow>
+  >
+  _transferTransactionsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.financeTransactions,
+    aliasName:
+        'finance_accounts__id__finance_transactions__transfer_to_account_id',
+  );
+
+  $$FinanceTransactionsTableProcessedTableManager get transferTransactions {
+    final manager =
+        $$FinanceTransactionsTableTableManager(
+          $_db,
+          $_db.financeTransactions,
+        ).filter(
+          (f) =>
+              f.transferToAccountId.id.sqlEquals($_itemColumn<String>('id')!),
+        );
+
+    final cache = $_typedResult.readTableOrNull(
+      _transferTransactionsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
   static MultiTypedResultKey<$FinanceTemplatesTable, List<FinanceTemplateRow>>
   _financeTemplatesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.financeTemplates,
@@ -11303,6 +11355,56 @@ class $$FinanceAccountsTableFilterComposer
     column: $table.esFavorito,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> financeTransactionsRefs(
+    Expression<bool> Function($$FinanceTransactionsTableFilterComposer f) f,
+  ) {
+    final $$FinanceTransactionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.financeTransactions,
+      getReferencedColumn: (t) => t.accountId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FinanceTransactionsTableFilterComposer(
+            $db: $db,
+            $table: $db.financeTransactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> transferTransactions(
+    Expression<bool> Function($$FinanceTransactionsTableFilterComposer f) f,
+  ) {
+    final $$FinanceTransactionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.financeTransactions,
+      getReferencedColumn: (t) => t.transferToAccountId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FinanceTransactionsTableFilterComposer(
+            $db: $db,
+            $table: $db.financeTransactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 
   Expression<bool> financeTemplatesRefs(
     Expression<bool> Function($$FinanceTemplatesTableFilterComposer f) f,
@@ -11425,6 +11527,58 @@ class $$FinanceAccountsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  Expression<T> financeTransactionsRefs<T extends Object>(
+    Expression<T> Function($$FinanceTransactionsTableAnnotationComposer a) f,
+  ) {
+    final $$FinanceTransactionsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.financeTransactions,
+          getReferencedColumn: (t) => t.accountId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$FinanceTransactionsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.financeTransactions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
+  Expression<T> transferTransactions<T extends Object>(
+    Expression<T> Function($$FinanceTransactionsTableAnnotationComposer a) f,
+  ) {
+    final $$FinanceTransactionsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.financeTransactions,
+          getReferencedColumn: (t) => t.transferToAccountId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$FinanceTransactionsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.financeTransactions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+
   Expression<T> financeTemplatesRefs<T extends Object>(
     Expression<T> Function($$FinanceTemplatesTableAnnotationComposer a) f,
   ) {
@@ -11464,7 +11618,11 @@ class $$FinanceAccountsTableTableManager
           $$FinanceAccountsTableUpdateCompanionBuilder,
           (FinanceAccountRow, $$FinanceAccountsTableReferences),
           FinanceAccountRow,
-          PrefetchHooks Function({bool financeTemplatesRefs})
+          PrefetchHooks Function({
+            bool financeTransactionsRefs,
+            bool transferTransactions,
+            bool financeTemplatesRefs,
+          })
         > {
   $$FinanceAccountsTableTableManager(
     _$AppDatabase db,
@@ -11535,38 +11693,89 @@ class $$FinanceAccountsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({financeTemplatesRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [
-                if (financeTemplatesRefs) db.financeTemplates,
-              ],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (financeTemplatesRefs)
-                    await $_getPrefetchedData<
-                      FinanceAccountRow,
-                      $FinanceAccountsTable,
-                      FinanceTemplateRow
-                    >(
-                      currentTable: table,
-                      referencedTable: $$FinanceAccountsTableReferences
-                          ._financeTemplatesRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$FinanceAccountsTableReferences(
-                            db,
-                            table,
-                            p0,
-                          ).financeTemplatesRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.libroId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({
+                financeTransactionsRefs = false,
+                transferTransactions = false,
+                financeTemplatesRefs = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (financeTransactionsRefs) db.financeTransactions,
+                    if (transferTransactions) db.financeTransactions,
+                    if (financeTemplatesRefs) db.financeTemplates,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (financeTransactionsRefs)
+                        await $_getPrefetchedData<
+                          FinanceAccountRow,
+                          $FinanceAccountsTable,
+                          FinanceTransactionRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$FinanceAccountsTableReferences
+                              ._financeTransactionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$FinanceAccountsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).financeTransactionsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.accountId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (transferTransactions)
+                        await $_getPrefetchedData<
+                          FinanceAccountRow,
+                          $FinanceAccountsTable,
+                          FinanceTransactionRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$FinanceAccountsTableReferences
+                              ._transferTransactionsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$FinanceAccountsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).transferTransactions,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.transferToAccountId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (financeTemplatesRefs)
+                        await $_getPrefetchedData<
+                          FinanceAccountRow,
+                          $FinanceAccountsTable,
+                          FinanceTemplateRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$FinanceAccountsTableReferences
+                              ._financeTemplatesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$FinanceAccountsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).financeTemplatesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.libroId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -11583,7 +11792,11 @@ typedef $$FinanceAccountsTableProcessedTableManager =
       $$FinanceAccountsTableUpdateCompanionBuilder,
       (FinanceAccountRow, $$FinanceAccountsTableReferences),
       FinanceAccountRow,
-      PrefetchHooks Function({bool financeTemplatesRefs})
+      PrefetchHooks Function({
+        bool financeTransactionsRefs,
+        bool transferTransactions,
+        bool financeTemplatesRefs,
+      })
     >;
 typedef $$FinanceCategoriesTableCreateCompanionBuilder =
     FinanceCategoriesCompanion Function({

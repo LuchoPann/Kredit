@@ -45,6 +45,7 @@ class FinanceTransactions extends Table {
   TextColumn get recurrenciaConfig => text().nullable()();
   TextColumn get personaSitio => text().nullable()();
   TextColumn get hora => text().nullable()(); // "HH:mm"
+  @ReferenceName('transferTransactions')
   TextColumn get transferToAccountId => text().nullable()
       .references(FinanceAccounts, #id, onDelete: KeyAction.setNull)();
 

@@ -114,11 +114,16 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(financeBudgets);
           }
           if (from < 14) {
-            await m.addColumn(financeAccounts, financeAccounts.esFavorito);
-            await m.addColumn(financeCategories, financeCategories.parentId);
-            await m.addColumn(financeTransactions, financeTransactions.personaSitio);
-            await m.addColumn(financeTransactions, financeTransactions.hora);
-            await m.addColumn(financeTransactions, financeTransactions.transferToAccountId);
+            if (from == 13) {
+              // Para dispositivos en v12, las tablas Finance ya se crean con
+              // el schema completo en el bloque if(from<13) de arriba, por lo
+              // que addColumn solo aplica para upgrades v13→v14.
+              await m.addColumn(financeAccounts, financeAccounts.esFavorito);
+              await m.addColumn(financeCategories, financeCategories.parentId);
+              await m.addColumn(financeTransactions, financeTransactions.personaSitio);
+              await m.addColumn(financeTransactions, financeTransactions.hora);
+              await m.addColumn(financeTransactions, financeTransactions.transferToAccountId);
+            }
             await m.createTable(financePlaces);
             await m.createTable(financeTemplates);
           }
