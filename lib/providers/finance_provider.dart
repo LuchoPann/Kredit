@@ -52,8 +52,28 @@ final finanzasFiltrosProvider = StateProvider<FinanzasFiltros>(
 // Libro activo (ID del libro seleccionado en Tab 0)
 final finanzasLibroActivoProvider = StateProvider<String?>((_) => null);
 
-// Historial completo del libro activo (sin recorte por mes: la pantalla
-// muestra todo el listado en una sola vista continua, agrupado visualmente).
+// Totales globales (sin filtros) de un libro — para el lobby
+final financeAccountSummaryProvider =
+    FutureProvider.family<({double ingresos, double gastos}), String>(
+        (ref, libroId) async {
+  final db = ref.watch(databaseProvider);
+  final rows = await db.getFinanceTransactionsByLibro(
+    libroId: libroId,
+    mes: null,
+    tipo: null,
+    ascending: true,
+  );
+  final txs = rows.map(FinanceTransaction.fromRow).toList();
+  final ingresos = txs
+      .where((t) => t.tipo == 'ingreso')
+      .fold(0.0, (sum, t) => sum + t.monto);
+  final gastos = txs
+      .where((t) => t.tipo == 'gasto')
+      .fold(0.0, (sum, t) => sum + t.monto);
+  return (ingresos: ingresos, gastos: gastos);
+});
+
+// Historial completo del libro activo (sin recorte por mes)
 final finanzasLibroTxProvider =
     FutureProvider.family<List<FinanceTransaction>, String>(
         (ref, libroId) async {
