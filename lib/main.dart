@@ -32,10 +32,9 @@ import 'providers/shared_preferences_provider.dart';
 import 'services/home_widget_service.dart';
 import 'services/notification_service.dart';
 import 'theme/app_theme.dart';
-import 'screens/finanzas/finanzas_transacciones_screen.dart';
+import 'screens/finanzas/finanzas_cuentas_screen.dart';
 import 'screens/finanzas/finanzas_presupuesto_screen.dart';
 import 'screens/finanzas/finanzas_estadisticas_screen.dart';
-import 'screens/onboarding/entorno_selection_screen.dart';
 import 'providers/entorno_provider.dart';
 
 void main() async {
@@ -312,7 +311,7 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
       StatsScreen(),
     ];
     final finanzasScreens = const [
-      FinanzasTransaccionesScreen(),
+      FinanzasCuentasScreen(),
       FinanzasPresupuestoScreen(),
       FinanzasEstadisticasScreen(),
     ];
@@ -369,85 +368,72 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
       navIndex = currentTab + 1;
     }
 
-    return SizedBox(
-      height: 80 + MediaQuery.of(context).padding.bottom,
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.topCenter,
-        children: [
-          NavigationBar(
-            selectedIndex: navIndex,
-            onDestinationSelected: (i) {
-              if (i == 2) return;
-              final tab = i > 2 ? i - 1 : i;
-              if (tab == 3) {
-                if (isCreditos) {
-                  ref.read(creditosTabProvider.notifier).state = 3;
-                } else {
-                  ref.read(finanzasTabProvider.notifier).state = 3;
-                }
-              } else {
-                if (isCreditos) {
-                  setState(() => _visitedCreditos.add(tab));
-                  ref.read(creditosTabProvider.notifier).state = tab;
-                } else {
-                  setState(() => _visitedFinanzas.add(tab));
-                  ref.read(finanzasTabProvider.notifier).state = tab;
-                }
-              }
-            },
-            destinations: isCreditos
-                ? const [
-                    NavigationDestination(icon: Icon(Icons.space_dashboard_outlined), selectedIcon: Icon(Icons.space_dashboard), label: 'Inicio'),
-                    NavigationDestination(icon: Icon(Icons.credit_card_outlined), selectedIcon: Icon(Icons.credit_card), label: 'Créditos'),
-                    NavigationDestination(icon: SizedBox.shrink(), label: ''),
-                    NavigationDestination(icon: Icon(Icons.bar_chart_outlined), selectedIcon: Icon(Icons.bar_chart), label: 'Estadísticas'),
-                    NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Cuenta'),
-                  ]
-                : const [
-                    NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Transac.'),
-                    NavigationDestination(icon: Icon(Icons.pie_chart_outline_outlined), selectedIcon: Icon(Icons.pie_chart), label: 'Presupuesto'),
-                    NavigationDestination(icon: SizedBox.shrink(), label: ''),
-                    NavigationDestination(icon: Icon(Icons.area_chart_outlined), selectedIcon: Icon(Icons.area_chart), label: 'Estadísticas'),
-                    NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Cuenta'),
-                  ],
-          ),
-          Positioned(
-            top: -20,
-            child: _SwitchEntornoButton(entorno: entorno),
-          ),
+    final cs = Theme.of(context).colorScheme;
+    // Ícono que indica el destino (a dónde irías al presionar), no el origen
+    final switchIconData = isCreditos
+        ? Icons.account_balance_wallet_outlined  // en créditos → ir a finanzas
+        : Icons.credit_card_outlined;            // en finanzas → ir a créditos
+    final switchIcon = Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: cs.primaryContainer,
+      ),
+      child: Icon(switchIconData, color: cs.onPrimaryContainer, size: 22),
+    );
+
+    return NavigationBarTheme(
+      data: NavigationBarThemeData(
+        labelTextStyle: WidgetStateProperty.all(
+          const TextStyle(fontSize: 11, fontWeight: FontWeight.w400),
+        ),
+        iconTheme: WidgetStateProperty.all(const IconThemeData(size: 22)),
+      ),
+      child: NavigationBar(
+        selectedIndex: navIndex,
+        onDestinationSelected: (i) {
+          if (i == 2) {
+            // switch entorno
+            final next = isCreditos ? Entorno.finanzas : Entorno.creditos;
+            ref.read(entornoProvider.notifier).state = next;
+            savePreferredEntorno(next);
+            return;
+          }
+          final tab = i > 2 ? i - 1 : i;
+          if (tab == 3) {
+            if (isCreditos) {
+              ref.read(creditosTabProvider.notifier).state = 3;
+            } else {
+              ref.read(finanzasTabProvider.notifier).state = 3;
+            }
+          } else {
+            if (isCreditos) {
+              setState(() => _visitedCreditos.add(tab));
+              ref.read(creditosTabProvider.notifier).state = tab;
+            } else {
+              setState(() => _visitedFinanzas.add(tab));
+              ref.read(finanzasTabProvider.notifier).state = tab;
+            }
+          }
+        },
+        destinations: [
+          if (isCreditos) ...[
+            const NavigationDestination(icon: Icon(Icons.space_dashboard_outlined), selectedIcon: Icon(Icons.space_dashboard), label: 'Inicio'),
+            const NavigationDestination(icon: Icon(Icons.credit_card_outlined), selectedIcon: Icon(Icons.credit_card), label: 'Créditos'),
+          ] else ...[
+            const NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Transac.'),
+            const NavigationDestination(icon: Icon(Icons.pie_chart_outline_outlined), selectedIcon: Icon(Icons.pie_chart), label: 'Presupuesto'),
+          ],
+          NavigationDestination(icon: switchIcon, selectedIcon: switchIcon, label: ''),
+          const NavigationDestination(icon: Icon(Icons.bar_chart_outlined), selectedIcon: Icon(Icons.bar_chart), label: 'Estadísticas'),
+          const NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Cuenta'),
         ],
       ),
     );
   }
 }
 
-class _SwitchEntornoButton extends ConsumerWidget {
-  final Entorno entorno;
-  const _SwitchEntornoButton({required this.entorno});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isCreditos = entorno == Entorno.creditos;
-    return FloatingActionButton.small(
-      heroTag: 'switch_entorno_fab',
-      tooltip: isCreditos ? 'Cambiar a Finanzas' : 'Cambiar a Créditos',
-      elevation: 4,
-      onPressed: () {
-        final next = isCreditos ? Entorno.finanzas : Entorno.creditos;
-        ref.read(entornoProvider.notifier).state = next;
-        savePreferredEntorno(next);
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(isCreditos ? Icons.account_balance_wallet_outlined : Icons.credit_card_outlined, size: 16),
-          Text(isCreditos ? 'Fin.' : 'Cré.', style: const TextStyle(fontSize: 8)),
-        ],
-      ),
-    );
-  }
-}
 
 class _TabFadeLayer extends StatelessWidget {
   final bool active;
