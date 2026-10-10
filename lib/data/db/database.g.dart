@@ -4932,6 +4932,1887 @@ class PagosRealizadosCompanion extends UpdateCompanion<PagoRealizadoRow> {
   }
 }
 
+class $FinanceAccountsTable extends FinanceAccounts
+    with TableInfo<$FinanceAccountsTable, FinanceAccountRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FinanceAccountsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nombreMeta = const VerificationMeta('nombre');
+  @override
+  late final GeneratedColumn<String> nombre = GeneratedColumn<String>(
+    'nombre',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tipoMeta = const VerificationMeta('tipo');
+  @override
+  late final GeneratedColumn<String> tipo = GeneratedColumn<String>(
+    'tipo',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _iconoMeta = const VerificationMeta('icono');
+  @override
+  late final GeneratedColumn<String> icono = GeneratedColumn<String>(
+    'icono',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
+  @override
+  late final GeneratedColumn<String> color = GeneratedColumn<String>(
+    'color',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _saldoInicialMeta = const VerificationMeta(
+    'saldoInicial',
+  );
+  @override
+  late final GeneratedColumn<double> saldoInicial = GeneratedColumn<double>(
+    'saldo_inicial',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _activaMeta = const VerificationMeta('activa');
+  @override
+  late final GeneratedColumn<bool> activa = GeneratedColumn<bool>(
+    'activa',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("activa" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _ordenMeta = const VerificationMeta('orden');
+  @override
+  late final GeneratedColumn<String> orden = GeneratedColumn<String>(
+    'orden',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('0'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    nombre,
+    tipo,
+    icono,
+    color,
+    saldoInicial,
+    activa,
+    orden,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'finance_accounts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FinanceAccountRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('nombre')) {
+      context.handle(
+        _nombreMeta,
+        nombre.isAcceptableOrUnknown(data['nombre']!, _nombreMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nombreMeta);
+    }
+    if (data.containsKey('tipo')) {
+      context.handle(
+        _tipoMeta,
+        tipo.isAcceptableOrUnknown(data['tipo']!, _tipoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tipoMeta);
+    }
+    if (data.containsKey('icono')) {
+      context.handle(
+        _iconoMeta,
+        icono.isAcceptableOrUnknown(data['icono']!, _iconoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_iconoMeta);
+    }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_colorMeta);
+    }
+    if (data.containsKey('saldo_inicial')) {
+      context.handle(
+        _saldoInicialMeta,
+        saldoInicial.isAcceptableOrUnknown(
+          data['saldo_inicial']!,
+          _saldoInicialMeta,
+        ),
+      );
+    }
+    if (data.containsKey('activa')) {
+      context.handle(
+        _activaMeta,
+        activa.isAcceptableOrUnknown(data['activa']!, _activaMeta),
+      );
+    }
+    if (data.containsKey('orden')) {
+      context.handle(
+        _ordenMeta,
+        orden.isAcceptableOrUnknown(data['orden']!, _ordenMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  FinanceAccountRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FinanceAccountRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      nombre: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nombre'],
+      )!,
+      tipo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tipo'],
+      )!,
+      icono: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icono'],
+      )!,
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}color'],
+      )!,
+      saldoInicial: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}saldo_inicial'],
+      )!,
+      activa: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}activa'],
+      )!,
+      orden: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}orden'],
+      )!,
+    );
+  }
+
+  @override
+  $FinanceAccountsTable createAlias(String alias) {
+    return $FinanceAccountsTable(attachedDatabase, alias);
+  }
+}
+
+class FinanceAccountRow extends DataClass
+    implements Insertable<FinanceAccountRow> {
+  final String id;
+  final String nombre;
+  final String tipo;
+  final String icono;
+  final String color;
+  final double saldoInicial;
+  final bool activa;
+  final String orden;
+  const FinanceAccountRow({
+    required this.id,
+    required this.nombre,
+    required this.tipo,
+    required this.icono,
+    required this.color,
+    required this.saldoInicial,
+    required this.activa,
+    required this.orden,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['nombre'] = Variable<String>(nombre);
+    map['tipo'] = Variable<String>(tipo);
+    map['icono'] = Variable<String>(icono);
+    map['color'] = Variable<String>(color);
+    map['saldo_inicial'] = Variable<double>(saldoInicial);
+    map['activa'] = Variable<bool>(activa);
+    map['orden'] = Variable<String>(orden);
+    return map;
+  }
+
+  FinanceAccountsCompanion toCompanion(bool nullToAbsent) {
+    return FinanceAccountsCompanion(
+      id: Value(id),
+      nombre: Value(nombre),
+      tipo: Value(tipo),
+      icono: Value(icono),
+      color: Value(color),
+      saldoInicial: Value(saldoInicial),
+      activa: Value(activa),
+      orden: Value(orden),
+    );
+  }
+
+  factory FinanceAccountRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FinanceAccountRow(
+      id: serializer.fromJson<String>(json['id']),
+      nombre: serializer.fromJson<String>(json['nombre']),
+      tipo: serializer.fromJson<String>(json['tipo']),
+      icono: serializer.fromJson<String>(json['icono']),
+      color: serializer.fromJson<String>(json['color']),
+      saldoInicial: serializer.fromJson<double>(json['saldoInicial']),
+      activa: serializer.fromJson<bool>(json['activa']),
+      orden: serializer.fromJson<String>(json['orden']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'nombre': serializer.toJson<String>(nombre),
+      'tipo': serializer.toJson<String>(tipo),
+      'icono': serializer.toJson<String>(icono),
+      'color': serializer.toJson<String>(color),
+      'saldoInicial': serializer.toJson<double>(saldoInicial),
+      'activa': serializer.toJson<bool>(activa),
+      'orden': serializer.toJson<String>(orden),
+    };
+  }
+
+  FinanceAccountRow copyWith({
+    String? id,
+    String? nombre,
+    String? tipo,
+    String? icono,
+    String? color,
+    double? saldoInicial,
+    bool? activa,
+    String? orden,
+  }) => FinanceAccountRow(
+    id: id ?? this.id,
+    nombre: nombre ?? this.nombre,
+    tipo: tipo ?? this.tipo,
+    icono: icono ?? this.icono,
+    color: color ?? this.color,
+    saldoInicial: saldoInicial ?? this.saldoInicial,
+    activa: activa ?? this.activa,
+    orden: orden ?? this.orden,
+  );
+  FinanceAccountRow copyWithCompanion(FinanceAccountsCompanion data) {
+    return FinanceAccountRow(
+      id: data.id.present ? data.id.value : this.id,
+      nombre: data.nombre.present ? data.nombre.value : this.nombre,
+      tipo: data.tipo.present ? data.tipo.value : this.tipo,
+      icono: data.icono.present ? data.icono.value : this.icono,
+      color: data.color.present ? data.color.value : this.color,
+      saldoInicial: data.saldoInicial.present
+          ? data.saldoInicial.value
+          : this.saldoInicial,
+      activa: data.activa.present ? data.activa.value : this.activa,
+      orden: data.orden.present ? data.orden.value : this.orden,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FinanceAccountRow(')
+          ..write('id: $id, ')
+          ..write('nombre: $nombre, ')
+          ..write('tipo: $tipo, ')
+          ..write('icono: $icono, ')
+          ..write('color: $color, ')
+          ..write('saldoInicial: $saldoInicial, ')
+          ..write('activa: $activa, ')
+          ..write('orden: $orden')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, nombre, tipo, icono, color, saldoInicial, activa, orden);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FinanceAccountRow &&
+          other.id == this.id &&
+          other.nombre == this.nombre &&
+          other.tipo == this.tipo &&
+          other.icono == this.icono &&
+          other.color == this.color &&
+          other.saldoInicial == this.saldoInicial &&
+          other.activa == this.activa &&
+          other.orden == this.orden);
+}
+
+class FinanceAccountsCompanion extends UpdateCompanion<FinanceAccountRow> {
+  final Value<String> id;
+  final Value<String> nombre;
+  final Value<String> tipo;
+  final Value<String> icono;
+  final Value<String> color;
+  final Value<double> saldoInicial;
+  final Value<bool> activa;
+  final Value<String> orden;
+  final Value<int> rowid;
+  const FinanceAccountsCompanion({
+    this.id = const Value.absent(),
+    this.nombre = const Value.absent(),
+    this.tipo = const Value.absent(),
+    this.icono = const Value.absent(),
+    this.color = const Value.absent(),
+    this.saldoInicial = const Value.absent(),
+    this.activa = const Value.absent(),
+    this.orden = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  FinanceAccountsCompanion.insert({
+    required String id,
+    required String nombre,
+    required String tipo,
+    required String icono,
+    required String color,
+    this.saldoInicial = const Value.absent(),
+    this.activa = const Value.absent(),
+    this.orden = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       nombre = Value(nombre),
+       tipo = Value(tipo),
+       icono = Value(icono),
+       color = Value(color);
+  static Insertable<FinanceAccountRow> custom({
+    Expression<String>? id,
+    Expression<String>? nombre,
+    Expression<String>? tipo,
+    Expression<String>? icono,
+    Expression<String>? color,
+    Expression<double>? saldoInicial,
+    Expression<bool>? activa,
+    Expression<String>? orden,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (nombre != null) 'nombre': nombre,
+      if (tipo != null) 'tipo': tipo,
+      if (icono != null) 'icono': icono,
+      if (color != null) 'color': color,
+      if (saldoInicial != null) 'saldo_inicial': saldoInicial,
+      if (activa != null) 'activa': activa,
+      if (orden != null) 'orden': orden,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  FinanceAccountsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? nombre,
+    Value<String>? tipo,
+    Value<String>? icono,
+    Value<String>? color,
+    Value<double>? saldoInicial,
+    Value<bool>? activa,
+    Value<String>? orden,
+    Value<int>? rowid,
+  }) {
+    return FinanceAccountsCompanion(
+      id: id ?? this.id,
+      nombre: nombre ?? this.nombre,
+      tipo: tipo ?? this.tipo,
+      icono: icono ?? this.icono,
+      color: color ?? this.color,
+      saldoInicial: saldoInicial ?? this.saldoInicial,
+      activa: activa ?? this.activa,
+      orden: orden ?? this.orden,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (nombre.present) {
+      map['nombre'] = Variable<String>(nombre.value);
+    }
+    if (tipo.present) {
+      map['tipo'] = Variable<String>(tipo.value);
+    }
+    if (icono.present) {
+      map['icono'] = Variable<String>(icono.value);
+    }
+    if (color.present) {
+      map['color'] = Variable<String>(color.value);
+    }
+    if (saldoInicial.present) {
+      map['saldo_inicial'] = Variable<double>(saldoInicial.value);
+    }
+    if (activa.present) {
+      map['activa'] = Variable<bool>(activa.value);
+    }
+    if (orden.present) {
+      map['orden'] = Variable<String>(orden.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FinanceAccountsCompanion(')
+          ..write('id: $id, ')
+          ..write('nombre: $nombre, ')
+          ..write('tipo: $tipo, ')
+          ..write('icono: $icono, ')
+          ..write('color: $color, ')
+          ..write('saldoInicial: $saldoInicial, ')
+          ..write('activa: $activa, ')
+          ..write('orden: $orden, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $FinanceCategoriesTable extends FinanceCategories
+    with TableInfo<$FinanceCategoriesTable, FinanceCategoryRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FinanceCategoriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nombreMeta = const VerificationMeta('nombre');
+  @override
+  late final GeneratedColumn<String> nombre = GeneratedColumn<String>(
+    'nombre',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _iconoMeta = const VerificationMeta('icono');
+  @override
+  late final GeneratedColumn<String> icono = GeneratedColumn<String>(
+    'icono',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
+  @override
+  late final GeneratedColumn<String> color = GeneratedColumn<String>(
+    'color',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tipoMeta = const VerificationMeta('tipo');
+  @override
+  late final GeneratedColumn<String> tipo = GeneratedColumn<String>(
+    'tipo',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _archivadaMeta = const VerificationMeta(
+    'archivada',
+  );
+  @override
+  late final GeneratedColumn<bool> archivada = GeneratedColumn<bool>(
+    'archivada',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("archivada" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    nombre,
+    icono,
+    color,
+    tipo,
+    archivada,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'finance_categories';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FinanceCategoryRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('nombre')) {
+      context.handle(
+        _nombreMeta,
+        nombre.isAcceptableOrUnknown(data['nombre']!, _nombreMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nombreMeta);
+    }
+    if (data.containsKey('icono')) {
+      context.handle(
+        _iconoMeta,
+        icono.isAcceptableOrUnknown(data['icono']!, _iconoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_iconoMeta);
+    }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_colorMeta);
+    }
+    if (data.containsKey('tipo')) {
+      context.handle(
+        _tipoMeta,
+        tipo.isAcceptableOrUnknown(data['tipo']!, _tipoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tipoMeta);
+    }
+    if (data.containsKey('archivada')) {
+      context.handle(
+        _archivadaMeta,
+        archivada.isAcceptableOrUnknown(data['archivada']!, _archivadaMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  FinanceCategoryRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FinanceCategoryRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      nombre: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nombre'],
+      )!,
+      icono: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}icono'],
+      )!,
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}color'],
+      )!,
+      tipo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tipo'],
+      )!,
+      archivada: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}archivada'],
+      )!,
+    );
+  }
+
+  @override
+  $FinanceCategoriesTable createAlias(String alias) {
+    return $FinanceCategoriesTable(attachedDatabase, alias);
+  }
+}
+
+class FinanceCategoryRow extends DataClass
+    implements Insertable<FinanceCategoryRow> {
+  final String id;
+  final String nombre;
+  final String icono;
+  final String color;
+  final String tipo;
+  final bool archivada;
+  const FinanceCategoryRow({
+    required this.id,
+    required this.nombre,
+    required this.icono,
+    required this.color,
+    required this.tipo,
+    required this.archivada,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['nombre'] = Variable<String>(nombre);
+    map['icono'] = Variable<String>(icono);
+    map['color'] = Variable<String>(color);
+    map['tipo'] = Variable<String>(tipo);
+    map['archivada'] = Variable<bool>(archivada);
+    return map;
+  }
+
+  FinanceCategoriesCompanion toCompanion(bool nullToAbsent) {
+    return FinanceCategoriesCompanion(
+      id: Value(id),
+      nombre: Value(nombre),
+      icono: Value(icono),
+      color: Value(color),
+      tipo: Value(tipo),
+      archivada: Value(archivada),
+    );
+  }
+
+  factory FinanceCategoryRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FinanceCategoryRow(
+      id: serializer.fromJson<String>(json['id']),
+      nombre: serializer.fromJson<String>(json['nombre']),
+      icono: serializer.fromJson<String>(json['icono']),
+      color: serializer.fromJson<String>(json['color']),
+      tipo: serializer.fromJson<String>(json['tipo']),
+      archivada: serializer.fromJson<bool>(json['archivada']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'nombre': serializer.toJson<String>(nombre),
+      'icono': serializer.toJson<String>(icono),
+      'color': serializer.toJson<String>(color),
+      'tipo': serializer.toJson<String>(tipo),
+      'archivada': serializer.toJson<bool>(archivada),
+    };
+  }
+
+  FinanceCategoryRow copyWith({
+    String? id,
+    String? nombre,
+    String? icono,
+    String? color,
+    String? tipo,
+    bool? archivada,
+  }) => FinanceCategoryRow(
+    id: id ?? this.id,
+    nombre: nombre ?? this.nombre,
+    icono: icono ?? this.icono,
+    color: color ?? this.color,
+    tipo: tipo ?? this.tipo,
+    archivada: archivada ?? this.archivada,
+  );
+  FinanceCategoryRow copyWithCompanion(FinanceCategoriesCompanion data) {
+    return FinanceCategoryRow(
+      id: data.id.present ? data.id.value : this.id,
+      nombre: data.nombre.present ? data.nombre.value : this.nombre,
+      icono: data.icono.present ? data.icono.value : this.icono,
+      color: data.color.present ? data.color.value : this.color,
+      tipo: data.tipo.present ? data.tipo.value : this.tipo,
+      archivada: data.archivada.present ? data.archivada.value : this.archivada,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FinanceCategoryRow(')
+          ..write('id: $id, ')
+          ..write('nombre: $nombre, ')
+          ..write('icono: $icono, ')
+          ..write('color: $color, ')
+          ..write('tipo: $tipo, ')
+          ..write('archivada: $archivada')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, nombre, icono, color, tipo, archivada);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FinanceCategoryRow &&
+          other.id == this.id &&
+          other.nombre == this.nombre &&
+          other.icono == this.icono &&
+          other.color == this.color &&
+          other.tipo == this.tipo &&
+          other.archivada == this.archivada);
+}
+
+class FinanceCategoriesCompanion extends UpdateCompanion<FinanceCategoryRow> {
+  final Value<String> id;
+  final Value<String> nombre;
+  final Value<String> icono;
+  final Value<String> color;
+  final Value<String> tipo;
+  final Value<bool> archivada;
+  final Value<int> rowid;
+  const FinanceCategoriesCompanion({
+    this.id = const Value.absent(),
+    this.nombre = const Value.absent(),
+    this.icono = const Value.absent(),
+    this.color = const Value.absent(),
+    this.tipo = const Value.absent(),
+    this.archivada = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  FinanceCategoriesCompanion.insert({
+    required String id,
+    required String nombre,
+    required String icono,
+    required String color,
+    required String tipo,
+    this.archivada = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       nombre = Value(nombre),
+       icono = Value(icono),
+       color = Value(color),
+       tipo = Value(tipo);
+  static Insertable<FinanceCategoryRow> custom({
+    Expression<String>? id,
+    Expression<String>? nombre,
+    Expression<String>? icono,
+    Expression<String>? color,
+    Expression<String>? tipo,
+    Expression<bool>? archivada,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (nombre != null) 'nombre': nombre,
+      if (icono != null) 'icono': icono,
+      if (color != null) 'color': color,
+      if (tipo != null) 'tipo': tipo,
+      if (archivada != null) 'archivada': archivada,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  FinanceCategoriesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? nombre,
+    Value<String>? icono,
+    Value<String>? color,
+    Value<String>? tipo,
+    Value<bool>? archivada,
+    Value<int>? rowid,
+  }) {
+    return FinanceCategoriesCompanion(
+      id: id ?? this.id,
+      nombre: nombre ?? this.nombre,
+      icono: icono ?? this.icono,
+      color: color ?? this.color,
+      tipo: tipo ?? this.tipo,
+      archivada: archivada ?? this.archivada,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (nombre.present) {
+      map['nombre'] = Variable<String>(nombre.value);
+    }
+    if (icono.present) {
+      map['icono'] = Variable<String>(icono.value);
+    }
+    if (color.present) {
+      map['color'] = Variable<String>(color.value);
+    }
+    if (tipo.present) {
+      map['tipo'] = Variable<String>(tipo.value);
+    }
+    if (archivada.present) {
+      map['archivada'] = Variable<bool>(archivada.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FinanceCategoriesCompanion(')
+          ..write('id: $id, ')
+          ..write('nombre: $nombre, ')
+          ..write('icono: $icono, ')
+          ..write('color: $color, ')
+          ..write('tipo: $tipo, ')
+          ..write('archivada: $archivada, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $FinanceTransactionsTable extends FinanceTransactions
+    with TableInfo<$FinanceTransactionsTable, FinanceTransactionRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FinanceTransactionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _rowIdMeta = const VerificationMeta('rowId');
+  @override
+  late final GeneratedColumn<int> rowId = GeneratedColumn<int>(
+    'row_id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _accountIdMeta = const VerificationMeta(
+    'accountId',
+  );
+  @override
+  late final GeneratedColumn<String> accountId = GeneratedColumn<String>(
+    'account_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES finance_accounts (id) ON DELETE RESTRICT',
+    ),
+  );
+  static const VerificationMeta _categoryIdMeta = const VerificationMeta(
+    'categoryId',
+  );
+  @override
+  late final GeneratedColumn<String> categoryId = GeneratedColumn<String>(
+    'category_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tipoMeta = const VerificationMeta('tipo');
+  @override
+  late final GeneratedColumn<String> tipo = GeneratedColumn<String>(
+    'tipo',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _montoMeta = const VerificationMeta('monto');
+  @override
+  late final GeneratedColumn<double> monto = GeneratedColumn<double>(
+    'monto',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fechaMeta = const VerificationMeta('fecha');
+  @override
+  late final GeneratedColumn<String> fecha = GeneratedColumn<String>(
+    'fecha',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _notaMeta = const VerificationMeta('nota');
+  @override
+  late final GeneratedColumn<String> nota = GeneratedColumn<String>(
+    'nota',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _esRecurrenteMeta = const VerificationMeta(
+    'esRecurrente',
+  );
+  @override
+  late final GeneratedColumn<bool> esRecurrente = GeneratedColumn<bool>(
+    'es_recurrente',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("es_recurrente" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _recurrenciaConfigMeta = const VerificationMeta(
+    'recurrenciaConfig',
+  );
+  @override
+  late final GeneratedColumn<String> recurrenciaConfig =
+      GeneratedColumn<String>(
+        'recurrencia_config',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    rowId,
+    id,
+    accountId,
+    categoryId,
+    tipo,
+    monto,
+    fecha,
+    nota,
+    esRecurrente,
+    recurrenciaConfig,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'finance_transactions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FinanceTransactionRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('row_id')) {
+      context.handle(
+        _rowIdMeta,
+        rowId.isAcceptableOrUnknown(data['row_id']!, _rowIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_rowIdMeta);
+    }
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('account_id')) {
+      context.handle(
+        _accountIdMeta,
+        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_accountIdMeta);
+    }
+    if (data.containsKey('category_id')) {
+      context.handle(
+        _categoryIdMeta,
+        categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryIdMeta);
+    }
+    if (data.containsKey('tipo')) {
+      context.handle(
+        _tipoMeta,
+        tipo.isAcceptableOrUnknown(data['tipo']!, _tipoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tipoMeta);
+    }
+    if (data.containsKey('monto')) {
+      context.handle(
+        _montoMeta,
+        monto.isAcceptableOrUnknown(data['monto']!, _montoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_montoMeta);
+    }
+    if (data.containsKey('fecha')) {
+      context.handle(
+        _fechaMeta,
+        fecha.isAcceptableOrUnknown(data['fecha']!, _fechaMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fechaMeta);
+    }
+    if (data.containsKey('nota')) {
+      context.handle(
+        _notaMeta,
+        nota.isAcceptableOrUnknown(data['nota']!, _notaMeta),
+      );
+    }
+    if (data.containsKey('es_recurrente')) {
+      context.handle(
+        _esRecurrenteMeta,
+        esRecurrente.isAcceptableOrUnknown(
+          data['es_recurrente']!,
+          _esRecurrenteMeta,
+        ),
+      );
+    }
+    if (data.containsKey('recurrencia_config')) {
+      context.handle(
+        _recurrenciaConfigMeta,
+        recurrenciaConfig.isAcceptableOrUnknown(
+          data['recurrencia_config']!,
+          _recurrenciaConfigMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  FinanceTransactionRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FinanceTransactionRow(
+      rowId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}row_id'],
+      )!,
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      accountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}account_id'],
+      )!,
+      categoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category_id'],
+      )!,
+      tipo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tipo'],
+      )!,
+      monto: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}monto'],
+      )!,
+      fecha: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}fecha'],
+      )!,
+      nota: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nota'],
+      )!,
+      esRecurrente: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}es_recurrente'],
+      )!,
+      recurrenciaConfig: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recurrencia_config'],
+      ),
+    );
+  }
+
+  @override
+  $FinanceTransactionsTable createAlias(String alias) {
+    return $FinanceTransactionsTable(attachedDatabase, alias);
+  }
+}
+
+class FinanceTransactionRow extends DataClass
+    implements Insertable<FinanceTransactionRow> {
+  final int rowId;
+  final String id;
+  final String accountId;
+  final String categoryId;
+  final String tipo;
+  final double monto;
+  final String fecha;
+  final String nota;
+  final bool esRecurrente;
+  final String? recurrenciaConfig;
+  const FinanceTransactionRow({
+    required this.rowId,
+    required this.id,
+    required this.accountId,
+    required this.categoryId,
+    required this.tipo,
+    required this.monto,
+    required this.fecha,
+    required this.nota,
+    required this.esRecurrente,
+    this.recurrenciaConfig,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['row_id'] = Variable<int>(rowId);
+    map['id'] = Variable<String>(id);
+    map['account_id'] = Variable<String>(accountId);
+    map['category_id'] = Variable<String>(categoryId);
+    map['tipo'] = Variable<String>(tipo);
+    map['monto'] = Variable<double>(monto);
+    map['fecha'] = Variable<String>(fecha);
+    map['nota'] = Variable<String>(nota);
+    map['es_recurrente'] = Variable<bool>(esRecurrente);
+    if (!nullToAbsent || recurrenciaConfig != null) {
+      map['recurrencia_config'] = Variable<String>(recurrenciaConfig);
+    }
+    return map;
+  }
+
+  FinanceTransactionsCompanion toCompanion(bool nullToAbsent) {
+    return FinanceTransactionsCompanion(
+      rowId: Value(rowId),
+      id: Value(id),
+      accountId: Value(accountId),
+      categoryId: Value(categoryId),
+      tipo: Value(tipo),
+      monto: Value(monto),
+      fecha: Value(fecha),
+      nota: Value(nota),
+      esRecurrente: Value(esRecurrente),
+      recurrenciaConfig: recurrenciaConfig == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recurrenciaConfig),
+    );
+  }
+
+  factory FinanceTransactionRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FinanceTransactionRow(
+      rowId: serializer.fromJson<int>(json['rowId']),
+      id: serializer.fromJson<String>(json['id']),
+      accountId: serializer.fromJson<String>(json['accountId']),
+      categoryId: serializer.fromJson<String>(json['categoryId']),
+      tipo: serializer.fromJson<String>(json['tipo']),
+      monto: serializer.fromJson<double>(json['monto']),
+      fecha: serializer.fromJson<String>(json['fecha']),
+      nota: serializer.fromJson<String>(json['nota']),
+      esRecurrente: serializer.fromJson<bool>(json['esRecurrente']),
+      recurrenciaConfig: serializer.fromJson<String?>(
+        json['recurrenciaConfig'],
+      ),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'rowId': serializer.toJson<int>(rowId),
+      'id': serializer.toJson<String>(id),
+      'accountId': serializer.toJson<String>(accountId),
+      'categoryId': serializer.toJson<String>(categoryId),
+      'tipo': serializer.toJson<String>(tipo),
+      'monto': serializer.toJson<double>(monto),
+      'fecha': serializer.toJson<String>(fecha),
+      'nota': serializer.toJson<String>(nota),
+      'esRecurrente': serializer.toJson<bool>(esRecurrente),
+      'recurrenciaConfig': serializer.toJson<String?>(recurrenciaConfig),
+    };
+  }
+
+  FinanceTransactionRow copyWith({
+    int? rowId,
+    String? id,
+    String? accountId,
+    String? categoryId,
+    String? tipo,
+    double? monto,
+    String? fecha,
+    String? nota,
+    bool? esRecurrente,
+    Value<String?> recurrenciaConfig = const Value.absent(),
+  }) => FinanceTransactionRow(
+    rowId: rowId ?? this.rowId,
+    id: id ?? this.id,
+    accountId: accountId ?? this.accountId,
+    categoryId: categoryId ?? this.categoryId,
+    tipo: tipo ?? this.tipo,
+    monto: monto ?? this.monto,
+    fecha: fecha ?? this.fecha,
+    nota: nota ?? this.nota,
+    esRecurrente: esRecurrente ?? this.esRecurrente,
+    recurrenciaConfig: recurrenciaConfig.present
+        ? recurrenciaConfig.value
+        : this.recurrenciaConfig,
+  );
+  FinanceTransactionRow copyWithCompanion(FinanceTransactionsCompanion data) {
+    return FinanceTransactionRow(
+      rowId: data.rowId.present ? data.rowId.value : this.rowId,
+      id: data.id.present ? data.id.value : this.id,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
+      categoryId: data.categoryId.present
+          ? data.categoryId.value
+          : this.categoryId,
+      tipo: data.tipo.present ? data.tipo.value : this.tipo,
+      monto: data.monto.present ? data.monto.value : this.monto,
+      fecha: data.fecha.present ? data.fecha.value : this.fecha,
+      nota: data.nota.present ? data.nota.value : this.nota,
+      esRecurrente: data.esRecurrente.present
+          ? data.esRecurrente.value
+          : this.esRecurrente,
+      recurrenciaConfig: data.recurrenciaConfig.present
+          ? data.recurrenciaConfig.value
+          : this.recurrenciaConfig,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FinanceTransactionRow(')
+          ..write('rowId: $rowId, ')
+          ..write('id: $id, ')
+          ..write('accountId: $accountId, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('tipo: $tipo, ')
+          ..write('monto: $monto, ')
+          ..write('fecha: $fecha, ')
+          ..write('nota: $nota, ')
+          ..write('esRecurrente: $esRecurrente, ')
+          ..write('recurrenciaConfig: $recurrenciaConfig')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    rowId,
+    id,
+    accountId,
+    categoryId,
+    tipo,
+    monto,
+    fecha,
+    nota,
+    esRecurrente,
+    recurrenciaConfig,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FinanceTransactionRow &&
+          other.rowId == this.rowId &&
+          other.id == this.id &&
+          other.accountId == this.accountId &&
+          other.categoryId == this.categoryId &&
+          other.tipo == this.tipo &&
+          other.monto == this.monto &&
+          other.fecha == this.fecha &&
+          other.nota == this.nota &&
+          other.esRecurrente == this.esRecurrente &&
+          other.recurrenciaConfig == this.recurrenciaConfig);
+}
+
+class FinanceTransactionsCompanion
+    extends UpdateCompanion<FinanceTransactionRow> {
+  final Value<int> rowId;
+  final Value<String> id;
+  final Value<String> accountId;
+  final Value<String> categoryId;
+  final Value<String> tipo;
+  final Value<double> monto;
+  final Value<String> fecha;
+  final Value<String> nota;
+  final Value<bool> esRecurrente;
+  final Value<String?> recurrenciaConfig;
+  final Value<int> rowid;
+  const FinanceTransactionsCompanion({
+    this.rowId = const Value.absent(),
+    this.id = const Value.absent(),
+    this.accountId = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    this.tipo = const Value.absent(),
+    this.monto = const Value.absent(),
+    this.fecha = const Value.absent(),
+    this.nota = const Value.absent(),
+    this.esRecurrente = const Value.absent(),
+    this.recurrenciaConfig = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  FinanceTransactionsCompanion.insert({
+    required int rowId,
+    required String id,
+    required String accountId,
+    required String categoryId,
+    required String tipo,
+    required double monto,
+    required String fecha,
+    this.nota = const Value.absent(),
+    this.esRecurrente = const Value.absent(),
+    this.recurrenciaConfig = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : rowId = Value(rowId),
+       id = Value(id),
+       accountId = Value(accountId),
+       categoryId = Value(categoryId),
+       tipo = Value(tipo),
+       monto = Value(monto),
+       fecha = Value(fecha);
+  static Insertable<FinanceTransactionRow> custom({
+    Expression<int>? rowId,
+    Expression<String>? id,
+    Expression<String>? accountId,
+    Expression<String>? categoryId,
+    Expression<String>? tipo,
+    Expression<double>? monto,
+    Expression<String>? fecha,
+    Expression<String>? nota,
+    Expression<bool>? esRecurrente,
+    Expression<String>? recurrenciaConfig,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (rowId != null) 'row_id': rowId,
+      if (id != null) 'id': id,
+      if (accountId != null) 'account_id': accountId,
+      if (categoryId != null) 'category_id': categoryId,
+      if (tipo != null) 'tipo': tipo,
+      if (monto != null) 'monto': monto,
+      if (fecha != null) 'fecha': fecha,
+      if (nota != null) 'nota': nota,
+      if (esRecurrente != null) 'es_recurrente': esRecurrente,
+      if (recurrenciaConfig != null) 'recurrencia_config': recurrenciaConfig,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  FinanceTransactionsCompanion copyWith({
+    Value<int>? rowId,
+    Value<String>? id,
+    Value<String>? accountId,
+    Value<String>? categoryId,
+    Value<String>? tipo,
+    Value<double>? monto,
+    Value<String>? fecha,
+    Value<String>? nota,
+    Value<bool>? esRecurrente,
+    Value<String?>? recurrenciaConfig,
+    Value<int>? rowid,
+  }) {
+    return FinanceTransactionsCompanion(
+      rowId: rowId ?? this.rowId,
+      id: id ?? this.id,
+      accountId: accountId ?? this.accountId,
+      categoryId: categoryId ?? this.categoryId,
+      tipo: tipo ?? this.tipo,
+      monto: monto ?? this.monto,
+      fecha: fecha ?? this.fecha,
+      nota: nota ?? this.nota,
+      esRecurrente: esRecurrente ?? this.esRecurrente,
+      recurrenciaConfig: recurrenciaConfig ?? this.recurrenciaConfig,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (rowId.present) {
+      map['row_id'] = Variable<int>(rowId.value);
+    }
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (accountId.present) {
+      map['account_id'] = Variable<String>(accountId.value);
+    }
+    if (categoryId.present) {
+      map['category_id'] = Variable<String>(categoryId.value);
+    }
+    if (tipo.present) {
+      map['tipo'] = Variable<String>(tipo.value);
+    }
+    if (monto.present) {
+      map['monto'] = Variable<double>(monto.value);
+    }
+    if (fecha.present) {
+      map['fecha'] = Variable<String>(fecha.value);
+    }
+    if (nota.present) {
+      map['nota'] = Variable<String>(nota.value);
+    }
+    if (esRecurrente.present) {
+      map['es_recurrente'] = Variable<bool>(esRecurrente.value);
+    }
+    if (recurrenciaConfig.present) {
+      map['recurrencia_config'] = Variable<String>(recurrenciaConfig.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FinanceTransactionsCompanion(')
+          ..write('rowId: $rowId, ')
+          ..write('id: $id, ')
+          ..write('accountId: $accountId, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('tipo: $tipo, ')
+          ..write('monto: $monto, ')
+          ..write('fecha: $fecha, ')
+          ..write('nota: $nota, ')
+          ..write('esRecurrente: $esRecurrente, ')
+          ..write('recurrenciaConfig: $recurrenciaConfig, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $FinanceBudgetsTable extends FinanceBudgets
+    with TableInfo<$FinanceBudgetsTable, FinanceBudgetRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FinanceBudgetsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _rowIdMeta = const VerificationMeta('rowId');
+  @override
+  late final GeneratedColumn<int> rowId = GeneratedColumn<int>(
+    'row_id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _categoryIdMeta = const VerificationMeta(
+    'categoryId',
+  );
+  @override
+  late final GeneratedColumn<String> categoryId = GeneratedColumn<String>(
+    'category_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _anioMeta = const VerificationMeta('anio');
+  @override
+  late final GeneratedColumn<int> anio = GeneratedColumn<int>(
+    'anio',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _mesMeta = const VerificationMeta('mes');
+  @override
+  late final GeneratedColumn<int> mes = GeneratedColumn<int>(
+    'mes',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _montoLimiteMeta = const VerificationMeta(
+    'montoLimite',
+  );
+  @override
+  late final GeneratedColumn<double> montoLimite = GeneratedColumn<double>(
+    'monto_limite',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    rowId,
+    categoryId,
+    anio,
+    mes,
+    montoLimite,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'finance_budgets';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FinanceBudgetRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('row_id')) {
+      context.handle(
+        _rowIdMeta,
+        rowId.isAcceptableOrUnknown(data['row_id']!, _rowIdMeta),
+      );
+    }
+    if (data.containsKey('category_id')) {
+      context.handle(
+        _categoryIdMeta,
+        categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryIdMeta);
+    }
+    if (data.containsKey('anio')) {
+      context.handle(
+        _anioMeta,
+        anio.isAcceptableOrUnknown(data['anio']!, _anioMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_anioMeta);
+    }
+    if (data.containsKey('mes')) {
+      context.handle(
+        _mesMeta,
+        mes.isAcceptableOrUnknown(data['mes']!, _mesMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_mesMeta);
+    }
+    if (data.containsKey('monto_limite')) {
+      context.handle(
+        _montoLimiteMeta,
+        montoLimite.isAcceptableOrUnknown(
+          data['monto_limite']!,
+          _montoLimiteMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_montoLimiteMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {rowId};
+  @override
+  FinanceBudgetRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FinanceBudgetRow(
+      rowId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}row_id'],
+      )!,
+      categoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category_id'],
+      )!,
+      anio: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}anio'],
+      )!,
+      mes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}mes'],
+      )!,
+      montoLimite: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}monto_limite'],
+      )!,
+    );
+  }
+
+  @override
+  $FinanceBudgetsTable createAlias(String alias) {
+    return $FinanceBudgetsTable(attachedDatabase, alias);
+  }
+}
+
+class FinanceBudgetRow extends DataClass
+    implements Insertable<FinanceBudgetRow> {
+  final int rowId;
+  final String categoryId;
+  final int anio;
+  final int mes;
+  final double montoLimite;
+  const FinanceBudgetRow({
+    required this.rowId,
+    required this.categoryId,
+    required this.anio,
+    required this.mes,
+    required this.montoLimite,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['row_id'] = Variable<int>(rowId);
+    map['category_id'] = Variable<String>(categoryId);
+    map['anio'] = Variable<int>(anio);
+    map['mes'] = Variable<int>(mes);
+    map['monto_limite'] = Variable<double>(montoLimite);
+    return map;
+  }
+
+  FinanceBudgetsCompanion toCompanion(bool nullToAbsent) {
+    return FinanceBudgetsCompanion(
+      rowId: Value(rowId),
+      categoryId: Value(categoryId),
+      anio: Value(anio),
+      mes: Value(mes),
+      montoLimite: Value(montoLimite),
+    );
+  }
+
+  factory FinanceBudgetRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FinanceBudgetRow(
+      rowId: serializer.fromJson<int>(json['rowId']),
+      categoryId: serializer.fromJson<String>(json['categoryId']),
+      anio: serializer.fromJson<int>(json['anio']),
+      mes: serializer.fromJson<int>(json['mes']),
+      montoLimite: serializer.fromJson<double>(json['montoLimite']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'rowId': serializer.toJson<int>(rowId),
+      'categoryId': serializer.toJson<String>(categoryId),
+      'anio': serializer.toJson<int>(anio),
+      'mes': serializer.toJson<int>(mes),
+      'montoLimite': serializer.toJson<double>(montoLimite),
+    };
+  }
+
+  FinanceBudgetRow copyWith({
+    int? rowId,
+    String? categoryId,
+    int? anio,
+    int? mes,
+    double? montoLimite,
+  }) => FinanceBudgetRow(
+    rowId: rowId ?? this.rowId,
+    categoryId: categoryId ?? this.categoryId,
+    anio: anio ?? this.anio,
+    mes: mes ?? this.mes,
+    montoLimite: montoLimite ?? this.montoLimite,
+  );
+  FinanceBudgetRow copyWithCompanion(FinanceBudgetsCompanion data) {
+    return FinanceBudgetRow(
+      rowId: data.rowId.present ? data.rowId.value : this.rowId,
+      categoryId: data.categoryId.present
+          ? data.categoryId.value
+          : this.categoryId,
+      anio: data.anio.present ? data.anio.value : this.anio,
+      mes: data.mes.present ? data.mes.value : this.mes,
+      montoLimite: data.montoLimite.present
+          ? data.montoLimite.value
+          : this.montoLimite,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FinanceBudgetRow(')
+          ..write('rowId: $rowId, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('anio: $anio, ')
+          ..write('mes: $mes, ')
+          ..write('montoLimite: $montoLimite')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(rowId, categoryId, anio, mes, montoLimite);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FinanceBudgetRow &&
+          other.rowId == this.rowId &&
+          other.categoryId == this.categoryId &&
+          other.anio == this.anio &&
+          other.mes == this.mes &&
+          other.montoLimite == this.montoLimite);
+}
+
+class FinanceBudgetsCompanion extends UpdateCompanion<FinanceBudgetRow> {
+  final Value<int> rowId;
+  final Value<String> categoryId;
+  final Value<int> anio;
+  final Value<int> mes;
+  final Value<double> montoLimite;
+  const FinanceBudgetsCompanion({
+    this.rowId = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    this.anio = const Value.absent(),
+    this.mes = const Value.absent(),
+    this.montoLimite = const Value.absent(),
+  });
+  FinanceBudgetsCompanion.insert({
+    this.rowId = const Value.absent(),
+    required String categoryId,
+    required int anio,
+    required int mes,
+    required double montoLimite,
+  }) : categoryId = Value(categoryId),
+       anio = Value(anio),
+       mes = Value(mes),
+       montoLimite = Value(montoLimite);
+  static Insertable<FinanceBudgetRow> custom({
+    Expression<int>? rowId,
+    Expression<String>? categoryId,
+    Expression<int>? anio,
+    Expression<int>? mes,
+    Expression<double>? montoLimite,
+  }) {
+    return RawValuesInsertable({
+      if (rowId != null) 'row_id': rowId,
+      if (categoryId != null) 'category_id': categoryId,
+      if (anio != null) 'anio': anio,
+      if (mes != null) 'mes': mes,
+      if (montoLimite != null) 'monto_limite': montoLimite,
+    });
+  }
+
+  FinanceBudgetsCompanion copyWith({
+    Value<int>? rowId,
+    Value<String>? categoryId,
+    Value<int>? anio,
+    Value<int>? mes,
+    Value<double>? montoLimite,
+  }) {
+    return FinanceBudgetsCompanion(
+      rowId: rowId ?? this.rowId,
+      categoryId: categoryId ?? this.categoryId,
+      anio: anio ?? this.anio,
+      mes: mes ?? this.mes,
+      montoLimite: montoLimite ?? this.montoLimite,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (rowId.present) {
+      map['row_id'] = Variable<int>(rowId.value);
+    }
+    if (categoryId.present) {
+      map['category_id'] = Variable<String>(categoryId.value);
+    }
+    if (anio.present) {
+      map['anio'] = Variable<int>(anio.value);
+    }
+    if (mes.present) {
+      map['mes'] = Variable<int>(mes.value);
+    }
+    if (montoLimite.present) {
+      map['monto_limite'] = Variable<double>(montoLimite.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FinanceBudgetsCompanion(')
+          ..write('rowId: $rowId, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('anio: $anio, ')
+          ..write('mes: $mes, ')
+          ..write('montoLimite: $montoLimite')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4945,6 +6826,14 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PagosRealizadosTable pagosRealizados = $PagosRealizadosTable(
     this,
   );
+  late final $FinanceAccountsTable financeAccounts = $FinanceAccountsTable(
+    this,
+  );
+  late final $FinanceCategoriesTable financeCategories =
+      $FinanceCategoriesTable(this);
+  late final $FinanceTransactionsTable financeTransactions =
+      $FinanceTransactionsTable(this);
+  late final $FinanceBudgetsTable financeBudgets = $FinanceBudgetsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4956,6 +6845,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     cardMovements,
     loanAbonos,
     pagosRealizados,
+    financeAccounts,
+    financeCategories,
+    financeTransactions,
+    financeBudgets,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -8273,6 +10166,1282 @@ typedef $$PagosRealizadosTableProcessedTableManager =
       PagoRealizadoRow,
       PrefetchHooks Function({bool creditId})
     >;
+typedef $$FinanceAccountsTableCreateCompanionBuilder =
+    FinanceAccountsCompanion Function({
+      required String id,
+      required String nombre,
+      required String tipo,
+      required String icono,
+      required String color,
+      Value<double> saldoInicial,
+      Value<bool> activa,
+      Value<String> orden,
+      Value<int> rowid,
+    });
+typedef $$FinanceAccountsTableUpdateCompanionBuilder =
+    FinanceAccountsCompanion Function({
+      Value<String> id,
+      Value<String> nombre,
+      Value<String> tipo,
+      Value<String> icono,
+      Value<String> color,
+      Value<double> saldoInicial,
+      Value<bool> activa,
+      Value<String> orden,
+      Value<int> rowid,
+    });
+
+final class $$FinanceAccountsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $FinanceAccountsTable,
+          FinanceAccountRow
+        > {
+  $$FinanceAccountsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<
+    $FinanceTransactionsTable,
+    List<FinanceTransactionRow>
+  >
+  _financeTransactionsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.financeTransactions,
+        aliasName: 'finance_accounts__id__finance_transactions__account_id',
+      );
+
+  $$FinanceTransactionsTableProcessedTableManager get financeTransactionsRefs {
+    final manager = $$FinanceTransactionsTableTableManager(
+      $_db,
+      $_db.financeTransactions,
+    ).filter((f) => f.accountId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _financeTransactionsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$FinanceAccountsTableFilterComposer
+    extends Composer<_$AppDatabase, $FinanceAccountsTable> {
+  $$FinanceAccountsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nombre => $composableBuilder(
+    column: $table.nombre,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tipo => $composableBuilder(
+    column: $table.tipo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get icono => $composableBuilder(
+    column: $table.icono,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get saldoInicial => $composableBuilder(
+    column: $table.saldoInicial,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get activa => $composableBuilder(
+    column: $table.activa,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get orden => $composableBuilder(
+    column: $table.orden,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> financeTransactionsRefs(
+    Expression<bool> Function($$FinanceTransactionsTableFilterComposer f) f,
+  ) {
+    final $$FinanceTransactionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.financeTransactions,
+      getReferencedColumn: (t) => t.accountId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FinanceTransactionsTableFilterComposer(
+            $db: $db,
+            $table: $db.financeTransactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$FinanceAccountsTableOrderingComposer
+    extends Composer<_$AppDatabase, $FinanceAccountsTable> {
+  $$FinanceAccountsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nombre => $composableBuilder(
+    column: $table.nombre,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tipo => $composableBuilder(
+    column: $table.tipo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get icono => $composableBuilder(
+    column: $table.icono,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get saldoInicial => $composableBuilder(
+    column: $table.saldoInicial,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get activa => $composableBuilder(
+    column: $table.activa,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get orden => $composableBuilder(
+    column: $table.orden,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FinanceAccountsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FinanceAccountsTable> {
+  $$FinanceAccountsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get nombre =>
+      $composableBuilder(column: $table.nombre, builder: (column) => column);
+
+  GeneratedColumn<String> get tipo =>
+      $composableBuilder(column: $table.tipo, builder: (column) => column);
+
+  GeneratedColumn<String> get icono =>
+      $composableBuilder(column: $table.icono, builder: (column) => column);
+
+  GeneratedColumn<String> get color =>
+      $composableBuilder(column: $table.color, builder: (column) => column);
+
+  GeneratedColumn<double> get saldoInicial => $composableBuilder(
+    column: $table.saldoInicial,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get activa =>
+      $composableBuilder(column: $table.activa, builder: (column) => column);
+
+  GeneratedColumn<String> get orden =>
+      $composableBuilder(column: $table.orden, builder: (column) => column);
+
+  Expression<T> financeTransactionsRefs<T extends Object>(
+    Expression<T> Function($$FinanceTransactionsTableAnnotationComposer a) f,
+  ) {
+    final $$FinanceTransactionsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.financeTransactions,
+          getReferencedColumn: (t) => t.accountId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$FinanceTransactionsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.financeTransactions,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+}
+
+class $$FinanceAccountsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FinanceAccountsTable,
+          FinanceAccountRow,
+          $$FinanceAccountsTableFilterComposer,
+          $$FinanceAccountsTableOrderingComposer,
+          $$FinanceAccountsTableAnnotationComposer,
+          $$FinanceAccountsTableCreateCompanionBuilder,
+          $$FinanceAccountsTableUpdateCompanionBuilder,
+          (FinanceAccountRow, $$FinanceAccountsTableReferences),
+          FinanceAccountRow,
+          PrefetchHooks Function({bool financeTransactionsRefs})
+        > {
+  $$FinanceAccountsTableTableManager(
+    _$AppDatabase db,
+    $FinanceAccountsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FinanceAccountsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FinanceAccountsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FinanceAccountsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> nombre = const Value.absent(),
+                Value<String> tipo = const Value.absent(),
+                Value<String> icono = const Value.absent(),
+                Value<String> color = const Value.absent(),
+                Value<double> saldoInicial = const Value.absent(),
+                Value<bool> activa = const Value.absent(),
+                Value<String> orden = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FinanceAccountsCompanion(
+                id: id,
+                nombre: nombre,
+                tipo: tipo,
+                icono: icono,
+                color: color,
+                saldoInicial: saldoInicial,
+                activa: activa,
+                orden: orden,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String nombre,
+                required String tipo,
+                required String icono,
+                required String color,
+                Value<double> saldoInicial = const Value.absent(),
+                Value<bool> activa = const Value.absent(),
+                Value<String> orden = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FinanceAccountsCompanion.insert(
+                id: id,
+                nombre: nombre,
+                tipo: tipo,
+                icono: icono,
+                color: color,
+                saldoInicial: saldoInicial,
+                activa: activa,
+                orden: orden,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$FinanceAccountsTable, FinanceAccountRow>(table),
+                  $$FinanceAccountsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({financeTransactionsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (financeTransactionsRefs) db.financeTransactions,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (financeTransactionsRefs)
+                    await $_getPrefetchedData<
+                      FinanceAccountRow,
+                      $FinanceAccountsTable,
+                      FinanceTransactionRow
+                    >(
+                      currentTable: table,
+                      referencedTable: $$FinanceAccountsTableReferences
+                          ._financeTransactionsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$FinanceAccountsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).financeTransactionsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.accountId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$FinanceAccountsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FinanceAccountsTable,
+      FinanceAccountRow,
+      $$FinanceAccountsTableFilterComposer,
+      $$FinanceAccountsTableOrderingComposer,
+      $$FinanceAccountsTableAnnotationComposer,
+      $$FinanceAccountsTableCreateCompanionBuilder,
+      $$FinanceAccountsTableUpdateCompanionBuilder,
+      (FinanceAccountRow, $$FinanceAccountsTableReferences),
+      FinanceAccountRow,
+      PrefetchHooks Function({bool financeTransactionsRefs})
+    >;
+typedef $$FinanceCategoriesTableCreateCompanionBuilder =
+    FinanceCategoriesCompanion Function({
+      required String id,
+      required String nombre,
+      required String icono,
+      required String color,
+      required String tipo,
+      Value<bool> archivada,
+      Value<int> rowid,
+    });
+typedef $$FinanceCategoriesTableUpdateCompanionBuilder =
+    FinanceCategoriesCompanion Function({
+      Value<String> id,
+      Value<String> nombre,
+      Value<String> icono,
+      Value<String> color,
+      Value<String> tipo,
+      Value<bool> archivada,
+      Value<int> rowid,
+    });
+
+class $$FinanceCategoriesTableFilterComposer
+    extends Composer<_$AppDatabase, $FinanceCategoriesTable> {
+  $$FinanceCategoriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nombre => $composableBuilder(
+    column: $table.nombre,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get icono => $composableBuilder(
+    column: $table.icono,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tipo => $composableBuilder(
+    column: $table.tipo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get archivada => $composableBuilder(
+    column: $table.archivada,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$FinanceCategoriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $FinanceCategoriesTable> {
+  $$FinanceCategoriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nombre => $composableBuilder(
+    column: $table.nombre,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get icono => $composableBuilder(
+    column: $table.icono,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tipo => $composableBuilder(
+    column: $table.tipo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get archivada => $composableBuilder(
+    column: $table.archivada,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FinanceCategoriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FinanceCategoriesTable> {
+  $$FinanceCategoriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get nombre =>
+      $composableBuilder(column: $table.nombre, builder: (column) => column);
+
+  GeneratedColumn<String> get icono =>
+      $composableBuilder(column: $table.icono, builder: (column) => column);
+
+  GeneratedColumn<String> get color =>
+      $composableBuilder(column: $table.color, builder: (column) => column);
+
+  GeneratedColumn<String> get tipo =>
+      $composableBuilder(column: $table.tipo, builder: (column) => column);
+
+  GeneratedColumn<bool> get archivada =>
+      $composableBuilder(column: $table.archivada, builder: (column) => column);
+}
+
+class $$FinanceCategoriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FinanceCategoriesTable,
+          FinanceCategoryRow,
+          $$FinanceCategoriesTableFilterComposer,
+          $$FinanceCategoriesTableOrderingComposer,
+          $$FinanceCategoriesTableAnnotationComposer,
+          $$FinanceCategoriesTableCreateCompanionBuilder,
+          $$FinanceCategoriesTableUpdateCompanionBuilder,
+          (
+            FinanceCategoryRow,
+            BaseReferences<
+              _$AppDatabase,
+              $FinanceCategoriesTable,
+              FinanceCategoryRow
+            >,
+          ),
+          FinanceCategoryRow,
+          PrefetchHooks Function()
+        > {
+  $$FinanceCategoriesTableTableManager(
+    _$AppDatabase db,
+    $FinanceCategoriesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FinanceCategoriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FinanceCategoriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FinanceCategoriesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> nombre = const Value.absent(),
+                Value<String> icono = const Value.absent(),
+                Value<String> color = const Value.absent(),
+                Value<String> tipo = const Value.absent(),
+                Value<bool> archivada = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FinanceCategoriesCompanion(
+                id: id,
+                nombre: nombre,
+                icono: icono,
+                color: color,
+                tipo: tipo,
+                archivada: archivada,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String nombre,
+                required String icono,
+                required String color,
+                required String tipo,
+                Value<bool> archivada = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FinanceCategoriesCompanion.insert(
+                id: id,
+                nombre: nombre,
+                icono: icono,
+                color: color,
+                tipo: tipo,
+                archivada: archivada,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$FinanceCategoriesTable, FinanceCategoryRow>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $FinanceCategoriesTable,
+                    FinanceCategoryRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FinanceCategoriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FinanceCategoriesTable,
+      FinanceCategoryRow,
+      $$FinanceCategoriesTableFilterComposer,
+      $$FinanceCategoriesTableOrderingComposer,
+      $$FinanceCategoriesTableAnnotationComposer,
+      $$FinanceCategoriesTableCreateCompanionBuilder,
+      $$FinanceCategoriesTableUpdateCompanionBuilder,
+      (
+        FinanceCategoryRow,
+        BaseReferences<
+          _$AppDatabase,
+          $FinanceCategoriesTable,
+          FinanceCategoryRow
+        >,
+      ),
+      FinanceCategoryRow,
+      PrefetchHooks Function()
+    >;
+typedef $$FinanceTransactionsTableCreateCompanionBuilder =
+    FinanceTransactionsCompanion Function({
+      required int rowId,
+      required String id,
+      required String accountId,
+      required String categoryId,
+      required String tipo,
+      required double monto,
+      required String fecha,
+      Value<String> nota,
+      Value<bool> esRecurrente,
+      Value<String?> recurrenciaConfig,
+      Value<int> rowid,
+    });
+typedef $$FinanceTransactionsTableUpdateCompanionBuilder =
+    FinanceTransactionsCompanion Function({
+      Value<int> rowId,
+      Value<String> id,
+      Value<String> accountId,
+      Value<String> categoryId,
+      Value<String> tipo,
+      Value<double> monto,
+      Value<String> fecha,
+      Value<String> nota,
+      Value<bool> esRecurrente,
+      Value<String?> recurrenciaConfig,
+      Value<int> rowid,
+    });
+
+final class $$FinanceTransactionsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $FinanceTransactionsTable,
+          FinanceTransactionRow
+        > {
+  $$FinanceTransactionsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $FinanceAccountsTable _accountIdTable(_$AppDatabase db) => db
+      .financeAccounts
+      .createAlias('finance_transactions__account_id__finance_accounts__id');
+
+  $$FinanceAccountsTableProcessedTableManager get accountId {
+    final $_column = $_itemColumn<String>('account_id')!;
+
+    final manager = $$FinanceAccountsTableTableManager(
+      $_db,
+      $_db.financeAccounts,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_accountIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$FinanceTransactionsTableFilterComposer
+    extends Composer<_$AppDatabase, $FinanceTransactionsTable> {
+  $$FinanceTransactionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get rowId => $composableBuilder(
+    column: $table.rowId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tipo => $composableBuilder(
+    column: $table.tipo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get monto => $composableBuilder(
+    column: $table.monto,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fecha => $composableBuilder(
+    column: $table.fecha,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nota => $composableBuilder(
+    column: $table.nota,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get esRecurrente => $composableBuilder(
+    column: $table.esRecurrente,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recurrenciaConfig => $composableBuilder(
+    column: $table.recurrenciaConfig,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$FinanceAccountsTableFilterComposer get accountId {
+    final $$FinanceAccountsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.accountId,
+      referencedTable: $db.financeAccounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FinanceAccountsTableFilterComposer(
+            $db: $db,
+            $table: $db.financeAccounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$FinanceTransactionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $FinanceTransactionsTable> {
+  $$FinanceTransactionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get rowId => $composableBuilder(
+    column: $table.rowId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tipo => $composableBuilder(
+    column: $table.tipo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get monto => $composableBuilder(
+    column: $table.monto,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fecha => $composableBuilder(
+    column: $table.fecha,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nota => $composableBuilder(
+    column: $table.nota,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get esRecurrente => $composableBuilder(
+    column: $table.esRecurrente,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recurrenciaConfig => $composableBuilder(
+    column: $table.recurrenciaConfig,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$FinanceAccountsTableOrderingComposer get accountId {
+    final $$FinanceAccountsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.accountId,
+      referencedTable: $db.financeAccounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FinanceAccountsTableOrderingComposer(
+            $db: $db,
+            $table: $db.financeAccounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$FinanceTransactionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FinanceTransactionsTable> {
+  $$FinanceTransactionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get rowId =>
+      $composableBuilder(column: $table.rowId, builder: (column) => column);
+
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get tipo =>
+      $composableBuilder(column: $table.tipo, builder: (column) => column);
+
+  GeneratedColumn<double> get monto =>
+      $composableBuilder(column: $table.monto, builder: (column) => column);
+
+  GeneratedColumn<String> get fecha =>
+      $composableBuilder(column: $table.fecha, builder: (column) => column);
+
+  GeneratedColumn<String> get nota =>
+      $composableBuilder(column: $table.nota, builder: (column) => column);
+
+  GeneratedColumn<bool> get esRecurrente => $composableBuilder(
+    column: $table.esRecurrente,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get recurrenciaConfig => $composableBuilder(
+    column: $table.recurrenciaConfig,
+    builder: (column) => column,
+  );
+
+  $$FinanceAccountsTableAnnotationComposer get accountId {
+    final $$FinanceAccountsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.accountId,
+      referencedTable: $db.financeAccounts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$FinanceAccountsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.financeAccounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$FinanceTransactionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FinanceTransactionsTable,
+          FinanceTransactionRow,
+          $$FinanceTransactionsTableFilterComposer,
+          $$FinanceTransactionsTableOrderingComposer,
+          $$FinanceTransactionsTableAnnotationComposer,
+          $$FinanceTransactionsTableCreateCompanionBuilder,
+          $$FinanceTransactionsTableUpdateCompanionBuilder,
+          (FinanceTransactionRow, $$FinanceTransactionsTableReferences),
+          FinanceTransactionRow,
+          PrefetchHooks Function({bool accountId})
+        > {
+  $$FinanceTransactionsTableTableManager(
+    _$AppDatabase db,
+    $FinanceTransactionsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FinanceTransactionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FinanceTransactionsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$FinanceTransactionsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> rowId = const Value.absent(),
+                Value<String> id = const Value.absent(),
+                Value<String> accountId = const Value.absent(),
+                Value<String> categoryId = const Value.absent(),
+                Value<String> tipo = const Value.absent(),
+                Value<double> monto = const Value.absent(),
+                Value<String> fecha = const Value.absent(),
+                Value<String> nota = const Value.absent(),
+                Value<bool> esRecurrente = const Value.absent(),
+                Value<String?> recurrenciaConfig = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FinanceTransactionsCompanion(
+                rowId: rowId,
+                id: id,
+                accountId: accountId,
+                categoryId: categoryId,
+                tipo: tipo,
+                monto: monto,
+                fecha: fecha,
+                nota: nota,
+                esRecurrente: esRecurrente,
+                recurrenciaConfig: recurrenciaConfig,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required int rowId,
+                required String id,
+                required String accountId,
+                required String categoryId,
+                required String tipo,
+                required double monto,
+                required String fecha,
+                Value<String> nota = const Value.absent(),
+                Value<bool> esRecurrente = const Value.absent(),
+                Value<String?> recurrenciaConfig = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FinanceTransactionsCompanion.insert(
+                rowId: rowId,
+                id: id,
+                accountId: accountId,
+                categoryId: categoryId,
+                tipo: tipo,
+                monto: monto,
+                fecha: fecha,
+                nota: nota,
+                esRecurrente: esRecurrente,
+                recurrenciaConfig: recurrenciaConfig,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$FinanceTransactionsTable, FinanceTransactionRow>(
+                    table,
+                  ),
+                  $$FinanceTransactionsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({accountId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (accountId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.accountId,
+                                referencedTable:
+                                    $$FinanceTransactionsTableReferences
+                                        ._accountIdTable(db),
+                                referencedColumn:
+                                    $$FinanceTransactionsTableReferences
+                                        ._accountIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$FinanceTransactionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FinanceTransactionsTable,
+      FinanceTransactionRow,
+      $$FinanceTransactionsTableFilterComposer,
+      $$FinanceTransactionsTableOrderingComposer,
+      $$FinanceTransactionsTableAnnotationComposer,
+      $$FinanceTransactionsTableCreateCompanionBuilder,
+      $$FinanceTransactionsTableUpdateCompanionBuilder,
+      (FinanceTransactionRow, $$FinanceTransactionsTableReferences),
+      FinanceTransactionRow,
+      PrefetchHooks Function({bool accountId})
+    >;
+typedef $$FinanceBudgetsTableCreateCompanionBuilder =
+    FinanceBudgetsCompanion Function({
+      Value<int> rowId,
+      required String categoryId,
+      required int anio,
+      required int mes,
+      required double montoLimite,
+    });
+typedef $$FinanceBudgetsTableUpdateCompanionBuilder =
+    FinanceBudgetsCompanion Function({
+      Value<int> rowId,
+      Value<String> categoryId,
+      Value<int> anio,
+      Value<int> mes,
+      Value<double> montoLimite,
+    });
+
+class $$FinanceBudgetsTableFilterComposer
+    extends Composer<_$AppDatabase, $FinanceBudgetsTable> {
+  $$FinanceBudgetsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get rowId => $composableBuilder(
+    column: $table.rowId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get anio => $composableBuilder(
+    column: $table.anio,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get mes => $composableBuilder(
+    column: $table.mes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get montoLimite => $composableBuilder(
+    column: $table.montoLimite,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$FinanceBudgetsTableOrderingComposer
+    extends Composer<_$AppDatabase, $FinanceBudgetsTable> {
+  $$FinanceBudgetsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get rowId => $composableBuilder(
+    column: $table.rowId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get anio => $composableBuilder(
+    column: $table.anio,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get mes => $composableBuilder(
+    column: $table.mes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get montoLimite => $composableBuilder(
+    column: $table.montoLimite,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FinanceBudgetsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FinanceBudgetsTable> {
+  $$FinanceBudgetsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get rowId =>
+      $composableBuilder(column: $table.rowId, builder: (column) => column);
+
+  GeneratedColumn<String> get categoryId => $composableBuilder(
+    column: $table.categoryId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get anio =>
+      $composableBuilder(column: $table.anio, builder: (column) => column);
+
+  GeneratedColumn<int> get mes =>
+      $composableBuilder(column: $table.mes, builder: (column) => column);
+
+  GeneratedColumn<double> get montoLimite => $composableBuilder(
+    column: $table.montoLimite,
+    builder: (column) => column,
+  );
+}
+
+class $$FinanceBudgetsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FinanceBudgetsTable,
+          FinanceBudgetRow,
+          $$FinanceBudgetsTableFilterComposer,
+          $$FinanceBudgetsTableOrderingComposer,
+          $$FinanceBudgetsTableAnnotationComposer,
+          $$FinanceBudgetsTableCreateCompanionBuilder,
+          $$FinanceBudgetsTableUpdateCompanionBuilder,
+          (
+            FinanceBudgetRow,
+            BaseReferences<
+              _$AppDatabase,
+              $FinanceBudgetsTable,
+              FinanceBudgetRow
+            >,
+          ),
+          FinanceBudgetRow,
+          PrefetchHooks Function()
+        > {
+  $$FinanceBudgetsTableTableManager(
+    _$AppDatabase db,
+    $FinanceBudgetsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FinanceBudgetsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FinanceBudgetsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FinanceBudgetsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> rowId = const Value.absent(),
+                Value<String> categoryId = const Value.absent(),
+                Value<int> anio = const Value.absent(),
+                Value<int> mes = const Value.absent(),
+                Value<double> montoLimite = const Value.absent(),
+              }) => FinanceBudgetsCompanion(
+                rowId: rowId,
+                categoryId: categoryId,
+                anio: anio,
+                mes: mes,
+                montoLimite: montoLimite,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> rowId = const Value.absent(),
+                required String categoryId,
+                required int anio,
+                required int mes,
+                required double montoLimite,
+              }) => FinanceBudgetsCompanion.insert(
+                rowId: rowId,
+                categoryId: categoryId,
+                anio: anio,
+                mes: mes,
+                montoLimite: montoLimite,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$FinanceBudgetsTable, FinanceBudgetRow>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $FinanceBudgetsTable,
+                    FinanceBudgetRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FinanceBudgetsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FinanceBudgetsTable,
+      FinanceBudgetRow,
+      $$FinanceBudgetsTableFilterComposer,
+      $$FinanceBudgetsTableOrderingComposer,
+      $$FinanceBudgetsTableAnnotationComposer,
+      $$FinanceBudgetsTableCreateCompanionBuilder,
+      $$FinanceBudgetsTableUpdateCompanionBuilder,
+      (
+        FinanceBudgetRow,
+        BaseReferences<_$AppDatabase, $FinanceBudgetsTable, FinanceBudgetRow>,
+      ),
+      FinanceBudgetRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -8289,4 +11458,12 @@ class $AppDatabaseManager {
       $$LoanAbonosTableTableManager(_db, _db.loanAbonos);
   $$PagosRealizadosTableTableManager get pagosRealizados =>
       $$PagosRealizadosTableTableManager(_db, _db.pagosRealizados);
+  $$FinanceAccountsTableTableManager get financeAccounts =>
+      $$FinanceAccountsTableTableManager(_db, _db.financeAccounts);
+  $$FinanceCategoriesTableTableManager get financeCategories =>
+      $$FinanceCategoriesTableTableManager(_db, _db.financeCategories);
+  $$FinanceTransactionsTableTableManager get financeTransactions =>
+      $$FinanceTransactionsTableTableManager(_db, _db.financeTransactions);
+  $$FinanceBudgetsTableTableManager get financeBudgets =>
+      $$FinanceBudgetsTableTableManager(_db, _db.financeBudgets);
 }

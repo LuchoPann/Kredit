@@ -29,6 +29,24 @@ enum ChangeType { nuevo, mejora, correccion }
 
 const List<VersionEntry> changelog = [
   VersionEntry(
+    version: '2.0.0',
+    date: 'Octubre 2026',
+    changes: [
+      ChangeItem(ChangeType.nuevo,
+          'Módulo Finanzas: registra gastos e ingresos con categorías, cuentas y presupuesto mensual.'),
+      ChangeItem(ChangeType.nuevo,
+          'Navegación dual: alterna entre el entorno de Créditos y Finanzas con el botón central del nav.'),
+      ChangeItem(ChangeType.nuevo,
+          'Catálogo de 30 categorías predefinidas para clasificar gastos e ingresos, con soporte para categorías personalizadas.'),
+      ChangeItem(ChangeType.nuevo,
+          'Estadísticas de Finanzas: gráfica de gastos por categoría y saldo actual de cada cuenta o bolsillo.'),
+      ChangeItem(ChangeType.nuevo,
+          'Al instalar Krezium por primera vez, puedes elegir qué vista quieres ver al abrirla.'),
+      ChangeItem(ChangeType.mejora,
+          'Los respaldos incluyen ahora los datos de Finanzas. Los respaldos anteriores se siguen importando sin cambios.'),
+    ],
+  ),
+  VersionEntry(
     version: '1.1.0',
     date: 'Octubre 2026',
     changes: [

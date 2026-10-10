@@ -12,3 +12,7 @@ class AppNavTab {
 /// Enables any child screen/button (e.g. Dashboard "Ver todos") to
 /// smoothly switch tabs without breaking the navigation shell.
 final navigationIndexProvider = StateProvider<int>((ref) => AppNavTab.dashboard);
+
+// Tab activo por entorno (0,1,2 = tabs del entorno, 3 = Cuenta)
+final creditosTabProvider = StateProvider<int>((ref) => 0);
+final finanzasTabProvider = StateProvider<int>((ref) => 0);

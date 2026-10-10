@@ -32,6 +32,11 @@ import 'providers/shared_preferences_provider.dart';
 import 'services/home_widget_service.dart';
 import 'services/notification_service.dart';
 import 'theme/app_theme.dart';
+import 'screens/finanzas/finanzas_transacciones_screen.dart';
+import 'screens/finanzas/finanzas_presupuesto_screen.dart';
+import 'screens/finanzas/finanzas_estadisticas_screen.dart';
+import 'screens/onboarding/entorno_selection_screen.dart';
+import 'providers/entorno_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -147,19 +152,8 @@ class RootScaffold extends ConsumerStatefulWidget {
 }
 
 class _RootScaffoldState extends ConsumerState<RootScaffold> {
-  static const _screens = [
-    DashboardScreen(),
-    CreditsListScreen(),
-    StatsScreen(),
-    AccountScreen(),
-  ];
-
-  // Tracks which tabs have been visited at least once. Only visited tabs are
-  // inserted into the widget tree — unvisited tabs are replaced with an empty
-  // SizedBox so they don't build, query data, or run animations until needed.
-  // Once visited, a tab stays mounted (kept alive via Offstage) to preserve
-  // scroll position, loaded data, and form state across navigation.
-  final Set<int> _visited = {0};
+  final Set<int> _visitedCreditos = {0};
+  final Set<int> _visitedFinanzas = <int>{};
 
   @override
   void initState() {
@@ -180,8 +174,9 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
       // re-registering on every rebuild (Riverpod still deduplicates but
       // registering in initState is zero-cost on subsequent builds).
       ref.listen(navigationIndexProvider, (_, next) {
-        if (!_visited.contains(next)) setState(() => _visited.add(next));
+        // Legacy listener kept for external navigation calls
       });
+      _loadPreferredEntorno();
       // Single creditsProvider listener: syncs both notifications AND the
       // home-screen widget so there is no double-subscription.
       ref.listen(creditsProvider, (_, next) {
@@ -255,6 +250,13 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
     }
   }
 
+  Future<void> _loadPreferredEntorno() async {
+    final entorno = await loadPreferredEntorno();
+    if (mounted) {
+      ref.read(entornoProvider.notifier).state = entorno;
+    }
+  }
+
   Future<void> _syncNotifications() async {
     final service = ref.read(notificationServiceProvider);
     await service.init();
@@ -291,75 +293,156 @@ class _RootScaffoldState extends ConsumerState<RootScaffold> {
     updateHomeWidget(c, showAmounts: showAmounts, accentColor: themePrefs.accentColor, bgTone: themePrefs.bgTone);
   }
 
+  Set<int> _visitedForEntorno(Entorno e) =>
+      e == Entorno.creditos ? _visitedCreditos : _visitedFinanzas;
+
   @override
   Widget build(BuildContext context) {
-    final activeIndex = ref.watch(navigationIndexProvider);
+    final entorno = ref.watch(entornoProvider);
+    final creditosTab = ref.watch(creditosTabProvider);
+    final finanzasTab = ref.watch(finanzasTabProvider);
+
+    final isCreditos = entorno == Entorno.creditos;
+    final currentTab = isCreditos ? creditosTab : finanzasTab;
+    final isAccount = currentTab == 3;
+
+    final creditosScreens = const [
+      DashboardScreen(),
+      CreditsListScreen(),
+      StatsScreen(),
+    ];
+    final finanzasScreens = const [
+      FinanzasTransaccionesScreen(),
+      FinanzasPresupuestoScreen(),
+      FinanzasEstadisticasScreen(),
+    ];
+    final screens = isCreditos ? creditosScreens : finanzasScreens;
+
     return Scaffold(
       body: Stack(
         children: [
-          // Stylized rotated translucent 'K' emblem watermark embedded in bottom-left app background
           Positioned(
             left: -45,
             bottom: -35,
             child: IgnorePointer(
               child: Transform.rotate(
-                angle: -0.22, // ~ -12 degrees rotation
-                child: Opacity(
+                angle: -0.22,
+                child: const Opacity(
                   opacity: 0.04,
-                  child: const AppLogo(height: 280),
+                  child: AppLogo(height: 280),
                 ),
               ),
             ),
           ),
-          // Keep every tab alive, but fade the active one in/out instead of
-          // jumping instantly. The screens stay mounted, so scroll position,
-          // local filters and form state survive tab changes.
           Positioned.fill(
             child: Stack(
               children: [
-                for (var i = 0; i < _screens.length; i++)
-                  // Unvisited tabs are a zero-size placeholder — they don't
-                  // build, query data, or run animations until first visited.
-                  if (_visited.contains(i))
+                for (var i = 0; i < screens.length; i++)
+                  if (_visitedForEntorno(entorno).contains(i))
                     _TabFadeLayer(
-                      active: i == activeIndex,
-                      child: _screens[i],
+                      active: !isAccount && i == currentTab,
+                      child: screens[i],
                     )
                   else
                     const SizedBox.shrink(),
+                _TabFadeLayer(
+                  active: isAccount,
+                  child: const AccountScreen(),
+                ),
               ],
             ),
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: activeIndex,
-        onTap: (i) {
-          setState(() => _visited.add(i));
-          ref.read(navigationIndexProvider.notifier).state = i;
-        },
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.space_dashboard_outlined),
-            activeIcon: Icon(Icons.space_dashboard),
-            label: 'Inicio',
+      bottomNavigationBar: _buildDualNav(context, entorno, currentTab, isAccount),
+    );
+  }
+
+  Widget _buildDualNav(BuildContext context, Entorno entorno, int currentTab, bool isAccount) {
+    final isCreditos = entorno == Entorno.creditos;
+    int navIndex;
+    if (isAccount) {
+      navIndex = 4;
+    } else if (currentTab <= 1) {
+      navIndex = currentTab;
+    } else {
+      navIndex = currentTab + 1;
+    }
+
+    return SizedBox(
+      height: 80 + MediaQuery.of(context).padding.bottom,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.topCenter,
+        children: [
+          NavigationBar(
+            selectedIndex: navIndex,
+            onDestinationSelected: (i) {
+              if (i == 2) return;
+              final tab = i > 2 ? i - 1 : i;
+              if (tab == 3) {
+                if (isCreditos) {
+                  ref.read(creditosTabProvider.notifier).state = 3;
+                } else {
+                  ref.read(finanzasTabProvider.notifier).state = 3;
+                }
+              } else {
+                if (isCreditos) {
+                  setState(() => _visitedCreditos.add(tab));
+                  ref.read(creditosTabProvider.notifier).state = tab;
+                } else {
+                  setState(() => _visitedFinanzas.add(tab));
+                  ref.read(finanzasTabProvider.notifier).state = tab;
+                }
+              }
+            },
+            destinations: isCreditos
+                ? const [
+                    NavigationDestination(icon: Icon(Icons.space_dashboard_outlined), selectedIcon: Icon(Icons.space_dashboard), label: 'Inicio'),
+                    NavigationDestination(icon: Icon(Icons.credit_card_outlined), selectedIcon: Icon(Icons.credit_card), label: 'Créditos'),
+                    NavigationDestination(icon: SizedBox.shrink(), label: ''),
+                    NavigationDestination(icon: Icon(Icons.bar_chart_outlined), selectedIcon: Icon(Icons.bar_chart), label: 'Estadísticas'),
+                    NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Cuenta'),
+                  ]
+                : const [
+                    NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Transac.'),
+                    NavigationDestination(icon: Icon(Icons.pie_chart_outline_outlined), selectedIcon: Icon(Icons.pie_chart), label: 'Presupuesto'),
+                    NavigationDestination(icon: SizedBox.shrink(), label: ''),
+                    NavigationDestination(icon: Icon(Icons.area_chart_outlined), selectedIcon: Icon(Icons.area_chart), label: 'Estadísticas'),
+                    NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Cuenta'),
+                  ],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.credit_card_outlined),
-            activeIcon: Icon(Icons.credit_card),
-            label: 'Créditos',
+          Positioned(
+            top: -20,
+            child: _SwitchEntornoButton(entorno: entorno),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart_outlined),
-            activeIcon: Icon(Icons.bar_chart),
-            label: 'Estadísticas',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Cuenta',
-          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SwitchEntornoButton extends ConsumerWidget {
+  final Entorno entorno;
+  const _SwitchEntornoButton({required this.entorno});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isCreditos = entorno == Entorno.creditos;
+    return FloatingActionButton.small(
+      heroTag: 'switch_entorno_fab',
+      tooltip: isCreditos ? 'Cambiar a Finanzas' : 'Cambiar a Créditos',
+      elevation: 4,
+      onPressed: () {
+        final next = isCreditos ? Entorno.finanzas : Entorno.creditos;
+        ref.read(entornoProvider.notifier).state = next;
+        savePreferredEntorno(next);
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(isCreditos ? Icons.account_balance_wallet_outlined : Icons.credit_card_outlined, size: 16),
+          Text(isCreditos ? 'Fin.' : 'Cré.', style: const TextStyle(fontSize: 8)),
         ],
       ),
     );

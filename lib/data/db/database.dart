@@ -11,6 +11,7 @@ import '../models/loan_abono.dart';
 import '../models/pago_realizado.dart';
 import 'connection.dart';
 import 'tables.dart';
+import 'tables_finance.dart';
 
 part 'database.g.dart';
 
@@ -30,8 +31,10 @@ class QuotaHasActivePurchasesException implements Exception {
 /// App-wide Drift database. Replaces app.js's single Dexie `kv` table (which
 /// just stashed the whole `state` object as one JSON blob) with a proper
 /// relational schema — see lib/data/db/tables.dart for the mapping notes.
-@DriftDatabase(
-    tables: [Credits, Installments, CardMovements, LoanAbonos, CommercialQuotas, PagosRealizados])
+@DriftDatabase(tables: [
+  Credits, Installments, CardMovements, LoanAbonos, CommercialQuotas, PagosRealizados,
+  FinanceAccounts, FinanceCategories, FinanceTransactions, FinanceBudgets,
+])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(openConnection());
 
@@ -39,7 +42,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -102,6 +105,12 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(cardMovements, cardMovements.advanceCommission);
             await m.addColumn(cardMovements, cardMovements.advanceFirstPaymentDate);
             await m.addColumn(cardMovements, cardMovements.advanceDestination);
+          }
+          if (from < 13) {
+            await m.createTable(financeAccounts);
+            await m.createTable(financeCategories);
+            await m.createTable(financeTransactions);
+            await m.createTable(financeBudgets);
           }
           if (from < 12) {
             // notification_days_before may already exist on devices that ran
@@ -516,6 +525,60 @@ class AppDatabase extends _$AppDatabase {
   Future<void> deletePagoRealizado(int rowId) async {
     await (delete(pagosRealizados)..where((p) => p.rowId.equals(rowId))).go();
   }
+
+  // -------------------------------------------------------------------------
+
+  // --- Finance Accounts ---
+
+  Future<List<FinanceAccountRow>> getFinanceAccounts() =>
+      select(financeAccounts).get();
+
+  Future<void> upsertFinanceAccount(FinanceAccountsCompanion row) =>
+      into(financeAccounts).insertOnConflictUpdate(row);
+
+  Future<void> deleteFinanceAccount(String id) =>
+      (delete(financeAccounts)..where((t) => t.id.equals(id))).go();
+
+  // --- Finance Categories ---
+
+  Future<List<FinanceCategoryRow>> getFinanceCategories() =>
+      select(financeCategories).get();
+
+  Future<void> upsertFinanceCategory(FinanceCategoriesCompanion row) =>
+      into(financeCategories).insertOnConflictUpdate(row);
+
+  // --- Finance Transactions ---
+
+  Future<List<FinanceTransactionRow>> getFinanceTransactions({
+    String? accountId,
+    String? mes, // 'YYYY-MM'
+  }) async {
+    final query = select(financeTransactions);
+    query.where((t) {
+      Expression<bool> cond = const Constant(true);
+      if (accountId != null) cond = cond & t.accountId.equals(accountId);
+      if (mes != null) cond = cond & t.fecha.like('$mes%');
+      return cond;
+    });
+    query.orderBy([(t) => OrderingTerm.desc(t.fecha)]);
+    return query.get();
+  }
+
+  Future<void> upsertFinanceTransaction(FinanceTransactionsCompanion row) =>
+      into(financeTransactions).insertOnConflictUpdate(row);
+
+  Future<void> deleteFinanceTransaction(String id) =>
+      (delete(financeTransactions)..where((t) => t.id.equals(id))).go();
+
+  // --- Finance Budgets ---
+
+  Future<List<FinanceBudgetRow>> getFinanceBudgets(int anio, int mes) =>
+      (select(financeBudgets)
+            ..where((t) => t.anio.equals(anio) & t.mes.equals(mes)))
+          .get();
+
+  Future<void> upsertFinanceBudget(FinanceBudgetsCompanion row) =>
+      into(financeBudgets).insertOnConflictUpdate(row);
 
   // -------------------------------------------------------------------------
 

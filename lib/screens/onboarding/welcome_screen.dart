@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../main.dart' show RootScaffold;
 import '../../providers/notification_settings_provider.dart';
 import '../../providers/onboarding_provider.dart';
+import 'entorno_selection_screen.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/kredit_wordmark.dart';
 import '../../widgets/notification_settings_tile.dart';
@@ -21,7 +22,13 @@ class WelcomeScreen extends ConsumerWidget {
   void _finish(BuildContext context, WidgetRef ref) {
     ref.read(onboardingProvider.notifier).markShown();
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const RootScaffold()),
+      MaterialPageRoute(
+        builder: (_) => EntornoSelectionScreen(
+          onSelected: () => Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const RootScaffold()),
+          ),
+        ),
+      ),
     );
   }
 
