@@ -554,6 +554,11 @@ class AppDatabase extends _$AppDatabase {
   Future<void> deleteFinanceAccount(String id) =>
       (delete(financeAccounts)..where((t) => t.id.equals(id))).go();
 
+  Future<void> clearFinanceAccountFavoritos() async {
+    await (update(financeAccounts)..where((_) => const Constant(true)))
+        .write(const FinanceAccountsCompanion(esFavorito: Value(false)));
+  }
+
   // --- Finance Categories ---
 
   Future<List<FinanceCategoryRow>> getFinanceCategories() =>

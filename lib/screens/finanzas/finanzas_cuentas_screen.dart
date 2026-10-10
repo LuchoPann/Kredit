@@ -25,32 +25,30 @@ class FinanzasCuentasScreen extends ConsumerStatefulWidget {
 }
 
 class _FinanzasCuentasScreenState extends ConsumerState<FinanzasCuentasScreen> {
-  bool _autoPushed = false;
+  bool _autoPushDone = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (_autoPushed) return;
-      final prefs = await SharedPreferences.getInstance();
-      final defaultId = prefs.getString('finanzas_libro_default');
-      if (defaultId == null || !mounted) return;
+  }
 
-      final libros = ref.read(financeAccountsProvider).valueOrNull;
-      if (libros == null || libros.isEmpty) return;
+  Future<void> _checkAndAutoPush(List<dynamic> rows) async {
+    if (_autoPushDone) return;
+    final prefs = await SharedPreferences.getInstance();
+    final defaultId = prefs.getString('finanzas_libro_default');
+    if (defaultId == null || !mounted) return;
 
-      final match = libros.where((r) => r.id == defaultId).toList();
-      if (match.isEmpty || !mounted) return;
+    final match = rows.where((r) => r.id == defaultId).toList();
+    if (match.isEmpty || !mounted) return;
 
-      _autoPushed = true;
-      final libro = FinanceAccount.fromRow(match.first);
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => FinanzasLibroTransaccionesScreen(libro: libro),
-        ),
-      );
-    });
+    _autoPushDone = true;
+    final libro = FinanceAccount.fromRow(match.first);
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FinanzasLibroTransaccionesScreen(libro: libro),
+      ),
+    );
   }
 
   void _mostrarNuevoLibroSheet() {
@@ -61,6 +59,12 @@ class _FinanzasCuentasScreenState extends ConsumerState<FinanzasCuentasScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AsyncValue<List<dynamic>>>(financeAccountsProvider, (prev, next) {
+      if (prev?.isLoading == true && next.hasValue && !_autoPushDone) {
+        _checkAndAutoPush(next.value!);
+      }
+    });
+
     final asyncLibros = ref.watch(financeAccountsProvider);
 
     return Scaffold(
@@ -125,6 +129,8 @@ class _FinanzasCuentasScreenState extends ConsumerState<FinanzasCuentasScreen> {
     await prefs.setString('finanzas_libro_default', libro.id);
 
     final db = ref.read(databaseProvider);
+    await db.clearFinanceAccountFavoritos();
+    if (!mounted) return;
     await db.upsertFinanceAccount(
       FinanceAccountsCompanion(
         id: Value(libro.id),
