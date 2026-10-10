@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:krezium/data/db/database.dart';
 import 'package:krezium/data/finance_categories_catalog.dart';
+import 'package:krezium/data/finanzas_filtros.dart';
+import 'package:krezium/data/models/finance_models.dart';
 import 'database_provider.dart';
 
 final financeAccountsProvider = FutureProvider<List<FinanceAccountRow>>((ref) {
@@ -24,5 +26,48 @@ final allFinanceCategoriesProvider =
     FutureProvider<List<dynamic>>((ref) async {
   final db = ref.watch(databaseProvider);
   final custom = await db.getFinanceCategories();
-  return [...catalogoFinanzas, ...custom];
+  return [...todoCatalogo, ...custom];
+});
+
+// Lugares (autocomplete de lugar en transacción)
+final financePlacesProvider = FutureProvider<List<FinancePlace>>((ref) async {
+  final db = ref.watch(databaseProvider);
+  final rows = await db.getFinancePlaces();
+  return rows.map(FinancePlace.fromRow).toList();
+});
+
+// Plantillas filtradas por tipo ('ingreso'|'gasto'|null = todas)
+final financeTemplatesByTipoProvider =
+    FutureProvider.family<List<FinanceTemplate>, String?>((ref, tipo) async {
+  final db = ref.watch(databaseProvider);
+  final rows = await db.getFinanceTemplates(tipo: tipo);
+  return rows.map(FinanceTemplate.fromRow).toList();
+});
+
+// Filtros activos de la pantalla de transacciones
+final finanzasFiltrosProvider = StateProvider<FinanzasFiltros>(
+  (_) => const FinanzasFiltros(),
+);
+
+// Libro activo (ID del libro seleccionado en Tab 0)
+final finanzasLibroActivoProvider = StateProvider<String?>((_) => null);
+
+// Transacciones del libro activo aplicando filtros
+final finanzasLibroTxProvider =
+    FutureProvider.family<List<FinanceTransaction>, String>(
+        (ref, libroId) async {
+  final db = ref.watch(databaseProvider);
+  final filtros = ref.watch(finanzasFiltrosProvider);
+  final now = DateTime.now();
+  final mes = filtros.periodo == 'mensual'
+      ? '${now.year}-${now.month.toString().padLeft(2, '0')}'
+      : null;
+  final tipo = filtros.tipoFiltro == 'todos' ? null : filtros.tipoFiltro;
+  final rows = await db.getFinanceTransactionsByLibro(
+    libroId: libroId,
+    mes: mes,
+    tipo: tipo,
+    ascending: filtros.ascending,
+  );
+  return rows.map(FinanceTransaction.fromRow).toList();
 });
