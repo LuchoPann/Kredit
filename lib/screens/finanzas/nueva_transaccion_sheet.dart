@@ -807,8 +807,10 @@ class _SectionLabel extends StatelessWidget {
       );
 }
 
-// ─── Ordenante autocomplete (stateful para evitar listener leak) ──────────────
-class _OrdenanteField extends StatefulWidget {
+// ─── Ordenante autocomplete ───────────────────────────────────────────────────
+// Stateless: el Autocomplete mantiene su propio controller; el valor inicial
+// se siembra con initialValue y los cambios se propagan a ordenanteCtrl.
+class _OrdenanteField extends StatelessWidget {
   final TextEditingController ordenanteCtrl;
   final List<FinancePlace> placesSorted;
   final AppThemeColors tc;
@@ -820,39 +822,12 @@ class _OrdenanteField extends StatefulWidget {
   });
 
   @override
-  State<_OrdenanteField> createState() => _OrdenanteFieldState();
-}
-
-class _OrdenanteFieldState extends State<_OrdenanteField> {
-  late TextEditingController _innerCtrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _innerCtrl = TextEditingController(text: widget.ordenanteCtrl.text);
-    _innerCtrl.addListener(_syncToExternal);
-  }
-
-  void _syncToExternal() {
-    if (_innerCtrl.text != widget.ordenanteCtrl.text) {
-      widget.ordenanteCtrl.text = _innerCtrl.text;
-    }
-  }
-
-  @override
-  void dispose() {
-    _innerCtrl.removeListener(_syncToExternal);
-    _innerCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final tc = widget.tc;
     return Autocomplete<FinancePlace>(
+      initialValue: TextEditingValue(text: ordenanteCtrl.text),
       optionsBuilder: (textEditingValue) {
-        if (textEditingValue.text.isEmpty) return widget.placesSorted;
-        return widget.placesSorted.where((p) => p.nombre
+        if (textEditingValue.text.isEmpty) return placesSorted;
+        return placesSorted.where((p) => p.nombre
             .toLowerCase()
             .contains(textEditingValue.text.toLowerCase()));
       },
@@ -862,7 +837,7 @@ class _OrdenanteFieldState extends State<_OrdenanteField> {
           controller: ctrl,
           focusNode: focusNode,
           onEditingComplete: onSubmit,
-          onChanged: (val) => widget.ordenanteCtrl.text = val,
+          onChanged: (val) => ordenanteCtrl.text = val,
           decoration: InputDecoration(
             hintText: 'Tienda, persona, lugar…',
             hintStyle: TextStyle(color: tc.textTertiary, fontSize: AppTextSize.body),
@@ -884,10 +859,7 @@ class _OrdenanteFieldState extends State<_OrdenanteField> {
           ),
         );
       },
-      onSelected: (p) {
-        widget.ordenanteCtrl.text = p.nombre;
-        _innerCtrl.text = p.nombre;
-      },
+      onSelected: (p) => ordenanteCtrl.text = p.nombre,
       optionsViewBuilder: (ctx, onSelected, options) => Align(
         alignment: Alignment.topLeft,
         child: Material(
