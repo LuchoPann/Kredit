@@ -622,6 +622,7 @@ class _Paso2 extends ConsumerWidget {
           controller: montoCtrl,
           focusNode: montoFocus,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [_MontoFormatter()],
           style: TextStyle(
             fontFamily: 'SpaceGrotesk',
             fontSize: 28,
@@ -944,4 +945,37 @@ class _DateTimeRow extends StatelessWidget {
           ),
         ],
       );
+}
+
+// ─── Formatter: sobreescribir "0" al escribir el primer dígito ────────────────
+class _MontoFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final newText = newValue.text;
+    final oldText = oldValue.text;
+
+    // Si el campo tenía exactamente "0" y se agregó un dígito al final, quitar el 0
+    if (oldText == '0' && newText.length == 2 && newText.startsWith('0')) {
+      final digit = newText[1];
+      return TextEditingValue(
+        text: digit,
+        selection: TextSelection.collapsed(offset: 1),
+      );
+    }
+
+    // Evitar múltiples ceros al inicio (ej: "00")
+    if (newText.length > 1 && newText.startsWith('0') && newText[1] != '.') {
+      final trimmed = newText.replaceFirst(RegExp(r'^0+'), '');
+      final text = trimmed.isEmpty ? '0' : trimmed;
+      return TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+    }
+
+    return newValue;
+  }
 }
